@@ -1,0 +1,12 @@
+{
+  "name": "Binance Futures",
+  "maker_fee": 0.0002,
+  "taker_fee": 0.0004,
+  "slippage_model": {
+    "type": "fixed",
+    "base_spread": 0.0005
+  },
+  "funding_rate_source": "none",
+  "leverage_limit": 50
+}
+
