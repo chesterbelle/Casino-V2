@@ -25,73 +25,90 @@ Principios de diseño:
 
 PUNTOS DE EXTENSIÓN:
 --------------------
-• Reemplazar TableBacktest por TableRealtime cuando MODE="live".
+• Reemplazar TableBacktest por BrokerInterface/TableRealtime cuando MODE="live".
 • Añadir nuevas mesas en tables/ y nuevos croupiers en croupier/.
 • Ajustar sensores en sensors/ (más estrategias de reversión).
 """
 
+from __future__ import annotations
+
 import logging
-from datetime import datetime
+import os
+from typing import Dict, Optional, Tuple
 
 import config
-from sensors.sensor_manager import SensorManager
-from gemini.gemini_core import Gemini
 from croupier.croupier import Croupier
-from croupier.broker_interface import BrokerInterface  # interfaz que entrega .engine.table
-# ^ Si tu BrokerInterface aún no existe o tiene firma distinta, ajusta la sección SETUP_MESA abajo.
+from gemini.gemini_core import Decision, Gemini
+from sensors.sensor_manager import SensorManager
+from tables.table_backtest import TableBacktest
 
 
-# =========================================================
-# 🪙 LOGGING
-# =========================================================
+# ============================================================
+# 🪙 LOGGING GLOBAL
+# ============================================================
 logging.basicConfig(
     level=getattr(logging, config.LOG_LEVEL, logging.INFO),
-    format="%(asctime)s | %(name)s | %(levelname)s | %(message)s"
+    format="%(asctime)s | %(name)s | %(levelname)s | %(message)s",
 )
 
 
-# =========================================================
-# 🧰 Helpers
-# =========================================================
+# ============================================================
+# 🧰 HELPERS
+# ============================================================
 def ask_initial_balance() -> float:
-    """Pide balance inicial por consola, con fallback a config.STARTING_BALANCE."""
+    """Pide balance inicial por consola; fallback a config.STARTING_BALANCE."""
     try:
         raw = input("💰 Ingrese balance inicial (ej. 10000): ").strip()
         if not raw:
             raise ValueError
-        val = float(raw.replace(",", ""))
-        if val <= 0:
+        value = float(raw.replace(",", ""))
+        if value <= 0:
             raise ValueError
-        return val
+        return value
     except Exception:
-        print(f"⚠️ Valor inválido. Usando STARTING_BALANCE de config: {config.STARTING_BALANCE:.2f}")
-        return float(config.STARTING_BALANCE)
+        default = float(getattr(config, "STARTING_BALANCE", 10_000.0))
+        print(f"⚠️ Valor inválido. Usando STARTING_BALANCE de config: {default:.2f}")
+        return default
 
 
-def set_table_balance(table, amount: float) -> None:
-    """
-    Intenta setear el balance inicial de la mesa activa.
-    Compatible con implementaciones que expongan distintos métodos.
-    """
+def _prepare_order(
+    decision: Decision,
+    fallback_symbol: str,
+    fallback_timestamp: Optional[str],
+    fallback_timeframe: Optional[str],
+) -> Dict:
+    """Normaliza la orden antes de enviarla al crupier."""
+    order = dict(decision.order or {})
+    order.setdefault("symbol", fallback_symbol)
+    order.setdefault("timestamp", fallback_timestamp)
+    order.setdefault("timeframe", fallback_timeframe)
+    if fallback_symbol and fallback_timeframe and fallback_timeframe != "UNKNOWN":
+        order.setdefault("market", f"{fallback_symbol}@{fallback_timeframe}")
+    order.setdefault("side", decision.side)
+    order.setdefault("size", 0.0)
+    tp_default = 1.0 + getattr(config, "TAKE_PROFIT", 0.01)
+    sl_default = 1.0 - getattr(config, "STOP_LOSS", 0.01)
+    order.setdefault("take_profit", tp_default)
+    order.setdefault("stop_loss", sl_default)
+    order["trade_id"] = decision.trade_id
+    order["ghost"] = decision.action == "GHOST"
+    return order
+
+
+def _set_table_balance(table: TableBacktest, amount: float) -> None:
+    """Fuerza el balance inicial de la mesa."""
     bm = getattr(table, "balance_manager", None)
-    if bm is None:
+    if not bm:
         return
-    # PUNTOS DE EXTENSIÓN: ajusta a tu API real si difiere
-    if hasattr(bm, "reset"):
-        bm.reset(amount)
-    elif hasattr(bm, "set_balance"):
-        bm.set_balance(amount)
-    else:
-        try:
-            bm.balance = amount  # fallback
-        except Exception:
-            pass
+    try:
+        bm.balance = amount
+        bm.equity = amount
+    except Exception:
+        if hasattr(bm, "set_balance"):
+            bm.set_balance(amount)
 
 
-def get_table_state(table) -> dict:
-    """
-    Devuelve estado de balance/equity de la mesa, si está disponible.
-    """
+def _get_table_state(table: TableBacktest) -> Dict:
     bm = getattr(table, "balance_manager", None)
     if bm and hasattr(bm, "get_state"):
         try:
@@ -101,87 +118,73 @@ def get_table_state(table) -> dict:
     return {}
 
 
-def print_session_summary(title: str, stats: dict):
-    print("\n" + "=" * 60)
-    print(f"📊 Resumen de sesión: {title}")
-    print("-" * 60)
-    print(f"   Trades BET reales      : {stats.get('bet_trades', 0)}")
-    print(f"   Trades GHOST (entreno) : {stats.get('ghost_trades', 0)}")
-    print(f"   Wins (BET)             : {stats.get('wins', 0)}")
-    print(f"   Losses (BET)           : {stats.get('losses', 0)}")
-    wr = stats.get("winrate", 0.0)
-    print(f"   WinRate (BET)          : {wr:.2f}%")
-    print(f"   Balance final          : {stats.get('final_balance', 0):.2f}")
-    print("=" * 60 + "\n")
-
-
-# =========================================================
-# 🎛️ SESIÓN DE CASINO SOBRE UNA MESA
-# =========================================================
-def run_session(dataset_path: str, initial_balance: float, gemini: Gemini) -> dict:
-    """
-    Ejecuta una sesión completa sobre un dataset (mesa única).
-    Devuelve un dict con métricas de la sesión.
-
-    dataset_path: ruta al CSV (ej: tables/data/raw/LTCUSDT_15min_bull.csv)
-    initial_balance: balance con el que arranca esta mesa
-    gemini: instancia compartida (memoria persiste entre mesas)
-    """
+def _log_trade(decision: Decision, order: Dict, result: Dict, balance: Optional[float]) -> None:
     logger = logging.getLogger("Session")
+    logger.info(
+        "🎲 %s | %s %s | size=%.4f | outcome=%s | balance=%s",
+        decision.action,
+        order.get("symbol", "?"),
+        order.get("side", "?"),
+        float(order.get("size", 0.0)),
+        result.get("result", "?"),
+        f"{balance:.2f}" if balance is not None else "n/a",
+    )
 
-    # 1) Crear mesa (feed) a través del Broker
-    #    BrokerInterface debe proveer .engine.table con:
-    #    - .next_candle() -> dict | None
-    #    - .execute_order(order: dict, ghost: bool) -> dict (resultado normalizado)
-    #    - .balance_manager con get_state() y set/reset de balance
-    broker = BrokerInterface(csv_path=dataset_path)  # 🔧 Ajusta si tu firma difiere
-    table = broker.engine.table
-    set_table_balance(table, initial_balance)
 
-    # 2) Croupier y Sensores
-    croupier = Croupier(table)
+# ============================================================
+# 🎛️ SESIÓN INDIVIDUAL
+# ============================================================
+def run_session(dataset_path: str, initial_balance: float, gemini: Gemini) -> Dict:
+    dataset_name = os.path.basename(dataset_path)
+    print(f"\n🎰 Ejecutando dataset: {dataset_name}")
+
+    table = TableBacktest(dataset_path)
+    _set_table_balance(table, initial_balance)
+
     sensors = SensorManager()
+    croupier = Croupier(table)
 
-    # 3) Métricas
+    candles = 0
     bet_trades = 0
     ghost_trades = 0
     wins = 0
     losses = 0
+    total_fees = 0.0
 
-    # 4) Loop principal por velas
     while True:
         candle = table.next_candle()
         if candle is None:
             break
 
-        # Sensores generan señales de oportunidad
+        candles += 1
         signals = sensors.process_candle(candle)
         if not signals:
             continue
 
-        # Equity/Balance actual (para logs o decisiones si fuese necesario)
-        equity = get_table_state(table).get("equity", None)
-        # Decisión de Gemini (BET/GHOST/SKIP) para UNA apuesta por vela
-        decision = gemini.evaluate_signals(signals, equity)
+        equity = candle.get("equity")
+        if equity is None:
+            equity = _get_table_state(table).get("equity", initial_balance)
 
+        decision = gemini.evaluate_signals(signals, equity=equity)
         if decision.action == "SKIP":
             continue
 
-        # 🚩 Orden al Croupier: el Croupier siempre "opera" contra la mesa
-        #    Para GHOST marcamos flag dentro de la orden, la mesa debe tratarlo como shadow trade
-        order = decision.order or {}
-        order["trade_id"] = decision.trade_id
-        order["ghost"] = (decision.action == "GHOST")
+        order = _prepare_order(
+            decision,
+            fallback_symbol=candle.get("symbol", table.symbol),
+            fallback_timestamp=candle.get("timestamp"),
+            fallback_timeframe=candle.get("timeframe", getattr(table, "timeframe", "UNKNOWN")),
+        )
 
-        result = croupier.route_order(order)  # la mesa ejecuta (real o ghost según flag)
+        result = croupier.route_order(order)
 
-        # Reportar a Gemini el resultado normalizado
-        gemini.on_trade_result(decision.trade_id, result)
+        if decision.trade_id:
+            gemini.on_trade_result(decision.trade_id, result)
 
-        # Métricas
+        outcome = result.get("result", "").upper()
         if decision.action == "BET":
             bet_trades += 1
-            outcome = (result.get("result", "").upper())
+            total_fees += float(result.get("fee", 0.0) or 0.0)
             if outcome == "WIN":
                 wins += 1
             elif outcome == "LOSS":
@@ -189,83 +192,86 @@ def run_session(dataset_path: str, initial_balance: float, gemini: Gemini) -> di
         elif decision.action == "GHOST":
             ghost_trades += 1
 
-        # Log consolidado por vela con estado de balance
-        state = get_table_state(table)
-        balance = state.get("balance", None)
-        logger.info(
-            f"🎲 {decision.action} | {order.get('symbol','?')} {order.get('side','?')} "
-            f"| size={order.get('size',0):.4f} | outcome={result.get('result','?')} "
-            f"| balance={balance if balance is not None else 'n/a'}"
-        )
+        balance = _get_table_state(table).get("balance")
+        _log_trade(decision, order, result, balance)
 
-    # Cierre de sesión: compilar métricas
-    state = get_table_state(table)
-    final_balance = state.get("balance", initial_balance)
-    wr = (wins / bet_trades * 100) if bet_trades > 0 else 0.0
+    final_state = _get_table_state(table)
+    final_balance = float(final_state.get("balance", initial_balance))
+    winrate = (wins / bet_trades * 100) if bet_trades > 0 else 0.0
 
     return {
+        "dataset": dataset_name,
+        "candles": candles,
         "bet_trades": bet_trades,
         "ghost_trades": ghost_trades,
         "wins": wins,
         "losses": losses,
-        "winrate": wr,
-        "final_balance": final_balance
+        "winrate": winrate,
+        "fees": total_fees,
+        "final_balance": final_balance,
     }
 
 
-# =========================================================
+def print_session_summary(stats: Dict) -> None:
+    print("\n" + "=" * 60)
+    print(f"📌 Dataset: {stats['dataset']}")
+    print("-" * 60)
+    print(f"   Trades BET            : {stats['bet_trades']}")
+    print(f"   Trades GHOST          : {stats['ghost_trades']}")
+    print(f"   WinRate (BET)         : {stats['winrate']:.2f}%")
+    print(f"   Comisiones totales    : {stats['fees']:.2f}")
+    print(f"   Balance final         : {stats['final_balance']:.2f}")
+    print("=" * 60 + "\n")
+
+
+# ============================================================
 # 🚀 ENTRYPOINT
-# =========================================================
-def main():
+# ============================================================
+def main() -> None:
     print("\n🎰 Bienvenido al Casino V2 — Sesión Backtest secuencial (Bull → Bear)\n")
 
-    # 1) Pedir balance inicial por consola
     initial_balance = ask_initial_balance()
+    datasets: Tuple[Tuple[str, str], ...] = (
+        ("🟢 Mesa 1: Bull", "tables/data/raw/LTCUSDT_15min_bull.csv"),
+        ("🔴 Mesa 2: Bear", "tables/data/raw/LTCUSDT_15min_bear.csv"),
+    )
 
-    # 2) Preparar datasets en secuencia
-    bull_csv = "tables/data/raw/LTCUSDT_15min_bull.csv"
-    bear_csv = "tables/data/raw/LTCUSDT_15min_bear.csv"
-
-    # 3) Crear una instancia de Gemini compartida (memoria persiste entre mesas)
     gemini = Gemini()
+    current_balance = initial_balance
 
-    # 4) Ejecutar primera mesa (Bull)
-    print("\n🟢 Mesa 1: Bull")
-    stats_bull = run_session(bull_csv, initial_balance, gemini)
-    print_session_summary("Bull", stats_bull)
+    total_bet = total_ghost = total_wins = total_losses = 0
+    total_fees = 0.0
+    session_history = []
 
-    # 5) Ejecutar segunda mesa (Bear) — arranca con balance resultante de la mesa anterior
-    print("\n🔴 Mesa 2: Bear")
-    # Nota: usamos el balance final de la anterior como inicial aquí:
-    stats_bear = run_session(bear_csv, stats_bull["final_balance"], gemini)
-    print_session_summary("Bear", stats_bear)
+    for title, path in datasets:
+        print(f"\n{title}")
+        stats = run_session(path, current_balance, gemini)
+        session_history.append(stats)
+        print_session_summary(stats)
 
-    # 6) Resumen global
-    total_bet = stats_bull["bet_trades"] + stats_bear["bet_trades"]
-    total_wins = stats_bull["wins"] + stats_bear["wins"]
-    total_losses = stats_bull["losses"] + stats_bear["losses"]
-    total_ghost = stats_bull["ghost_trades"] + stats_bear["ghost_trades"]
-    final_balance = stats_bear["final_balance"]
+        current_balance = stats["final_balance"]
+        total_bet += stats["bet_trades"]
+        total_ghost += stats["ghost_trades"]
+        total_wins += stats["wins"]
+        total_losses += stats["losses"]
+        total_fees += stats["fees"]
 
     wr_global = (total_wins / total_bet * 100) if total_bet > 0 else 0.0
 
     print("\n" + "#" * 60)
     print("🏁 RESUMEN GLOBAL (Bull → Bear)")
     print("#" * 60)
-    print(f"   Trades BET totales     : {total_bet}")
-    print(f"   Wins totales (BET)     : {total_wins}")
-    print(f"   Losses totales (BET)   : {total_losses}")
-    print(f"   WinRate global (BET)   : {wr_global:.2f}%")
-    print(f"   Trades GHOST totales   : {total_ghost}")
-    print(f"   Balance final global   : {final_balance:.2f}")
+    print(f"   Trades BET totales    : {total_bet}")
+    print(f"   WinRate global (BET)  : {wr_global:.2f}%")
+    print(f"   Trades BET totales    : {total_bet}")
+    print(f"   Trades GHOST totales  : {total_ghost}")
+    print(f"   Comisiones totales    : {total_fees:.2f}")
+    print(f"   Balance final global  : {current_balance:.2f}")
     print("#" * 60 + "\n")
-
     print("✅ Sesión completada.\n")
 
 
 if __name__ == "__main__":
-    # Validación de modo (por ahora, este main está centrado en backtest)
     if getattr(config, "MODE", "backtest").lower() != "backtest":
-        print("⚠️ MODE no es 'backtest'. Este main está pensado para backtest. Ajusta según tu flujo live.")
+        print("⚠️ MODE no es 'backtest'. Este main está enfocado al modo backtest.")
     main()
-

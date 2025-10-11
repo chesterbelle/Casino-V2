@@ -32,7 +32,9 @@ from __future__ import annotations
 import csv
 import math
 import logging
-from typing import List, Dict, Optional
+import os
+import re
+from typing import List, Dict, Optional, Tuple
 
 import config
 from .balance_manager import BalanceManager
@@ -44,10 +46,13 @@ class TableBacktest:
     execute_order() simula TP/SL a partir de la vela actual hacia adelante.
     """
 
-    def __init__(self, csv_path: str, symbol: Optional[str] = None):
+    def __init__(self, csv_path: str, symbol: Optional[str] = None, timeframe: Optional[str] = None):
         self.logger = logging.getLogger("TableBacktest")
         self.csv_path = csv_path
-        self.symbol = symbol or self._infer_symbol_from_path(csv_path)
+        inferred_symbol, inferred_timeframe = self._infer_market_from_path(csv_path)
+        self.symbol = symbol or inferred_symbol
+        self.timeframe = timeframe or inferred_timeframe
+        self.market_id = f"{self.symbol}@{self.timeframe}" if self.timeframe != "UNKNOWN" else self.symbol
         self.data: List[Dict] = self._load_csv(csv_path)
         self.n = len(self.data)
         self._cursor = 0           # índice de la PROXIMA vela a entregar
@@ -65,7 +70,9 @@ class TableBacktest:
         if self.n == 0:
             raise ValueError(f"Dataset vacío: {csv_path}")
 
-        self.logger.info(f"📚 CSV cargado: {csv_path} | velas: {self.n}")
+        self.logger.info(
+            f"📚 CSV cargado: {csv_path} | velas: {self.n} | símbolo: {self.symbol} | timeframe: {self.timeframe}"
+        )
 
     # ----------------------------------------------------
     # API de consumo de velas
@@ -83,6 +90,8 @@ class TableBacktest:
         return {
             "timestamp": row["timestamp"],
             "symbol": self.symbol,
+            "timeframe": self.timeframe,
+            "market": self.market_id,
             "open": row["open"],
             "high": row["high"],
             "low": row["low"],
@@ -260,14 +269,23 @@ class TableBacktest:
                     continue
         return out
 
-    def _infer_symbol_from_path(self, path: str) -> str:
+    def _infer_market_from_path(self, path: str) -> Tuple[str, str]:
         """
-        Intenta inferir el símbolo desde el nombre del archivo.
-        Ejemplo: 'LTCUSDT_15min_bull.csv' → 'LTCUSDT'
+        Intenta inferir símbolo y timeframe desde el nombre del archivo.
+        Ejemplo: 'LTCUSDT_15min_bull.csv' → ('LTCUSDT', '15min')
         """
-        fname = path.split("/")[-1]
+        fname = os.path.basename(path)
         base = fname.split(".")[0]
-        # cortar por primer '_' si existe
-        sym = base.split("_")[0]
-        return sym or "UNKNOWN"
+        parts = base.split("_") if base else []
 
+        symbol = parts[0] if parts else "UNKNOWN"
+        timeframe = "UNKNOWN"
+
+        timeframe_pattern = re.compile(r"^\d+(min|m|h|d|wk|mo)$", re.IGNORECASE)
+        for part in parts[1:]:
+            token = part.lower()
+            if timeframe_pattern.match(token):
+                timeframe = part
+                break
+
+        return symbol or "UNKNOWN", timeframe

@@ -39,7 +39,9 @@ class RSIReversion:
             return {
                 "timestamp": candle["timestamp"],
                 "symbol": candle.get("symbol", "UNKNOWN"),
+                "timeframe": candle.get("timeframe", "UNKNOWN"),
                 "side": "LONG",
+                "origin": "RSIReversion",
                 "range_score": 1,
                 "features": {"rsi2": rsi, "bbw": 0.0}
             }
@@ -47,9 +49,10 @@ class RSIReversion:
             return {
                 "timestamp": candle["timestamp"],
                 "symbol": candle.get("symbol", "UNKNOWN"),
+                "timeframe": candle.get("timeframe", "UNKNOWN"),
                 "side": "SHORT",
+                "origin": "RSIReversion",
                 "range_score": 1,
                 "features": {"rsi2": rsi, "bbw": 0.0}
             }
         return None
-

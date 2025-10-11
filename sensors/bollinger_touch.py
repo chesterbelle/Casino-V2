@@ -29,7 +29,9 @@ class BollingerTouch:
             return {
                 "timestamp": candle["timestamp"],
                 "symbol": candle.get("symbol", "UNKNOWN"),
+                "timeframe": candle.get("timeframe", "UNKNOWN"),
                 "side": "LONG",
+                "origin": "BollingerTouch",
                 "range_score": 1,
                 "features": {"bbw": (upper - lower) / ma}
             }
@@ -37,9 +39,10 @@ class BollingerTouch:
             return {
                 "timestamp": candle["timestamp"],
                 "symbol": candle.get("symbol", "UNKNOWN"),
+                "timeframe": candle.get("timeframe", "UNKNOWN"),
                 "side": "SHORT",
+                "origin": "BollingerTouch",
                 "range_score": 1,
                 "features": {"bbw": (upper - lower) / ma}
             }
         return None
-

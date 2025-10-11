@@ -13,12 +13,12 @@ Guardar, purgar y portar el conocimiento empírico de cada estrategia
 
 Diseño:
 -------
-• Ventana de observación deslizante por estrategia (memoria corta activa)
+• Ventana de observación deslizante por estrategia/bucket/market (memoria corta activa)
 • Persistencia dual:
-    - CSV: log cronológico por estrategia (portabilidad y auditoría)
+    - CSV: log cronológico por estrategia/bucket/símbolo/timeframe (portabilidad y auditoría)
     - JSON: snapshot resumido con winrates y conteos (carga rápida)
 • API simple para integrar con Gemini y el Croupier:
-    - register_vote_set(trade_id, strategies_activas)
+    - register_vote_set(trade_id, votos)
     - finalize_trade(trade_id, win)  # aplica a TODAS las estrategias que votaron
     - get_winrate(strategy_name), get_all_stats()
 
@@ -51,7 +51,7 @@ import json
 import csv
 from collections import deque, defaultdict
 from datetime import datetime
-from typing import Dict, List, Optional, Set
+from typing import Dict, List, Optional
 
 # ----------------------------------------------------
 # Carga opcional de config del proyecto
@@ -80,22 +80,25 @@ class GeminiMemory:
     """
     Clase principal de memoria.
     Mantiene:
-      - Ventana por estrategia (deque de wins/losses)
-      - Mapa trade_id -> set(estrategias que votaron)
+      - Ventana por clave (estrategia/bucket/símbolo)
+      - Mapa trade_id -> lista de votantes normalizados
       - Log CSV (histórico portable)
       - Snapshot JSON (carga rápida)
 
     Uso típico en el flujo:
     -----------------------
     # 🔧 PUNTO DE INTEGRACIÓN (antes de ejecutar la apuesta)
-    memory.register_vote_set(trade_id, ["RSIReversion", "KeltnerReversion"])
+    memory.register_vote_set(trade_id, [
+        {"strategy": "RSIReversion", "bucket": "BBW=L|RS1|H=M", "symbol": "LTCUSDT"},
+        {"strategy": "KeltnerReversion", "bucket": "BBW=L|RS1|H=M", "symbol": "LTCUSDT"},
+    ])
 
     # ... se ejecuta el trade con el Croupier y el Feed ...
 
     # 🔧 PUNTO DE INTEGRACIÓN (al cerrar la apuesta)
     memory.finalize_trade(trade_id, win=True)  # o False
 
-    p_rsi = memory.get_winrate("RSIReversion")
+    p_rsi = memory.get_winrate("LTCUSDT@15min|BBW=L|RS1|H=M|RSIReversion")
     stats = memory.get_all_stats()
     """
 
@@ -113,10 +116,10 @@ class GeminiMemory:
 
         # Ventana por estrategia: {'RSIReversion': deque([1,0,1,...], maxlen=N)}
         self._windows: Dict[str, deque] = defaultdict(lambda: deque(maxlen=self.memory_window))
-        # Conteos agregados por estrategia
+        # Conteos agregados por estrategia/bucket/símbolo
         self._counts: Dict[str, Dict[str, int]] = defaultdict(lambda: {"wins": 0, "losses": 0})
-        # Mapa de trade_id a conjunto de estrategias que votaron en ese trade
-        self._trade_votes: Dict[str, Set[str]] = {}
+        # Mapa de trade_id a lista de votos normalizados
+        self._trade_votes: Dict[str, List[Dict[str, str]]] = {}
         # Contador de finalizaciones para autosave
         self._finalized_counter: int = 0
 
@@ -141,7 +144,9 @@ class GeminiMemory:
         if not os.path.exists(self.csv_path):
             with open(self.csv_path, "w", newline="", encoding="utf-8") as f:
                 writer = csv.writer(f)
-                writer.writerow(["timestamp", "trade_id", "strategy", "result"])  # result: 1=WIN,0=LOSS
+                writer.writerow(
+                    ["timestamp", "trade_id", "strategy", "bucket", "symbol", "timeframe", "market", "result"]
+                )  # result: 1=WIN,0=LOSS
 
         # Crear JSON mínimo si no existe
         if not os.path.exists(self.state_path):
@@ -185,22 +190,36 @@ class GeminiMemory:
             with open(self.csv_path, "r", encoding="utf-8") as f:
                 reader = csv.DictReader(f)
                 for row in reader:
-                    strategy = row["strategy"]
-                    result = int(row["result"])
-                    tail_per_strategy[strategy].append(result)
+                    strategy = row.get("strategy", "UnknownStrategy")
+                    bucket = row.get("bucket", "GLOBAL")
+                    symbol = row.get("symbol", "UNKNOWN")
+                    timeframe = row.get("timeframe", "UNKNOWN")
+                    market = row.get("market")
+                    if not market or market == "UNKNOWN":
+                        market = f"{symbol}@{timeframe}" if timeframe != "UNKNOWN" else symbol
+                    key = self._vote_key(strategy, bucket, market)
+                    try:
+                        result = int(row["result"])
+                    except Exception:
+                        continue
+                    tail_per_strategy[key].append(result)
 
             # Reemplazamos ventanas por lo visto en CSV (lo más reciente)
-            for strat, q in tail_per_strategy.items():
-                self._windows[strat] = deque(q, maxlen=self.memory_window)
+            for key, q in tail_per_strategy.items():
+                self._windows[key] = deque(q, maxlen=self.memory_window)
                 # Los conteos totales deben mantenerse según JSON (ya que CSV puede estar truncado)
                 # Si no había estado previo en JSON, aproximamos con la ventana:
-                if strat not in self._counts:
+                if key not in self._counts:
                     wins = sum(q)
                     losses = len(q) - wins
-                    self._counts[strat] = {"wins": wins, "losses": losses}
+                    self._counts[key] = {"wins": wins, "losses": losses}
 
         except Exception as e:
             print(f"[GeminiMemory] Advertencia al calentar desde CSV: {e}")
+
+    def _vote_key(self, strategy: str, bucket: str, market: str) -> str:
+        """Construye clave única para estrategia contextual."""
+        return f"{market}|{bucket}|{strategy}"
 
     def _save_state(self):
         """Guarda snapshot JSON de estadísticas por estrategia (portabilidad y carga rápida)."""
@@ -229,27 +248,54 @@ class GeminiMemory:
     # ----------------------------------------------------
     # API principal (integración con Gemini/Core)
     # ----------------------------------------------------
-    def register_vote_set(self, trade_id: str, strategies: List[str]) -> None:
+    def register_vote_set(self, trade_id: str, votes: List[Dict[str, str]]) -> None:
         """
-        Registra las ESTRATEGIAS que “votaron” en un trade antes de ejecutarse.
+        Registra los votantes (estrategia + bucket + símbolo/timeframe) que participaron en un trade.
 
-        Gemini debe llamar esto cuando decide jugar y conoce qué sensores (estrategias)
+        Gemini debe llamar esto cuando decide jugar y conoce qué sensores/buckets
         justifican la entrada. Luego, al finalizar el trade, se evaluará el resultado
-        para cada estrategia votante.
+        para cada combinación única.
 
         :param trade_id: identificador único del trade (ej: "LTC-2025-10-10T12:30")
-        :param strategies: lista de nombres de estrategias que emitieron señal
+        :param votes: lista de dicts con claves {"strategy","bucket","symbol","timeframe","market"}
         """
-        # 🔧 PUNTO DE EXTENSIÓN:
-        # Si en el futuro deseas registrar también features contextuales por estrategia,
-        # puedes mantener aquí un dict trade_id -> {strategy -> feature_vector}
-        self._trade_votes[trade_id] = set(strategies or [])
+        normalized: Dict[str, Dict[str, str]] = {}
+        votes = votes or []
+        for vote in votes:
+            if isinstance(vote, dict):
+                strategy = str(vote.get("strategy", "UnknownStrategy"))
+                bucket = str(vote.get("bucket", "GLOBAL"))
+                symbol = str(vote.get("symbol", "UNKNOWN"))
+                timeframe = str(vote.get("timeframe", "UNKNOWN"))
+                market = str(vote.get("market")) if vote.get("market") else None
+            else:
+                # Compatibilidad retro: listas de strings
+                strategy = str(vote)
+                bucket = "GLOBAL"
+                symbol = "UNKNOWN"
+                timeframe = "UNKNOWN"
+                market = None
+
+            if not market or market == "UNKNOWN":
+                market = f"{symbol}@{timeframe}" if timeframe != "UNKNOWN" else symbol
+
+            key = self._vote_key(strategy, bucket, market)
+            normalized[key] = {
+                "strategy": strategy,
+                "bucket": bucket,
+                "symbol": symbol,
+                "timeframe": timeframe,
+                "market": market,
+                "key": key,
+            }
+
+        self._trade_votes[trade_id] = list(normalized.values())
 
     def finalize_trade(self, trade_id: str, win: bool) -> None:
         """
         Cierra un trade y registra el resultado para TODAS las estrategias que votaron.
 
-        - Agrega una fila por estrategia al CSV (timestamp, trade_id, strategy, result)
+        - Agrega una fila por estrategia/bucket/símbolo/timeframe al CSV (timestamp, trade_id, strategy, bucket, symbol, timeframe, market, result)
         - Actualiza ventana por estrategia (memoria corta)
         - Actualiza conteos (wins/losses)
         - Autosave del JSON cada N finalizaciones
@@ -262,8 +308,8 @@ class GeminiMemory:
             # Se ignora silenciosamente para robustez operacional.
             return
 
-        strategies = self._trade_votes.pop(trade_id)
-        if not strategies:
+        votes = self._trade_votes.pop(trade_id)
+        if not votes:
             return
 
         ts = datetime.utcnow().isoformat()
@@ -273,18 +319,28 @@ class GeminiMemory:
         try:
             with open(self.csv_path, "a", newline="", encoding="utf-8") as f:
                 writer = csv.writer(f)
-                for strat in strategies:
-                    writer.writerow([ts, trade_id, strat, result_int])
+                for vote in votes:
+                    writer.writerow([
+                        ts,
+                        trade_id,
+                        vote["strategy"],
+                        vote["bucket"],
+                        vote.get("symbol", "UNKNOWN"),
+                        vote.get("timeframe", "UNKNOWN"),
+                        vote.get("market", "UNKNOWN"),
+                        result_int,
+                    ])
         except Exception as e:
             print(f"[GeminiMemory] Error al escribir CSV: {e}")
 
         # 2) Actualizar memoria en caliente
-        for strat in strategies:
-            self._windows[strat].append(result_int)
+        for vote in votes:
+            key = vote["key"]
+            self._windows[key].append(result_int)
             if win:
-                self._counts[strat]["wins"] += 1
+                self._counts[key]["wins"] += 1
             else:
-                self._counts[strat]["losses"] += 1
+                self._counts[key]["losses"] += 1
 
         # 3) Autosave periódico
         self._finalized_counter += 1
@@ -295,7 +351,7 @@ class GeminiMemory:
     # ----------------------------------------------------
     # Consultas de estado (para Gemini)
     # ----------------------------------------------------
-    def get_winrate(self, strategy_name: str) -> Optional[float]:
+    def get_winrate(self, strategy_key: str) -> Optional[float]:
         """
         Devuelve p̂ (winrate) de la estrategia *en la ventana corta*.
         Si no hay suficientes datos, retorna None.
@@ -303,7 +359,7 @@ class GeminiMemory:
         Recomendación:
           - En Gemini, no apostar cuando p̂ is None o bajo mínimo de soporte.
         """
-        window = self._windows.get(strategy_name)
+        window = self._windows.get(strategy_key)
         if not window:
             return None
         n = len(window)
@@ -311,17 +367,17 @@ class GeminiMemory:
             return None
         return sum(window) / n
 
-    def get_window_size(self, strategy_name: str) -> int:
+    def get_window_size(self, strategy_key: str) -> int:
         """Tamaño actual de la ventana por estrategia (muestras recientes)."""
-        window = self._windows.get(strategy_name)
+        window = self._windows.get(strategy_key)
         return len(window) if window else 0
 
-    def get_counts(self, strategy_name: str) -> Dict[str, int]:
+    def get_counts(self, strategy_key: str) -> Dict[str, int]:
         """
         Conteos agregados totales (largo plazo): wins y losses acumulados.
         Útiles para diagnóstico y depuración, pero *NO* para Kelly (usa ventana).
         """
-        return dict(self._counts.get(strategy_name, {"wins": 0, "losses": 0}))
+        return dict(self._counts.get(strategy_key, {"wins": 0, "losses": 0}))
 
     def get_all_stats(self) -> Dict[str, Dict[str, float]]:
         """
@@ -369,4 +425,3 @@ class GeminiMemory:
     #
     # Esta función no desactiva estrategias por sí misma (eso lo haría Gemini o el manager),
     # solo recomienda basándose en la evidencia empírica actual.
-

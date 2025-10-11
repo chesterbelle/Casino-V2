@@ -40,7 +40,9 @@ class KeltnerReversion:
             return {
                 "timestamp": candle["timestamp"],
                 "symbol": candle.get("symbol", "UNKNOWN"),
+                "timeframe": candle.get("timeframe", "UNKNOWN"),
                 "side": "LONG",
+                "origin": "KeltnerReversion",
                 "range_score": 1,
                 "features": {"atr": atr}
             }
@@ -48,9 +50,10 @@ class KeltnerReversion:
             return {
                 "timestamp": candle["timestamp"],
                 "symbol": candle.get("symbol", "UNKNOWN"),
+                "timeframe": candle.get("timeframe", "UNKNOWN"),
                 "side": "SHORT",
+                "origin": "KeltnerReversion",
                 "range_score": 1,
                 "features": {"atr": atr}
             }
         return None
-
