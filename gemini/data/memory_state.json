@@ -1,0 +1,11 @@
+{
+  "last_update": "2025-10-11T16:34:16.909244",
+  "memory_window": 500,
+  "strategies": {
+    "UnknownSensor": {
+      "wins": 83112,
+      "losses": 112928,
+      "winrate": 0.4239542950418282
+    }
+  }
+}

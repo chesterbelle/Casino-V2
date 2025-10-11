@@ -1,185 +1,112 @@
 # 🎰 CASINO BINANCE V2 — *La Era Gemini*
 
-> Un laboratorio de trading probabilístico inspirado en la dinámica de un casino sin límite de apuesta.  
-> Cada módulo cumple un rol dentro del ecosistema: analistas, jugadores, mesas y crupieres trabajando juntos.
+> 🧠 Un laboratorio de *trading probabilístico* inspirado en la dinámica de un **casino sin límite de apuesta**.  
+> Cada módulo cumple un rol dentro del ecosistema: analistas, jugadores, mesas y crupieres trabajando juntos para buscar ventaja estadística.
+
+![Banner del proyecto](https://img.shields.io/badge/Estado-En%20Desarrollo-yellow)
+![Versión](https://img.shields.io/badge/Versión-0.1.1-blue)
+![Python](https://img.shields.io/badge/Python-3.10+-green)
+![Licencia](https://img.shields.io/badge/Licencia-MIT-lightgrey)
 
 ---
 
-## 🧠 Filosofía del Proyecto
+## 🧭 Filosofía del Proyecto
 
-En lugar de intentar predecir el futuro, el sistema busca explotar contextos estadísticamente favorables,  
-jugando únicamente cuando el Valor Esperado (EV) es positivo.
+En lugar de intentar **predecir el futuro**, el sistema busca **apostar cuando el Valor Esperado (EV)** es positivo.  
+Cada módulo representa un rol dentro del casino:
 
-El objetivo es construir un entorno modular, donde cada componente represente un rol dentro del casino:
-
-Rol | Módulo | Descripción  
-----|---------|-------------  
-🎩 **Gemini (Jugador racional)** | `gemini/` | Evalúa el mercado y decide cuándo y cuánto apostar en función de la probabilidad estimada de éxito (p̂).  
-👁️ **Analistas de mesa (Sensores)** | `sensors/` | Observan el mercado y detectan contextos técnicos favorables.  
-🧤 **Crupier** | `croupier/` | Ejecuta las órdenes sin pensar, ya sea en modo simulado o real.  
-🪙 **Mesas** | `tables/` | Controlan los datos (reales o históricos), aplican fees, slippage y mantienen el balance.  
-💰 **Cajero (BalanceManager)** | `tables/balance_manager.py` | Administra el capital del jugador y reporta resultados.  
-🧾 **Protocolo** | `protocolo.md` | Define las reglas de desarrollo, validación y testing.  
+| Rol | Módulo | Descripción |
+|------|---------|-------------|
+| 🎩 **Gemini (Jugador racional)** | `gemini/` | Evalúa el mercado, estima probabilidad de éxito (*p̂*), y decide cuándo y cuánto apostar según Kelly. |
+| 👁️ **Analistas de mesa (Sensores)** | `sensors/` | Detectan contextos técnicos favorables. |
+| 🧤 **Crupier** | `croupier/` | Ejecuta las órdenes sin pensar, en modo real o simulado. |
+| 🪙 **Mesas** | `tables/` | Proveen datos históricos o en vivo, aplican fees y actualizan balance. |
+| 💰 **Cajero (BalanceManager)** | `tables/balance_manager.py` | Administra capital y registra resultados. |
+| 🧾 **Protocolo** | `protocolo.md` | Define reglas de desarrollo, validación y testing. |
 
 ---
 
 ## ⚙️ Arquitectura General
 
-Gemini → Croupier → Mesa (Feed) → BalanceManager  
-             ↑                     ↓  
-         resultado ←――――――――――――――――  
+```
+Gemini → Croupier → Mesa (Feed) → BalanceManager
+             ↑                     ↓
+         resultado ←――――――――――――――――――――――――
+```
 
 ---
 
 ## 📂 Estructura del Proyecto
 
+```
 Casino-V2/
-│
-├── main.py                        # Orquestador maestro del casino
-├── config.py                      # Configuración global
-├── protocolo.md                   # Reglas de desarrollo y testing
-│
+├── main.py
+├── config.py
 ├── gemini/
-│   ├── gemini_core.py             # Núcleo lógico del jugador racional
-│   ├── bucket_manager.py          # Clasificación de contextos
-│   ├── memory.py                  # Historial adaptativo de resultados
-│   └── __init__.py
-│
-├── sensors/
-│   ├── sensor_manager.py          # Orquestador de sensores
-│   ├── rsi_reversion.py           # Detector RSI (reversión)
-│   ├── bollinger_touch.py         # Detector Bollinger (extremos)
-│   ├── keltner_reversion.py       # Detector Keltner (reversión)
-│   └── __init__.py
-│
 ├── croupier/
-│   ├── croupier.py                # Croupier universal
-│   ├── broker_interface.py        # Controla el modo backtest/live
-│   ├── order_simulator.py         # Ejecutor simulado
-│   ├── order_realtime.py          # Ejecutor en vivo (placeholder)
-│   └── __init__.py
-│
-└── tables/
-    ├── table_base.py              # Clase base para las mesas
-    ├── table_backtest.py          # Mesa de simulación
-    ├── balance_manager.py         # Control de capital
-    ├── data/
-    │   ├── raw/                   # Datasets históricos (.csv)
-    │   └── exchange_profiles/     # Perfiles por exchange
-    └── __init__.py
+├── sensors/
+├── tables/
+└── utils/
+```
 
 ---
 
-## 🧾 Descripción de Componentes
+## 🎯 Filosofía Técnica
 
-🎩 Gemini — El jugador racional  
-- Evalúa cada señal recibida por los sensores.  
-- Calcula la probabilidad estimada de éxito (p̂).  
-- Compara con el umbral crítico (p* = L / (L + R)).  
-- Si p̂ > p*, ejecuta una apuesta con fracción de Kelly ajustada al riesgo.  
-- Aprende de los resultados y ajusta su comportamiento.  
+El casino no intenta adivinar el mercado — **espera contextos donde las probabilidades están a su favor.**
 
-👁️ Sensores — Los analistas técnicos  
-- Usan indicadores simples: RSI, Bollinger Bands y Keltner Channels.  
-- Cada sensor produce señales independientes (LONG, SHORT o NONE).  
-- El `SensorManager` las unifica antes de entregarlas a Gemini.  
+> “No se trata de ganar todas las manos, sino de apostar cuando la ventaja está del lado del jugador.”
 
-🧤 Crupier — El ejecutor imparcial  
-- Recibe órdenes ya decididas por Gemini.  
-- Las pasa a la mesa activa (feed), que puede ser:  
-  - `TableBacktest` (simulada)  
-  - `TableRealtime` (futura implementación)  
-- No evalúa condiciones de mercado ni riesgos.  
+Basado en la ecuación fundamental:
 
-🪙 Mesas — Las fuentes de verdad  
-- Administran los datos de precios (históricos o reales).  
-- Aplican comisiones, slippage, funding y latencia.  
-- Mantienen y actualizan el balance del jugador.  
-- Devuelven resultados normalizados (WIN, LOSS, pnl, fee, etc).  
+\[
+EV = p̂ × R − (1 − p̂) × L
+\]
+
+Si el EV > 0 → Gemini apuesta;  
+Si no, espera la siguiente ronda.
+
+Inspirado en **Oscar Grind**, **teoría de utilidad esperada**, y **modelos bayesianos** de probabilidad aplicada al trading.
 
 ---
 
-## ⚙️ Configuración (config.py)
+## 🚀 Ejecución Rápida
 
-El archivo `config.py` centraliza todos los parámetros del casino:
+```bash
+# 1. Instalar dependencias
+pip install -r requirements.txt
 
-MODE = "backtest"  
-DATASET_PATH = "tables/data/raw/LTCUSDT_15min_bull.csv"  
-STARTING_BALANCE = 10_000.0  
-TAKE_PROFIT = 0.010  
-STOP_LOSS = 0.008  
-KELLY_FRACTION = 1.0  
-WINDOW_SIZE = 120  
-MIN_SUPPORT = 20  
-LOG_LEVEL = "INFO"  
+# 2. Configurar el modo backtest
+MODE = "backtest"
+DATASET_PATH = "tables/data/raw/LTCUSDT_15min_bull.csv"
 
----
+# 3. Correr el casino
+python3 main.py
+```
 
-## 🚀 Ejecución
+Ejemplo de salida:
 
-1. Asegúrate de tener los datasets en:  
-   - tables/data/raw/LTCUSDT_15min_bull.csv  
-   - tables/data/raw/LTCUSDT_15min_bear.csv  
-
-2. Configura config.py:  
-   MODE = "backtest"  
-   DATASET_PATH = "tables/data/raw/LTCUSDT_15min_bull.csv"  
-
-3. Ejecuta:  
-   python3 main.py  
-
-4. Verás un flujo como:  
-   🎰 Bienvenido al Casino Binance V2  
-   2025-10-10 08:44:15 | Gemini | INFO | 🎯 Mesa caliente | p̂=0.57 > p*=0.44 | Apuesta: 5.23% del equity  
-   2025-10-10 08:44:16 | Croupier | INFO | ✅ Resultado: WIN | PnL: +1.23%  
-   📊 WinRate: 58.00% | Balance: 10,456.73 | Trades: 23  
-
----
-
-## 📚 Filosofía Técnica
-
-El casino no busca predecir sino apostar con ventaja estadística.  
-Cada decisión está basada en:
-
-EV = p̂ × R − (1 − p̂) × L  
-
-Si EV > 0, Gemini apuesta; de lo contrario, pasa la ronda.  
-
-Inspirado en el sistema Oscar Grind y la teoría de utilidad esperada,  
-adaptado al contexto de trading probabilístico.  
-
----
-
-## 🧪 Protocolo de Validación
-
-1. Cada cambio de módulo debe pasar pruebas en datasets bull y bear.  
-2. Commit unitario por feature (feat:, fix:, test:, refactor:).  
-3. WinRate esperado > 52% con fees simulados.  
-4. Los resultados se almacenan en casino_results.csv.  
-
----
-
-## 🛠️ Requisitos
-
-- Python 3.10 o superior  
-- Librerías recomendadas:  
-  pip install pandas numpy matplotlib  
-- (Opcional) pytest para pruebas unitarias  
+```
+🎯 Dataset: LTCUSDT_15min_bull.csv
+💰 Balance final: 10,542.33 USDT
+🏆 Winrate: 57.6%
+⚙️ Trades ejecutados: 182
+👻 GHOST trades: 27
+```
 
 ---
 
 ## 🧩 Próximos pasos
 
-- [ ] Implementar TableRealtime con API REST/WebSocket.  
-- [ ] Agregar ExchangeProfile dinámico (Binance, OKX, Bybit).  
-- [ ] Incorporar StrategyDashboard para visualización del rendimiento.  
-- [ ] Conectar múltiples jugadores (Gemini A, B, C).  
+✅ **v0.1.1:** Primera versión funcional del ecosistema completo  
+🔜 **v0.2.0:** Integración del modo LIVE (Binance Futures Testnet)  
+🔜 **v0.3.0:** Gemini A/B/C (múltiples jugadores con estrategias distintas)  
+🔜 **v0.4.0:** Dashboard de rendimiento y análisis visual  
 
 ---
 
-## 📜 Licencia
+## 🧠 Credo del Proyecto
 
-Proyecto de investigación y experimentación personal.  
-Uso libre con atribución al autor original.  
+> “La casa siempre gana… excepto cuando la estadística está de tu lado.” 🎲  
+> — *Casino V2: La Era Gemini*
 
-“La casa siempre gana… excepto cuando la estadística está de tu lado.” 🎲  
