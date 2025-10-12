@@ -9,13 +9,18 @@ import logging
 from typing import Dict, Iterable, List, Tuple
 
 import config
-from .reversion import BollingerTouch, KeltnerReversion, RSIReversion
+from .mean_reversion import BollingerTouch, KeltnerReversion, RSIReversion
+from .momentum_trend_following import EMACrossover, MACDCrossover
+from .volumen_flujo_capital import OBVBreakout
 
 
 SENSOR_REGISTRY: Dict[str, type] = {
     "RSIReversion": RSIReversion,
     "BollingerTouch": BollingerTouch,
     "KeltnerReversion": KeltnerReversion,
+    "EMACrossover": EMACrossover,
+    "MACDCrossover": MACDCrossover,
+    "OBVBreakout": OBVBreakout,
 }
 
 

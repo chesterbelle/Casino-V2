@@ -66,14 +66,20 @@ EDGE_THRESHOLD = 0.02  # 2% de ventaja mínima
 ACTIVE_SENSORS = {
     "RSIReversion": True,
     "BollingerTouch": True,
-    "KeltnerReversion": True
+    "KeltnerReversion": True,
+    "EMACrossover": True,
+    "MACDCrossover": True,
+    "OBVBreakout": True,
 }
 
 # Parámetros personalizados por sensor (si deseas ajustarlos)
 SENSOR_PARAMS = {
     "RSIReversion": {"period": 2, "low": 10, "high": 90},
     "BollingerTouch": {"window": 20, "std_dev": 2.5},
-    "KeltnerReversion": {"window": 20, "multiplier": 2.0}
+    "KeltnerReversion": {"window": 20, "multiplier": 2.0},
+    "EMACrossover": {"short_period": 12, "long_period": 26, "adx_period": 14, "adx_threshold": 20},
+    "MACDCrossover": {"short_period": 12, "long_period": 26, "signal_period": 9},
+    "OBVBreakout": {"short_period": 20, "long_period": 50},
 }
 
 
