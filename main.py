@@ -121,12 +121,15 @@ def _get_table_state(table: TableBacktest) -> Dict:
 def _log_trade(decision: Decision, order: Dict, result: Dict, balance: Optional[float]) -> None:
     logger = logging.getLogger("Session")
     logger.info(
-        "🎲 %s | %s %s | size=%.4f | outcome=%s | balance=%s",
+        "🎲 %s | %s %s | size=%.4f | outcome=%s | exit=%s | bars=%s | pnl_pct=%.4f | balance=%s",
         decision.action,
         order.get("symbol", "?"),
         order.get("side", "?"),
         float(order.get("size", 0.0)),
         result.get("result", "?"),
+        result.get("exit_reason", "?"),
+        result.get("bars_held", "?"),
+        float(result.get("pnl_pct", 0.0)),
         f"{balance:.2f}" if balance is not None else "n/a",
     )
 
@@ -261,7 +264,6 @@ def main() -> None:
     print("\n" + "#" * 60)
     print("🏁 RESUMEN GLOBAL (Bull → Bear)")
     print("#" * 60)
-    print(f"   Trades BET totales    : {total_bet}")
     print(f"   WinRate global (BET)  : {wr_global:.2f}%")
     print(f"   Trades BET totales    : {total_bet}")
     print(f"   Trades GHOST totales  : {total_ghost}")

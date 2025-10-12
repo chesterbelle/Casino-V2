@@ -157,13 +157,18 @@ class TableBacktest:
             raise ValueError(f"Side inválido: {side}")
 
         # Buscar el primer toque: conservador => SL tiene prioridad si se cruzan en la misma vela
-        outcome = self._walk_to_outcome(side, start_index=self._last_index + 1,
-                                        tp_level=tp_level, sl_level=sl_level)
+        outcome, trigger_price, bars_held, exit_reason = self._walk_to_outcome(
+            side,
+            start_index=self._last_index + 1,
+            tp_level=tp_level,
+            sl_level=sl_level,
+        )
 
         # Cálculo monetario (solo si no es ghost)
         fee_total = 0.0
         pnl_value = 0.0
         balance_after = None
+        pnl_pct = 0.0
 
         if not ghost:
             state = self.balance_manager.get_state()
@@ -177,8 +182,10 @@ class TableBacktest:
             # Nota: determinamos WIN/LOSS por niveles, pero cuantificamos % por R o L simétrico.
             if outcome == "WIN":
                 pnl_pct = self.R
-            else:
+            elif outcome == "LOSS":
                 pnl_pct = -self.L
+            else:
+                pnl_pct = 0.0
 
             pnl_value = notional * pnl_pct
             pnl_net = pnl_value - fee_total
@@ -197,14 +204,27 @@ class TableBacktest:
             balance_after = float(self.balance_manager.get_state().get("balance", 0.0))
 
         # Resultado normalizado
-        return {
+        result_dict = {
             "trade_id": trade_id,
             "result": outcome,
             "pnl": float(pnl_value if not ghost else 0.0),
             "fee": float(fee_total if not ghost else 0.0),
             "symbol": symbol,
-            "balance": balance_after
+            "balance": balance_after,
+            "pnl_pct": float(pnl_pct if not ghost else (self.R if outcome == "WIN" else (-self.L if outcome == "LOSS" else 0.0))),
+            "entry_price": float(entry_price),
+            "trigger_price": float(trigger_price),
+            "bars_held": bars_held,
+            "exit_reason": exit_reason,
+            "market": self.market_id,
+            "timeframe": self.timeframe,
+            "timestamp": order.get("timestamp"),
+            "side": side,
+            "action": "BET" if not ghost else "GHOST",
+            "ghost": ghost,
         }
+
+        return result_dict
 
     # ----------------------------------------------------
     # Estado
@@ -223,14 +243,23 @@ class TableBacktest:
     # ----------------------------------------------------
     # Internos
     # ----------------------------------------------------
-    def _walk_to_outcome(self, side: str, start_index: int, tp_level: float, sl_level: float) -> str:
+    def _walk_to_outcome(
+        self,
+        side: str,
+        start_index: int,
+        tp_level: float,
+        sl_level: float,
+    ) -> Tuple[str, float, int, str]:
         """
         Recorre velas futuras hasta que toque TP o SL. Política conservadora:
         • LONG : si en una vela se tocan ambos, se asume SL primero.
         • SHORT: idem (SL tiene prioridad).
         """
-        # Seguridad: no salirnos del dataset
+        bars = 0
+        trigger_price = self.data[self._last_index]["close"] if self._last_index >= 0 else 0.0
+
         for i in range(start_index, self.n):
+            bars += 1
             c = self.data[i]
             high = float(c["high"])
             low = float(c["low"])
@@ -238,17 +267,18 @@ class TableBacktest:
             if side == "LONG":
                 # Priorizamos SL si low cruza primero
                 if low <= sl_level:
-                    return "LOSS"
+                    return "LOSS", sl_level, bars, "SL"
                 if high >= tp_level:
-                    return "WIN"
+                    return "WIN", tp_level, bars, "TP"
             else:  # SHORT
                 if high >= sl_level:
-                    return "LOSS"
+                    return "LOSS", sl_level, bars, "SL"
                 if low <= tp_level:
-                    return "WIN"
+                    return "WIN", tp_level, bars, "TP"
 
         # Si nunca tocó (fin del dataset): cerramos por último precio (conservador = LOSS)
-        return "LOSS"
+        last_price = float(self.data[self.n - 1]["close"]) if self.n > 0 else trigger_price
+        return "LOSS", last_price, bars, "NO_EXIT"
 
     def _load_csv(self, path: str) -> List[Dict]:
         out: List[Dict] = []

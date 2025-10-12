@@ -34,11 +34,11 @@ STARTING_BALANCE = 10_000.0
 
 # Tamaños relativos de TP y SL (expresados en proporción decimal)
 # Ejemplo: 0.01 = 1% de take profit, 0.008 = 0.8% de stop loss
-TAKE_PROFIT = 0.010
+TAKE_PROFIT = 0.012
 STOP_LOSS = 0.008
 
 # Fracción del criterio de Kelly a aplicar (1 = Kelly completo, 0.5 = medio Kelly)
-KELLY_FRACTION = 1.0
+KELLY_FRACTION = 0.3
 
 
 # =====================================================
@@ -48,9 +48,14 @@ KELLY_FRACTION = 1.0
 WINDOW_SIZE = 120
 
 # Mínimo de muestras necesarias por bucket para confiar en la estadística
-MIN_SUPPORT = 20
+MIN_SUPPORT = 60
 
 # Umbral mínimo de diferencia estadística para considerar una mesa “caliente”
+# Parámetros bayesianos por defecto (coinciden con la biblia GEMINI)
+BAYES_CREDIBILITY_THRESHOLD = 0.7
+BAYES_LOWER_PERCENTILE = 0.05
+BAYES_ALPHA = 1.0
+BAYES_BETA = 1.0
 EDGE_THRESHOLD = 0.02  # 2% de ventaja mínima
 
 
@@ -66,9 +71,9 @@ ACTIVE_SENSORS = {
 
 # Parámetros personalizados por sensor (si deseas ajustarlos)
 SENSOR_PARAMS = {
-    "RSIReversion": {"period": 2, "low": 15, "high": 85},
-    "BollingerTouch": {"window": 20, "std_dev": 2},
-    "KeltnerReversion": {"window": 20, "multiplier": 1.25}
+    "RSIReversion": {"period": 2, "low": 10, "high": 90},
+    "BollingerTouch": {"window": 20, "std_dev": 2.5},
+    "KeltnerReversion": {"window": 20, "multiplier": 2.0}
 }
 
 
@@ -91,10 +96,11 @@ LOG_LEVEL = "INFO"
 # Guardar resultados (historial de rendimiento, etc.)
 SAVE_RESULTS = True
 RESULTS_FILE = "casino_results.csv"
+DECISIONS_LOG_PATH = "gemini/data/gemini_decisions.csv"
+TRADE_RESULTS_LOG_PATH = "gemini/data/gemini_trade_results.csv"
 
 
 # =====================================================
 # 🧱 OPCIONAL — SEMILLA ALEATORIA (reproducibilidad)
 # =====================================================
 SEED = 42
-

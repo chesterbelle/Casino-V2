@@ -23,6 +23,7 @@ Cada módulo representa un rol dentro del casino:
 | 🪙 **Mesas** | `tables/` | Proveen datos históricos o en vivo, aplican fees y actualizan balance. |
 | 💰 **Cajero (BalanceManager)** | `tables/balance_manager.py` | Administra capital y registra resultados. |
 | 🧾 **Protocolo** | `protocolo.md` | Define reglas de desarrollo, validación y testing. |
+| 🧑‍💼 **Gerente de sala** | `main.py` | Orquesta la sesión: prepara la mesa, llama a sensores, Gemini y crupier. |
 
 ---
 
@@ -109,4 +110,3 @@ Ejemplo de salida:
 
 > “La casa siempre gana… excepto cuando la estadística está de tu lado.” 🎲  
 > — *Casino V2: La Era Gemini*
-

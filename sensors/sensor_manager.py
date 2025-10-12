@@ -9,9 +9,7 @@ import logging
 from typing import Dict, Iterable, List, Tuple
 
 import config
-from .rsi_reversion import RSIReversion
-from .bollinger_touch import BollingerTouch
-from .keltner_reversion import KeltnerReversion
+from .reversion import BollingerTouch, KeltnerReversion, RSIReversion
 
 
 SENSOR_REGISTRY: Dict[str, type] = {

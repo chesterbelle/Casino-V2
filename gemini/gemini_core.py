@@ -45,13 +45,14 @@ Desde config.py se leen:
 from __future__ import annotations
 
 import logging
-from typing import Dict, List, Optional, Tuple, Set
+from typing import Dict, List, Optional, Tuple, Set, Iterable
 from dataclasses import dataclass
 from datetime import datetime
 
 import config
 from .memory import GeminiMemory
 from .bucket_manager import BucketManager
+from .decision_logger import DecisionLogger
 
 try:
     from scipy.stats import beta as scipy_beta  # type: ignore
@@ -64,15 +65,23 @@ from statistics import NormalDist
 # =========================================================
 # Utilidades y parámetros por defecto seguros
 # =========================================================
-APPROVAL_MIN_SAMPLES = getattr(config, "MIN_SUPPORT", 20)  # mínimo para aprobar un bucket
+APPROVAL_MIN_SAMPLES = getattr(config, "MIN_SUPPORT", 20)
 KELLY_FRACTION = getattr(config, "KELLY_FRACTION", 1.0)
 
-R = getattr(config, "TAKE_PROFIT", 0.01)  # ganancia objetivo (proporción)
-L = getattr(config, "STOP_LOSS", 0.01)    # pérdida objetivo (proporción)
-# Umbral crítico de acierto p* (para R:R asimétrico): p* = L / (L + R)
-P_STAR = L / (L + R)
-# “b” para Kelly odds: b = R/L
-B = R / L
+R_GROSS = getattr(config, "TAKE_PROFIT", 0.01)
+L_GROSS = getattr(config, "STOP_LOSS", 0.01)
+FEES = 2 * getattr(config, "COMMISSION_RATE", 0.0)
+SLIPPAGE = getattr(config, "SLIPPAGE_DEFAULT", 0.0)
+COST = FEES + SLIPPAGE
+R_NET = max(0.0, R_GROSS - COST)
+L_NET = L_GROSS + COST
+
+if R_NET <= 0 or (R_NET + L_NET) <= 0:
+    P_STAR = 1.0
+    B = 0.0
+else:
+    P_STAR = L_NET / (L_NET + R_NET)
+    B = R_NET / L_NET if L_NET > 0 else 0.0
 ALPHA_PRIOR = float(getattr(config, "BAYES_ALPHA", 1.0))
 BETA_PRIOR = float(getattr(config, "BAYES_BETA", 1.0))
 CREDIBILITY_THRESHOLD = float(getattr(config, "BAYES_CREDIBILITY_THRESHOLD", 0.6))
@@ -106,6 +115,21 @@ class Participant:
         return f"{self.market}|{self.bucket}|{self.strategy}"
 
 
+@dataclass
+class ParticipantMetrics:
+    participant: Participant
+    support: int
+    p_hat: Optional[float]
+    credibility: float
+    p_conservative: float
+    kelly: float
+    approved: bool
+    reason: str
+    p_star: float
+    r_net: float
+    l_net: float
+
+
 class Gemini:
     """
     Núcleo de decisión de Gemini (jugador probabilista).
@@ -131,6 +155,7 @@ class Gemini:
             window=getattr(config, "WINDOW_SIZE", 120),
             min_support=getattr(config, "MIN_SUPPORT", 20),
         )
+        self.decision_logger = DecisionLogger()
 
     # -----------------------------------------------------
     # API principal: decidir sobre un conjunto de señales
@@ -153,13 +178,14 @@ class Gemini:
 
         # Si hay conflicto entre LONG y SHORT, optamos por NO apostar pero entrenar (GHOST)
         if long_voters and short_voters:
-            # 🔧 PUNTO DE EXTENSIÓN: podrías cambiar la regla a 'mayoría simple' en lugar de GHOST.
             chosen_side = None
-            voters_for_training = self._serialize_participants(list({*long_voters, *short_voters}))
+            participants = list({*long_voters, *short_voters})
             trade_id = self._make_trade_id(base_meta, side="CONFLICT")
-            self.memory.register_vote_set(trade_id, voters_for_training)
-            order = self._make_order(base_meta, side="LONG", size_fraction=0.0)  # lado arbitrario para simulación
-            return Decision(action="GHOST", side=None, order=order, reason="conflicto_de_lado", trade_id=trade_id)
+            self.memory.register_vote_set(trade_id, self._serialize_participants(participants))
+            order = self._make_order(base_meta, side="LONG", size_fraction=0.0)
+            decision = Decision(action="GHOST", side=None, order=order, reason="conflicto_de_lado", trade_id=trade_id)
+            self._log_decision(decision, base_meta, order, participants, [], equity)
+            return decision
 
         # Elegir lado
         if long_voters:
@@ -171,28 +197,38 @@ class Gemini:
         else:
             return Decision(action="SKIP", side=None, order=None, reason="señales_no_votantes", trade_id=None)
 
-        # Evaluar Kelly por estrategia aprobada (con p̂ válido y muestras suficientes)
-        kellys, approved, unapproved = self._kelly_by_strategy(side_voters)
+        participant_metrics = self._participant_metrics(side_voters)
+        participants = [m.participant for m in participant_metrics]
 
         trade_id = self._make_trade_id(base_meta, side=chosen_side)
-        voters_payload = self._serialize_participants(approved + unapproved)
-        self.memory.register_vote_set(trade_id, voters_payload)  # registramos TODOS para entrenar
+        self.memory.register_vote_set(trade_id, self._serialize_participants(participants))
 
-        # Si no hay aprobadas o ningún Kelly positivo → GHOST (entrena sin afectar capital)
-        if (len(approved) == 0) or (len(kellys) == 0):
+        approved_metrics = [m for m in participant_metrics if m.approved]
+        positive_metrics = [m for m in approved_metrics if m.kelly > 0]
+
+        if not approved_metrics:
             order = self._make_order(base_meta, side=chosen_side, size_fraction=0.0)
-            reason = "sin_aprobadas" if len(approved) == 0 else "kelly_no_positivo"
-            return Decision(action="GHOST", side=chosen_side, order=order, reason=reason, trade_id=trade_id)
+            decision = Decision(action="GHOST", side=chosen_side, order=order, reason="sin_aprobadas", trade_id=trade_id)
+            self._log_decision(decision, base_meta, order, participants, participant_metrics, equity)
+            return decision
 
-        # Tomar el Kelly más conservador (mínimo > 0)
-        min_kelly = max(0.0, min(kellys))
+        if not positive_metrics:
+            order = self._make_order(base_meta, side=chosen_side, size_fraction=0.0)
+            decision = Decision(action="GHOST", side=chosen_side, order=order, reason="kelly_no_positivo", trade_id=trade_id)
+            self._log_decision(decision, base_meta, order, participants, participant_metrics, equity)
+            return decision
+
+        min_kelly = min(m.kelly for m in positive_metrics)
         if min_kelly <= 0:
             order = self._make_order(base_meta, side=chosen_side, size_fraction=0.0)
-            return Decision(action="GHOST", side=chosen_side, order=order, reason="kelly_conservador_cero", trade_id=trade_id)
+            decision = Decision(action="GHOST", side=chosen_side, order=order, reason="kelly_conservador_cero", trade_id=trade_id)
+            self._log_decision(decision, base_meta, order, participants, participant_metrics, equity)
+            return decision
 
-        # Orden real (BET)
         order = self._make_order(base_meta, side=chosen_side, size_fraction=min_kelly)
-        return Decision(action="BET", side=chosen_side, order=order, reason="apuesta_conservadora", trade_id=trade_id)
+        decision = Decision(action="BET", side=chosen_side, order=order, reason="apuesta_conservadora", trade_id=trade_id)
+        self._log_decision(decision, base_meta, order, participants, participant_metrics, equity)
+        return decision
 
     # -----------------------------------------------------
     # API de actualización post‐trade (resultado)
@@ -204,6 +240,8 @@ class Gemini:
         """
         outcome = result.get("result", "").upper()
         win = True if outcome == "WIN" else False
+        if self.decision_logger:
+            self.decision_logger.log_result(result)
         self.memory.finalize_trade(trade_id, win=win)
 
     # =====================================================
@@ -262,59 +300,81 @@ class Gemini:
             return str(feats["_origin"])
         return "UnknownSensor"
 
-    def _kelly_by_strategy(self, voters: List[Participant]) -> Tuple[List[float], List[Participant], List[Participant]]:
-        """
-        Calcula Kelly por estrategia aprobada y separa aprobadas/no-aprobadas.
-
-        Regla de aprobación: window_size(strategy) >= APPROVAL_MIN_SAMPLES
-        Kelly (asimétrico):
-            b = R/L
-            f* = p - (1 - p)/b
-        (luego se multiplica por KELLY_FRACTION y se limita por MAX_POSITION_SIZE en el llamado)
-
-        Retorna:
-            kellys_positive: List[float]     # solo valores > 0 de estrategias aprobadas
-            approved: List[str]              # estrategias con suficiente historial
-            unapproved: List[str]            # estrategias para las que seguimos entrenando
-        """
-        kellys_positive: List[float] = []
-        approved: List[Participant] = []
-        unapproved: List[Participant] = []
+    def _participant_metrics(self, voters: List[Participant]) -> List[ParticipantMetrics]:
+        metrics: List[ParticipantMetrics] = []
 
         for participant in voters:
+            if participant.bucket == "UNKNOWN" or not participant.bucket:
+                metrics.append(
+                    ParticipantMetrics(
+                        participant=participant,
+                        support=self.memory.get_window_size(participant.memory_key),
+                        p_hat=self.memory.get_winrate(participant.memory_key),
+                        credibility=0.0,
+                        p_conservative=0.0,
+                        kelly=0.0,
+                        approved=False,
+                        reason="bucket_unknown",
+                        p_star=P_STAR,
+                        r_net=R_NET,
+                        l_net=L_NET,
+                    )
+                )
+                continue
+
             key = participant.memory_key
             p_hat = self.memory.get_winrate(key)
-            n_obs = self.memory.get_window_size(key)
+            support = self.memory.get_window_size(key)
 
-            if p_hat is None or n_obs < APPROVAL_MIN_SAMPLES:
-                unapproved.append(participant)
-                continue
+            credibility = 0.0
+            p_conservative = 0.0
+            kelly = 0.0
+            approved = False
+            reason = "insufficient_support"
 
-            wins_est = max(0, min(n_obs, int(round(p_hat * n_obs))))
-            losses_est = max(0, n_obs - wins_est)
+            if p_hat is not None and support >= APPROVAL_MIN_SAMPLES:
+                wins_est = max(0, min(support, int(round(p_hat * support))))
+                losses_est = max(0, support - wins_est)
 
-            alpha_post = ALPHA_PRIOR + wins_est
-            beta_post = BETA_PRIOR + losses_est
+                alpha_post = ALPHA_PRIOR + wins_est
+                beta_post = BETA_PRIOR + losses_est
 
-            credibility = self._beta_prob_greater(P_STAR, alpha_post, beta_post)
-            if credibility < CREDIBILITY_THRESHOLD:
-                unapproved.append(participant)
-                continue
+                credibility = self._beta_prob_greater(P_STAR, alpha_post, beta_post)
 
-            p_conservative = self._beta_quantile(alpha_post, beta_post, LOWER_CREDIBLE_PERCENTILE)
+                if credibility >= CREDIBILITY_THRESHOLD:
+                    p_conservative = self._beta_quantile(alpha_post, beta_post, LOWER_CREDIBLE_PERCENTILE)
+                    if p_conservative > P_STAR and B > 0:
+                        f_raw = p_conservative - (1 - p_conservative) / B
+                        kelly = max(0.0, f_raw) * KELLY_FRACTION
+                        if kelly > 0:
+                            approved = True
+                            reason = "approved"
+                        else:
+                            reason = "kelly_zero"
+                    else:
+                        reason = "edge_not_positive"
+                else:
+                    reason = "credibility_low"
+            else:
+                reason = "insufficient_support"
 
-            if p_conservative <= P_STAR:
-                approved.append(participant)
-                continue
+            metrics.append(
+                ParticipantMetrics(
+                    participant=participant,
+                    support=support,
+                    p_hat=p_hat,
+                    credibility=credibility,
+                    p_conservative=p_conservative,
+                    kelly=kelly,
+                    approved=approved,
+                    reason=reason,
+                    p_star=P_STAR,
+                    r_net=R_NET,
+                    l_net=L_NET,
+                )
+            )
 
-            f_raw = p_conservative - (1 - p_conservative) / B
-            f_adj = max(0.0, f_raw) * KELLY_FRACTION
-
-            if f_adj > 0:
-                kellys_positive.append(f_adj)
-            approved.append(participant)
-
-        return kellys_positive, approved, unapproved
+        return metrics
 
     def _make_trade_id(self, meta: dict, side: str) -> str:
         """
@@ -341,8 +401,8 @@ class Gemini:
             "timestamp": meta.get("timestamp"),
             "side": side,
             "size": float(size_fraction),
-            "take_profit": 1.0 + R,
-            "stop_loss": 1.0 - L,
+            "take_profit": 1.0 + R_GROSS,
+            "stop_loss": 1.0 - L_GROSS,
         }
         if timeframe and timeframe != "UNKNOWN":
             order["market"] = f"{symbol}@{timeframe}"
@@ -393,6 +453,88 @@ class Gemini:
                 "market": p.market,
             })
         return payload
+
+    def _log_decision(
+        self,
+        decision: Decision,
+        meta: Dict,
+        order: Dict,
+        participants: Iterable[Participant],
+        metrics: Iterable[ParticipantMetrics],
+        equity: float,
+    ) -> None:
+        if not self.decision_logger or not decision.trade_id:
+            return
+
+        participants = list(participants)
+        metrics = list(metrics)
+
+        contributors = sorted({p.strategy for p in participants}) or []
+        market = order.get("market") or (
+            f"{order.get('symbol', 'UNKNOWN')}@{order.get('timeframe', 'UNKNOWN')}"
+            if order.get("symbol")
+            else "UNKNOWN"
+        )
+
+        if metrics:
+            rows = [
+                {
+                    "timestamp": meta.get("timestamp"),
+                    "trade_id": decision.trade_id,
+                    "market": market,
+                    "symbol": order.get("symbol", meta.get("symbol", "UNKNOWN")),
+                    "timeframe": order.get("timeframe", meta.get("timeframe", "UNKNOWN")),
+                    "side": order.get("side"),
+                    "action": decision.action,
+                    "reason": decision.reason,
+                    "size": float(order.get("size", 0.0) or 0.0),
+                    "equity": float(equity) if equity is not None else "",
+                    "contributors": ",".join(contributors),
+                    "strategy": m.participant.strategy,
+                    "bucket": m.participant.bucket,
+                    "support": m.support,
+                    "p_hat": m.p_hat if m.p_hat is not None else "",
+                    "credibility": m.credibility,
+                    "p_conservative": m.p_conservative,
+                    "kelly": m.kelly,
+                    "approved": "yes" if m.approved else "no",
+                    "participant_reason": m.reason,
+                    "p_star": P_STAR,
+                    "r_net": R_NET,
+                    "l_net": L_NET,
+                }
+                for m in metrics
+            ]
+        else:
+            rows = [
+                {
+                    "timestamp": meta.get("timestamp"),
+                    "trade_id": decision.trade_id,
+                    "market": market,
+                    "symbol": order.get("symbol", meta.get("symbol", "UNKNOWN")),
+                    "timeframe": order.get("timeframe", meta.get("timeframe", "UNKNOWN")),
+                    "side": order.get("side"),
+                    "action": decision.action,
+                    "reason": decision.reason,
+                    "size": float(order.get("size", 0.0) or 0.0),
+                    "equity": float(equity) if equity is not None else "",
+                    "contributors": ",".join(contributors),
+                    "strategy": "",
+                    "bucket": "",
+                    "support": "",
+                    "p_hat": "",
+                    "credibility": "",
+                    "p_conservative": "",
+                    "kelly": "",
+                    "approved": "no",
+                    "participant_reason": "no_metrics",
+                    "p_star": P_STAR,
+                    "r_net": R_NET,
+                    "l_net": L_NET,
+                }
+            ]
+
+        self.decision_logger.log(rows)
 
     # -----------------------------------------------------
     # Bayesian helpers

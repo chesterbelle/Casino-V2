@@ -69,7 +69,7 @@ class Croupier:
         self.logger.info(
             f"🃏 Exec | {order.get('symbol','?')} {order.get('side','?')} "
             f"| ghost={order.get('ghost', False)} | res={result.get('result','?')} "
+            f"| exit={result.get('exit_reason','?')} | bars={result.get('bars_held', 0)} "
             f"| fee={result.get('fee', 0):.6f} | pnl={result.get('pnl', 0):.6f}"
         )
         return result
-
