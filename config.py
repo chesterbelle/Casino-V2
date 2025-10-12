@@ -19,6 +19,12 @@ Gemini, el Croupier y las Mesas leerán de aquí directamente.
 #  - "realtime"  → usa conexión de API (futuro módulo)
 MODE = "backtest"
 
+# Bandera específica para habilitar la arquitectura Oscar.
+# Si se activa (True), el main desviará la sesión hacia OscarGrind
+# sin importar el MODE general (que sigue controlando el origen
+# de datos: backtest vs live).
+ENABLE_OSCAR_MODE = True
+
 # Perfil del exchange (usa el JSON de tables/data/exchange_profiles)
 EXCHANGE_PROFILE = "binance"
 
@@ -91,6 +97,18 @@ MAX_LEVERAGE = 50           # máximo apalancamiento permitido
 MAX_POSITION_SIZE = 0.25    # tamaño máximo (25% del equity)
 COMMISSION_RATE = 0.0004    # equivalente al taker fee (0.04%)
 SLIPPAGE_DEFAULT = 0.0005   # spread estimado de ejecución
+
+
+# =====================================================
+# ♟️ OSCAR GRIND — PARÁMETROS OPCIONALES
+# =====================================================
+# Estos valores se usan únicamente cuando ENABLE_OSCAR_MODE=True.
+OSCAR_INITIAL_UNIT_SIZE = 0.1
+OSCAR_PROFIT_TARGET = 4.0
+OSCAR_MAX_LOSS = -8.0
+OSCAR_MAX_POSITION_UNITS = 10.0
+OSCAR_UNIT_FRACTION = 0.1
+OSCAR_MAX_POSITION_FRACTION = MAX_POSITION_SIZE
 
 
 # =====================================================

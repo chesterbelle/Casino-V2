@@ -23,6 +23,13 @@ Principios de diseño:
   para entrenar igualmente (shadow trading).
 • Se procesan los dos datasets en secuencia (bull → bear), manteniendo memoria.
 
+Modo Oscar:
+-----------
+• Para activar Oscar Grind, define en `config.py` → `ENABLE_OSCAR_MODE = True`.
+• Opcionales `OSCAR_*` (fracciones, límites de unidades) ajustan sizing.
+• Oscar usa su propio RangeSensor y state machine, pero sigue enviando
+  órdenes al mismo Croupier/Mesa que Gemini.
+
 PUNTOS DE EXTENSIÓN:
 --------------------
 • Reemplazar TableBacktest por BrokerInterface/TableRealtime cuando MODE="live".
@@ -41,6 +48,8 @@ from croupier.croupier import Croupier
 from gemini.gemini_core import Decision, Gemini
 from sensors.sensor_manager import SensorManager
 from tables.table_backtest import TableBacktest
+
+from oscar.session import run_oscar_session, print_oscar_summary
 
 
 # ============================================================
@@ -231,6 +240,44 @@ def print_session_summary(stats: Dict) -> None:
 # 🚀 ENTRYPOINT
 # ============================================================
 def main() -> None:
+    enable_oscar = bool(getattr(config, "ENABLE_OSCAR_MODE", False))
+    mode = getattr(config, "MODE", "backtest").lower()
+
+    if enable_oscar:
+        print("\n🎰 Bienvenido al Casino V2 — Sesión Oscar Grind\n")
+        initial_balance = ask_initial_balance()
+        datasets: Tuple[Tuple[str, str], ...] = (
+            ("🟢 Mesa (Oscar) Bull", "tables/data/raw/LTCUSDT_15min_bull.csv"),
+            ("🔴 Mesa (Oscar) Bear", "tables/data/raw/LTCUSDT_15min_bear.csv"),
+        )
+
+        current_balance = initial_balance
+        total_trades = total_wins = total_losses = 0
+        total_fees = 0.0
+
+        for title, path in datasets:
+            print(f"\n{title}")
+            stats = run_oscar_session(path, current_balance)
+            print_oscar_summary(stats)
+
+            current_balance = stats["final_balance"]
+            total_trades += stats["trades"]
+            total_wins += stats["wins"]
+            total_losses += stats["losses"]
+            total_fees += stats["fees"]
+
+        wr_global = (total_wins / total_trades * 100) if total_trades > 0 else 0.0
+        print("\n" + "#" * 60)
+        print("🏁 RESUMEN GLOBAL OSCAR (Bull → Bear)")
+        print("#" * 60)
+        print(f"   WinRate global        : {wr_global:.2f}%")
+        print(f"   Trades totales        : {total_trades}")
+        print(f"   Comisiones totales    : {total_fees:.2f}")
+        print(f"   Balance final global  : {current_balance:.2f}")
+        print("#" * 60 + "\n")
+        print("✅ Sesión Oscar completada.\n")
+        return
+
     print("\n🎰 Bienvenido al Casino V2 — Sesión Backtest secuencial (Bull → Bear)\n")
 
     initial_balance = ask_initial_balance()
