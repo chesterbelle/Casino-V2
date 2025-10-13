@@ -87,7 +87,10 @@ ENABLE_OSCAR_MODE = True
 # 4. (Recomendado) Actualizar tasas de funding reales
 python3 utils/fetch_funding_rates.py --symbol LTCUSDT
 
-# 5. Correr el casino
+# 5. (Opcional) Descargar dataset adicional (ej. ETHUSDT 15m)
+python3 utils/download_kline_dataset.py --symbol ETHUSDT --interval 15m --limit 1000 --tag sample
+
+# 6. Correr el casino
 python3 main.py
 ```
 

@@ -31,7 +31,7 @@ EXCHANGE_PROFILE = "binance"
 # Ruta del dataset CSV (para modo backtest) — se utiliza tanto para Gemini
 # como para Oscar (cuando ENABLE_OSCAR_MODE=True). Cambia este archivo
 # para alternar rápidamente entre datasets.
-DATASET_PATH = "tables/data/raw/LTCUSDT_15min_bull.csv"
+DATASET_PATH = "tables/data/raw/ADAUSDT_15m__90d.csv"
 
 
 # =====================================================

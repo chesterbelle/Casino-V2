@@ -11,3 +11,6 @@
 - `config.py` incorporó la bandera `ENABLE_OSCAR_MODE` y parámetros `OSCAR_*` para ajustar unidades y límites del método.
 - Documentación interna actualizada explicando cómo activar el modo Oscar y mantener la modularidad con el pipeline existente.
 - TableBacktest ahora lee el perfil de exchange para diferenciar fees de entrada/salida, aplicar slippage dinámico según tamaño y volatilidad, cobrar funding proporcional al tiempo en posición y simular liquidaciones por margen; los reportes muestran comisiones, funding y liquidaciones acumuladas.
+- Nuevos scripts utilitarios en `utils/`:
+  - `fetch_funding_rates.py` descarga tasas de funding históricas y las guarda en `tables/data/funding_rates/`.
+  - `download_kline_dataset.py` permite obtener datasets adicionales de Binance Futures (pide símbolo base y días a descargar) guardándolos en `tables/data/raw/` sin pasar por `main.py`.
