@@ -28,7 +28,9 @@ ENABLE_OSCAR_MODE = True
 # Perfil del exchange (usa el JSON de tables/data/exchange_profiles)
 EXCHANGE_PROFILE = "binance"
 
-# Ruta del dataset CSV (para modo backtest)
+# Ruta del dataset CSV (para modo backtest) — se utiliza tanto para Gemini
+# como para Oscar (cuando ENABLE_OSCAR_MODE=True). Cambia este archivo
+# para alternar rápidamente entre datasets.
 DATASET_PATH = "tables/data/raw/LTCUSDT_15min_bull.csv"
 
 
@@ -97,6 +99,7 @@ MAX_LEVERAGE = 50           # máximo apalancamiento permitido
 MAX_POSITION_SIZE = 0.25    # tamaño máximo (25% del equity)
 COMMISSION_RATE = 0.0004    # equivalente al taker fee (0.04%)
 SLIPPAGE_DEFAULT = 0.0005   # spread estimado de ejecución
+MAINTENANCE_MARGIN_RATE = 0.005  # margen de mantenimiento (0.5%)
 
 
 # =====================================================

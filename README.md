@@ -77,11 +77,17 @@ Inspirado en **Oscar Grind**, **teoría de utilidad esperada**, y **modelos baye
 # 1. Instalar dependencias
 pip install -r requirements.txt
 
-# 2. Configurar el modo backtest
-MODE = "backtest"
-DATASET_PATH = "tables/data/raw/LTCUSDT_15min_bull.csv"
+# 2. Configurar el dataset principal
+MODE = "backtest"        # o "realtime" cuando esté disponible
+DATASET_PATH = "tables/data/raw/LTCUSDT_15min_bull.csv"  # único dataset usado en la sesión
 
-# 3. Correr el casino
+# 3. (Opcional) Activar modo Oscar Grind
+ENABLE_OSCAR_MODE = True
+
+# 4. (Recomendado) Actualizar tasas de funding reales
+python3 utils/fetch_funding_rates.py --symbol LTCUSDT
+
+# 5. Correr el casino
 python3 main.py
 ```
 

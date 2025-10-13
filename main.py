@@ -26,6 +26,8 @@ Principios de diseño:
 Modo Oscar:
 -----------
 • Para activar Oscar Grind, define en `config.py` → `ENABLE_OSCAR_MODE = True`.
+• El modo Oscar utiliza el dataset configurado en `DATASET_PATH` y produce
+  un informe resumido con métricas clave.
 • Opcionales `OSCAR_*` (fracciones, límites de unidades) ajustan sizing.
 • Oscar usa su propio RangeSensor y state machine, pero sigue enviando
   órdenes al mismo Croupier/Mesa que Gemini.
@@ -162,6 +164,8 @@ def run_session(dataset_path: str, initial_balance: float, gemini: Gemini) -> Di
     wins = 0
     losses = 0
     total_fees = 0.0
+    total_funding = 0.0
+    total_liquidations = 0
 
     while True:
         candle = table.next_candle()
@@ -197,6 +201,9 @@ def run_session(dataset_path: str, initial_balance: float, gemini: Gemini) -> Di
         if decision.action == "BET":
             bet_trades += 1
             total_fees += float(result.get("fee", 0.0) or 0.0)
+            total_funding += float(result.get("funding", 0.0) or 0.0)
+            if result.get("liquidated"):
+                total_liquidations += 1
             if outcome == "WIN":
                 wins += 1
             elif outcome == "LOSS":
@@ -213,6 +220,7 @@ def run_session(dataset_path: str, initial_balance: float, gemini: Gemini) -> Di
 
     return {
         "dataset": dataset_name,
+        "initial_balance": initial_balance,
         "candles": candles,
         "bet_trades": bet_trades,
         "ghost_trades": ghost_trades,
@@ -220,7 +228,9 @@ def run_session(dataset_path: str, initial_balance: float, gemini: Gemini) -> Di
         "losses": losses,
         "winrate": winrate,
         "fees": total_fees,
+        "funding": total_funding,
         "final_balance": final_balance,
+        "liquidations": total_liquidations,
     }
 
 
@@ -228,10 +238,18 @@ def print_session_summary(stats: Dict) -> None:
     print("\n" + "=" * 60)
     print(f"📌 Dataset: {stats['dataset']}")
     print("-" * 60)
+    init_balance = stats.get("initial_balance")
+    if isinstance(init_balance, (int, float)):
+        init_str = f"{init_balance:.2f}"
+    else:
+        init_str = str(init_balance) if init_balance is not None else "n/a"
+    print(f"   Balance inicial       : {init_str}")
     print(f"   Trades BET            : {stats['bet_trades']}")
     print(f"   Trades GHOST          : {stats['ghost_trades']}")
     print(f"   WinRate (BET)         : {stats['winrate']:.2f}%")
     print(f"   Comisiones totales    : {stats['fees']:.2f}")
+    print(f"   Funding total         : {stats.get('funding', 0.0):.2f}")
+    print(f"   Liquidaciones         : {stats.get('liquidations', 0)}")
     print(f"   Balance final         : {stats['final_balance']:.2f}")
     print("=" * 60 + "\n")
 
@@ -246,78 +264,24 @@ def main() -> None:
     if enable_oscar:
         print("\n🎰 Bienvenido al Casino V2 — Sesión Oscar Grind\n")
         initial_balance = ask_initial_balance()
-        datasets: Tuple[Tuple[str, str], ...] = (
-            ("🟢 Mesa (Oscar) Bull", "tables/data/raw/LTCUSDT_15min_bull.csv"),
-            ("🔴 Mesa (Oscar) Bear", "tables/data/raw/LTCUSDT_15min_bear.csv"),
-        )
-
-        current_balance = initial_balance
-        total_trades = total_wins = total_losses = 0
-        total_fees = 0.0
-
-        for title, path in datasets:
-            print(f"\n{title}")
-            stats = run_oscar_session(path, current_balance)
-            print_oscar_summary(stats)
-
-            current_balance = stats["final_balance"]
-            total_trades += stats["trades"]
-            total_wins += stats["wins"]
-            total_losses += stats["losses"]
-            total_fees += stats["fees"]
-
-        wr_global = (total_wins / total_trades * 100) if total_trades > 0 else 0.0
-        print("\n" + "#" * 60)
-        print("🏁 RESUMEN GLOBAL OSCAR (Bull → Bear)")
-        print("#" * 60)
-        print(f"   WinRate global        : {wr_global:.2f}%")
-        print(f"   Trades totales        : {total_trades}")
-        print(f"   Comisiones totales    : {total_fees:.2f}")
-        print(f"   Balance final global  : {current_balance:.2f}")
-        print("#" * 60 + "\n")
+        dataset_path = getattr(config, "DATASET_PATH", "tables/data/raw/LTCUSDT_15min_bull.csv")
+        stats = run_oscar_session(dataset_path, initial_balance)
+        print_oscar_summary(stats)
         print("✅ Sesión Oscar completada.\n")
         return
 
-    print("\n🎰 Bienvenido al Casino V2 — Sesión Backtest secuencial (Bull → Bear)\n")
+    print("\n🎰 Bienvenido al Casino V2 — Sesión Backtest Gemini\n")
 
     initial_balance = ask_initial_balance()
-    datasets: Tuple[Tuple[str, str], ...] = (
-        ("🟢 Mesa 1: Bull", "tables/data/raw/LTCUSDT_15min_bull.csv"),
-        ("🔴 Mesa 2: Bear", "tables/data/raw/LTCUSDT_15min_bear.csv"),
-    )
+    dataset_path = getattr(config, "DATASET_PATH", "tables/data/raw/LTCUSDT_15min_bull.csv")
 
     gemini = Gemini()
-    current_balance = initial_balance
 
-    total_bet = total_ghost = total_wins = total_losses = 0
-    total_fees = 0.0
-    session_history = []
+    print(f"\n🟢 Mesa única: {dataset_path}")
+    stats = run_session(dataset_path, initial_balance, gemini)
+    print_session_summary(stats)
 
-    for title, path in datasets:
-        print(f"\n{title}")
-        stats = run_session(path, current_balance, gemini)
-        session_history.append(stats)
-        print_session_summary(stats)
-
-        current_balance = stats["final_balance"]
-        total_bet += stats["bet_trades"]
-        total_ghost += stats["ghost_trades"]
-        total_wins += stats["wins"]
-        total_losses += stats["losses"]
-        total_fees += stats["fees"]
-
-    wr_global = (total_wins / total_bet * 100) if total_bet > 0 else 0.0
-
-    print("\n" + "#" * 60)
-    print("🏁 RESUMEN GLOBAL (Bull → Bear)")
-    print("#" * 60)
-    print(f"   WinRate global (BET)  : {wr_global:.2f}%")
-    print(f"   Trades BET totales    : {total_bet}")
-    print(f"   Trades GHOST totales  : {total_ghost}")
-    print(f"   Comisiones totales    : {total_fees:.2f}")
-    print(f"   Balance final global  : {current_balance:.2f}")
-    print("#" * 60 + "\n")
-    print("✅ Sesión completada.\n")
+    print("✅ Sesión Gemini completada.\n")
 
 
 if __name__ == "__main__":

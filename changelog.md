@@ -10,4 +10,4 @@
 - Se amplió `main.py` para habilitar el modo Oscar cuando `ENABLE_OSCAR_MODE=True`, manteniendo el flujo Gemini original como opción por defecto.
 - `config.py` incorporó la bandera `ENABLE_OSCAR_MODE` y parámetros `OSCAR_*` para ajustar unidades y límites del método.
 - Documentación interna actualizada explicando cómo activar el modo Oscar y mantener la modularidad con el pipeline existente.
-
+- TableBacktest ahora lee el perfil de exchange para diferenciar fees de entrada/salida, aplicar slippage dinámico según tamaño y volatilidad, cobrar funding proporcional al tiempo en posición y simular liquidaciones por margen; los reportes muestran comisiones, funding y liquidaciones acumuladas.

@@ -30,10 +30,12 @@ Configuración leída desde config.py:
 from __future__ import annotations
 
 import csv
+import json
 import math
 import logging
 import os
 import re
+from datetime import datetime
 from typing import List, Dict, Optional, Tuple
 
 import config
@@ -59,9 +61,26 @@ class TableBacktest:
         self._last_index = -1      # última vela entregada (para saber desde dónde simular)
         self.balance_manager = BalanceManager(starting_balance=getattr(config, "STARTING_BALANCE", 10_000.0))
 
-        # Parámetros de costos
-        self.fee_rate = getattr(config, "COMMISSION_RATE", 0.0004)     # por lado; total ~ 2*fee_rate
-        self.slippage = getattr(config, "SLIPPAGE_DEFAULT", 0.0)
+        # Parámetros de costos (cargados desde perfil de exchange)
+        profile_name = getattr(config, "EXCHANGE_PROFILE", "binance")
+        self.exchange_profile = self._load_exchange_profile(profile_name)
+
+        self.maker_fee = float(self.exchange_profile.get("maker_fee", getattr(config, "COMMISSION_RATE", 0.0004)))
+        self.taker_fee = float(self.exchange_profile.get("taker_fee", getattr(config, "COMMISSION_RATE", 0.0004)))
+        self.entry_fee_rate = float(self.exchange_profile.get("entry_fee_rate", self.taker_fee))
+        self.exit_fee_rate = float(self.exchange_profile.get("exit_fee_rate", self.taker_fee))
+        self.leverage_limit = float(self.exchange_profile.get("leverage_limit", getattr(config, "MAX_LEVERAGE", 50)))
+        self.maintenance_margin_rate = float(
+            self.exchange_profile.get(
+                "maintenance_margin_rate",
+                getattr(config, "MAINTENANCE_MARGIN_RATE", 0.005),
+            )
+        )
+
+        self.slippage_model = self.exchange_profile.get("slippage_model", {})
+        self.slippage_fallback = float(getattr(config, "SLIPPAGE_DEFAULT", 0.0))
+        self.funding_rate_per_hour = float(self.exchange_profile.get("funding_rate_per_hour", 0.0))
+        self.funding_events = self._load_funding_schedule(self.symbol)
 
         # RR por defecto (si la orden no define sus factores)
         self.R = getattr(config, "TAKE_PROFIT", 0.01)
@@ -89,6 +108,7 @@ class TableBacktest:
         state = self.get_state()
         return {
             "timestamp": row["timestamp"],
+            "timestamp_ms": row.get("timestamp_ms"),
             "symbol": self.symbol,
             "timeframe": self.timeframe,
             "market": self.market_id,
@@ -136,9 +156,14 @@ class TableBacktest:
         # Precio de entrada (close de la última vela entregada), con slippage simple
         entry_candle = self.data[self._last_index]
         entry_price = float(entry_candle["close"])
-        if self.slippage > 0:
-            # 🔧 PUNTO DE EXTENSIÓN: refina la modelación de slippage
-            entry_price *= (1 + self.slippage) if side == "LONG" else (1 - self.slippage)
+        slippage_pct = self._compute_slippage(size_fraction)
+        if slippage_pct > 0:
+            if side == "LONG":
+                entry_price *= (1 + slippage_pct)
+            else:
+                entry_price *= (1 - slippage_pct)
+
+        entry_timestamp_ms = self._resolve_order_timestamp(order, entry_candle)
 
         # Factores de TP/SL (si no vienen en la orden, usar config)
         tp_factor = float(order.get("take_profit", 1.0 + self.R))
@@ -156,12 +181,28 @@ class TableBacktest:
         else:
             raise ValueError(f"Side inválido: {side}")
 
+        state = self.balance_manager.get_state()
+        equity = float(state.get("equity", state.get("balance", 0.0)))
+        notional = max(0.0, equity * size_fraction)
+        margin_used = notional / self.leverage_limit if self.leverage_limit > 0 else notional
+        liquidation_level = None
+        if notional > 0.0 and self.leverage_limit > 0:
+            risk_ratio = (1.0 / self.leverage_limit) - max(0.0, self.maintenance_margin_rate)
+            risk_ratio = min(risk_ratio, 0.95)
+            if side == "LONG":
+                liquidation_level = entry_price * (1.0 - risk_ratio)
+            else:
+                liquidation_level = entry_price * (1.0 + risk_ratio)
+            if liquidation_level is not None and liquidation_level <= 0:
+                liquidation_level = None
+
         # Buscar el primer toque: conservador => SL tiene prioridad si se cruzan en la misma vela
-        outcome, trigger_price, bars_held, exit_reason = self._walk_to_outcome(
+        outcome, trigger_price, bars_held, exit_reason, liquidated, exit_timestamp_ms = self._walk_to_outcome(
             side,
             start_index=self._last_index + 1,
             tp_level=tp_level,
             sl_level=sl_level,
+            liquidation_level=liquidation_level,
         )
 
         # Cálculo monetario (solo si no es ghost)
@@ -169,14 +210,13 @@ class TableBacktest:
         pnl_value = 0.0
         balance_after = None
         pnl_pct = 0.0
+        funding_cost = 0.0
 
         if not ghost:
-            state = self.balance_manager.get_state()
-            equity = float(state.get("equity", state.get("balance", 0.0)))
-            notional = max(0.0, equity * size_fraction)
-
-            # Fees: entrada + salida (taker)
-            fee_total = notional * (2 * self.fee_rate)
+            # Fees: entrada + salida (por defecto taker)
+            entry_fee = notional * self.entry_fee_rate
+            exit_fee = notional * self.exit_fee_rate
+            fee_total = entry_fee + exit_fee
 
             # PnL bruto por R/L (usamos R y L de config para cuantificar el resultado)
             # Nota: determinamos WIN/LOSS por niveles, pero cuantificamos % por R o L simétrico.
@@ -188,7 +228,19 @@ class TableBacktest:
                 pnl_pct = 0.0
 
             pnl_value = notional * pnl_pct
-            pnl_net = pnl_value - fee_total
+
+            if entry_timestamp_ms is not None and exit_timestamp_ms is not None:
+                funding_cost = self._funding_cost_between(entry_timestamp_ms, exit_timestamp_ms, notional, side)
+            elif self.funding_rate_per_hour != 0.0:
+                hold_hours = self._bars_to_hours(bars_held)
+                funding_cost = notional * self.funding_rate_per_hour * hold_hours
+
+            if exit_reason == "LIQUIDATION":
+                liquidation_loss = min(equity, margin_used) if margin_used > 0 else 0.0
+                pnl_value = -liquidation_loss
+                pnl_net = -liquidation_loss - fee_total - funding_cost
+            else:
+                pnl_net = pnl_value - fee_total - funding_cost
 
             # Actualizar balance
             try:
@@ -209,6 +261,10 @@ class TableBacktest:
             "result": outcome,
             "pnl": float(pnl_value if not ghost else 0.0),
             "fee": float(fee_total if not ghost else 0.0),
+            "funding": float(funding_cost if not ghost else 0.0),
+            "liquidated": bool(liquidated if not ghost else False),
+            "margin_used": float(margin_used if not ghost else 0.0),
+            "notional": float(notional if not ghost else 0.0),
             "symbol": symbol,
             "balance": balance_after,
             "pnl_pct": float(pnl_pct if not ghost else (self.R if outcome == "WIN" else (-self.L if outcome == "LOSS" else 0.0))),
@@ -216,6 +272,7 @@ class TableBacktest:
             "trigger_price": float(trigger_price),
             "bars_held": bars_held,
             "exit_reason": exit_reason,
+            "exit_timestamp": self._format_timestamp_ms(exit_timestamp_ms),
             "market": self.market_id,
             "timeframe": self.timeframe,
             "timestamp": order.get("timestamp"),
@@ -240,6 +297,177 @@ class TableBacktest:
             "equity": float(s.get("equity", s.get("balance", 0.0)))
         }
 
+    def _compute_slippage(self, size_fraction: float) -> float:
+        """
+        Calcula el slippage porcentual basado en el modelo del perfil.
+        """
+        model = self.slippage_model or {}
+        model_type = str(model.get("type", "fixed")).lower()
+        base = float(model.get("base_spread", self.slippage_fallback))
+
+        if model_type == "linear":
+            per_fraction = float(model.get("per_size_fraction", 0.0))
+            base += per_fraction * max(size_fraction, 0.0)
+
+        volatility_factor = self._volatility_factor()
+        if volatility_factor > 0:
+            base *= (1 + volatility_factor)
+
+        return max(0.0, base)
+
+    def _bars_to_hours(self, bars: int) -> float:
+        if bars <= 0:
+            return 0.0
+        minutes = self._timeframe_to_minutes(self.timeframe)
+        return bars * (minutes / 60.0) if minutes > 0 else 0.0
+
+    def _timeframe_to_minutes(self, timeframe: Optional[str]) -> float:
+        if not timeframe or timeframe == "UNKNOWN":
+            return 0.0
+        tf = timeframe.lower()
+        pattern = re.compile(r"^(\d+)(min|m|h|d|wk|mo)$")
+        match = pattern.match(tf)
+        if not match:
+            return 0.0
+        value = int(match.group(1))
+        unit = match.group(2)
+        if unit in ("min", "m"):
+            return float(value)
+        if unit == "h":
+            return float(value * 60)
+        if unit == "d":
+            return float(value * 60 * 24)
+        if unit == "wk":
+            return float(value * 60 * 24 * 7)
+        if unit == "mo":
+            return float(value * 60 * 24 * 30)
+        return 0.0
+
+    def _volatility_factor(self) -> float:
+        window = getattr(config, "SLIPPAGE_VOL_WINDOW", 20)
+        multiplier = float(getattr(config, "SLIPPAGE_VOL_MULTIPLIER", 0.0))
+        if multiplier == 0.0 or window <= 1:
+            return 0.0
+
+        if self._last_index < 0:
+            return 0.0
+
+        start = max(0, self._last_index - window + 1)
+        closes = [float(self.data[i]["close"]) for i in range(start, self._last_index + 1)]
+
+        if len(closes) < window:
+            return 0.0
+
+        mean_price = sum(closes) / len(closes)
+        if mean_price == 0:
+            return 0.0
+
+        variance = sum((c - mean_price) ** 2 for c in closes) / len(closes)
+        std_dev = variance ** 0.5
+        volatility = std_dev / mean_price
+        return float(max(0.0, volatility * multiplier))
+
+    def _funding_cost_between(self, start_ms: Optional[int], end_ms: Optional[int], notional: float, side: str) -> float:
+        if start_ms is None or end_ms is None or start_ms >= end_ms:
+            return 0.0
+
+        if self.funding_events:
+            total = 0.0
+            for event in self.funding_events:
+                ts = event["time_ms"]
+                if ts <= start_ms:
+                    continue
+                if ts > end_ms:
+                    break
+                rate = event["rate"]
+                payment = notional * rate
+                total += payment if side == "LONG" else -payment
+            if total != 0.0:
+                return total
+
+        if self.funding_rate_per_hour == 0.0:
+            return 0.0
+
+        hours = (end_ms - start_ms) / 3_600_000
+        if hours <= 0:
+            return 0.0
+        rate = self.funding_rate_per_hour * hours
+        payment = notional * rate
+        return payment if side == "LONG" else -payment
+
+    def _resolve_order_timestamp(self, order: Dict, candle: Dict) -> Optional[int]:
+        ts_str = order.get("timestamp")
+        if ts_str:
+            parsed = self._parse_timestamp_to_ms(ts_str)
+            if parsed is not None:
+                return parsed
+        return candle.get("timestamp_ms")
+
+    def _format_timestamp_ms(self, ts: Optional[int]) -> Optional[str]:
+        if ts is None:
+            return None
+        try:
+            return datetime.utcfromtimestamp(ts / 1000).isoformat()
+        except Exception:
+            return None
+
+    def _load_exchange_profile(self, name: str) -> Dict[str, float]:
+        """
+        Carga la configuración del exchange desde tables/data/exchange_profiles.
+        """
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        profile_path = os.path.join(base_dir, "data", "exchange_profiles", f"{name}.json")
+
+        if not os.path.exists(profile_path):
+            self.logger.warning("Perfil de exchange '%s' no encontrado. Usando valores por defecto.", name)
+            return {}
+
+        try:
+            with open(profile_path, "r", encoding="utf-8") as fh:
+                return json.load(fh)
+        except Exception as exc:
+            self.logger.warning("No se pudo cargar el perfil '%s': %s. Usando defaults.", name, exc)
+            return {}
+
+    def _load_funding_schedule(self, symbol: str) -> List[Dict[str, float]]:
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        path = os.path.join(base_dir, "data", "funding_rates", f"{symbol}.csv")
+        if not os.path.exists(path):
+            return []
+
+        events: List[Dict[str, float]] = []
+        try:
+            with open(path, "r", encoding="utf-8") as fh:
+                reader = csv.DictReader(fh)
+                for row in reader:
+                    try:
+                        ts = int(row.get("funding_time_ms") or row.get("funding_time") or 0)
+                        rate = float(row.get("funding_rate", 0.0))
+                    except Exception:
+                        continue
+                    events.append({"time_ms": ts, "rate": rate})
+        except Exception as exc:
+            self.logger.warning("No se pudo cargar funding rates para %s: %s", symbol, exc)
+            return []
+
+        events.sort(key=lambda e: e["time_ms"])
+        return events
+
+    def _parse_timestamp_to_ms(self, ts: str) -> Optional[int]:
+        if not ts:
+            return None
+        ts = ts.strip()
+        if not ts:
+            return None
+        try:
+            if ts.isdigit():
+                value = int(ts)
+                return value if value > 10_000_000_000 else value * 1000
+            dt = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+            return int(dt.timestamp() * 1000)
+        except Exception:
+            return None
+
     # ----------------------------------------------------
     # Internos
     # ----------------------------------------------------
@@ -249,7 +477,8 @@ class TableBacktest:
         start_index: int,
         tp_level: float,
         sl_level: float,
-    ) -> Tuple[str, float, int, str]:
+        liquidation_level: Optional[float],
+    ) -> Tuple[str, float, int, str, bool, Optional[int]]:
         """
         Recorre velas futuras hasta que toque TP o SL. Política conservadora:
         • LONG : si en una vela se tocan ambos, se asume SL primero.
@@ -258,27 +487,35 @@ class TableBacktest:
         bars = 0
         trigger_price = self.data[self._last_index]["close"] if self._last_index >= 0 else 0.0
 
+        exit_timestamp_ms: Optional[int] = None
+
         for i in range(start_index, self.n):
             bars += 1
             c = self.data[i]
             high = float(c["high"])
             low = float(c["low"])
+            exit_timestamp_ms = c.get("timestamp_ms")
 
             if side == "LONG":
+                if liquidation_level is not None and low <= liquidation_level:
+                    return "LOSS", liquidation_level, bars, "LIQUIDATION", True, exit_timestamp_ms
                 # Priorizamos SL si low cruza primero
                 if low <= sl_level:
-                    return "LOSS", sl_level, bars, "SL"
+                    return "LOSS", sl_level, bars, "SL", False, exit_timestamp_ms
                 if high >= tp_level:
-                    return "WIN", tp_level, bars, "TP"
+                    return "WIN", tp_level, bars, "TP", False, exit_timestamp_ms
             else:  # SHORT
+                if liquidation_level is not None and high >= liquidation_level:
+                    return "LOSS", liquidation_level, bars, "LIQUIDATION", True, exit_timestamp_ms
                 if high >= sl_level:
-                    return "LOSS", sl_level, bars, "SL"
+                    return "LOSS", sl_level, bars, "SL", False, exit_timestamp_ms
                 if low <= tp_level:
-                    return "WIN", tp_level, bars, "TP"
+                    return "WIN", tp_level, bars, "TP", False, exit_timestamp_ms
 
         # Si nunca tocó (fin del dataset): cerramos por último precio (conservador = LOSS)
         last_price = float(self.data[self.n - 1]["close"]) if self.n > 0 else trigger_price
-        return "LOSS", last_price, bars, "NO_EXIT"
+        exit_timestamp_ms = self.data[self.n - 1].get("timestamp_ms") if self.n > 0 else None
+        return "LOSS", last_price, bars, "NO_EXIT", False, exit_timestamp_ms
 
     def _load_csv(self, path: str) -> List[Dict]:
         out: List[Dict] = []
@@ -286,8 +523,11 @@ class TableBacktest:
             reader = csv.DictReader(f)
             for row in reader:
                 try:
+                    ts_raw = row.get("timestamp") or row.get("date") or row.get("time") or ""
+                    ts_ms = self._parse_timestamp_to_ms(ts_raw)
                     out.append({
-                        "timestamp": row.get("timestamp") or row.get("date") or row.get("time") or "",
+                        "timestamp": ts_raw,
+                        "timestamp_ms": ts_ms,
                         "open": float(row["open"]),
                         "high": float(row["high"]),
                         "low": float(row["low"]),

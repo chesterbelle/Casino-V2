@@ -34,6 +34,8 @@ def run_oscar_session(dataset_path: str, initial_balance: float) -> Dict:
     wins = 0
     losses = 0
     total_fees = 0.0
+    total_funding = 0.0
+    liquidations = 0
 
     while True:
         candle = table.next_candle()
@@ -51,6 +53,9 @@ def run_oscar_session(dataset_path: str, initial_balance: float) -> Dict:
         trades += 1
         result = summary["result"]
         total_fees += float(result.get("fee", 0.0) or 0.0)
+        total_funding += float(result.get("funding", 0.0) or 0.0)
+        if result.get("liquidated"):
+            liquidations += 1
 
         outcome = str(result.get("result", "")).upper()
         if outcome == "WIN":
@@ -64,29 +69,44 @@ def run_oscar_session(dataset_path: str, initial_balance: float) -> Dict:
 
     return {
         "dataset": dataset_name,
+        "initial_balance": initial_balance,
         "candles": candles,
         "trades": trades,
         "wins": wins,
         "losses": losses,
         "winrate": winrate,
         "fees": total_fees,
+        "funding": total_funding,
+        "liquidations": liquidations,
         "final_balance": final_balance,
         "session": trader.state_machine.get_session_summary(),
     }
 
 
 def print_oscar_summary(stats: Dict) -> None:
-    print("\n" + "=" * 60)
-    print(f"📌 Dataset (Oscar): {stats['dataset']}")
-    print("-" * 60)
-    print(f"   Trades ejecutados    : {stats['trades']}")
-    print(f"   WinRate              : {stats['winrate']:.2f}%")
-    print(f"   Comisiones totales   : {stats['fees']:.2f}")
-    print(f"   Balance final        : {stats['final_balance']:.2f}")
     session = stats.get("session", {})
-    print(f"   Estado sesión Oscar  : {session.get('status')}")
-    print(f"   PnL sesión (unidades): {session.get('session_pnl')}")
-    print("=" * 60 + "\n")
+    print("\n" + "=" * 70)
+    print(f"📌 Dataset (Oscar)     : {stats['dataset']}")
+    init_balance = stats.get("initial_balance")
+    if isinstance(init_balance, (int, float)):
+        init_str = f"{init_balance:.2f}"
+    else:
+        init_str = str(init_balance) if init_balance is not None else "n/a"
+    print(f"💵 Balance inicial     : {init_str}")
+    print(f"🧮 Trades              : {stats['trades']} (Wins {stats['wins']} / Losses {stats['losses']})")
+    print(f"🎯 WinRate             : {stats['winrate']:.2f}%")
+    print(f"💸 Comisiones          : {stats['fees']:.2f}")
+    print(f"🏦 Funding             : {stats.get('funding', 0.0):.2f}")
+    print(f"⚠️ Liquidaciones       : {stats.get('liquidations', 0)}")
+    final_balance = stats.get("final_balance", 0.0)
+    print(f"💰 Balance final       : {final_balance:.2f}")
+    if isinstance(init_balance, (int, float)):
+        profit = final_balance - init_balance
+        print(f"📈 Ganancia/Perdida    : {profit:.2f}")
+    pnl_units = session.get("session_pnl")
+    pnl_str = f"{pnl_units:.4f}" if isinstance(pnl_units, (int, float)) else pnl_units
+    print(f"♟️ Sesión Oscar        : {session.get('status')} | PnL unidades {pnl_str}")
+    print("=" * 70 + "\n")
 
 
 def _set_table_balance(table: TableBacktest, amount: float) -> None:
@@ -109,4 +129,3 @@ def _get_table_state(table: TableBacktest) -> Dict:
         except Exception:
             return {}
     return {}
-
