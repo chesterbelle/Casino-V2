@@ -165,35 +165,33 @@ class TableKrakenPaper(BaseTable):
         status = str(send_status.get("status", "unknown")).upper()
         order_events = send_status.get("orderEvents", []) or []
 
-        executed_qty = 0.0
-        avg_price = 0.0
-        total_value = 0.0
-        for event in order_events:
-            event_type = str(event.get("type", "")).upper()
-            amount = float(event.get("amount", 0.0) or 0.0)
-            price = float(event.get("price", 0.0) or 0.0)
-            if event_type == "EXECUTION" and amount:
-                executed_qty += amount
-                total_value += amount * price
+        pre_state = self.balance_manager.get_state()
+        pre_equity = float(pre_state.get("equity", pre_state.get("balance", 0.0)) or 0.0)
 
-        if executed_qty > 0 and total_value > 0:
-            avg_price = total_value / executed_qty
+        financials = self._collect_order_financials(send_status.get("order_id"), order_events)
 
-        fee_estimate = executed_qty * avg_price * self.contract_size * (self.entry_fee_rate + self.exit_fee_rate)
+        self._sync_balance_from_exchange()
+        post_state = self.balance_manager.get_state()
+        post_equity = float(post_state.get("equity", post_state.get("balance", pre_equity)) or pre_equity)
+        net_change = post_equity - pre_equity
+
+        fee_total = financials.get("fee", 0.0)
+        funding_total = financials.get("funding", 0.0)
+        gross_pnl = net_change + fee_total - funding_total
 
         result_payload = {
             **result_base,
             "result": status,
             "status": status,
-            "executed_qty": executed_qty,
-            "avg_price": avg_price,
-            "pnl": 0.0,
-            "fee": fee_estimate,
+            "executed_qty": financials.get("executed_qty", 0.0),
+            "avg_price": financials.get("avg_price", 0.0),
+            "pnl": gross_pnl,
+            "pnl_net": net_change,
+            "fee": fee_total,
+            "funding": funding_total,
             "order_id": send_status.get("order_id"),
             "raw": response,
         }
-
-        self._sync_balance_from_exchange()
         return result_payload
 
     # ------------------------------------------------------------------
@@ -287,6 +285,56 @@ class TableKrakenPaper(BaseTable):
             if hasattr(self.balance_manager, "set_balance"):
                 self.balance_manager.set_balance(balance)
 
+    def close_all_positions(self) -> None:
+        self.logger.info("Cerrando órdenes y posiciones pendientes en Kraken...")
+
+        try:
+            open_orders_resp = self.client.get_open_orders()
+            open_orders = open_orders_resp.get("openOrders", []) if isinstance(open_orders_resp, dict) else []
+            for order in open_orders:
+                oid = order.get("orderId") or order.get("order_id")
+                if oid:
+                    try:
+                        self.client.cancel_order(oid)
+                    except Exception as exc:
+                        self.logger.debug("No se pudo cancelar orden %s: %s", oid, exc)
+        except Exception as exc:
+            self.logger.debug("Fallo obteniendo órdenes abiertas: %s", exc)
+
+        try:
+            positions_resp = self.client.get_open_positions()
+        except Exception as exc:
+            self.logger.debug("Fallo obteniendo posiciones abiertas: %s", exc)
+            return
+
+        positions = positions_resp.get("openPositions", []) if isinstance(positions_resp, dict) else []
+        for pos in positions:
+            symbol = pos.get("symbol") or pos.get("tradeable")
+            if symbol and symbol != self.symbol:
+                continue
+
+            size = abs(self._safe_float(pos, "size", alt_keys=("quantity", "amount")))
+            if size <= 0:
+                continue
+
+            direction = (pos.get("side") or pos.get("direction") or "").lower()
+            close_side = "sell" if direction in {"long", "buy"} else "buy"
+
+            payload = {
+                "orderType": "mkt",
+                "symbol": self.symbol,
+                "side": close_side,
+                "size": self._format_size(size),
+                "reduceOnly": "true",
+            }
+            try:
+                self.client.send_order(payload)
+                self.logger.info("Cerrada posición restante (%s %.4f)", close_side.upper(), size)
+            except Exception as exc:
+                self.logger.warning("No se pudo cerrar posición residual: %s", exc)
+
+        self._sync_balance_from_exchange()
+
     def _fetch_mark_price(self) -> float:
         try:
             tickers = self.client.get_tickers()
@@ -299,6 +347,70 @@ class TableKrakenPaper(BaseTable):
             if ticker.get("symbol") == self.symbol:
                 return float(ticker.get("markPrice") or ticker.get("last", 0.0) or 0.0)
         return 0.0
+
+    def _collect_order_financials(self, order_id: Optional[str], order_events: list[dict]) -> Dict[str, float]:
+        executed_qty = 0.0
+        total_value = 0.0
+        fee_total = 0.0
+        funding_total = 0.0
+
+        if order_id:
+            try:
+                fills_resp = self.client.get_fills()
+            except Exception as exc:
+                self.logger.debug("No se pudieron obtener fills de Kraken: %s", exc)
+            else:
+                fills = fills_resp.get("fills", []) if isinstance(fills_resp, dict) else []
+                for fill in fills:
+                    oid = fill.get("order_id") or fill.get("orderId")
+                    if not oid or oid != order_id:
+                        continue
+                    fill_type = str(fill.get("fillType", "")).lower()
+                    fee_total += abs(self._safe_float(fill, "fee"))
+
+                    if fill_type == "funding":
+                        funding_total += self._safe_float(fill, "funding", alt_keys=("usdValue",))
+                        continue
+
+                    size = self._safe_float(fill, "size", alt_keys=("quantity", "amount"))
+                    price = self._safe_float(fill, "price")
+                    if size and price:
+                        executed_qty += size
+                        total_value += size * price
+
+        if executed_qty == 0.0:
+            for event in order_events:
+                if str(event.get("type", "")).upper() != "EXECUTION":
+                    continue
+                amount = self._safe_float(event, "amount")
+                price = self._safe_float(event, "price")
+                if amount and price:
+                    executed_qty += amount
+                    total_value += amount * price
+
+        avg_price = (total_value / executed_qty) if executed_qty else 0.0
+        return {
+            "executed_qty": executed_qty,
+            "avg_price": avg_price,
+            "fee": fee_total,
+            "funding": funding_total,
+        }
+
+    @staticmethod
+    def _safe_float(payload: Dict[str, Any], key: str, *, alt_keys: tuple[str, ...] = ()) -> float:
+        keys = (key,) + alt_keys
+        for k in keys:
+            if k in payload and payload[k] is not None:
+                try:
+                    return float(payload[k])
+                except (TypeError, ValueError):
+                    continue
+        return 0.0
+
+    def _format_size(self, size: float) -> str:
+        if size.is_integer():
+            return str(int(size))
+        return f"{size:.6f}".rstrip("0").rstrip(".")
 
     def _resolve_instrument(self, user_symbol: str) -> Dict[str, Any]:
         """

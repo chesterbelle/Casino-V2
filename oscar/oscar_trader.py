@@ -93,6 +93,10 @@ class OscarTrader:
         order = self._build_order(signal, candle, size_fraction)
         result = self.croupier.route_order(order)
 
+        post_state = self.croupier.table.get_state() if hasattr(self.croupier, "table") else {}
+        post_equity = float(post_state.get("equity", equity) or equity)
+        pnl_currency = float(result.get("pnl_net", result.get("pnl", 0.0)) or (post_equity - equity))
+
         pnl_units = self._compute_pnl_units(result, equity)
         self.state_machine.record_result(pnl_units)
 
@@ -101,7 +105,12 @@ class OscarTrader:
             "order": order,
             "result": result,
             "pnl_units": pnl_units,
+            "pnl_currency": pnl_currency,
             "session": self.state_machine.get_session_summary(),
+            "units_used": units,
+            "size_fraction": size_fraction,
+            "notional": equity * size_fraction,
+            "equity_before": equity,
             "executed": True,
         }
         return summary

@@ -5,36 +5,37 @@ EXPECTED_STRUCTURE = {
         "README.md",
         "config.py",
         "main.py",
-        "protocolo.md",
     ],
     "gemini": [
         "__init__.py",
         "gemini_core.py",
-        "bucket_manager.py",
         "memory.py",
+    ],
+    "oscar": [
+        "__init__.py",
+        "oscar_grind_machine.py",
+        "oscar_trader.py",
     ],
     "sensors": [
         "__init__.py",
         "sensor_manager.py",
-        "rsi_reversion.py",
-        "bollinger_touch.py",
-        "keltner_reversion.py",
     ],
     "croupier": [
         "__init__.py",
         "croupier.py",
         "broker_interface.py",
-        "order_simulator.py",
-        "order_realtime.py",
     ],
     "tables": [
         "__init__.py",
         "table_base.py",
-        "table_backtest.py",
         "balance_manager.py",
-        "data/raw/LTCUSDT_15min_bull.csv",
-        "data/raw/LTCUSDT_15min_bear.csv",
+        "data/raw/",
         "data/exchange_profiles/",
+    ],
+    "utils": [
+        "__init__.py",
+        "download_kline_dataset.py",
+        "fetch_funding_rates.py",
     ],
 }
 

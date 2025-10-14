@@ -92,6 +92,9 @@ class KrakenFuturesClient:
     def get_fills(self) -> Dict[str, Any]:
         return self._request_private("fills", method="GET")
 
+    def get_open_positions(self) -> Dict[str, Any]:
+        return self._request_private("openpositions", method="GET")
+
     def send_order(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         return self._request_private("sendorder", method="POST", params=payload)
 
