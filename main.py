@@ -51,7 +51,8 @@ from gemini.gemini_core import Decision, Gemini
 from sensors.sensor_manager import SensorManager
 from tables.table_backtest import TableBacktest
 
-from oscar.session import run_oscar_session, print_oscar_summary
+from oscar.session import run_oscar_session, print_oscar_summary, run_oscar_live_session
+from live_session import run_live_session
 
 
 # ============================================================
@@ -261,6 +262,13 @@ def main() -> None:
     enable_oscar = bool(getattr(config, "ENABLE_OSCAR_MODE", False))
     mode = getattr(config, "MODE", "backtest").lower()
 
+    if mode == "live":
+        if enable_oscar:
+            run_oscar_live_session(symbol=None, interval=None)
+        else:
+            run_live_session(symbol=None, interval=None)
+        return
+
     if enable_oscar:
         print("\n🎰 Bienvenido al Casino V2 — Sesión Oscar Grind\n")
         initial_balance = ask_initial_balance()
@@ -285,6 +293,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    if getattr(config, "MODE", "backtest").lower() != "backtest":
-        print("⚠️ MODE no es 'backtest'. Este main está enfocado al modo backtest.")
     main()

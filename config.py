@@ -17,7 +17,7 @@ Gemini, el Croupier y las Mesas leerán de aquí directamente.
 # Puede ser:
 #  - "backtest"  → usa dataset CSV y simula operaciones
 #  - "realtime"  → usa conexión de API (futuro módulo)
-MODE = "backtest"
+MODE = "live"
 
 # Bandera específica para habilitar la arquitectura Oscar.
 # Si se activa (True), el main desviará la sesión hacia OscarGrind
@@ -26,12 +26,51 @@ MODE = "backtest"
 ENABLE_OSCAR_MODE = True
 
 # Perfil del exchange (usa el JSON de tables/data/exchange_profiles)
-EXCHANGE_PROFILE = "binance"
+EXCHANGE_PROFILE = "kraken_futures_demo"
+EXCHANGE = "KRAKEN_DEMO"
 
 # Ruta del dataset CSV (para modo backtest) — se utiliza tanto para Gemini
 # como para Oscar (cuando ENABLE_OSCAR_MODE=True). Cambia este archivo
 # para alternar rápidamente entre datasets.
-DATASET_PATH = "tables/data/raw/ADAUSDT_15m__90d.csv"
+DATASET_PATH = "tables/data/raw/BTCUSDT_5m__30d.csv"
+
+
+# =====================================================
+# ASTERDEX — PARÁMETROS PAPER/LIVE
+# =====================================================
+# Valores base para iniciar paper trading. Las claves reales deben
+# configurarse via variables de entorno o .env (ver utils/aster_env_loader.py).
+ASTER_BASE_URL = "https://fapi.asterdex.com"
+ASTER_WS_URL = "wss://fstream.asterdex.com"
+ASTER_DEFAULT_SYMBOL = "BTCUSDT"
+ASTER_DEFAULT_INTERVAL = "1m"
+ASTER_RECV_WINDOW = 5000
+ASTER_POLL_INTERVAL = 2.0
+ASTER_API_KEY = None
+ASTER_API_SECRET = None
+
+
+# =====================================================
+# ⏱️ CONTROL DE SESIONES LIVE
+# =====================================================
+# Delay entre iteraciones del loop live (segundos)
+LIVE_SLEEP_SECONDS = 1.0
+
+# Número máximo de velas a procesar antes de detener la sesión.
+# Usa None (o valores <= 0) para dejarlo en ejecución indefinida.
+LIVE_MAX_CANDLES = None
+
+
+# =====================================================
+# KRAKEN FUTURES — PARÁMETROS DEMO/LIVE
+# =====================================================
+KRAKEN_FUTURES_BASE_URL = "https://demo-futures.kraken.com/derivatives/api/"
+KRAKEN_FUTURES_CHARTS_URL = "https://demo-futures.kraken.com/api/charts/v1/"
+KRAKEN_FUTURES_SYMBOL = "PF_XBTUSD"
+KRAKEN_FUTURES_INTERVAL = "1m"
+KRAKEN_POLL_INTERVAL = 2.0
+KRAKEN_FUTURES_API_KEY = None
+KRAKEN_FUTURES_API_SECRET = None
 
 
 # =====================================================

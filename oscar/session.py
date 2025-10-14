@@ -1,17 +1,22 @@
 """
 Orquestador de sesiones para el modo Oscar.
 
-Se inspira en `main.run_session`, pero delega la toma de decisiones
-al `OscarTrader` y mantiene el flujo de mesas/croupier existente.
+Backtest:
+    - Recorre datasets CSV con TableBacktest.
+Live/Paper:
+    - Usa BrokerInterface (TableAsterPaper) y ejecuta en tiempo real.
 """
 
 from __future__ import annotations
 
+import logging
 import os
-from typing import Dict, List
+import time
+from typing import Dict, List, Optional
 
 import config
 from croupier.croupier import Croupier
+from croupier.broker_interface import BrokerInterface
 from sensors.sensor_manager import SensorManager
 from tables.table_backtest import TableBacktest
 
@@ -25,6 +30,7 @@ def run_oscar_session(dataset_path: str, initial_balance: float) -> Dict:
     table = TableBacktest(dataset_path)
     _set_table_balance(table, initial_balance)
 
+    logging.getLogger("SensorManager").setLevel(logging.WARNING)
     sensors = SensorManager()
     croupier = Croupier(table)
     trader = OscarTrader(croupier=croupier)
@@ -109,7 +115,7 @@ def print_oscar_summary(stats: Dict) -> None:
     print("=" * 70 + "\n")
 
 
-def _set_table_balance(table: TableBacktest, amount: float) -> None:
+def _set_table_balance(table, amount: float) -> None:
     bm = getattr(table, "balance_manager", None)
     if not bm:
         return
@@ -121,7 +127,7 @@ def _set_table_balance(table: TableBacktest, amount: float) -> None:
             bm.set_balance(amount)
 
 
-def _get_table_state(table: TableBacktest) -> Dict:
+def _get_table_state(table) -> Dict:
     bm = getattr(table, "balance_manager", None)
     if bm and hasattr(bm, "get_state"):
         try:
@@ -129,3 +135,90 @@ def _get_table_state(table: TableBacktest) -> Dict:
         except Exception:
             return {}
     return {}
+
+
+LIVE_SLEEP_SECONDS = float(getattr(config, "LIVE_SLEEP_SECONDS", 1.0))
+OSCAR_LIVE_LOGGER = logging.getLogger("OscarLiveSession")
+
+
+def run_oscar_live_session(symbol: Optional[str] = None, interval: Optional[str] = None) -> None:
+    """
+    Ejecuta Oscar Grind en modo live/paper reutilizando BrokerInterface.
+    """
+    logging.getLogger().setLevel(getattr(logging, config.LOG_LEVEL, logging.INFO))
+    exchange = getattr(config, "EXCHANGE", "SIMULATION").upper()
+    if "KRAKEN" in exchange:
+        default_symbol = getattr(config, "KRAKEN_FUTURES_SYMBOL", "PF_XBTUSD")
+        default_interval = getattr(config, "KRAKEN_FUTURES_INTERVAL", "1m")
+    else:
+        default_symbol = getattr(config, "ASTER_DEFAULT_SYMBOL", "BTCUSDT")
+        default_interval = getattr(config, "ASTER_DEFAULT_INTERVAL", "1m")
+
+    if not symbol:
+        try:
+            user_symbol = input(f"Símbolo Oscar [{default_symbol}]: ").strip().upper()
+        except EOFError:
+            user_symbol = ""
+        symbol = user_symbol or default_symbol
+
+    if not interval:
+        try:
+            user_interval = input(f"Intervalo Oscar [{default_interval}]: ").strip()
+        except EOFError:
+            user_interval = ""
+        interval = user_interval or default_interval
+
+    OSCAR_LIVE_LOGGER.info(
+        "Iniciando Oscar Live | exchange=%s | symbol=%s | interval=%s",
+        exchange,
+        symbol,
+        interval,
+    )
+
+    broker = BrokerInterface(symbol=symbol, interval=interval)
+    table = broker.engine.table
+    actual_symbol = getattr(table, "symbol", symbol)
+    if actual_symbol and actual_symbol != symbol:
+        OSCAR_LIVE_LOGGER.info("Símbolo normalizado por la mesa: %s -> %s", symbol, actual_symbol)
+        symbol = actual_symbol
+
+    logging.getLogger("SensorManager").setLevel(logging.WARNING)
+    sensors = SensorManager()
+    croupier = Croupier(table)
+    trader = OscarTrader(croupier=croupier)
+
+    initial_state = _get_table_state(table)
+    OSCAR_LIVE_LOGGER.info(
+        "Balance inicial reportado | balance=%.4f | equity=%.4f",
+        float(initial_state.get("balance", 0.0)),
+        float(initial_state.get("equity", initial_state.get("balance", 0.0))),
+    )
+
+    try:
+        while True:
+            candle = table.next_candle()
+            if candle is None:
+                time.sleep(LIVE_SLEEP_SECONDS)
+                continue
+
+            sensors.process_candle(candle)
+            table_state = _get_table_state(table)
+            summary = trader.process_candle(candle, table_state)
+            if not summary:
+                continue
+
+            if summary.get("executed"):
+                order = summary.get("order", {})
+                result = summary.get("result", {})
+                session = summary.get("session", {})
+                OSCAR_LIVE_LOGGER.info(
+                    "oscar_live_trade | %s %s | qty=%s | result=%s | session=%s",
+                    order.get("symbol"),
+                    order.get("side"),
+                    result.get("executed_qty", order.get("size")),
+                    result.get("result"),
+                    session.get("status"),
+                )
+            time.sleep(LIVE_SLEEP_SECONDS)
+    except KeyboardInterrupt:
+        OSCAR_LIVE_LOGGER.info("Sesión Oscar live finalizada por el usuario.")

@@ -1,0 +1,15 @@
+{
+  "name": "Kraken Futures Demo",
+  "maker_fee": 0.0002,
+  "taker_fee": 0.0005,
+  "entry_fee_rate": 0.0005,
+  "exit_fee_rate": 0.0005,
+  "slippage_model": {
+    "type": "linear",
+    "base_spread": 0.0006,
+    "per_size_fraction": 0.0012
+  },
+  "funding_rate_per_hour": 0.0000125,
+  "leverage_limit": 50,
+  "maintenance_margin_rate": 0.01
+}

@@ -31,6 +31,8 @@ import config
 
 # Importaciones condicionales (según modo)
 from tables.table_backtest import TableBacktest
+from tables.table_aster_paper import TableAsterPaper
+from tables.table_kraken_paper import TableKrakenPaper
 # En el futuro: from tables.table_realtime import TableRealtime
 
 
@@ -40,7 +42,12 @@ class BrokerInterface:
     Ofrece una interfaz unificada: self.engine.table
     """
 
-    def __init__(self, csv_path: str | None = None, symbol: str | None = None):
+    def __init__(
+        self,
+        csv_path: str | None = None,
+        symbol: str | None = None,
+        interval: str | None = None,
+    ):
         """
         Inicializa el broker. Según el modo de config.py,
         crea la mesa correspondiente.
@@ -54,6 +61,13 @@ class BrokerInterface:
         """
         self.logger = logging.getLogger("BrokerInterface")
         self.mode = getattr(config, "MODE", "backtest").lower()
+        exchange = getattr(config, "EXCHANGE", "SIMULATION").upper()
+        if interval:
+            self.interval = interval
+        elif "KRAKEN" in exchange:
+            self.interval = getattr(config, "KRAKEN_FUTURES_INTERVAL", "1m")
+        else:
+            self.interval = getattr(config, "ASTER_DEFAULT_INTERVAL", "1m")
 
         if self.mode == "backtest":
             if not csv_path:
@@ -62,9 +76,8 @@ class BrokerInterface:
             self.engine = self._create_backtest_engine(csv_path, symbol)
 
         elif self.mode == "live":
-            # Placeholder futuro
-            self.logger.info("🚀 Iniciando mesa LIVE (placeholder)")
-            self.engine = self._create_live_engine(symbol)
+            self.logger.info("🚀 Iniciando mesa LIVE (config.EXCHANGE=%s)", exchange)
+            self.engine = self._create_live_engine(symbol, self.interval, exchange)
 
         else:
             raise ValueError(f"Modo desconocido en config.MODE: {self.mode}")
@@ -83,13 +96,19 @@ class BrokerInterface:
 
         return Engine(csv_path, symbol)
 
-    def _create_live_engine(self, symbol: str | None):
+    def _create_live_engine(self, symbol: str | None, interval: str | None, exchange: str):
         """
-        Placeholder para modo live — todavía no implementado.
-        Mantiene misma estructura (self.table) para compatibilidad.
+        Construye la mesa realtime según el exchange configurado.
         """
-        class Engine:
-            def __init__(self, symbol):
-                raise NotImplementedError("Modo LIVE aún no implementado en BrokerInterface.")
-        return Engine(symbol)
+        exchange = getattr(config, "EXCHANGE", "SIMULATION").upper()
 
+        class Engine:
+            def __init__(self, symbol, interval):
+                if "ASTER" in exchange:
+                    self.table = TableAsterPaper(symbol=symbol, interval=interval)
+                elif "KRAKEN" in exchange:
+                    self.table = TableKrakenPaper(symbol=symbol, interval=interval)
+                else:
+                    raise NotImplementedError(f"Exchange LIVE no soportado: {exchange}")
+
+        return Engine(symbol, interval)

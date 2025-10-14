@@ -104,6 +104,31 @@ Ejemplo de salida:
 👻 GHOST trades: 27
 ```
 
+## 🛰️ Paper Trading (ASTERDEx / Kraken Futures)
+
+**ASTERDEx**
+- `.env`:
+  - `ASTER_API_KEY=...`
+  - `ASTER_API_SECRET=...`
+  - Opcionales: `ASTER_BASE_URL`, `ASTER_WS_URL`
+- `config.py`:
+  - `MODE = "live"`
+  - `EXCHANGE = "ASTER_PAPER"`
+  - `EXCHANGE_PROFILE = "asterdex_paper"`
+- Test: `python -m utils.test_aster_connection --symbol BTCUSDT --interval 1m`
+
+**Kraken Futures (demo)**
+- `.env`:
+  - `KRAKEN_FUTURES_API_KEY=...`
+  - `KRAKEN_FUTURES_API_SECRET=...`
+  - Opcionales: `KRAKEN_FUTURES_BASE_URL`, `KRAKEN_FUTURES_CHARTS_URL`
+- `config.py`:
+  - `MODE = "live"`
+  - `EXCHANGE = "KRAKEN_DEMO"`
+  - `EXCHANGE_PROFILE = "kraken_futures_demo"`
+
+Ejecuta `python3 main.py`; se solicitará símbolo/intervalo (defaults según el exchange) y se usará el balance que reporte la cuenta. Si `ENABLE_OSCAR_MODE = True`, se lanza Oscar Grind en vivo. Las órdenes devuelven el estado bruto (`placed/filled/...`); el cálculo de PnL precisa integrar feeds de fills eventuales.
+
 ---
 
 ## 🧩 Próximos pasos

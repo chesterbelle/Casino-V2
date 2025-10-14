@@ -99,7 +99,7 @@ def save_csv(symbol: str, interval: str, rows: List[List[Any]], tag: str | None 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Descarga dataset de velas de Binance Futures.")
     parser.add_argument("--symbol", default=None, help="Símbolo base (ej. BTC, LTC, ADA) o par completo (BTCUSDT)")
-    parser.add_argument("--interval", default="15m", help="Intervalo (ej. 1m, 5m, 15m, 1h, 4h, 1d)")
+    parser.add_argument("--interval", default=None, help="Intervalo (ej. 1m, 5m, 15m, 1h, 4h, 1d)")
     parser.add_argument("--days", type=int, default=None, help="Cantidad de días hacia atrás a descargar (desde hoy)")
     parser.add_argument("--tag", default=None, help="Etiqueta opcional para el nombre del archivo")
     args = parser.parse_args()
@@ -123,7 +123,8 @@ def main() -> None:
         interval = args.interval
     else:
         try:
-            interval = input("Intervalo (ej. 1m, 5m, 15m) [15m]: ").strip() or "15m"
+            interval = input("Intervalo (ej. 1m, 5m, 15m) [15m]: ").strip()
+            interval = interval or "15m"
         except EOFError:
             interval = "15m"
     days = args.days
