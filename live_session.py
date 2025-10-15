@@ -277,6 +277,8 @@ def run_live_session(
         stop_reason = "Sesión finalizada manualmente (Ctrl+C)."
         RESULT_LOGGER.info("Sesión live finalizada por el usuario.")
     finally:
+        if hasattr(table, "close_all_positions"):
+            table.close_all_positions()
         final_state = _get_table_state(table)
         final_balance = _safe_float(final_state.get("balance"), initial_balance)
         final_equity = _safe_float(final_state.get("equity"), final_balance)

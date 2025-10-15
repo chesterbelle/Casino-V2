@@ -12,7 +12,7 @@ from __future__ import annotations
 import logging
 import os
 import time
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 import config
 from croupier.croupier import Croupier
@@ -137,13 +137,22 @@ def _get_table_state(table) -> Dict:
     return {}
 
 
+def _as_float(value: Any, default: float = 0.0) -> float:
+    if isinstance(value, (int, float)):
+        return float(value)
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
 LIVE_SLEEP_SECONDS = float(getattr(config, "LIVE_SLEEP_SECONDS", 1.0))
 OSCAR_LIVE_LOGGER = logging.getLogger("OscarLiveSession")
 
 
 def run_oscar_live_session(symbol: Optional[str] = None, interval: Optional[str] = None) -> None:
     """
-    Ejecuta Oscar Grind en modo live/paper reutilizando BrokerInterface.
+    Ejecuta Oscar Grind en modo live/paper con gestión de estado de posición.
     """
     logging.getLogger().setLevel(getattr(logging, config.LOG_LEVEL, logging.INFO))
     exchange = getattr(config, "EXCHANGE", "SIMULATION").upper()
@@ -182,8 +191,6 @@ def run_oscar_live_session(symbol: Optional[str] = None, interval: Optional[str]
         OSCAR_LIVE_LOGGER.info("Símbolo normalizado por la mesa: %s -> %s", symbol, actual_symbol)
         symbol = actual_symbol
 
-    logging.getLogger("SensorManager").setLevel(logging.WARNING)
-    sensors = SensorManager()
     croupier = Croupier(table)
     trader = OscarTrader(croupier=croupier)
 
@@ -193,6 +200,9 @@ def run_oscar_live_session(symbol: Optional[str] = None, interval: Optional[str]
         float(initial_state.get("balance", 0.0)),
         float(initial_state.get("equity", initial_state.get("balance", 0.0))),
     )
+    initial_equity = _as_float(initial_state.get("equity"), _as_float(initial_state.get("balance")))
+
+    trade_count = 0
 
     try:
         while True:
@@ -201,24 +211,74 @@ def run_oscar_live_session(symbol: Optional[str] = None, interval: Optional[str]
                 time.sleep(LIVE_SLEEP_SECONDS)
                 continue
 
-            sensors.process_candle(candle)
-            table_state = _get_table_state(table)
-            summary = trader.process_candle(candle, table_state)
-            if not summary:
-                continue
+            # El PositionManager está en la mesa
+            pm = getattr(table, "position_manager", None)
+            if not pm:
+                raise RuntimeError("La mesa seleccionada no tiene un PositionManager.")
 
-            if summary.get("executed"):
-                order = summary.get("order", {})
-                result = summary.get("result", {})
-                session = summary.get("session", {})
-                OSCAR_LIVE_LOGGER.info(
-                    "oscar_live_trade | %s %s | qty=%s | result=%s | session=%s",
-                    order.get("symbol"),
-                    order.get("side"),
-                    result.get("executed_qty", order.get("size")),
-                    result.get("result"),
-                    session.get("status"),
-                )
+            equity_before = _get_table_state(table).get("equity", 0.0)
+
+            # 1. Si hay una posición abierta, vigilar para cerrar
+            if pm.is_position_open():
+                open_pos = pm.get_open_position()
+                exit_reason = pm.check_exit(candle["high"], candle["low"])
+
+                if exit_reason:
+                    exit_price = open_pos.stop_loss_price if exit_reason == "SL" else open_pos.take_profit_price
+                    result = table.close_open_position(exit_price, exit_reason)
+                    trade_count += 1
+
+                    pnl_units = trader._compute_pnl_units(result, equity_before)
+                    trader.state_machine.record_result(pnl_units)
+
+                    session_summary = trader.state_machine.get_session_summary()
+                    OSCAR_LIVE_LOGGER.info(
+                        f"CIERRE: {result.get('result')} | PnL: {result.get('pnl_net'):.4f} | Razón: {exit_reason} | "
+                        f"Trades: {trade_count} | Winrate: {session_summary.get('winrate_pct'):.2f}% | "
+                        f"PnL Unidades: {session_summary.get('session_pnl'):.4f}u"
+                    )
+            
+            # 2. Si no hay posición, buscar oportunidad para abrir
+            else:
+                entry_order = trader.check_for_entry(candle, equity_before)
+                if entry_order:
+                    croupier.route_order(entry_order)
+            
             time.sleep(LIVE_SLEEP_SECONDS)
+
     except KeyboardInterrupt:
-        OSCAR_LIVE_LOGGER.info("Sesión Oscar live finalizada por el usuario.")
+        OSCAR_LIVE_LOGGER.info("🏁 Sesión Oscar finalizada manualmente por el usuario.")
+    finally:
+        if hasattr(table, "close_all_positions"):
+            table.close_all_positions()
+
+        final_state = _get_table_state(table)
+        final_equity = _as_float(final_state.get("equity"), _as_float(final_state.get("balance")))
+        change_equity = final_equity - initial_equity
+        equity_span = f"${initial_equity:,.2f}->${final_equity:,.2f}"
+        change_str = f"${change_equity:+,.2f}"
+        session_summary = trader.state_machine.get_session_summary()
+        session_status = session_summary.get("status", "UNKNOWN")
+        session_pnl = session_summary.get("session_pnl")
+        if isinstance(session_pnl, (int, float)):
+            session_pnl_str = f"{session_pnl:+.4f}u"
+        else:
+            session_pnl_str = "n/a"
+        wins = int(_as_float(session_summary.get("wins")))
+        losses = int(_as_float(session_summary.get("losses")))
+        draws = int(_as_float(session_summary.get("draws")))
+        total_trades = wins + losses + draws
+        winrate_pct = (wins / total_trades * 100.0) if total_trades > 0 else 0.0
+
+        OSCAR_LIVE_LOGGER.info(
+            "🏁 Resumen final | trades=%d | status=%s | winrate=%.2f%% | historial=W%d/L%d/D%d | pnl_units=%s | equity=%s (%s)",
+            trade_count,
+            session_status,
+            winrate_pct,
+            wins,
+            losses,
+            draws,
+            session_pnl_str,
+            equity_span,
+            change_str,
+        )

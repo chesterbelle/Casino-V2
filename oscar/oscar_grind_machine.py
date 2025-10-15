@@ -22,6 +22,7 @@ class TradeResult(Enum):
     WIN = "win"
     LOSS = "loss"
     PENDING = "pending"
+    BREAKEVEN = "breakeven"
 
 
 class SessionStatus(Enum):
@@ -40,6 +41,9 @@ class SessionState:
     last_trade_result: TradeResult
     trades_count: int
     sequence_progress: float
+    wins_count: int
+    losses_count: int
+    draws_count: int
 
 
 class OscarGrindStateMachine:
@@ -66,6 +70,9 @@ class OscarGrindStateMachine:
             last_trade_result=TradeResult.PENDING,
             trades_count=0,
             sequence_progress=0.0,
+            wins_count=0,
+            losses_count=0,
+            draws_count=0,
         )
 
         logger.info(
@@ -86,6 +93,9 @@ class OscarGrindStateMachine:
             last_trade_result=TradeResult.PENDING,
             trades_count=0,
             sequence_progress=0.0,
+            wins_count=0,
+            losses_count=0,
+            draws_count=0,
         )
         logger.info("Nueva sesión Oscar Grind iniciada.")
 
@@ -118,16 +128,22 @@ class OscarGrindStateMachine:
             return
 
         pnl_units = float(pnl_units)
+        epsilon = 1e-9
         self.state.session_pnl += pnl_units
         self.state.trades_count += 1
 
-        if pnl_units > 0:
+        if pnl_units > epsilon:
             result = TradeResult.WIN
             self.state.consecutive_wins += 1
-        else:
+            self.state.wins_count += 1
+        elif pnl_units < -epsilon:
             result = TradeResult.LOSS
             self.state.consecutive_wins = 0
             self.state.sequence_progress = 0.0
+            self.state.losses_count += 1
+        else:
+            result = TradeResult.BREAKEVEN
+            self.state.draws_count += 1
 
         self.state.last_trade_result = result
 
@@ -140,7 +156,7 @@ class OscarGrindStateMachine:
                 self.state.sequence_progress %= 1.0
             else:
                 self.state.current_position_size += profit_fraction
-        else:
+        elif result == TradeResult.LOSS:
             self.state.current_position_size = self.initial_unit_size
 
         self.state.current_position_size = max(self.initial_unit_size, min(self.state.current_position_size, self.max_position_size))
@@ -156,6 +172,11 @@ class OscarGrindStateMachine:
 
     def get_session_summary(self) -> Dict[str, Any]:
         progress_pct = (self.state.session_pnl / self.profit_target * 100.0) if self.profit_target else 0.0
+        wins = self.state.wins_count
+        losses = self.state.losses_count
+        draws = self.state.draws_count
+        decided = wins + losses
+        winrate_pct = (wins / decided * 100.0) if decided > 0 else 0.0
         return {
             "status": self.state.status.value,
             "current_position_size": self.state.current_position_size,
@@ -165,5 +186,8 @@ class OscarGrindStateMachine:
             "trades_count": self.state.trades_count,
             "sequence_progress": self.state.sequence_progress,
             "progress_to_target_pct": progress_pct,
+            "wins": wins,
+            "losses": losses,
+            "draws": draws,
+            "winrate_pct": winrate_pct,
         }
-

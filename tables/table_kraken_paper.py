@@ -15,6 +15,7 @@ from typing import Any, Deque, Dict, Optional
 
 import config
 from tables.balance_manager import BalanceManager
+from tables.position_manager import PositionManager
 from tables.table_base import BaseTable
 from utils.kraken_env_loader import load_kraken_credentials
 from utils.kraken_futures_client import KrakenFuturesClient, KrakenFuturesAPIError
@@ -54,6 +55,7 @@ class TableKrakenPaper(BaseTable):
             )
 
         self.balance_manager = BalanceManager(starting_balance=getattr(config, "STARTING_BALANCE", 10_000.0))
+        self.position_manager = PositionManager()
         self.instrument = self._resolve_instrument(self.raw_symbol_input)
         self.symbol = self.instrument.get("symbol", self.raw_symbol_input)
         self.contract_size = float(self.instrument.get("contractSize", 1.0) or 1.0)
@@ -99,100 +101,140 @@ class TableKrakenPaper(BaseTable):
     # Order routing
     # ------------------------------------------------------------------
     def execute_order(self, order: Dict[str, Any]) -> Dict[str, Any]:
+        """Abre una nueva posición y la registra en el PositionManager."""
+        if self.position_manager.is_position_open():
+            self.logger.warning("Se ignoró la orden de apertura porque ya hay una posición abierta.")
+            return {"status": "SKIPPED", "reason": "position_already_open"}
+
         ghost = bool(order.get("ghost", False))
-        trade_id = order.get("trade_id")
-
-        result_base = {
-            "trade_id": trade_id,
-            "symbol": self.symbol,
-            "ghost": ghost,
-            "balance": self.balance_manager.get_state().get("balance"),
-        }
-
         if ghost:
-            return {**result_base, "result": "GHOST", "pnl": 0.0, "fee": 0.0}
+            return {"status": "SKIPPED", "reason": "ghost_order"}
 
         if not self.client.api_key or not self.client.api_secret:
             self.logger.warning("Orden real omitida: faltan credenciales de Kraken Futures.")
-            return {**result_base, "result": "SKIPPED", "pnl": 0.0, "fee": 0.0}
+            return {"status": "SKIPPED", "reason": "missing_credentials"}
 
         size_fraction = float(order.get("size", 0.0))
         if size_fraction <= 0.0:
-            self.logger.warning("Orden con tamaño inválido (sizeFraction=%s).", size_fraction)
-            return {**result_base, "result": "SKIPPED", "pnl": 0.0, "fee": 0.0}
+            self.logger.warning("Orden con tamaño inválido (size_fraction=%s).", size_fraction)
+            return {"status": "SKIPPED", "reason": "invalid_size"}
 
         equity = float(self.balance_manager.get_state().get("equity", 0.0))
         if equity <= 0:
-            self.logger.warning("Equity indisponible para calcular riesgo.")
-            return {**result_base, "result": "SKIPPED", "pnl": 0.0, "fee": 0.0}
+            self.logger.warning("Equity no disponible para calcular riesgo.")
+            return {"status": "SKIPPED", "reason": "no_equity"}
 
-        mark_price = self._fetch_mark_price()
-        if mark_price <= 0:
+        entry_price = self._fetch_mark_price()
+        if entry_price <= 0:
             self.logger.error("No se pudo obtener mark price de Kraken Futures.")
-            return {**result_base, "result": "ERROR", "pnl": 0.0, "fee": 0.0}
+            return {"status": "ERROR", "reason": "fetch_mark_price_failed"}
 
         notional = equity * size_fraction
-        contracts = max(1, int(math.floor(notional / max(mark_price * self.contract_size, 1e-8))))
+        contracts = max(1, int(math.floor(notional / max(entry_price * self.contract_size, 1e-8))))
         if contracts <= 0:
-            self.logger.warning("Cantidad de contratos resultó 0. Aumenta el tamaño o revisa el balance.")
-            return {**result_base, "result": "SKIPPED", "pnl": 0.0, "fee": 0.0}
+            self.logger.warning("Cantidad de contratos resultó 0.")
+            return {"status": "SKIPPED", "reason": "zero_contracts"}
 
-        side = order.get("side", "").lower()
-        if side not in {"long", "short", "buy", "sell"}:
-            return {**result_base, "result": "ERROR", "pnl": 0.0, "fee": 0.0, "error": "invalid_side"}
+        side = order.get("side", "").upper()
+        if side not in {"LONG", "SHORT"}:
+            return {"status": "ERROR", "reason": "invalid_side"}
 
         payload: Dict[str, Any] = {
             "orderType": "mkt",
             "symbol": self.symbol,
-            "side": "buy" if side in {"long", "buy"} else "sell",
+            "side": "buy" if side == "LONG" else "sell",
             "size": str(contracts),
         }
-        if order.get("reduce_only"):
-            payload["reduceOnly"] = "true"
-        if order.get("cliOrdId"):
-            payload["cliOrdId"] = order["cliOrdId"]
+
+        try:
+            response = self.client.send_order(payload)
+            self.logger.debug("Kraken sendorder payload=%s response=%s", payload, response)
+        except KrakenFuturesAPIError as exc:
+            self.logger.error("Kraken Futures rechazó la orden: %s", exc)
+            return {"status": "ERROR", "reason": "api_error", "details": str(exc)}
+
+        send_status = response.get("sendStatus", {}) if isinstance(response, dict) else {}
+        order_id = send_status.get("order_id") or send_status.get("orderId")
+
+        # Calcular precios de TP/SL
+        tp_factor = float(order.get("take_profit", 1.0))
+        sl_factor = float(order.get("stop_loss", 1.0))
+        tp_price = entry_price * tp_factor if side == "LONG" else entry_price * (2 - tp_factor)
+        sl_price = entry_price * sl_factor if side == "LONG" else entry_price * (2 - sl_factor)
+
+        # Registrar la posición en el gestor
+        self.position_manager.open_position(
+            symbol=self.symbol,
+            side=side,
+            size_contracts=contracts,
+            entry_price=entry_price,
+            take_profit_price=tp_price,
+            stop_loss_price=sl_price,
+            entry_timestamp=datetime.now(timezone.utc).isoformat(),
+            trade_id=order.get("trade_id", ""),
+            misc={"order_id": order_id}
+        )
+
+        self.logger.info(f"POSICIÓN ABIERTA: {side} {contracts} {self.symbol} @ {entry_price:.2f}")
+        return {"status": "OPENED", "order_id": order_id, "response": response}
+
+    def close_open_position(self, exit_price: float, reason: str) -> Dict[str, Any]:
+        """Cierra la posición abierta y calcula el resultado."""
+        open_pos = self.position_manager.get_open_position()
+        if not open_pos:
+            return {"status": "ERROR", "reason": "no_position_to_close"}
+
+        close_side = "sell" if open_pos.side == "LONG" else "buy"
+        payload = {
+            "orderType": "mkt",
+            "symbol": self.symbol,
+            "side": close_side,
+            "size": str(open_pos.size_contracts),
+            "reduceOnly": "true",
+        }
 
         try:
             response = self.client.send_order(payload)
         except KrakenFuturesAPIError as exc:
-            self.logger.error("Kraken Futures rechazó la orden: %s", exc)
-            return {**result_base, "result": "ERROR", "pnl": 0.0, "fee": 0.0, "error": str(exc)}
-        except Exception as exc:  # pragma: no cover
-            self.logger.exception("Error inesperado enviando orden a Kraken Futures.")
-            return {**result_base, "result": "ERROR", "pnl": 0.0, "fee": 0.0, "error": str(exc)}
+            self.logger.error("Error al cerrar posición en Kraken: %s", exc)
+            return {"status": "ERROR", "reason": "close_api_error", "details": str(exc)}
 
-        send_status = response.get("sendStatus", {}) if isinstance(response, dict) else {}
-        status = str(send_status.get("status", "unknown")).upper()
-        order_events = send_status.get("orderEvents", []) or []
+        # Calcular PnL
+        price_diff = exit_price - open_pos.entry_price
+        if open_pos.side == "SHORT":
+            price_diff = -price_diff
 
-        pre_state = self.balance_manager.get_state()
-        pre_equity = float(pre_state.get("equity", pre_state.get("balance", 0.0)) or 0.0)
+        pnl_per_contract = price_diff * self.contract_size
+        gross_pnl = pnl_per_contract * open_pos.size_contracts
 
-        financials = self._collect_order_financials(send_status.get("order_id"), order_events)
+        entry_notional = open_pos.entry_price * open_pos.size_contracts * self.contract_size
+        exit_notional = exit_price * open_pos.size_contracts * self.contract_size
+        fee = (entry_notional * self.entry_fee_rate) + (exit_notional * self.exit_fee_rate)
 
-        self._sync_balance_from_exchange()
-        post_state = self.balance_manager.get_state()
-        post_equity = float(post_state.get("equity", post_state.get("balance", pre_equity)) or pre_equity)
-        net_change = post_equity - pre_equity
+        net_pnl = gross_pnl - fee
 
-        fee_total = financials.get("fee", 0.0)
-        funding_total = financials.get("funding", 0.0)
-        gross_pnl = net_change + fee_total - funding_total
+        # Actualizar balance
+        self.balance_manager.apply_trade_result(pnl=net_pnl, fee=0) # El fee ya está en el net_pnl
 
-        result_payload = {
-            **result_base,
-            "result": status,
-            "status": status,
-            "executed_qty": financials.get("executed_qty", 0.0),
-            "avg_price": financials.get("avg_price", 0.0),
+        self.logger.info(
+            f"POSICIÓN CERRADA: {open_pos.side} {open_pos.size_contracts} {self.symbol} | PnL Bruto: {gross_pnl:.4f}, Fee: {fee:.4f}, PnL Neto: {net_pnl:.4f}"
+        )
+
+        # Limpiar la posición del gestor
+        self.position_manager.close_position()
+
+        return {
+            "trade_id": open_pos.trade_id,
+            "result": "WIN" if net_pnl > 0 else "LOSS",
             "pnl": gross_pnl,
-            "pnl_net": net_change,
-            "fee": fee_total,
-            "funding": funding_total,
-            "order_id": send_status.get("order_id"),
-            "raw": response,
+            "pnl_net": net_pnl,
+            "fee": fee,
+            "exit_reason": reason,
+            "entry_price": open_pos.entry_price,
+            "exit_price": exit_price,
+            "size": open_pos.size_contracts,
+            "raw_close_response": response,
         }
-        return result_payload
 
     # ------------------------------------------------------------------
     # State helpers
@@ -411,6 +453,60 @@ class TableKrakenPaper(BaseTable):
         if size.is_integer():
             return str(int(size))
         return f"{size:.6f}".rstrip("0").rstrip(".")
+
+    def _await_order_completion(self, order_id: str, *, timeout: float = 10.0, poll_interval: float = 0.5) -> tuple[Optional[str], list[Dict[str, Any]]]:
+        """
+        Bloquea brevemente esperando que Kraken marque la orden como completada/cancelada.
+        Devuelve (status_final, eventos_extra).
+        Si expira el timeout, se devuelve el último estado conocido (o None) y lista vacía.
+        """
+        deadline = time.monotonic() + max(timeout, 0.0)
+        last_status: Optional[str] = None
+        while time.monotonic() < deadline:
+            is_open, open_status = self._is_order_still_open(order_id)
+            if open_status:
+                last_status = open_status
+            if not is_open:
+                order_snapshot = self._fetch_recent_order(order_id)
+                if order_snapshot:
+                    status = str(order_snapshot.get("status", last_status or "UNKNOWN")).upper()
+                    events = order_snapshot.get("orderEvents", []) or order_snapshot.get("order_events", []) or []
+                    return status, events
+                break
+            time.sleep(max(poll_interval, 0.1))
+        return last_status, []
+
+    def _is_order_still_open(self, order_id: str) -> tuple[bool, Optional[str]]:
+        try:
+            open_resp = self.client.get_open_orders()
+        except Exception as exc:
+            self.logger.debug("No se pudo obtener open orders para seguimiento (%s)", exc)
+            return True, None
+
+        orders = open_resp.get("openOrders", []) if isinstance(open_resp, dict) else []
+        for order in orders:
+            oid = order.get("orderId") or order.get("order_id")
+            if not oid or oid != order_id:
+                continue
+            status = str(order.get("status", "OPEN")).upper()
+            return True, status
+        return False, None
+
+    def _fetch_recent_order(self, order_id: str) -> Optional[Dict[str, Any]]:
+        try:
+            recent_resp = self.client.get_recent_orders()
+        except Exception as exc:
+            self.logger.debug("No se pudieron obtener recent orders (%s)", exc)
+            return None
+
+        orders = recent_resp.get("recentOrders") or recent_resp.get("orders") or recent_resp.get("recent_orders")
+        if not isinstance(orders, list):
+            return None
+        for order in orders:
+            oid = order.get("orderId") or order.get("order_id")
+            if oid == order_id:
+                return order
+        return None
 
     def _resolve_instrument(self, user_symbol: str) -> Dict[str, Any]:
         """

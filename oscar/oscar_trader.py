@@ -63,10 +63,10 @@ class OscarTrader:
     # --------------------------------------------------
     # API principal
     # --------------------------------------------------
-    def process_candle(self, candle: Dict[str, Any], table_state: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def check_for_entry(self, candle: Dict[str, Any], equity: float) -> Optional[Dict[str, Any]]:
         """
-        Procesa una vela. Si se detecta señal y la sesión lo permite,
-        ejecuta el trade y devuelve un resumen del resultado.
+        Procesa una vela para decidir si se debe abrir una nueva posición.
+        Si corresponde, construye y devuelve el diccionario de la orden.
         """
         signal = self.range_sensor.process(candle)
         if not signal:
@@ -74,46 +74,23 @@ class OscarTrader:
 
         if not self.state_machine.should_enter_trade():
             logger.debug("Oscar session inactive, ignorando señal.")
-            return {"signal": signal, "executed": False, "reason": "session_inactive"}
+            return None
 
         units = self.state_machine.get_next_position_size()
         if units <= 0:
             logger.debug("State machine devolvió size 0, ignorando señal.")
-            return {"signal": signal, "executed": False, "reason": "size_zero"}
+            return None
 
-        equity = float(table_state.get("equity", table_state.get("balance", 0.0)) or 0.0)
         if equity <= 0:
             logger.warning("Equity no disponible o <= 0; no se puede calcular riesgo.")
-            return {"signal": signal, "executed": False, "reason": "no_equity"}
+            return None
 
         size_fraction = self._compute_size_fraction(units)
         if size_fraction <= 0:
-            return {"signal": signal, "executed": False, "reason": "fraction_zero"}
+            return None
 
-        order = self._build_order(signal, candle, size_fraction)
-        result = self.croupier.route_order(order)
-
-        post_state = self.croupier.table.get_state() if hasattr(self.croupier, "table") else {}
-        post_equity = float(post_state.get("equity", equity) or equity)
-        pnl_currency = float(result.get("pnl_net", result.get("pnl", 0.0)) or (post_equity - equity))
-
-        pnl_units = self._compute_pnl_units(result, equity)
-        self.state_machine.record_result(pnl_units)
-
-        summary = {
-            "signal": signal,
-            "order": order,
-            "result": result,
-            "pnl_units": pnl_units,
-            "pnl_currency": pnl_currency,
-            "session": self.state_machine.get_session_summary(),
-            "units_used": units,
-            "size_fraction": size_fraction,
-            "notional": equity * size_fraction,
-            "equity_before": equity,
-            "executed": True,
-        }
-        return summary
+        # Si todas las condiciones se cumplen, construye y devuelve la orden
+        return self._build_order(signal, candle, size_fraction)
 
     # --------------------------------------------------
     # Helpers
