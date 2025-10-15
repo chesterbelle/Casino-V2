@@ -104,7 +104,7 @@ Ejemplo de salida:
 👻 GHOST trades: 27
 ```
 
-## 🛰️ Paper Trading (ASTERDEx / Kraken Futures)
+## 🛰️ Paper Trading (ASTERDEx / Kraken / Binance)
 
 **ASTERDEx**
 - `.env`:
@@ -127,6 +127,15 @@ Ejemplo de salida:
   - `EXCHANGE = "KRAKEN_DEMO"`
   - `EXCHANGE_PROFILE = "kraken_futures_demo"`
 
+**Binance Futures (Testnet)**
+- `.env`:
+  - `BINANCE_API_KEY=...`
+  - `BINANCE_API_SECRET=...`
+- `config.py`:
+  - `MODE = "live"`
+  - `EXCHANGE = "BINANCE_FUTURES_TESTNET"`
+  - `EXCHANGE_PROFILE = "binance_futures_testnet"`
+
 Ejecuta `python3 main.py`; se solicitará símbolo/intervalo (defaults según el exchange) y se usará el balance que reporte la cuenta. Si `ENABLE_OSCAR_MODE = True`, se lanza Oscar Grind en vivo. Las órdenes devuelven el estado bruto (`placed/filled/...`); el cálculo de PnL precisa integrar feeds de fills eventuales.
 
 ---
@@ -134,7 +143,7 @@ Ejecuta `python3 main.py`; se solicitará símbolo/intervalo (defaults según el
 ## 🧩 Próximos pasos
 
 ✅ **v0.1.1:** Primera versión funcional del ecosistema completo  
-🔜 **v0.2.0:** Integración del modo LIVE (Binance Futures Testnet)  
+✅ **v0.2.0:** Integración del modo LIVE (Binance Futures Testnet)  
 🔜 **v0.3.0:** Gemini A/B/C (múltiples jugadores con estrategias distintas)  
 🔜 **v0.4.0:** Dashboard de rendimiento y análisis visual  
 

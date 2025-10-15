@@ -33,7 +33,7 @@ import config
 from tables.table_backtest import TableBacktest
 from tables.table_aster_paper import TableAsterPaper
 from tables.table_kraken_paper import TableKrakenPaper
-# En el futuro: from tables.table_realtime import TableRealtime
+from tables.table_binance_paper import TableBinancePaper
 
 
 class BrokerInterface:
@@ -66,6 +66,8 @@ class BrokerInterface:
             self.interval = interval
         elif "KRAKEN" in exchange:
             self.interval = getattr(config, "KRAKEN_FUTURES_INTERVAL", "1m")
+        elif "BINANCE" in exchange:
+            self.interval = getattr(config, "BINANCE_DEFAULT_INTERVAL", "15m")
         else:
             self.interval = getattr(config, "ASTER_DEFAULT_INTERVAL", "1m")
 
@@ -108,6 +110,8 @@ class BrokerInterface:
                     self.table = TableAsterPaper(symbol=symbol, interval=interval)
                 elif "KRAKEN" in exchange:
                     self.table = TableKrakenPaper(symbol=symbol, interval=interval)
+                elif "BINANCE" in exchange:
+                    self.table = TableBinancePaper(symbol=symbol, interval=interval)
                 else:
                     raise NotImplementedError(f"Exchange LIVE no soportado: {exchange}")
 

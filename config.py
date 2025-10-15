@@ -16,18 +16,23 @@ Gemini, el Croupier y las Mesas leerán de aquí directamente.
 # =====================================================
 # Puede ser:
 #  - "backtest"  → usa dataset CSV y simula operaciones
-#  - "realtime"  → usa conexión de API (futuro módulo)
+#  - "live"      → se conecta a un exchange real o de paper trading
 MODE = "live"
 
 # Bandera específica para habilitar la arquitectura Oscar.
 # Si se activa (True), el main desviará la sesión hacia OscarGrind
 # sin importar el MODE general (que sigue controlando el origen
 # de datos: backtest vs live).
+# Opciones: True, False
 ENABLE_OSCAR_MODE = True
 
 # Perfil del exchange (usa el JSON de tables/data/exchange_profiles)
-EXCHANGE_PROFILE = "kraken_futures_demo"
-EXCHANGE = "KRAKEN_DEMO"
+# Opciones: "asterdex_paper", "kraken_futures_demo", "binance_futures_testnet"
+EXCHANGE_PROFILE = "binance_futures_testnet"
+
+# Exchange a utilizar en modo "live"
+# Opciones: "ASTER_PAPER", "KRAKEN_DEMO", "BINANCE_FUTURES_TESTNET"
+EXCHANGE = "BINANCE_FUTURES_TESTNET"
 
 # Ruta del dataset CSV (para modo backtest) — se utiliza tanto para Gemini
 # como para Oscar (cuando ENABLE_OSCAR_MODE=True). Cambia este archivo
@@ -48,6 +53,17 @@ ASTER_RECV_WINDOW = 5000
 ASTER_POLL_INTERVAL = 2.0
 ASTER_API_KEY = None
 ASTER_API_SECRET = None
+
+
+# =====================================================
+# BINANCE FUTURES — PARÁMETROS TESTNET/LIVE
+# =====================================================
+BINANCE_BASE_URL = "https://testnet.binancefuture.com"
+BINANCE_DEFAULT_SYMBOL = "BTCUSDT"
+BINANCE_DEFAULT_INTERVAL = "15m"
+BINANCE_POLL_INTERVAL = 2.0
+BINANCE_API_KEY = None
+BINANCE_API_SECRET = None
 
 
 # =====================================================

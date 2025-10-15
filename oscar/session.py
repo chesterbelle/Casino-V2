@@ -175,6 +175,10 @@ def run_oscar_live_session(symbol: Optional[str] = None, interval: Optional[str]
             user_interval = input(f"Intervalo Oscar [{default_interval}]: ").strip()
         except EOFError:
             user_interval = ""
+        
+        if user_interval.isdigit():
+            user_interval += "m"
+            
         interval = user_interval or default_interval
 
     OSCAR_LIVE_LOGGER.info(
@@ -243,8 +247,6 @@ def run_oscar_live_session(symbol: Optional[str] = None, interval: Optional[str]
                 entry_order = trader.check_for_entry(candle, equity_before)
                 if entry_order:
                     croupier.route_order(entry_order)
-            
-            time.sleep(LIVE_SLEEP_SECONDS)
 
     except KeyboardInterrupt:
         OSCAR_LIVE_LOGGER.info("🏁 Sesión Oscar finalizada manualmente por el usuario.")
