@@ -17,7 +17,7 @@ Gemini, el Croupier y las Mesas leerán de aquí directamente.
 # Puede ser:
 #  - "backtest"  → usa dataset CSV y simula operaciones
 #  - "live"      → se conecta a un exchange real o de paper trading
-MODE = "live"
+MODE = "backtest"
 
 # Bandera específica para habilitar la arquitectura Oscar.
 # Si se activa (True), el main desviará la sesión hacia OscarGrind

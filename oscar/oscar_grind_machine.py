@@ -8,6 +8,24 @@ reiniciar tras pérdidas y detener la sesión al alcanzar los
 umbrales de profit o max loss definidos en la configuración.
 """
 
+# --------------------------------------------------
+# Explicación Coloquial del Rol de esta Clase (El Estratega)
+# --------------------------------------------------
+# Esta clase actúa como un "contador de fichas" de casino. Su única
+# responsabilidad es decidir CUÁNTAS fichas apostar en la siguiente
+# ronda, sin saber cuánto dinero vale cada ficha.
+#
+# - Lógica Principal:
+#   - Si se gana una operación, la siguiente apuesta aumenta en 1 ficha.
+#   - Si se pierde, la apuesta se mantiene con la misma cantidad de fichas.
+#   - Si la ganancia neta de la sesión alcanza +1 unidad (o más), la
+#     secuencia se reinicia, volviendo a apostar 1 ficha.
+#
+# Este módulo está aislado del dinero. Solo maneja unidades simbólicas
+# (1.0, 2.0, 3.0...), permitiendo que el "Banquero" (OscarTrader) decida
+# el valor monetario de cada "ficha".
+# --------------------------------------------------
+
 from __future__ import annotations
 
 import logging
@@ -40,7 +58,6 @@ class SessionState:
     consecutive_wins: int
     last_trade_result: TradeResult
     trades_count: int
-    sequence_progress: float
     wins_count: int
     losses_count: int
     draws_count: int
@@ -57,19 +74,18 @@ class OscarGrindStateMachine:
 
     def __init__(self, config: Dict[str, Any]):
         self.config = dict(config)
-        self.initial_unit_size = float(self.config.get("initial_unit_size", 1.0))
+        self.base_unit = 1.0
         self.profit_target = float(self.config.get("profit_target", 4.0))
         self.max_loss = float(self.config.get("max_loss", -8.0))
         self.max_position_size = float(self.config.get("max_position_size", 10.0))
 
         self.state = SessionState(
             status=SessionStatus.INACTIVE,
-            current_position_size=self.initial_unit_size,
+            current_position_size=self.base_unit,
             session_pnl=0.0,
             consecutive_wins=0,
             last_trade_result=TradeResult.PENDING,
             trades_count=0,
-            sequence_progress=0.0,
             wins_count=0,
             losses_count=0,
             draws_count=0,
@@ -87,12 +103,11 @@ class OscarGrindStateMachine:
     def start_new_session(self) -> None:
         self.state = SessionState(
             status=SessionStatus.ACTIVE,
-            current_position_size=self.initial_unit_size,
+            current_position_size=self.base_unit,
             session_pnl=0.0,
             consecutive_wins=0,
             last_trade_result=TradeResult.PENDING,
             trades_count=0,
-            sequence_progress=0.0,
             wins_count=0,
             losses_count=0,
             draws_count=0,
@@ -139,7 +154,6 @@ class OscarGrindStateMachine:
         elif pnl_units < -epsilon:
             result = TradeResult.LOSS
             self.state.consecutive_wins = 0
-            self.state.sequence_progress = 0.0
             self.state.losses_count += 1
         else:
             result = TradeResult.BREAKEVEN
@@ -148,18 +162,17 @@ class OscarGrindStateMachine:
         self.state.last_trade_result = result
 
         if result == TradeResult.WIN:
-            profit_fraction = pnl_units / self.initial_unit_size if self.initial_unit_size > 0 else 0.0
-            self.state.sequence_progress += profit_fraction
-
-            if self.state.sequence_progress >= 1.0:
-                self.state.current_position_size = self.initial_unit_size
-                self.state.sequence_progress %= 1.0
-            else:
-                self.state.current_position_size += profit_fraction
+            # Tras una ganancia, la apuesta aumenta en 1 unidad base.
+            self.state.current_position_size += self.base_unit
         elif result == TradeResult.LOSS:
-            self.state.current_position_size = self.initial_unit_size
+            # Tras una pérdida, la apuesta se mantiene igual.
+            pass
 
-        self.state.current_position_size = max(self.initial_unit_size, min(self.state.current_position_size, self.max_position_size))
+        # Si la sesión alcanza un PnL de +1 o más, se reinicia la secuencia.
+        if self.state.session_pnl >= 1.0:
+            self.state.current_position_size = self.base_unit
+
+        self.state.current_position_size = max(self.base_unit, min(self.state.current_position_size, self.max_position_size))
 
         logger.debug(
             "OscarGrind -> Resultado registrado %.4f unidades | próximo size %.4f | pnl acumulado %.4f",
@@ -184,7 +197,6 @@ class OscarGrindStateMachine:
             "consecutive_wins": self.state.consecutive_wins,
             "last_trade_result": self.state.last_trade_result.value,
             "trades_count": self.state.trades_count,
-            "sequence_progress": self.state.sequence_progress,
             "progress_to_target_pct": progress_pct,
             "wins": wins,
             "losses": losses,

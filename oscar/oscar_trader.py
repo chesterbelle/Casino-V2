@@ -7,6 +7,24 @@ de RangeDetector + OscarGrind, y delega la ejecución real al Croupier
 que ya existe en el sistema.
 """
 
+# --------------------------------------------------
+# Explicación Coloquial del Rol de esta Clase (El Banquero)
+# --------------------------------------------------
+# Esta clase actúa como el "Banquero" o el gestor de capital. Recibe
+# las instrucciones del "Estratega" (OscarGrindStateMachine) sobre
+# CUÁNTAS "fichas" (unidades simbólicas) apostar.
+#
+# - Lógica Principal:
+#   1. El Estratega le dice: "Apuesta 2 fichas".
+#   2. El Banquero toma ese número (2.0) y lo multiplica por el valor
+#      monetario de una ficha (ej. 0.01 para el 1% del equity).
+#   3. El resultado (2.0 * 0.01 = 0.02, o 2% del equity) es el tamaño
+#      real de la posición que se enviará al mercado.
+#
+# Esta separación de responsabilidades (contador de fichas vs. gestor
+# de dinero) es clave para evitar errores de cálculo de riesgo.
+# --------------------------------------------------
+
 from __future__ import annotations
 
 import logging
@@ -45,7 +63,6 @@ class OscarTrader:
         self.range_sensor = range_sensor or RangeSensor()
         self.state_machine = state_machine or OscarGrindStateMachine(
             {
-                "initial_unit_size": getattr(config, "OSCAR_INITIAL_UNIT_SIZE", 0.1),
                 "profit_target": getattr(config, "OSCAR_PROFIT_TARGET", 4.0),
                 "max_loss": getattr(config, "OSCAR_MAX_LOSS", -8.0),
                 "max_position_size": getattr(config, "OSCAR_MAX_POSITION_UNITS", 10.0),

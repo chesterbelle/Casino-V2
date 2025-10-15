@@ -20,6 +20,7 @@ from croupier.broker_interface import BrokerInterface
 from sensors.sensor_manager import SensorManager
 from tables.table_backtest import TableBacktest
 
+from .oscar_grind_machine import SessionStatus
 from .oscar_trader import OscarTrader
 
 
@@ -49,15 +50,22 @@ def run_oscar_session(dataset_path: str, initial_balance: float) -> Dict:
             break
 
         candles += 1
-        sensors.process_candle(candle)  # Mantiene entrenamiento de sensores existentes
+        sensors.process_candle(candle)
 
         table_state = _get_table_state(table)
-        summary = trader.process_candle(candle, table_state)
-        if not summary or not summary.get("executed"):
+        equity = float(table_state.get("equity", 0.0))
+
+        # En backtest, no hay gestión de posición abierta/cerrada explícita
+        # como en live. Cada vela es una oportunidad.
+        entry_order = trader.check_for_entry(candle, equity)
+        if not entry_order:
+            continue
+
+        result = croupier.route_order(entry_order)
+        if not result:
             continue
 
         trades += 1
-        result = summary["result"]
         total_fees += float(result.get("fee", 0.0) or 0.0)
         total_funding += float(result.get("funding", 0.0) or 0.0)
         if result.get("liquidated"):
@@ -68,6 +76,17 @@ def run_oscar_session(dataset_path: str, initial_balance: float) -> Dict:
             wins += 1
         elif outcome == "LOSS":
             losses += 1
+
+        # Actualizar la state machine de Oscar
+        pnl_units = trader._compute_pnl_units(result, equity)
+        trader.state_machine.record_result(pnl_units)
+
+        # Si la sesión alcanza el objetivo, se reinicia para seguir operando.
+        if trader.state_machine.state.status == SessionStatus.TARGET_HIT:
+            logging.getLogger("OscarSession").info(
+                "🎯 Profit target hit! Reiniciando sesión de Oscar Grind."
+            )
+            trader.state_machine.start_new_session()
 
     final_state = _get_table_state(table)
     final_balance = float(final_state.get("balance", initial_balance))
@@ -241,6 +260,13 @@ def run_oscar_live_session(symbol: Optional[str] = None, interval: Optional[str]
                         f"Trades: {trade_count} | Winrate: {session_summary.get('winrate_pct'):.2f}% | "
                         f"PnL Unidades: {session_summary.get('session_pnl'):.4f}u"
                     )
+
+                    # Si la sesión alcanza el objetivo, se reinicia para seguir operando.
+                    if trader.state_machine.state.status == SessionStatus.TARGET_HIT:
+                        OSCAR_LIVE_LOGGER.info(
+                            "🎯 Profit target hit! Reiniciando sesión de Oscar Grind."
+                        )
+                        trader.state_machine.start_new_session()
             
             # 2. Si no hay posición, buscar oportunidad para abrir
             else:
