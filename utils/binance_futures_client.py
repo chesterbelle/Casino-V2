@@ -89,6 +89,14 @@ class BinanceFuturesClient:
             params["origClientOrderId"] = orig_client_order_id
         return self._request_private("/fapi/v1/order", method="DELETE", params=params)
 
+    def set_margin_type(self, symbol: str, margin_type: str) -> Dict[str, Any]:
+        """Sets the margin type for a symbol (ISOLATED or CROSSED)."""
+        params = {
+            "symbol": symbol,
+            "marginType": margin_type.upper(),
+        }
+        return self._request_private("/fapi/v1/marginType", method="POST", params=params)
+
     # ---------------------------------------------------------------------
     # Internal request machinery
     # ---------------------------------------------------------------------

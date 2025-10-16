@@ -7,7 +7,10 @@ import csv
 import os
 from collections import Counter
 
-LOG_PATH = os.getenv("MEMORY_LOG_PATH", "gemini/data/memory_log.csv")
+# Construct an absolute path to the log file relative to this script's location
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DEFAULT_PATH = os.path.join(PROJECT_ROOT, "gemini", "data", "memory_log.csv")
+LOG_PATH = os.getenv("MEMORY_LOG_PATH", DEFAULT_PATH)
 
 
 def main() -> None:

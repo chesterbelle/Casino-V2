@@ -7,7 +7,10 @@ import csv
 import os
 from collections import Counter, defaultdict
 
-RESULTS_PATH = os.getenv("TRADE_RESULTS_LOG_PATH", "gemini/data/gemini_trade_results.csv")
+# Construct an absolute path to the results file relative to this script's location
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DEFAULT_PATH = os.path.join(PROJECT_ROOT, "gemini", "data", "gemini_trade_results.csv")
+RESULTS_PATH = os.getenv("TRADE_RESULTS_LOG_PATH", DEFAULT_PATH)
 
 
 def load_results(path: str):
@@ -17,70 +20,71 @@ def load_results(path: str):
         return list(csv.DictReader(f))
 
 
-def summarize(results):
+def analyze_results_in_single_pass(reader):
+    """Processes the CSV reader row-by-row to calculate all metrics in one go."""
     metrics = {
         "total": 0,
         "wins": 0,
         "losses": 0,
-        "avg_bars": 0.0,
-        "avg_pnl_pct": 0.0,
     }
-    exit_counter = Counter()
+    exit_breakdown = defaultdict(lambda: {"total": 0, "wins": 0, "losses": 0})
     bars_sum = 0
     pnl_sum = 0.0
 
-    for row in results:
+    for row in reader:
         if row.get("action") != "BET":
             continue
+        
         metrics["total"] += 1
         outcome = row.get("result", "").upper()
         if outcome == "WIN":
             metrics["wins"] += 1
         elif outcome == "LOSS":
             metrics["losses"] += 1
-        exit_counter[row.get("exit_reason", "UNKNOWN")] += 1
-        try:
-            bars_sum += int(row.get("bars_held", 0) or 0)
-        except ValueError:
-            pass
-        try:
-            pnl_sum += float(row.get("pnl_pct", 0.0) or 0.0)
-        except ValueError:
-            pass
-
-    if metrics["total"]:
-        metrics["avg_bars"] = bars_sum / metrics["total"]
-        metrics["avg_pnl_pct"] = pnl_sum / metrics["total"]
-    return metrics, exit_counter
-
-
-def summarize_by_exit(results):
-    by_exit = defaultdict(lambda: {"total": 0, "wins": 0, "losses": 0})
-    for row in results:
-        if row.get("action") != "BET":
-            continue
+        
         reason = row.get("exit_reason", "UNKNOWN")
-        entry = by_exit[reason]
+        entry = exit_breakdown[reason]
         entry["total"] += 1
-        outcome = row.get("result", "").upper()
         if outcome == "WIN":
             entry["wins"] += 1
         elif outcome == "LOSS":
             entry["losses"] += 1
-    return by_exit
+            
+        try:
+            bars_sum += int(row.get("bars_held", 0) or 0)
+        except (ValueError, TypeError):
+            pass
+        try:
+            pnl_sum += float(row.get("pnl_pct", 0.0) or 0.0)
+        except (ValueError, TypeError):
+            pass
+
+    avg_bars = (bars_sum / metrics["total"]) if metrics["total"] else 0.0
+    avg_pnl_pct = (pnl_sum / metrics["total"]) if metrics["total"] else 0.0
+    
+    metrics["avg_bars"] = avg_bars
+    metrics["avg_pnl_pct"] = avg_pnl_pct
+
+    return metrics, exit_breakdown
 
 
 def main() -> None:
     try:
-        results = load_results(RESULTS_PATH)
-    except FileNotFoundError as exc:
-        print(f"⚠️ {exc}")
+        with open(RESULTS_PATH, "r", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            metrics, exit_breakdown = analyze_results_in_single_pass(reader)
+    except FileNotFoundError:
+        print(f"⚠️ No existe el archivo {RESULTS_PATH}. Corre primero un backtest para generarlo.")
+        return
+    except Exception as e:
+        print(f"❌ Ocurrió un error inesperado al procesar el archivo: {e}")
         return
 
-    metrics, exits = summarize(results)
-    exit_breakdown = summarize_by_exit(results)
-
     print("Resumen general (solo BET):")
+    if metrics['total'] == 0:
+        print("  No se encontraron trades de tipo 'BET' en el archivo.")
+        return
+        
     print(f"  Trades totales : {metrics['total']}")
     print(f"  Wins / Losses  : {metrics['wins']} / {metrics['losses']}")
     winrate = (metrics['wins'] / metrics['total'] * 100) if metrics['total'] else 0.0
@@ -95,7 +99,7 @@ def main() -> None:
         win = data["wins"]
         loss = data["losses"]
         wr = (win / total * 100) if total else 0.0
-        print(f"  {reason:<10} -> total={total:5d} | wins={win:4d} | losses={loss:4d} | winrate={wr:5.2f}%")
+        print(f"  {reason:<15} -> total={total:5d} | wins={win:4d} | losses={loss:4d} | winrate={wr:5.2f}%")
 
 
 if __name__ == "__main__":
