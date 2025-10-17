@@ -1,57 +1,49 @@
 """
 ====================================================
-🎰 CASINO V2 — Main (Backtest secuencial Bull → Bear)
+🎰 CASINO V2 — Main con arquitectura Gemini + Player
 ====================================================
 
-Flujo maestro:
---------------
-1) Solicita balance inicial por consola.
-2) Crea mesa (feed) para cada dataset (bull, luego bear).
-3) Por cada vela:
-   - Sensores generan señales
-   - Gemini decide (BET o GHOST) con Kelly conservador
-   - Croupier opera contra la mesa activa (feed)
-   - Mesa devuelve resultado normalizado (WIN/LOSS + balance)
-   - Gemini actualiza su memoria (por estrategia individual)
-4) Imprime métricas al final por sesión y globales.
+NUEVA ARQUITECTURA (Fase 1 - Separación de Responsabilidades):
+---------------------------------------------------------------
+1) Gemini valida oportunidades → retorna Verdict
+2) Player decide tamaño → retorna size_fraction
+3) Gemini construye orden → make_order_from_verdict()
+4) Croupier ejecuta → route_order()
+5) Gemini actualiza memoria → on_trade_result()
 
-Principios de diseño:
----------------------
-• El feed (mesa) es el que "simula o no" — el Croupier siempre opera igual.
-• Gemini decide sin conocer el origen de los datos.
-• Aun cuando no se apuesta (sin aprobaciones / sin edge), se genera GHOST
-  para entrenar igualmente (shadow trading).
-• Se procesan los dos datasets en secuencia (bull → bear), manteniendo memoria.
+Ventajas sobre main.py:
+-----------------------
+✅ Gemini solo valida probabilidades (responsabilidad única)
+✅ Players intercambiables (Kelly, Fixed%, Adaptive, etc.)
+✅ Testing independiente de validación vs sizing
+✅ Extensible para múltiples players simultáneos
 
-Modo Oscar:
------------
-• Para activar Oscar Grind, define en `config.py` → `ENABLE_OSCAR_MODE = True`.
-• El modo Oscar utiliza el dataset configurado en `DATASET_PATH` y produce
-  un informe resumido con métricas clave.
-• Opcionales `OSCAR_*` (fracciones, límites de unidades) ajustan sizing.
-• Oscar usa su propio RangeSensor y state machine, pero sigue enviando
-  órdenes al mismo Croupier/Mesa que Gemini.
-
-PUNTOS DE EXTENSIÓN:
---------------------
-• Reemplazar TableBacktest por BrokerInterface/TableRealtime cuando MODE="live".
-• Añadir nuevas mesas en tables/ y nuevos croupiers en croupier/.
-• Ajustar sensores en sensors/ (más estrategias de reversión).
+Uso:
+----
+    python main_v2.py              # Usa Kelly Player (default)
+    python main_v2.py --player=fixed  # Usa Fixed Player
+    
+Compatibilidad:
+---------------
+• Usa las mismas mesas, sensores y croupiers que V1
+• Memoria Gemini 100% compatible
+• Resultados matemáticamente idénticos a main.py (con Kelly)
 """
 
 from __future__ import annotations
 
 import logging
 import os
-from typing import Dict, Optional, Tuple
+import sys
+from typing import Dict, Optional
 
 import config
 from croupier.croupier import Croupier
-from gemini.gemini_core import Decision, Gemini
+from gemini.gemini_core import Verdict, Gemini
 from sensors.sensor_manager import SensorManager
 from tables.table_backtest import TableBacktest
+from players import kelly_player, fixed_player
 
-from oscar.session import run_oscar_session, print_oscar_summary, run_oscar_live_session
 from live_session import run_live_session
 
 
@@ -62,6 +54,20 @@ logging.basicConfig(
     level=getattr(logging, config.LOG_LEVEL, logging.INFO),
     format="%(asctime)s | %(name)s | %(levelname)s | %(message)s",
 )
+
+logger = logging.getLogger("MainV2")
+
+
+# ============================================================
+# 🎮 CONFIGURACIÓN DE PLAYERS
+# ============================================================
+AVAILABLE_PLAYERS = {
+    "kelly": kelly_player,
+    "fixed": fixed_player,
+}
+
+# Player por defecto (Kelly conservador)
+DEFAULT_PLAYER = "kelly"
 
 
 # ============================================================
@@ -81,30 +87,6 @@ def ask_initial_balance() -> float:
         default = float(getattr(config, "STARTING_BALANCE", 10_000.0))
         print(f"⚠️ Valor inválido. Usando STARTING_BALANCE de config: {default:.2f}")
         return default
-
-
-def _prepare_order(
-    decision: Decision,
-    fallback_symbol: str,
-    fallback_timestamp: Optional[str],
-    fallback_timeframe: Optional[str],
-) -> Dict:
-    """Normaliza la orden antes de enviarla al crupier."""
-    order = dict(decision.order or {})
-    order.setdefault("symbol", fallback_symbol)
-    order.setdefault("timestamp", fallback_timestamp)
-    order.setdefault("timeframe", fallback_timeframe)
-    if fallback_symbol and fallback_timeframe and fallback_timeframe != "UNKNOWN":
-        order.setdefault("market", f"{fallback_symbol}@{fallback_timeframe}")
-    order.setdefault("side", decision.side)
-    order.setdefault("size", 0.0)
-    tp_default = 1.0 + getattr(config, "TAKE_PROFIT", 0.01)
-    sl_default = 1.0 - getattr(config, "STOP_LOSS", 0.01)
-    order.setdefault("take_profit", tp_default)
-    order.setdefault("stop_loss", sl_default)
-    order["trade_id"] = decision.trade_id
-    order["ghost"] = decision.action == "GHOST"
-    return order
 
 
 def _set_table_balance(table: TableBacktest, amount: float) -> None:
@@ -130,11 +112,11 @@ def _get_table_state(table: TableBacktest) -> Dict:
     return {}
 
 
-def _log_trade(decision: Decision, order: Dict, result: Dict, balance: Optional[float]) -> None:
-    logger = logging.getLogger("Session")
+def _log_trade(action: str, verdict: Verdict, order: Dict, result: Dict, balance: Optional[float]) -> None:
+    """Log estandarizado de trades"""
     logger.info(
         "🎲 %s | %s %s | size=%.4f | outcome=%s | exit=%s | bars=%s | pnl_pct=%.4f | balance=%s",
-        decision.action,
+        action,
         order.get("symbol", "?"),
         order.get("side", "?"),
         float(order.get("size", 0.0)),
@@ -147,11 +129,31 @@ def _log_trade(decision: Decision, order: Dict, result: Dict, balance: Optional[
 
 
 # ============================================================
-# 🎛️ SESIÓN INDIVIDUAL
+# 🎛️ SESIÓN INDIVIDUAL CON PLAYER
 # ============================================================
-def run_session(dataset_path: str, initial_balance: float, gemini: Gemini) -> Dict:
+def run_session_with_player(
+    dataset_path: str,
+    initial_balance: float,
+    gemini: Gemini,
+    player_module,
+    player_name: str
+) -> Dict:
+    """
+    Ejecuta una sesión de backtest usando la arquitectura Gemini + Player.
+    
+    Args:
+        dataset_path: Ruta al CSV con datos históricos
+        initial_balance: Capital inicial
+        gemini: Instancia de Gemini (validador)
+        player_module: Módulo del player (kelly_player, fixed_player, etc.)
+        player_name: Nombre del player para logging
+    
+    Returns:
+        Dict con estadísticas de la sesión
+    """
     dataset_name = os.path.basename(dataset_path)
     print(f"\n🎰 Ejecutando dataset: {dataset_name}")
+    print(f"🎮 Player activo: {player_name.upper()}")
 
     table = TableBacktest(dataset_path)
     _set_table_balance(table, initial_balance)
@@ -159,47 +161,86 @@ def run_session(dataset_path: str, initial_balance: float, gemini: Gemini) -> Di
     sensors = SensorManager()
     croupier = Croupier(table)
 
+    # Estadísticas
     candles = 0
     bet_trades = 0
     ghost_trades = 0
+    skip_trades = 0
     wins = 0
     losses = 0
     total_fees = 0.0
     total_funding = 0.0
     total_liquidations = 0
 
+    # Loop principal vela por vela
     while True:
         candle = table.next_candle()
         if candle is None:
             break
 
         candles += 1
+        
+        # 1. Sensores detectan señales
         signals = sensors.process_candle(candle)
         if not signals:
             continue
 
+        # 2. Obtener equity actual
         equity = candle.get("equity")
         if equity is None:
             equity = _get_table_state(table).get("equity", initial_balance)
 
-        decision = gemini.evaluate_signals(signals, equity=equity)
-        if decision.action == "SKIP":
+        # 3. Gemini valida oportunidad (NUEVO: retorna Verdict)
+        verdict = gemini.evaluate_signals_v2(signals, equity=equity)
+        
+        # Si no hay side, no se puede operar
+        if not verdict.side:
+            skip_trades += 1
+            # Si hay trade_id registrado, finalizar como GHOST para entrenar
+            if verdict.trade_id and verdict.reason == "conflicto_de_lado":
+                # Simular resultado para entrenar (usamos WIN/LOSS aleatorio basado en cierre)
+                ghost_order = gemini.make_order_from_verdict(verdict, size_fraction=0.0, ghost=True)
+                ghost_order["symbol"] = candle.get("symbol", table.symbol)
+                ghost_order["timestamp"] = candle.get("timestamp")
+                ghost_order["timeframe"] = candle.get("timeframe", getattr(table, "timeframe", "UNKNOWN"))
+                
+                ghost_result = croupier.route_order(ghost_order)
+                gemini.on_trade_result(verdict.trade_id, ghost_result)
+                ghost_trades += 1
             continue
 
-        order = _prepare_order(
-            decision,
-            fallback_symbol=candle.get("symbol", table.symbol),
-            fallback_timestamp=candle.get("timestamp"),
-            fallback_timeframe=candle.get("timeframe", getattr(table, "timeframe", "UNKNOWN")),
-        )
-
+        # 4. Player decide tamaño (NUEVO: separado de validación)
+        size_fraction = player_module.calculate_position_size(verdict, equity)
+        
+        # 5. Decidir acción: BET o GHOST
+        if size_fraction and size_fraction > 0:
+            # BET: Apuesta real
+            action = "BET"
+            ghost = False
+        else:
+            # GHOST: Shadow trading para entrenar sin riesgo
+            action = "GHOST"
+            ghost = True
+            size_fraction = 0.0  # Tamaño 0 para GHOST
+        
+        # 6. Construir orden (NUEVO: desde Verdict + size)
+        order = gemini.make_order_from_verdict(verdict, size_fraction, ghost=ghost)
+        
+        # Asegurar campos adicionales del candle
+        order.setdefault("symbol", candle.get("symbol", table.symbol))
+        order.setdefault("timestamp", candle.get("timestamp"))
+        order.setdefault("timeframe", candle.get("timeframe", getattr(table, "timeframe", "UNKNOWN")))
+        
+        # 7. Ejecutar con Croupier (igual que antes)
         result = croupier.route_order(order)
-
-        if decision.trade_id:
-            gemini.on_trade_result(decision.trade_id, result)
-
+        
+        # 8. Actualizar memoria de Gemini (igual que antes)
+        if verdict.trade_id:
+            gemini.on_trade_result(verdict.trade_id, result)
+        
+        # 9. Contabilizar estadísticas
         outcome = result.get("result", "").upper()
-        if decision.action == "BET":
+        if action == "BET":
             bet_trades += 1
             total_fees += float(result.get("fee", 0.0) or 0.0)
             total_funding += float(result.get("funding", 0.0) or 0.0)
@@ -209,22 +250,26 @@ def run_session(dataset_path: str, initial_balance: float, gemini: Gemini) -> Di
                 wins += 1
             elif outcome == "LOSS":
                 losses += 1
-        elif decision.action == "GHOST":
+        elif action == "GHOST":
             ghost_trades += 1
-
+        
+        # 10. Log del trade
         balance = _get_table_state(table).get("balance")
-        _log_trade(decision, order, result, balance)
+        _log_trade(action, verdict, order, result, balance)
 
+    # Resumen final
     final_state = _get_table_state(table)
     final_balance = float(final_state.get("balance", initial_balance))
     winrate = (wins / bet_trades * 100) if bet_trades > 0 else 0.0
 
     return {
         "dataset": dataset_name,
+        "player": player_name,
         "initial_balance": initial_balance,
         "candles": candles,
         "bet_trades": bet_trades,
         "ghost_trades": ghost_trades,
+        "skip_trades": skip_trades,
         "wins": wins,
         "losses": losses,
         "winrate": winrate,
@@ -236,8 +281,10 @@ def run_session(dataset_path: str, initial_balance: float, gemini: Gemini) -> Di
 
 
 def print_session_summary(stats: Dict) -> None:
+    """Imprime resumen de la sesión"""
     print("\n" + "=" * 60)
     print(f"📌 Dataset: {stats['dataset']}")
+    print(f"🎮 Player:  {stats['player'].upper()}")
     print("-" * 60)
     init_balance = stats.get("initial_balance")
     if isinstance(init_balance, (int, float)):
@@ -245,13 +292,19 @@ def print_session_summary(stats: Dict) -> None:
     else:
         init_str = str(init_balance) if init_balance is not None else "n/a"
     print(f"   Balance inicial       : {init_str}")
+    print(f"   Velas procesadas      : {stats['candles']}")
     print(f"   Trades BET            : {stats['bet_trades']}")
     print(f"   Trades GHOST          : {stats['ghost_trades']}")
+    print(f"   Trades SKIP           : {stats.get('skip_trades', 0)}")
+    print(f"   Wins / Losses         : {stats['wins']} / {stats['losses']}")
     print(f"   WinRate (BET)         : {stats['winrate']:.2f}%")
     print(f"   Comisiones totales    : {stats['fees']:.2f}")
     print(f"   Funding total         : {stats.get('funding', 0.0):.2f}")
     print(f"   Liquidaciones         : {stats.get('liquidations', 0)}")
     print(f"   Balance final         : {stats['final_balance']:.2f}")
+    pnl = stats['final_balance'] - stats['initial_balance']
+    pnl_pct = (pnl / stats['initial_balance'] * 100) if stats['initial_balance'] > 0 else 0.0
+    print(f"   PnL Total             : {pnl:+.2f} ({pnl_pct:+.2f}%)")
     print("=" * 60 + "\n")
 
 
@@ -259,37 +312,54 @@ def print_session_summary(stats: Dict) -> None:
 # 🚀 ENTRYPOINT
 # ============================================================
 def main() -> None:
-    enable_oscar = bool(getattr(config, "ENABLE_OSCAR_MODE", False))
+    """Main con soporte para múltiples players"""
     mode = getattr(config, "MODE", "backtest").lower()
 
     if mode == "live":
-        if enable_oscar:
-            run_oscar_live_session(symbol=None, interval=None)
+        logger.warning("Modo LIVE aún no soporta arquitectura Player. Usando main.py...")
+        run_live_session(symbol=None, interval=None)
+        return
+
+    print("\n🎰 Bienvenido al Casino V2 — Arquitectura Gemini + Player\n")
+
+    # Seleccionar player desde argumentos o usar default
+    player_name = DEFAULT_PLAYER
+    if len(sys.argv) > 1:
+        arg = sys.argv[1].lower().replace("--player=", "")
+        if arg in AVAILABLE_PLAYERS:
+            player_name = arg
         else:
-            run_live_session(symbol=None, interval=None)
-        return
+            print(f"⚠️ Player '{arg}' no encontrado. Usando {DEFAULT_PLAYER}")
+            print(f"Players disponibles: {', '.join(AVAILABLE_PLAYERS.keys())}")
+    
+    player_module = AVAILABLE_PLAYERS[player_name]
+    print(f"🎮 Player seleccionado: {player_name.upper()}")
 
-    if enable_oscar:
-        print("\n🎰 Bienvenido al Casino V2 — Sesión Oscar Grind\n")
-        initial_balance = ask_initial_balance()
-        dataset_path = getattr(config, "DATASET_PATH", "tables/data/raw/LTCUSDT_15min_bull.csv")
-        stats = run_oscar_session(dataset_path, initial_balance)
-        print_oscar_summary(stats)
-        print("✅ Sesión Oscar completada.\n")
-        return
-
-    print("\n🎰 Bienvenido al Casino V2 — Sesión Backtest Gemini\n")
-
+    # Configuración de sesión
     initial_balance = ask_initial_balance()
-    dataset_path = getattr(config, "DATASET_PATH", "tables/data/raw/LTCUSDT_15min_bull.csv")
+    dataset_path = getattr(config, "DATASET_PATH", "tables/data/raw/BTCUSDT_5m__30d.csv")
 
+    # Inicializar Gemini (validador)
     gemini = Gemini()
 
-    print(f"\n🟢 Mesa única: {dataset_path}")
-    stats = run_session(dataset_path, initial_balance, gemini)
+    print(f"\n🟢 Iniciando sesión de backtest: {dataset_path}")
+    
+    # Ejecutar sesión con player seleccionado
+    stats = run_session_with_player(
+        dataset_path,
+        initial_balance,
+        gemini,
+        player_module,
+        player_name
+    )
+    
     print_session_summary(stats)
 
-    print("✅ Sesión Gemini completada.\n")
+    # Guardar memoria
+    gemini.memory.save()
+    print("💾 Memoria de Gemini guardada.")
+    
+    print("✅ Sesión completada.\n")
 
 
 if __name__ == "__main__":

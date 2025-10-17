@@ -144,6 +144,13 @@ def run_live_session(
                 max_candles = parsed_limit
 
     broker = BrokerInterface(symbol=symbol, interval=interval)
+
+    # Set margin type to ISOLATED for safety
+    margin_type = getattr(config, "DEFAULT_MARGIN_TYPE", "ISOLATED").upper()
+    if margin_type == "ISOLATED":
+        RESULT_LOGGER.info("Attempting to set margin type to ISOLATED for %s...", symbol)
+        broker.set_margin_type(symbol=symbol, margin_type=margin_type)
+
     table = broker.engine.table
     actual_symbol = getattr(table, "symbol", symbol)
     if actual_symbol and actual_symbol != symbol:

@@ -70,6 +70,11 @@ class TableBinancePaper(BaseTable):
         self._sync_balance_from_exchange()
         self._prime_cache()
 
+    def set_margin_type(self, symbol: str, margin_type: str) -> None:
+        """Passes the set_margin_type call to the underlying client."""
+        self.logger.info(f"Setting margin type for {symbol} to {margin_type}...")
+        self.client.set_margin_type(symbol, margin_type)
+
     def _resolve_instrument(self, symbol: str) -> Dict[str, Any]:
         for inst in self.exchange_info.get("symbols", []):
             if inst["symbol"] == symbol:

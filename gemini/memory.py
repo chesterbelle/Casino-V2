@@ -206,13 +206,19 @@ class GeminiMemory:
 
             # Reemplazamos ventanas por lo visto en CSV (lo más reciente)
             for key, q in tail_per_strategy.items():
+                # La ventana siempre se refresca con los datos más recientes del CSV.
                 self._windows[key] = deque(q, maxlen=self.memory_window)
-                # Los conteos totales deben mantenerse según JSON (ya que CSV puede estar truncado)
-                # Si no había estado previo en JSON, aproximamos con la ventana:
-                if key not in self._counts:
-                    wins = sum(q)
-                    losses = len(q) - wins
-                    self._counts[key] = {"wins": wins, "losses": losses}
+
+                # Sincronizar conteos: si el CSV tiene más datos que el JSON,
+                # es una fuente más fiable. Recalculamos desde la ventana.
+                wins_in_window = sum(q)
+                losses_in_window = len(q) - wins_in_window
+                existing_total = self._counts.get(key, {}).get("wins", 0) + self._counts.get(key, {}).get("losses", 0)
+                if wins_in_window + losses_in_window > existing_total:
+                    self._counts[key] = {"wins": wins_in_window, "losses": losses_in_window}
+                elif key not in self._counts:
+                    # Si no había estado previo, usar la ventana
+                    self._counts[key] = {"wins": wins_in_window, "losses": losses_in_window}
 
         except Exception as e:
             print(f"[GeminiMemory] Advertencia al calentar desde CSV: {e}")

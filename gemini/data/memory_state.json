@@ -1,186 +1,301 @@
 {
-  "last_update": "2025-10-12T11:31:28.555785",
+  "last_update": "2025-10-17T20:28:18.885538",
   "memory_window": 500,
   "strategies": {
-    "LTCUSDT@15min|BBW=L|RS1|H=T|RSIReversion": {
-      "wins": 4927,
-      "losses": 8166,
-      "winrate": 0.37630795081341173
+    "BTCUSDT@5m|BBW=L|RS1|H=N2|RSIReversion": {
+      "wins": 1174,
+      "losses": 1755,
+      "winrate": 0.400819392284056
     },
-    "LTCUSDT@15min|BBW=L|RS1|H=N2|RSIReversion": {
-      "wins": 5450,
-      "losses": 8486,
-      "winrate": 0.39107347876004595
+    "BTCUSDT@5m|BBW=L|RS1|H=N2|EMACrossover": {
+      "wins": 42,
+      "losses": 69,
+      "winrate": 0.3783783783783784
     },
-    "LTCUSDT@15min|BBW=L|RS1|H=N|RSIReversion": {
-      "wins": 5365,
-      "losses": 8530,
-      "winrate": 0.3861101115509176
+    "BTCUSDT@5m|BBW=L|RS1|H=N2|MACDCrossover": {
+      "wins": 168,
+      "losses": 276,
+      "winrate": 0.3783783783783784
     },
-    "LTCUSDT@15min|BBW=L|RS3|H=N|RSIReversion": {
-      "wins": 289,
-      "losses": 456,
-      "winrate": 0.38791946308724834
+    "BTCUSDT@5m|BBW=L|RS2|H=N2|RSIReversion": {
+      "wins": 204,
+      "losses": 426,
+      "winrate": 0.3238095238095238
     },
-    "LTCUSDT@15min|BBW=L|RS3|H=N|BollingerTouch": {
-      "wins": 289,
-      "losses": 456,
-      "winrate": 0.38791946308724834
+    "BTCUSDT@5m|BBW=L|RS2|H=N2|KeltnerReversion": {
+      "wins": 168,
+      "losses": 405,
+      "winrate": 0.2931937172774869
     },
-    "LTCUSDT@15min|BBW=L|RS3|H=N|KeltnerReversion": {
-      "wins": 289,
-      "losses": 456,
-      "winrate": 0.38791946308724834
+    "BTCUSDT@5m|BBW=L|RS1|H=N|RSIReversion": {
+      "wins": 1191,
+      "losses": 1716,
+      "winrate": 0.40970072239422084
     },
-    "LTCUSDT@15min|BBW=L|RS2|H=N|RSIReversion": {
-      "wins": 641,
-      "losses": 1021,
-      "winrate": 0.38567990373044525
+    "BTCUSDT@5m|BBW=L|RS2|H=N|RSIReversion": {
+      "wins": 276,
+      "losses": 351,
+      "winrate": 0.44019138755980863
     },
-    "LTCUSDT@15min|BBW=L|RS2|H=N|KeltnerReversion": {
-      "wins": 592,
-      "losses": 955,
-      "winrate": 0.3826761473820297
+    "BTCUSDT@5m|BBW=L|RS2|H=N|KeltnerReversion": {
+      "wins": 273,
+      "losses": 303,
+      "winrate": 0.4739583333333333
     },
-    "LTCUSDT@15min|BBW=L|RS1|H=N|KeltnerReversion": {
-      "wins": 330,
-      "losses": 685,
-      "winrate": 0.3251231527093596
+    "BTCUSDT@5m|BBW=L|RS1|H=N|MACDCrossover": {
+      "wins": 216,
+      "losses": 312,
+      "winrate": 0.4090909090909091
     },
-    "LTCUSDT@15min|BBW=L|RS1|H=M|RSIReversion": {
-      "wins": 5277,
-      "losses": 8593,
-      "winrate": 0.3804614275414564
+    "BTCUSDT@5m|BBW=L|RS1|H=N|EMACrossover": {
+      "wins": 42,
+      "losses": 72,
+      "winrate": 0.3684210526315789
     },
-    "LTCUSDT@15min|BBW=L|RS2|H=T|RSIReversion": {
-      "wins": 692,
-      "losses": 1130,
-      "winrate": 0.37980241492864986
+    "BTCUSDT@5m|BBW=L|RS3|H=N|RSIReversion": {
+      "wins": 63,
+      "losses": 96,
+      "winrate": 0.39622641509433965
     },
-    "LTCUSDT@15min|BBW=L|RS2|H=T|BollingerTouch": {
-      "wins": 193,
-      "losses": 290,
-      "winrate": 0.3995859213250518
+    "BTCUSDT@5m|BBW=L|RS3|H=N|BollingerTouch": {
+      "wins": 63,
+      "losses": 96,
+      "winrate": 0.39622641509433965
     },
-    "LTCUSDT@15min|BBW=L|RS2|H=N|BollingerTouch": {
+    "BTCUSDT@5m|BBW=L|RS3|H=N|KeltnerReversion": {
+      "wins": 63,
+      "losses": 96,
+      "winrate": 0.39622641509433965
+    },
+    "BTCUSDT@5m|BBW=L|RS1|H=N|OBVBreakout": {
+      "wins": 48,
+      "losses": 60,
+      "winrate": 0.4444444444444444
+    },
+    "BTCUSDT@5m|BBW=L|RS2|H=N|BollingerTouch": {
+      "wins": 12,
+      "losses": 24,
+      "winrate": 0.3333333333333333
+    },
+    "BTCUSDT@5m|BBW=L|RS1|H=N|KeltnerReversion": {
+      "wins": 159,
+      "losses": 147,
+      "winrate": 0.5196078431372549
+    },
+    "BTCUSDT@5m|BBW=L|RS2|H=M|RSIReversion": {
+      "wins": 300,
+      "losses": 273,
+      "winrate": 0.5235602094240838
+    },
+    "BTCUSDT@5m|BBW=L|RS2|H=M|KeltnerReversion": {
+      "wins": 273,
+      "losses": 243,
+      "winrate": 0.5290697674418605
+    },
+    "BTCUSDT@5m|BBW=L|RS1|H=M|MACDCrossover": {
+      "wins": 195,
+      "losses": 270,
+      "winrate": 0.41935483870967744
+    },
+    "BTCUSDT@5m|BBW=L|RS1|H=M|RSIReversion": {
+      "wins": 1131,
+      "losses": 1752,
+      "winrate": 0.3922996878251821
+    },
+    "BTCUSDT@5m|BBW=L|RS2|H=M|OBVBreakout": {
+      "wins": 9,
+      "losses": 18,
+      "winrate": 0.3333333333333333
+    },
+    "BTCUSDT@5m|BBW=L|RS1|H=M|EMACrossover": {
+      "wins": 63,
+      "losses": 72,
+      "winrate": 0.4666666666666667
+    },
+    "BTCUSDT@5m|BBW=L|RS3|H=M|RSIReversion": {
+      "wins": 96,
+      "losses": 111,
+      "winrate": 0.463768115942029
+    },
+    "BTCUSDT@5m|BBW=L|RS3|H=M|BollingerTouch": {
+      "wins": 93,
+      "losses": 111,
+      "winrate": 0.45588235294117646
+    },
+    "BTCUSDT@5m|BBW=L|RS3|H=M|KeltnerReversion": {
+      "wins": 96,
+      "losses": 111,
+      "winrate": 0.463768115942029
+    },
+    "BTCUSDT@5m|BBW=L|RS1|H=M|KeltnerReversion": {
+      "wins": 192,
+      "losses": 216,
+      "winrate": 0.47058823529411764
+    },
+    "BTCUSDT@5m|BBW=L|RS1|H=T|RSIReversion": {
+      "wins": 1272,
+      "losses": 1698,
+      "winrate": 0.42828282828282827
+    },
+    "BTCUSDT@5m|BBW=L|RS2|H=T|RSIReversion": {
+      "wins": 204,
+      "losses": 390,
+      "winrate": 0.3434343434343434
+    },
+    "BTCUSDT@5m|BBW=L|RS2|H=T|MACDCrossover": {
+      "wins": 3,
+      "losses": 12,
+      "winrate": 0.2
+    },
+    "BTCUSDT@5m|BBW=L|RS1|H=T|MACDCrossover": {
+      "wins": 216,
+      "losses": 330,
+      "winrate": 0.3956043956043956
+    },
+    "BTCUSDT@5m|BBW=L|RS2|H=T|KeltnerReversion": {
+      "wins": 177,
+      "losses": 345,
+      "winrate": 0.3390804597701149
+    },
+    "BTCUSDT@5m|BBW=L|RS1|H=T|OBVBreakout": {
+      "wins": 48,
+      "losses": 63,
+      "winrate": 0.43243243243243246
+    },
+    "BTCUSDT@5m|BBW=L|RS1|H=T|BollingerTouch": {
+      "wins": 0,
+      "losses": 3,
+      "winrate": 0.0
+    },
+    "BTCUSDT@5m|BBW=L|RS3|H=T|RSIReversion": {
+      "wins": 75,
+      "losses": 135,
+      "winrate": 0.35714285714285715
+    },
+    "BTCUSDT@5m|BBW=L|RS3|H=T|BollingerTouch": {
+      "wins": 75,
+      "losses": 132,
+      "winrate": 0.36231884057971014
+    },
+    "BTCUSDT@5m|BBW=L|RS3|H=T|KeltnerReversion": {
+      "wins": 75,
+      "losses": 135,
+      "winrate": 0.35714285714285715
+    },
+    "BTCUSDT@5m|BBW=L|RS2|H=T|BollingerTouch": {
+      "wins": 18,
+      "losses": 24,
+      "winrate": 0.42857142857142855
+    },
+    "BTCUSDT@5m|BBW=L|RS1|H=T|KeltnerReversion": {
+      "wins": 114,
+      "losses": 156,
+      "winrate": 0.4222222222222222
+    },
+    "BTCUSDT@5m|BBW=L|RS2|H=T|EMACrossover": {
+      "wins": 0,
+      "losses": 12,
+      "winrate": 0.0
+    },
+    "BTCUSDT@5m|BBW=L|RS3|H=N2|RSIReversion": {
+      "wins": 36,
+      "losses": 132,
+      "winrate": 0.21428571428571427
+    },
+    "BTCUSDT@5m|BBW=L|RS3|H=N2|KeltnerReversion": {
+      "wins": 36,
+      "losses": 132,
+      "winrate": 0.21428571428571427
+    },
+    "BTCUSDT@5m|BBW=L|RS3|H=N2|BollingerTouch": {
+      "wins": 36,
+      "losses": 132,
+      "winrate": 0.21428571428571427
+    },
+    "BTCUSDT@5m|BBW=L|RS1|H=N2|KeltnerReversion": {
       "wins": 99,
-      "losses": 140,
-      "winrate": 0.41422594142259417
+      "losses": 249,
+      "winrate": 0.28448275862068967
     },
-    "LTCUSDT@15min|BBW=L|RS1|H=T|KeltnerReversion": {
-      "wins": 426,
-      "losses": 702,
-      "winrate": 0.3776595744680851
+    "BTCUSDT@5m|BBW=L|RS1|H=N2|OBVBreakout": {
+      "wins": 27,
+      "losses": 54,
+      "winrate": 0.3333333333333333
     },
-    "LTCUSDT@15min|BBW=L|RS2|H=T|KeltnerReversion": {
-      "wins": 603,
-      "losses": 978,
-      "winrate": 0.38140417457305503
+    "BTCUSDT@5m|BBW=L|RS1|H=M|OBVBreakout": {
+      "wins": 30,
+      "losses": 81,
+      "winrate": 0.2702702702702703
     },
-    "LTCUSDT@15min|BBW=L|RS3|H=T|RSIReversion": {
-      "wins": 388,
-      "losses": 713,
-      "winrate": 0.35240690281562215
+    "BTCUSDT@5m|BBW=L|RS2|H=T|OBVBreakout": {
+      "wins": 12,
+      "losses": 21,
+      "winrate": 0.36363636363636365
     },
-    "LTCUSDT@15min|BBW=L|RS3|H=T|BollingerTouch": {
-      "wins": 388,
-      "losses": 713,
-      "winrate": 0.35240690281562215
+    "BTCUSDT@5m|BBW=L|RS1|H=T|EMACrossover": {
+      "wins": 60,
+      "losses": 69,
+      "winrate": 0.46511627906976744
     },
-    "LTCUSDT@15min|BBW=L|RS3|H=T|KeltnerReversion": {
-      "wins": 388,
-      "losses": 713,
-      "winrate": 0.35240690281562215
+    "BTCUSDT@5m|BBW=L|RS2|H=N2|OBVBreakout": {
+      "wins": 18,
+      "losses": 15,
+      "winrate": 0.5454545454545454
     },
-    "LTCUSDT@15min|BBW=L|RS2|H=N2|RSIReversion": {
-      "wins": 676,
-      "losses": 960,
-      "winrate": 0.4132029339853301
+    "BTCUSDT@5m|BBW=L|RS2|H=N2|MACDCrossover": {
+      "wins": 18,
+      "losses": 12,
+      "winrate": 0.6
     },
-    "LTCUSDT@15min|BBW=L|RS2|H=N2|KeltnerReversion": {
-      "wins": 610,
-      "losses": 848,
-      "winrate": 0.41838134430727025
+    "BTCUSDT@5m|BBW=L|RS2|H=M|MACDCrossover": {
+      "wins": 9,
+      "losses": 3,
+      "winrate": 0.75
     },
-    "LTCUSDT@15min|BBW=L|RS2|H=M|RSIReversion": {
-      "wins": 642,
-      "losses": 1096,
-      "winrate": 0.3693901035673188
+    "BTCUSDT@5m|BBW=L|RS2|H=M|BollingerTouch": {
+      "wins": 9,
+      "losses": 30,
+      "winrate": 0.23076923076923078
     },
-    "LTCUSDT@15min|BBW=L|RS2|H=M|KeltnerReversion": {
-      "wins": 565,
-      "losses": 977,
-      "winrate": 0.3664072632944228
+    "BTCUSDT@5m|BBW=L|RS2|H=N2|BollingerTouch": {
+      "wins": 21,
+      "losses": 12,
+      "winrate": 0.6363636363636364
     },
-    "LTCUSDT@15min|BBW=L|RS1|H=M|KeltnerReversion": {
-      "wins": 388,
-      "losses": 607,
-      "winrate": 0.38994974874371857
+    "BTCUSDT@5m|BBW=L|RS2|H=N|OBVBreakout": {
+      "wins": 0,
+      "losses": 33,
+      "winrate": 0.0
     },
-    "LTCUSDT@15min|BBW=L|RS2|H=N2|BollingerTouch": {
-      "wins": 80,
-      "losses": 176,
-      "winrate": 0.3125
+    "BTCUSDT@5m|BBW=L|RS2|H=N2|EMACrossover": {
+      "wins": 9,
+      "losses": 12,
+      "winrate": 0.42857142857142855
     },
-    "LTCUSDT@15min|BBW=L|RS3|H=N2|RSIReversion": {
-      "wins": 246,
-      "losses": 505,
-      "winrate": 0.32756324900133155
+    "BTCUSDT@5m|BBW=L|RS2|H=N|MACDCrossover": {
+      "wins": 3,
+      "losses": 18,
+      "winrate": 0.14285714285714285
     },
-    "LTCUSDT@15min|BBW=L|RS3|H=N2|BollingerTouch": {
-      "wins": 246,
-      "losses": 505,
-      "winrate": 0.32756324900133155
+    "BTCUSDT@5m|BBW=L|RS2|H=M|EMACrossover": {
+      "wins": 6,
+      "losses": 9,
+      "winrate": 0.4
     },
-    "LTCUSDT@15min|BBW=L|RS3|H=N2|KeltnerReversion": {
-      "wins": 246,
-      "losses": 505,
-      "winrate": 0.32756324900133155
+    "BTCUSDT@5m|BBW=L|RS2|H=N|EMACrossover": {
+      "wins": 0,
+      "losses": 9,
+      "winrate": 0.0
     },
-    "LTCUSDT@15min|BBW=L|RS2|H=M|BollingerTouch": {
-      "wins": 131,
-      "losses": 165,
-      "winrate": 0.44256756756756754
+    "BTCUSDT@5m|BBW=L|RS3|H=T|OBVBreakout": {
+      "wins": 0,
+      "losses": 3,
+      "winrate": 0.0
     },
-    "LTCUSDT@15min|BBW=L|RS3|H=M|RSIReversion": {
-      "wins": 274,
-      "losses": 454,
-      "winrate": 0.37637362637362637
-    },
-    "LTCUSDT@15min|BBW=L|RS3|H=M|BollingerTouch": {
-      "wins": 274,
-      "losses": 454,
-      "winrate": 0.37637362637362637
-    },
-    "LTCUSDT@15min|BBW=L|RS3|H=M|KeltnerReversion": {
-      "wins": 274,
-      "losses": 454,
-      "winrate": 0.37637362637362637
-    },
-    "LTCUSDT@15min|BBW=L|RS1|H=N2|KeltnerReversion": {
-      "wins": 373,
-      "losses": 544,
-      "winrate": 0.40676117775354415
-    },
-    "LTCUSDT@15min|BBW=L|RS1|H=T|BollingerTouch": {
-      "wins": 15,
-      "losses": 36,
-      "winrate": 0.29411764705882354
-    },
-    "LTCUSDT@15min|BBW=L|RS1|H=M|BollingerTouch": {
-      "wins": 25,
-      "losses": 22,
-      "winrate": 0.5319148936170213
-    },
-    "LTCUSDT@15min|BBW=L|RS1|H=N2|BollingerTouch": {
-      "wins": 11,
-      "losses": 19,
-      "winrate": 0.36666666666666664
-    },
-    "LTCUSDT@15min|BBW=L|RS1|H=N|BollingerTouch": {
-      "wins": 20,
-      "losses": 20,
-      "winrate": 0.5
+    "BTCUSDT@5m|BBW=L|RS3|H=M|OBVBreakout": {
+      "wins": 3,
+      "losses": 0,
+      "winrate": 1.0
     }
   }
 }

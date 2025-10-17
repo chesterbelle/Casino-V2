@@ -147,7 +147,7 @@ class TableBacktest:
         side = order.get("side", "").upper()
         size_fraction = float(order.get("size", 0.0))
         ghost = bool(order.get("ghost", False))
-        trade_id = order.get("trade_id")
+        trade_id = order.get("trade_id") or f"backtest_{self.symbol}_{self._last_index}"
         symbol = order.get("symbol", self.symbol)
 
         if self._last_index < 0:

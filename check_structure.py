@@ -11,11 +11,6 @@ EXPECTED_STRUCTURE = {
         "gemini_core.py",
         "memory.py",
     ],
-    "oscar": [
-        "__init__.py",
-        "oscar_grind_machine.py",
-        "oscar_trader.py",
-    ],
     "sensors": [
         "__init__.py",
         "sensor_manager.py",
@@ -75,4 +70,3 @@ def check_structure(base_path="."):
 
 if __name__ == "__main__":
     check_structure(".")
-

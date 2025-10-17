@@ -1,0 +1,155 @@
+# 🎰 CASINO BINANCE V2 — *La Era Gemini*
+
+> 🧠 Un laboratorio de *trading probabilístico* inspirado en la dinámica de un **casino sin límite de apuesta**.  
+> Cada módulo cumple un rol dentro del ecosistema: analistas, jugadores, mesas y crupieres trabajando juntos para buscar ventaja estadística.
+
+![Banner del proyecto](https://img.shields.io/badge/Estado-En%20Desarrollo-yellow)
+![Versión](https://img.shields.io/badge/Versión-0.1.1-blue)
+![Python](https://img.shields.io/badge/Python-3.10+-green)
+![Licencia](https://img.shields.io/badge/Licencia-MIT-lightgrey)
+
+---
+
+## 🧭 Filosofía del Proyecto
+
+En lugar de intentar **predecir el futuro**, el sistema busca **apostar cuando el Valor Esperado (EV)** es positivo.  
+Cada módulo representa un rol dentro del casino:
+
+| Rol | Módulo | Descripción |
+|------|---------|-------------|
+| 🎩 **Gemini (Jugador racional)** | `gemini/` | Evalúa el mercado, estima probabilidad de éxito (*p̂*), y decide cuándo y cuánto apostar según Kelly. |
+| 👁️ **Analistas de mesa (Sensores)** | `sensors/` | Detectan contextos técnicos favorables. |
+| 🧤 **Crupier** | `croupier/` | Ejecuta las órdenes sin pensar, en modo real o simulado. |
+| 🪙 **Mesas** | `tables/` | Proveen datos históricos o en vivo, aplican fees y actualizan balance. |
+| 💰 **Cajero (BalanceManager)** | `tables/balance_manager.py` | Administra capital y registra resultados. |
+| 🧾 **Protocolo** | `protocolo.md` | Define reglas de desarrollo, validación y testing. |
+| 🧑‍💼 **Gerente de sala** | `main.py` | Orquesta la sesión: prepara la mesa, llama a sensores, Gemini y crupier. |
+
+---
+
+## ⚙️ Arquitectura General
+
+```
+Gemini → Croupier → Mesa (Feed) → BalanceManager
+             ↑                     ↓
+         resultado ←――――――――――――――――――――――――
+```
+
+---
+
+## 📂 Estructura del Proyecto
+
+```
+Casino-V2/
+├── main.py
+├── config.py
+├── gemini/
+├── croupier/
+├── sensors/
+├── tables/
+└── utils/
+```
+
+---
+
+## 🎯 Filosofía Técnica
+
+El casino no intenta adivinar el mercado — **espera contextos donde las probabilidades están a su favor.**
+
+> “No se trata de ganar todas las manos, sino de apostar cuando la ventaja está del lado del jugador.”
+
+Basado en la ecuación fundamental:
+
+\[
+EV = p̂ × R − (1 − p̂) × L
+\]
+
+Si el EV > 0 → Gemini apuesta;  
+Si no, espera la siguiente ronda.
+---
+
+## 🚀 Ejecución Rápida
+
+```bash
+# 1. Instalar dependencias
+pip install -r requirements.txt
+
+# 2. Configurar el dataset principal
+MODE = "backtest"        # o "realtime" cuando esté disponible
+DATASET_PATH = "tables/data/raw/LTCUSDT_15min_bull.csv"  # único dataset usado en la sesión
+
+
+# 3. (Recomendado) Actualizar tasas de funding reales
+python3 utils/fetch_funding_rates.py --symbol LTCUSDT
+
+
+# 4. (Opcional) Descargar dataset adicional (ej. ETHUSDT 15m)
+python3 utils/download_kline_dataset.py --symbol ETHUSDT --interval 15m --limit 1000 --tag sample
+
+
+# 5. Correr el casino (con arquitectura modular Gemini/Player)
+python3 main.py
+
+# 5b. (Opcional) Usar Fixed Player en lugar de Kelly
+python3 main.py --player=fixed
+```
+
+Ejemplo de salida:
+
+```
+🎯 Dataset: LTCUSDT_15min_bull.csv
+💰 Balance final: 10,542.33 USDT
+🏆 Winrate: 57.6%
+⚙️ Trades ejecutados: 182
+👻 GHOST trades: 27
+```
+
+## 🛰️ Paper Trading (ASTERDEx / Kraken / Binance)
+
+**ASTERDEx**
+- `.env`:
+  - `ASTER_API_KEY=...`
+  - `ASTER_API_SECRET=...`
+  - Opcionales: `ASTER_BASE_URL`, `ASTER_WS_URL`
+- `config.py`:
+  - `MODE = "live"`
+  - `EXCHANGE = "ASTER_PAPER"`
+  - `EXCHANGE_PROFILE = "asterdex_paper"`
+- Test: `python -m utils.test_aster_connection --symbol BTCUSDT --interval 1m`
+
+**Kraken Futures (demo)**
+- `.env`:
+  - `KRAKEN_FUTURES_API_KEY=...`
+  - `KRAKEN_FUTURES_API_SECRET=...`
+  - Opcionales: `KRAKEN_FUTURES_BASE_URL`, `KRAKEN_FUTURES_CHARTS_URL`
+- `config.py`:
+  - `MODE = "live"`
+  - `EXCHANGE = "KRAKEN_DEMO"`
+  - `EXCHANGE_PROFILE = "kraken_futures_demo"`
+
+**Binance Futures (Testnet)**
+- `.env`:
+  - `BINANCE_API_KEY=...`
+  - `BINANCE_API_SECRET=...`
+- `config.py`:
+  - `MODE = "live"`
+  - `EXCHANGE = "BINANCE_FUTURES_TESTNET"`
+  - `EXCHANGE_PROFILE = "binance_futures_testnet"`
+
+Ejecuta `python3 main.py`; se solicitará símbolo/intervalo (defaults según el exchange) y se usará el balance que reporte la cuenta. Las órdenes devuelven el estado bruto (`placed/filled/...`); el cálculo de PnL precisa integrar feeds de fills eventuales.
+
+---
+
+## 🧩 Próximos pasos
+
+✅ **v0.1.1:** Primera versión funcional del ecosistema completo  
+✅ **v0.2.0:** Integración del modo LIVE (Binance Futures Testnet)  
+🔜 **v0.3.0:** Gemini A/B/C (múltiples jugadores con estrategias distintas)  
+🔜 **v0.4.0:** Dashboard de rendimiento y análisis visual  
+
+---
+
+## 🧠 Credo del Proyecto
+
+> “La casa siempre gana… excepto cuando la estadística está de tu lado.” 🎲  
+> — *Casino V2: La Era Gemini*

@@ -84,6 +84,20 @@ class BrokerInterface:
         else:
             raise ValueError(f"Modo desconocido en config.MODE: {self.mode}")
 
+    def set_margin_type(self, symbol: str, margin_type: str) -> None:
+        """Set margin type on the underlying engine if supported."""
+        if hasattr(self.engine, "set_margin_type") and callable(getattr(self.engine, "set_margin_type")):
+            try:
+                # We pass the original, user-provided symbol, not the normalized one from the table
+                self.engine.set_margin_type(symbol=symbol, margin_type=margin_type)
+                self.logger.info(f"Margin type for {symbol} set to {margin_type}")
+            except Exception as e:
+                self.logger.error(f"Failed to set margin type for {symbol} to {margin_type}: {e}")
+        else:
+            self.logger.warning(
+                f"Exchange engine {type(self.engine).__name__} does not support setting margin type."
+            )
+
     # ----------------------------------------------------
     # 🪙 Creación de motores (mesas)
     # ----------------------------------------------------

@@ -88,15 +88,32 @@ CREDIBILITY_THRESHOLD = float(getattr(config, "BAYES_CREDIBILITY_THRESHOLD", 0.6
 LOWER_CREDIBLE_PERCENTILE = float(getattr(config, "BAYES_LOWER_PERCENTILE", 0.1))
 
 # =========================================================
-# Dataclass de decisión
+# Dataclasses de decisión
 # =========================================================
 @dataclass
 class Decision:
+    """Decision completa (legacy) - incluye orden construida"""
     action: str              # "BET" | "GHOST" | "SKIP"
     side: Optional[str]      # "LONG" | "SHORT" | None
     order: Optional[dict]    # Orden estandarizada o None
     reason: str              # explicación breve
     trade_id: Optional[str]  # id para correlacionar con memory/log
+
+
+@dataclass
+class Verdict:
+    """
+    Verdict de validación probabilística (nuevo).
+    
+    Separa la validación (Gemini) del sizing (Player).
+    Contiene toda la información para que un Player decida cuánto apostar.
+    """
+    trade_id: Optional[str]       # id del trade potencial
+    side: Optional[str]           # "LONG" | "SHORT" | None (None = conflict)
+    reason: str                   # razón de la decisión
+    metrics: List[ParticipantMetrics]  # métricas de todos los participantes
+    participants: List[Participant]    # participantes que votaron
+    meta: Dict                    # metadata (timestamp, symbol, timeframe)
 
 
 @dataclass(frozen=True)
@@ -156,9 +173,100 @@ class Gemini:
             min_support=getattr(config, "MIN_SUPPORT", 20),
         )
         self.decision_logger = DecisionLogger()
+        # Almacenar base_meta temporalmente para make_order_from_verdict
+        self._last_verdict_meta: Optional[Dict] = None
 
     # -----------------------------------------------------
-    # API principal: decidir sobre un conjunto de señales
+    # API NUEVA: Validación probabilística (retorna Verdict)
+    # -----------------------------------------------------
+    def evaluate_signals_v2(self, signals: List[dict], equity: float) -> Verdict:
+        """
+        [NUEVO] Evalúa señales y retorna Verdict (solo validación).
+        
+        El Player decide el tamaño de posición basándose en el Verdict.
+        
+        Returns:
+            Verdict: Contiene side, metrics, participants, meta
+                    - Si Verdict.side es None → no apostar (conflict o SKIP)
+                    - Si metrics vacío o no aprobados → Player no debe apostar
+                    - Si hay metrics aprobados → Player puede apostar
+        """
+        if not signals:
+            return Verdict(
+                trade_id=None,
+                side=None,
+                reason="sin_señales",
+                metrics=[],
+                participants=[],
+                meta={}
+            )
+        
+        # Determinar consenso de lado
+        long_voters, short_voters, base_meta = self._collect_votes_by_side(signals)
+        
+        # Conflicto de lado: no apostar
+        if long_voters and short_voters:
+            participants = list({*long_voters, *short_voters})
+            trade_id = self._make_trade_id(base_meta, side="CONFLICT")
+            self.memory.register_vote_set(trade_id, self._serialize_participants(participants))
+            self._last_verdict_meta = base_meta
+            
+            return Verdict(
+                trade_id=trade_id,
+                side=None,
+                reason="conflicto_de_lado",
+                metrics=[],
+                participants=participants,
+                meta=base_meta
+            )
+        
+        # Elegir lado
+        if long_voters:
+            chosen_side = "LONG"
+            side_voters = long_voters
+        elif short_voters:
+            chosen_side = "SHORT"
+            side_voters = short_voters
+        else:
+            return Verdict(
+                trade_id=None,
+                side=None,
+                reason="señales_no_votantes",
+                metrics=[],
+                participants=[],
+                meta=base_meta
+            )
+        
+        # Calcular métricas probabilísticas
+        participant_metrics = self._participant_metrics(side_voters)
+        participants = [m.participant for m in participant_metrics]
+        
+        trade_id = self._make_trade_id(base_meta, side=chosen_side)
+        self.memory.register_vote_set(trade_id, self._serialize_participants(participants))
+        self._last_verdict_meta = base_meta
+        
+        # Determinar razón
+        approved_metrics = [m for m in participant_metrics if m.approved]
+        if not approved_metrics:
+            reason = "sin_aprobadas"
+        else:
+            positive_metrics = [m for m in approved_metrics if m.kelly > 0]
+            reason = "aprobado" if positive_metrics else "kelly_no_positivo"
+        
+        # Log de la decisión (para análisis)
+        self._log_verdict(trade_id, chosen_side, reason, base_meta, participants, participant_metrics, equity)
+        
+        return Verdict(
+            trade_id=trade_id,
+            side=chosen_side,
+            reason=reason,
+            metrics=participant_metrics,
+            participants=participants,
+            meta=base_meta
+        )
+
+    # -----------------------------------------------------
+    # API LEGACY: decidir sobre un conjunto de señales
     # -----------------------------------------------------
     def evaluate_signals(self, signals: List[dict], equity: float) -> Decision:
         """
@@ -204,29 +312,30 @@ class Gemini:
         self.memory.register_vote_set(trade_id, self._serialize_participants(participants))
 
         approved_metrics = [m for m in participant_metrics if m.approved]
-        positive_metrics = [m for m in approved_metrics if m.kelly > 0]
+        positive_kelly_metrics = [m for m in approved_metrics if m.kelly > 0]
 
+        # Por defecto, la acción es GHOST hasta que se demuestre lo contrario
+        action = "GHOST"
+        size_fraction = 0.0
+        reason = "sin_aprobadas"
+
+        # Condiciones para una apuesta real (BET)
         if not approved_metrics:
-            order = self._make_order(base_meta, side=chosen_side, size_fraction=0.0)
-            decision = Decision(action="GHOST", side=chosen_side, order=order, reason="sin_aprobadas", trade_id=trade_id)
-            self._log_decision(decision, base_meta, order, participants, participant_metrics, equity)
-            return decision
+            reason = "sin_aprobadas"
+        elif not positive_kelly_metrics:
+            reason = "kelly_no_positivo"
+        else:
+            min_kelly = min(m.kelly for m in positive_kelly_metrics)
+            if min_kelly > 0:
+                action = "BET"
+                size_fraction = min(min_kelly, getattr(config, "MAX_POSITION_SIZE", 0.25))
+                reason = "apuesta_conservadora"
+            else:
+                # Este caso es raro, pero por si acaso min() diera 0
+                reason = "kelly_conservador_cero"
 
-        if not positive_metrics:
-            order = self._make_order(base_meta, side=chosen_side, size_fraction=0.0)
-            decision = Decision(action="GHOST", side=chosen_side, order=order, reason="kelly_no_positivo", trade_id=trade_id)
-            self._log_decision(decision, base_meta, order, participants, participant_metrics, equity)
-            return decision
-
-        min_kelly = min(m.kelly for m in positive_metrics)
-        if min_kelly <= 0:
-            order = self._make_order(base_meta, side=chosen_side, size_fraction=0.0)
-            decision = Decision(action="GHOST", side=chosen_side, order=order, reason="kelly_conservador_cero", trade_id=trade_id)
-            self._log_decision(decision, base_meta, order, participants, participant_metrics, equity)
-            return decision
-
-        order = self._make_order(base_meta, side=chosen_side, size_fraction=min_kelly)
-        decision = Decision(action="BET", side=chosen_side, order=order, reason="apuesta_conservadora", trade_id=trade_id)
+        order = self._make_order(base_meta, side=chosen_side, size_fraction=size_fraction)
+        decision = Decision(action=action, side=chosen_side, order=order, reason=reason, trade_id=trade_id)
         self._log_decision(decision, base_meta, order, participants, participant_metrics, equity)
         return decision
 
@@ -535,6 +644,109 @@ class Gemini:
             ]
 
         self.decision_logger.log(rows)
+
+    def _log_verdict(self, trade_id: str, side: str, reason: str, meta: Dict,
+                     participants: List[Participant], metrics: List[ParticipantMetrics],
+                     equity: float) -> None:
+        """Log simplificado para Verdict (sin orden)"""
+        if not self.decision_logger or not trade_id:
+            return
+        
+        contributors = sorted({p.strategy for p in participants}) or []
+        market = f"{meta.get('symbol', 'UNKNOWN')}@{meta.get('timeframe', 'UNKNOWN')}"
+        
+        if metrics:
+            rows = [
+                {
+                    "timestamp": meta.get("timestamp"),
+                    "trade_id": trade_id,
+                    "market": market,
+                    "symbol": meta.get("symbol", "UNKNOWN"),
+                    "timeframe": meta.get("timeframe", "UNKNOWN"),
+                    "side": side,
+                    "action": "VERDICT",
+                    "reason": reason,
+                    "size": 0.0,  # Player decide esto después
+                    "equity": float(equity) if equity is not None else "",
+                    "contributors": ",".join(contributors),
+                    "strategy": m.participant.strategy,
+                    "bucket": m.participant.bucket,
+                    "support": m.support,
+                    "p_hat": m.p_hat if m.p_hat is not None else "",
+                    "credibility": m.credibility,
+                    "p_conservative": m.p_conservative,
+                    "kelly": m.kelly,
+                    "approved": "yes" if m.approved else "no",
+                    "participant_reason": m.reason,
+                    "p_star": P_STAR,
+                    "r_net": R_NET,
+                    "l_net": L_NET,
+                }
+                for m in metrics
+            ]
+        else:
+            rows = [
+                {
+                    "timestamp": meta.get("timestamp"),
+                    "trade_id": trade_id,
+                    "market": market,
+                    "symbol": meta.get("symbol", "UNKNOWN"),
+                    "timeframe": meta.get("timeframe", "UNKNOWN"),
+                    "side": side,
+                    "action": "VERDICT",
+                    "reason": reason,
+                    "size": 0.0,
+                    "equity": float(equity) if equity is not None else "",
+                    "contributors": ",".join(contributors),
+                    "strategy": "",
+                    "bucket": "",
+                    "support": "",
+                    "p_hat": "",
+                    "credibility": "",
+                    "p_conservative": "",
+                    "kelly": "",
+                    "approved": "no",
+                    "participant_reason": "no_metrics",
+                    "p_star": P_STAR,
+                    "r_net": R_NET,
+                    "l_net": L_NET,
+                }
+            ]
+        
+        self.decision_logger.log(rows)
+
+    # -----------------------------------------------------
+    # API para construir órdenes desde Verdict
+    # -----------------------------------------------------
+    def make_order_from_verdict(self, verdict: Verdict, size_fraction: float, ghost: bool = False) -> dict:
+        """
+        Construye una orden desde un Verdict y un tamaño decidido por el Player.
+        
+        Args:
+            verdict: Veredicto de evaluate_signals_v2()
+            size_fraction: Fracción del equity a arriesgar [0, 1]
+            ghost: Si True, marca como GHOST trade (shadow trading)
+        
+        Returns:
+            dict: Orden estandarizada para el Croupier
+        
+        Nota:
+            Si verdict.side es None (conflicto), se usa "LONG" arbitrariamente
+            para construir la orden GHOST (el lado no importa en GHOST)
+        """
+        if not verdict:
+            raise ValueError("Verdict es None")
+        
+        # Si hay conflicto (side=None), usar LONG arbitrariamente para GHOST
+        side = verdict.side or "LONG"
+        
+        meta = verdict.meta or self._last_verdict_meta or {}
+        
+        order = self._make_order(meta, side, size_fraction)
+        order["trade_id"] = verdict.trade_id
+        order["ghost"] = ghost
+        
+        return order
 
     # -----------------------------------------------------
     # Bayesian helpers

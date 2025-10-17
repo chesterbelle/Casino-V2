@@ -19,13 +19,6 @@ Gemini, el Croupier y las Mesas leerán de aquí directamente.
 #  - "live"      → se conecta a un exchange real o de paper trading
 MODE = "backtest"
 
-# Bandera específica para habilitar la arquitectura Oscar.
-# Si se activa (True), el main desviará la sesión hacia OscarGrind
-# sin importar el MODE general (que sigue controlando el origen
-# de datos: backtest vs live).
-# Opciones: True, False
-ENABLE_OSCAR_MODE = True
-
 # Perfil del exchange (usa el JSON de tables/data/exchange_profiles)
 # Opciones: "asterdex_paper", "kraken_futures_demo", "binance_futures_testnet"
 EXCHANGE_PROFILE = "binance_futures_testnet"
@@ -35,8 +28,7 @@ EXCHANGE_PROFILE = "binance_futures_testnet"
 EXCHANGE = "BINANCE_FUTURES_TESTNET"
 
 # Ruta del dataset CSV (para modo backtest) — se utiliza tanto para Gemini
-# como para Oscar (cuando ENABLE_OSCAR_MODE=True). Cambia este archivo
-# para alternar rápidamente entre datasets.
+# como para Oscar. Cambia este archivo para alternar rápidamente entre datasets.
 DATASET_PATH = "tables/data/raw/BTCUSDT_5m__30d.csv"
 
 
@@ -101,7 +93,7 @@ TAKE_PROFIT = 0.012
 STOP_LOSS = 0.008
 
 # Fracción del criterio de Kelly a aplicar (1 = Kelly completo, 0.5 = medio Kelly)
-KELLY_FRACTION = 0.3
+KELLY_FRACTION = 0.2
 
 
 # =====================================================
@@ -150,23 +142,12 @@ SENSOR_PARAMS = {
 # 🪙 PERFIL DEL CASINO (GENERAL)
 # =====================================================
 # Configuración básica de trading
-MAX_LEVERAGE = 50           # máximo apalancamiento permitido
-MAX_POSITION_SIZE = 0.25    # tamaño máximo (25% del equity)
+MAX_LEVERAGE = 10           # máximo apalancamiento permitido (reducido para evitar liquidaciones)
+MAX_POSITION_SIZE = 0.02    # tamaño máximo (2% del equity)
 COMMISSION_RATE = 0.0004    # equivalente al taker fee (0.04%)
 SLIPPAGE_DEFAULT = 0.0005   # spread estimado de ejecución
-MAINTENANCE_MARGIN_RATE = 0.005  # margen de mantenimiento (0.5%)
-
-
-# =====================================================
-# ♟️ OSCAR GRIND — PARÁMETROS OPCIONALES
-# =====================================================
-# Estos valores se usan únicamente cuando ENABLE_OSCAR_MODE=True.
-OSCAR_INITIAL_UNIT_SIZE = 0.1
-OSCAR_PROFIT_TARGET = 4.0
-OSCAR_MAX_LOSS = -8.0
-OSCAR_MAX_POSITION_UNITS = 10.0
-OSCAR_UNIT_FRACTION = 0.1
-OSCAR_MAX_POSITION_FRACTION = MAX_POSITION_SIZE
+MAINTENANCE_MARGIN_RATE = 0.005  # margen de mantenimiento (0.5% para Binance)
+DEFAULT_MARGIN_TYPE = "ISOLATED"  # Opciones: ISOLATED, CROSSED
 
 
 # =====================================================

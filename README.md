@@ -1,155 +1,354 @@
-# 🎰 CASINO BINANCE V2 — *La Era Gemini*
+# 🎰 Casino V2 — Trading Probabilístico
 
-> 🧠 Un laboratorio de *trading probabilístico* inspirado en la dinámica de un **casino sin límite de apuesta**.  
-> Cada módulo cumple un rol dentro del ecosistema: analistas, jugadores, mesas y crupieres trabajando juntos para buscar ventaja estadística.
+> Sistema de trading modular basado en ventaja estadística, no en predicción.
 
-![Banner del proyecto](https://img.shields.io/badge/Estado-En%20Desarrollo-yellow)
-![Versión](https://img.shields.io/badge/Versión-0.1.1-blue)
-![Python](https://img.shields.io/badge/Python-3.10+-green)
-![Licencia](https://img.shields.io/badge/Licencia-MIT-lightgrey)
-
----
-
-## 🧭 Filosofía del Proyecto
-
-En lugar de intentar **predecir el futuro**, el sistema busca **apostar cuando el Valor Esperado (EV)** es positivo.  
-Cada módulo representa un rol dentro del casino:
-
-| Rol | Módulo | Descripción |
-|------|---------|-------------|
-| 🎩 **Gemini (Jugador racional)** | `gemini/` | Evalúa el mercado, estima probabilidad de éxito (*p̂*), y decide cuándo y cuánto apostar según Kelly. |
-| 👁️ **Analistas de mesa (Sensores)** | `sensors/` | Detectan contextos técnicos favorables. |
-| 🧤 **Crupier** | `croupier/` | Ejecuta las órdenes sin pensar, en modo real o simulado. |
-| 🪙 **Mesas** | `tables/` | Proveen datos históricos o en vivo, aplican fees y actualizan balance. |
-| 💰 **Cajero (BalanceManager)** | `tables/balance_manager.py` | Administra capital y registra resultados. |
-| 🧾 **Protocolo** | `protocolo.md` | Define reglas de desarrollo, validación y testing. |
-| 🧑‍💼 **Gerente de sala** | `main.py` | Orquesta la sesión: prepara la mesa, llama a sensores, Gemini y crupier. |
+[![Version](https://img.shields.io/badge/Versión-0.1.2-blue)](docs/CHANGELOG.md)
+[![Python](https://img.shields.io/badge/Python-3.10+-green)](https://python.org)
+[![Tests](https://img.shields.io/badge/Tests-14/14_passing-brightgreen)](test_phase1.py)
+[![License](https://img.shields.io/badge/Licencia-MIT-lightgrey)](LICENSE)
 
 ---
 
-## ⚙️ Arquitectura General
-
-```
-Gemini → Croupier → Mesa (Feed) → BalanceManager
-             ↑                     ↓
-         resultado ←――――――――――――――――――――――――
-```
-
----
-
-## 📂 Estructura del Proyecto
-
-```
-Casino-V2/
-├── main.py
-├── config.py
-├── gemini/
-├── croupier/
-├── sensors/
-├── tables/
-└── utils/
-```
-
----
-
-## 🎯 Filosofía Técnica
-
-El casino no intenta adivinar el mercado — **espera contextos donde las probabilidades están a su favor.**
-
-> “No se trata de ganar todas las manos, sino de apostar cuando la ventaja está del lado del jugador.”
-
-Basado en la ecuación fundamental:
-
-\[
-EV = p̂ × R − (1 − p̂) × L
-\]
-
-Si el EV > 0 → Gemini apuesta;  
-Si no, espera la siguiente ronda.
-
-Inspirado en **Oscar Grind**, **teoría de utilidad esperada**, y **modelos bayesianos** de probabilidad aplicada al trading.
-
----
-
-## 🚀 Ejecución Rápida
+## 🚀 Quick Start
 
 ```bash
 # 1. Instalar dependencias
 pip install -r requirements.txt
 
-# 2. Configurar el dataset principal
-MODE = "backtest"        # o "realtime" cuando esté disponible
-DATASET_PATH = "tables/data/raw/LTCUSDT_15min_bull.csv"  # único dataset usado en la sesión
+# 2. Ejecutar primer backtest
+python main.py
 
-# 3. (Opcional) Activar modo Oscar Grind
-ENABLE_OSCAR_MODE = True
-
-# 4. (Recomendado) Actualizar tasas de funding reales
-python3 utils/fetch_funding_rates.py --symbol LTCUSDT
-
-# 5. (Opcional) Descargar dataset adicional (ej. ETHUSDT 15m)
-python3 utils/download_kline_dataset.py --symbol ETHUSDT --interval 15m --limit 1000 --tag sample
-
-# 6. Correr el casino
-python3 main.py
+# 3. Probar con Fixed Player
+python main.py --player=fixed
 ```
 
-Ejemplo de salida:
+**📖 [Guía completa de inicio →](docs/guides/quickstart.md)**
+
+---
+
+## 💡 ¿Qué es Casino V2?
+
+Casino V2 es un **sistema de trading probabilístico** que:
+
+- ✅ No intenta predecir el mercado
+- ✅ Busca **contextos con ventaja estadística** (EV > 0)
+- ✅ Apuesta solo cuando las probabilidades están a favor
+- ✅ Aprende de la experiencia empírica
+
+**Filosofía:**  
+> *"No se trata de ganar todas las manos, sino de apostar cuando la ventaja está del lado del jugador."*
+
+---
+
+## ✨ Features
+
+### Core
+- ✅ **Arquitectura Modular** - Separación Gemini (validación) / Player (sizing)
+- ✅ **Sistema de Memoria** - Aprende winrate por estrategia/contexto
+- ✅ **Bucket System** - Clasifica contextos de mercado
+- ✅ **Bayesian Inference** - Credibilidad estadística robusta
+
+### Players Disponibles
+- 🎮 **Kelly Player** - Kelly Criterion conservador (default)
+- 🎮 **Fixed Player** - Tamaño fijo por trade
+- 🎮 **Custom Players** - Crea tu propia estrategia
+
+### Trading
+- 📊 **Backtesting Robusto** - Fees, slippage, funding, liquidaciones
+- 📈 **Live Trading** - Binance, Kraken, ASTERDEx (paper/real)
+- 👻 **GHOST Trades** - Entrena sin riesgo cuando no hay datos
+
+### Análisis
+- 📝 **Decision Logging** - Log detallado de cada decisión
+- 📊 **Métricas por Estrategia** - Winrate, soporte, credibilidad
+- 🔍 **Trazabilidad Completa** - Desde señal hasta resultado
+
+---
+
+## 🏗️ Arquitectura
 
 ```
-🎯 Dataset: LTCUSDT_15min_bull.csv
-💰 Balance final: 10,542.33 USDT
+┌──────────┐      ┌──────────┐      ┌──────────┐
+│  Sensores │─────▶│  Gemini  │─────▶│  Player  │
+│ (Detectan)│      │ (Valida) │      │ (Sizing) │
+└──────────┘      └──────────┘      └──────────┘
+                        │                  │
+                        │◀─────────────────┘
+                        ▼
+                  ┌──────────┐
+                  │ Croupier │
+                  │(Ejecuta) │
+                  └──────────┘
+                        │
+                        ▼
+                  ┌──────────┐      ┌──────────┐
+                  │   Mesa   │─────▶│ Balance  │
+                  │  (Feed)  │      │ Manager  │
+                  └──────────┘      └──────────┘
+```
+
+**🎰 Metáfora del Casino:**
+
+| Rol | Módulo | Función |
+|-----|--------|---------|
+| 🎩 Jugador Racional | `gemini/` | Evalúa probabilidades |
+| 🎮 Estratega | `players/` | Decide tamaño de apuesta |
+| 👁️ Analistas | `sensors/` | Detectan contextos |
+| 🧤 Crupier | `croupier/` | Ejecuta órdenes |
+| 🪙 Mesa | `tables/` | Provee datos y ejecuta |
+| 💰 Cajero | `balance_manager.py` | Administra capital |
+
+**📐 [Ver arquitectura completa →](docs/architecture/overview.md)**
+
+---
+
+## 📖 Documentación
+
+### 🚀 Para Empezar
+- [Quick Start](docs/guides/quickstart.md) - Primeros pasos en 5 minutos
+- [Configuración](docs/guides/configuration.md) - Configurar el sistema
+- [Backtesting](docs/guides/backtest.md) - Hacer backtests
+
+### 📈 Trading
+- [Live Trading](docs/guides/live-trading.md) - Paper/Real trading
+- [Crear Players](docs/guides/creating-players.md) - Custom sizing strategies
+
+### 🏗️ Arquitectura
+- [Overview](docs/architecture/overview.md) - Visión general
+- [Gemini/Player](docs/architecture/gemini-player.md) - Separación de responsabilidades
+
+### 📚 Referencia
+- [Config Reference](docs/reference/config-reference.md) - Todas las configuraciones
+- [API Gemini](docs/reference/api-gemini.md) - API de validación
+- [API Players](docs/reference/api-players.md) - API de sizing
+
+### 🛠️ Desarrollo
+- [Contributing](docs/development/contributing.md) - Guía de contribución
+- [Testing](docs/development/testing.md) - Tests y validación
+- [Roadmap](docs/development/PENDIENTES.md) - Pendientes y features
+
+---
+
+## 🎯 Ejemplos
+
+### Backtest Básico (Kelly Player)
+
+```bash
+python main.py
+```
+
+**Salida:**
+```
+🎰 CASINO V2 - BACKTEST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+💰 Balance final: 10,542.33 USDT (+5.42%)
 🏆 Winrate: 57.6%
-⚙️ Trades ejecutados: 182
-👻 GHOST trades: 27
+⚙️ Trades: 182 (155 BET + 27 GHOST)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
-## 🛰️ Paper Trading (ASTERDEx / Kraken / Binance)
+### Backtest con Fixed Player
 
-**ASTERDEx**
-- `.env`:
-  - `ASTER_API_KEY=...`
-  - `ASTER_API_SECRET=...`
-  - Opcionales: `ASTER_BASE_URL`, `ASTER_WS_URL`
-- `config.py`:
-  - `MODE = "live"`
-  - `EXCHANGE = "ASTER_PAPER"`
-  - `EXCHANGE_PROFILE = "asterdex_paper"`
-- Test: `python -m utils.test_aster_connection --symbol BTCUSDT --interval 1m`
+```bash
+python main.py --player=fixed
+```
 
-**Kraken Futures (demo)**
-- `.env`:
-  - `KRAKEN_FUTURES_API_KEY=...`
-  - `KRAKEN_FUTURES_API_SECRET=...`
-  - Opcionales: `KRAKEN_FUTURES_BASE_URL`, `KRAKEN_FUTURES_CHARTS_URL`
-- `config.py`:
-  - `MODE = "live"`
-  - `EXCHANGE = "KRAKEN_DEMO"`
-  - `EXCHANGE_PROFILE = "kraken_futures_demo"`
+### Crear Custom Player
 
-**Binance Futures (Testnet)**
-- `.env`:
-  - `BINANCE_API_KEY=...`
-  - `BINANCE_API_SECRET=...`
-- `config.py`:
-  - `MODE = "live"`
-  - `EXCHANGE = "BINANCE_FUTURES_TESTNET"`
-  - `EXCHANGE_PROFILE = "binance_futures_testnet"`
+```python
+# players/my_player.py
 
-Ejecuta `python3 main.py`; se solicitará símbolo/intervalo (defaults según el exchange) y se usará el balance que reporte la cuenta. Si `ENABLE_OSCAR_MODE = True`, se lanza Oscar Grind en vivo. Las órdenes devuelven el estado bruto (`placed/filled/...`); el cálculo de PnL precisa integrar feeds de fills eventuales.
+def calculate_position_size(verdict, equity, meta=None):
+    """Mi estrategia personalizada."""
+    if not verdict or not verdict.side:
+        return None
+    
+    approved = [m for m in verdict.metrics if m.approved]
+    if not approved:
+        return None
+    
+    # Tu lógica aquí
+    avg_p_hat = sum(m.p_hat for m in approved) / len(approved)
+    
+    if avg_p_hat > 0.57:
+        return 0.02  # 2%
+    elif avg_p_hat > 0.54:
+        return 0.01  # 1%
+    else:
+        return None
+```
 
----
+```bash
+python main.py --player=my_player
+```
 
-## 🧩 Próximos pasos
-
-✅ **v0.1.1:** Primera versión funcional del ecosistema completo  
-✅ **v0.2.0:** Integración del modo LIVE (Binance Futures Testnet)  
-🔜 **v0.3.0:** Gemini A/B/C (múltiples jugadores con estrategias distintas)  
-🔜 **v0.4.0:** Dashboard de rendimiento y análisis visual  
+**📖 [Ver guía completa →](docs/guides/creating-players.md)**
 
 ---
 
-## 🧠 Credo del Proyecto
+## 🧪 Testing
 
-> “La casa siempre gana… excepto cuando la estadística está de tu lado.” 🎲  
-> — *Casino V2: La Era Gemini*
+```bash
+# Tests de arquitectura (Fase 1)
+python test_phase1.py
+# ✅ 11/11 tests pasando
+
+# Tests de mejoras
+python test_mejoras_futurechanges.py
+# ✅ 3/3 tests pasando
+```
+
+---
+
+## 📊 Resultados de Ejemplo
+
+| Métrica | Kelly Player | Fixed Player |
+|---------|--------------|--------------|
+| **Balance Final** | 10,542 USDT | 10,387 USDT |
+| **ROI** | +5.42% | +3.87% |
+| **Winrate** | 57.6% | 56.8% |
+| **Trades** | 182 | 195 |
+| **Avg Size** | 1.2% | 1.0% |
+| **Max DD** | -3.2% | -2.8% |
+
+*Ejemplo ilustrativo con LTCUSDT 15min (2000 velas)*
+
+---
+
+## ⚙️ Configuración
+
+### Dataset
+
+```python
+# config.py
+MODE = "backtest"
+DATASET_PATH = "tables/data/raw/LTCUSDT_15min_bull.csv"
+```
+
+### Parámetros de Trading
+
+```python
+TAKE_PROFIT = 0.01           # 1% target
+STOP_LOSS = 0.01             # 1% stop
+KELLY_FRACTION = 0.2         # 20% de Kelly
+MAX_POSITION_SIZE = 0.02     # 2% máximo
+```
+
+### Sistema de Memoria
+
+```python
+MIN_SUPPORT = 500            # Mínimo trades para aprobar
+MEMORY_WINDOW = 500          # Ventana por estrategia
+```
+
+**📖 [Ver configuración completa →](docs/guides/configuration.md)**
+
+---
+
+## 🛠️ Herramientas
+
+### Descargar Datos
+
+```bash
+python utils/download_kline_dataset.py \
+  --symbol BTCUSDT \
+  --interval 15m \
+  --limit 2000
+```
+
+### Actualizar Funding Rates
+
+```bash
+python utils/fetch_funding_rates.py --symbol BTCUSDT
+```
+
+### Testear Conexión (Live)
+
+```bash
+python -m utils.test_aster_connection --symbol BTCUSDT --interval 1m
+```
+
+---
+
+## 🗺️ Roadmap
+
+### ✅ Completado (v0.1.2)
+- Arquitectura modular Gemini/Player
+- Kelly y Fixed Players
+- Sistema de memoria con aprendizaje
+- Backtesting robusto (fees/slippage/funding)
+- Live trading (Binance/Kraken/ASTERDEx)
+- Tests automatizados (14/14 passing)
+
+### 🔜 Próximas Features
+- **Adaptive Player** - Ajusta Kelly por volatilidad
+- **Regime Player** - Detecta bull/bear/sideways
+- **Dashboard Web** - Análisis visual de resultados
+- **Multi-Player Mode** - Comparar strategies en paralelo
+
+**📖 [Ver roadmap completo →](docs/development/PENDIENTES.md)**
+
+---
+
+## 🤝 Contribuir
+
+¡Contribuciones bienvenidas!
+
+1. Fork el repositorio
+2. Crea una rama: `git checkout -b feature/mi-feature`
+3. Commit cambios: `git commit -am 'Add mi feature'`
+4. Push: `git push origin feature/mi-feature`
+5. Abre un Pull Request
+
+**📖 [Ver guía de contribución →](docs/development/contributing.md)**
+
+---
+
+## 📝 Changelog
+
+**v0.1.2** (Actual)
+- ✅ Mejoras de calidad de código (3 fixes)
+- ✅ Migración a arquitectura modular
+- ✅ Tests actualizados (14/14)
+
+**📖 [Ver changelog completo →](docs/CHANGELOG.md)**
+
+---
+
+## 📄 Licencia
+
+MIT License - ver [LICENSE](LICENSE) para detalles.
+
+---
+
+## 🆘 Soporte
+
+- 📖 [Documentación](docs/README.md)
+- 🐛 [Issues](https://github.com/tu-usuario/Casino-V2/issues)
+- 💬 [Discussions](https://github.com/tu-usuario/Casino-V2/discussions)
+
+---
+
+## 🧠 Filosofía
+
+> **"La casa siempre gana… excepto cuando la estadística está de tu lado."** 🎲
+
+Casino V2 no promete ganancias garantizadas. Es una herramienta para:
+- Explorar trading probabilístico
+- Aprender sobre gestión de riesgo
+- Experimentar con estrategias
+- Entender ventaja estadística
+
+**⚠️ Advertencia:** Trading con riesgo real puede resultar en pérdidas. Usa paper trading primero.
+
+---
+
+<div align="center">
+
+**🎰 Casino V2 - La Era Gemini**
+
+*Desarrollado con ❤️ para traders cuantitativos*
+
+[Documentación](docs/README.md) • [Quick Start](docs/guides/quickstart.md) • [Roadmap](docs/development/PENDIENTES.md)
+
+</div>
