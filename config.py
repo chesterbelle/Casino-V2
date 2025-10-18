@@ -29,7 +29,7 @@ EXCHANGE = "BINANCE_FUTURES_TESTNET"
 
 # Ruta del dataset CSV (para modo backtest) — se utiliza tanto para Gemini
 # como para Oscar. Cambia este archivo para alternar rápidamente entre datasets.
-DATASET_PATH = "tables/data/raw/BTCUSDT_5m__30d.csv"
+DATASET_PATH = "tables/data/raw/LTCUSDT_5m__training.csv"
 
 
 # =====================================================
@@ -119,12 +119,7 @@ EDGE_THRESHOLD = 0.02  # 2% de ventaja mínima
 # =====================================================
 # Activar o desactivar detectores individuales (puedes probar combinaciones)
 ACTIVE_SENSORS = {
-    "RSIReversion": True,
-    "BollingerTouch": True,
-    "KeltnerReversion": True,
-    "EMACrossover": True,
-    "MACDCrossover": True,
-    "OBVBreakout": True,
+  
 }
 
 # Parámetros personalizados por sensor (si deseas ajustarlos)

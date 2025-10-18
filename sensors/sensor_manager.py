@@ -9,18 +9,52 @@ import logging
 from typing import Dict, Iterable, List, Tuple
 
 import config
-from .mean_reversion import BollingerTouch, KeltnerReversion, RSIReversion
-from .momentum_trend_following import EMACrossover, MACDCrossover
-from .volumen_flujo_capital import OBVBreakout
+from .mean_reversion import (
+    BollingerTouch,
+    KeltnerReversion,
+    RSIReversion,
+    StochasticReversion,
+    BollingerSqueeze,
+    WilliamsRReversion,
+    CCIReversion,
+    ZScoreReversion,
+)
+from .momentum_trend_following import (
+    EMACrossover,
+    MACDCrossover,
+    Supertrend,
+    ADXFilter,
+    ParabolicSAR,
+)
+from .volumen_flujo_capital import (
+    OBVBreakout,
+    VWAPDeviation,
+    MFIReversion,
+    AccumulationDistribution,
+)
 
 
 SENSOR_REGISTRY: Dict[str, type] = {
+    # Mean Reversion (8 sensores)
     "RSIReversion": RSIReversion,
     "BollingerTouch": BollingerTouch,
     "KeltnerReversion": KeltnerReversion,
+    "StochasticReversion": StochasticReversion,
+    "BollingerSqueeze": BollingerSqueeze,
+    "WilliamsRReversion": WilliamsRReversion,
+    "CCIReversion": CCIReversion,
+    "ZScoreReversion": ZScoreReversion,
+    # Momentum / Trend (5 sensores)
     "EMACrossover": EMACrossover,
     "MACDCrossover": MACDCrossover,
+    "Supertrend": Supertrend,
+    "ADXFilter": ADXFilter,
+    "ParabolicSAR": ParabolicSAR,
+    # Volume (4 sensores)
     "OBVBreakout": OBVBreakout,
+    "VWAPDeviation": VWAPDeviation,
+    "MFIReversion": MFIReversion,
+    "AccumulationDistribution": AccumulationDistribution,
 }
 
 
