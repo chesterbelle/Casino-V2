@@ -115,7 +115,7 @@ Ejemplo de salida:
   - `MODE = "live"`
   - `EXCHANGE = "ASTER_PAPER"`
   - `EXCHANGE_PROFILE = "asterdex_paper"`
-- Test: `python -m utils.test_aster_connection --symbol BTCUSDT --interval 1m`
+- Test: `python3 -m utils.test_aster_connection --symbol BTCUSDT --interval 1m`
 
 **Kraken Futures (demo)**
 - `.env`:

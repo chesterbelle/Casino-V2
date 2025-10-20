@@ -42,7 +42,7 @@ from croupier.croupier import Croupier
 from gemini.gemini_core import Verdict, Gemini
 from sensors.sensor_manager import SensorManager
 from tables.table_backtest import TableBacktest
-from players import kelly_player, fixed_player
+from players import kelly_player, fixed_player, paroli_player
 
 from live_session import run_live_session
 
@@ -64,10 +64,11 @@ logger = logging.getLogger("MainV2")
 AVAILABLE_PLAYERS = {
     "kelly": kelly_player,
     "fixed": fixed_player,
+    "paroli": paroli_player,
 }
 
 # Player por defecto (Kelly conservador)
-DEFAULT_PLAYER = "kelly"
+DEFAULT_PLAYER = "paroli"
 
 
 # ============================================================
@@ -114,12 +115,50 @@ def _get_table_state(table: TableBacktest) -> Dict:
 
 def _log_trade(action: str, verdict: Verdict, order: Dict, result: Dict, balance: Optional[float]) -> None:
     """Log estandarizado de trades"""
+    notional_amount = result.get("notional")
+    if notional_amount is None:
+        size_fraction = float(order.get("size", 0.0))
+        try:
+            if balance is not None:
+                equity_reference = float(balance)
+            else:
+                equity_reference = float(result.get("balance", 0.0))
+        except (TypeError, ValueError):
+            equity_reference = 0.0
+        notional_amount = equity_reference * size_fraction
+    try:
+        notional_amount = float(notional_amount)
+    except (TypeError, ValueError):
+        notional_amount = 0.0
+    unit_multiplier = order.get("unit_multiplier")
+    try:
+        unit_multiplier = float(unit_multiplier)
+    except (TypeError, ValueError):
+        unit_multiplier = None
+    if unit_multiplier is None or unit_multiplier <= 0:
+        unit_multiplier = 1.0
+
+    unit_amount = order.get("unit_amount")
+    try:
+        unit_amount = float(unit_amount)
+    except (TypeError, ValueError):
+        unit_amount = None
+    if unit_amount is None or unit_amount <= 0:
+        unit_amount = notional_amount / unit_multiplier if unit_multiplier > 0 else notional_amount
+
+    try:
+        unit_display = float(unit_amount)
+    except (TypeError, ValueError):
+        unit_display = 0.0
+    unit_count_display = int(unit_multiplier) if abs(unit_multiplier - round(unit_multiplier)) < 1e-6 else unit_multiplier
+
     logger.info(
-        "🎲 %s | %s %s | size=%.4f | outcome=%s | exit=%s | bars=%s | pnl_pct=%.4f | balance=%s",
+        "🎲 %s | %s %s | Unidad=%su(%.2fUSD) | outcome=%s | exit=%s | bars=%s | pnl_pct=%.4f | balance=%s",
         action,
         order.get("symbol", "?"),
         order.get("side", "?"),
-        float(order.get("size", 0.0)),
+        unit_count_display,
+        unit_display,
         result.get("result", "?"),
         result.get("exit_reason", "?"),
         result.get("bars_held", "?"),
@@ -160,6 +199,8 @@ def run_session_with_player(
 
     sensors = SensorManager()
     croupier = Croupier(table)
+
+    player_state = player_module.init_state() if hasattr(player_module, "init_state") else None
 
     # Estadísticas
     candles = 0
@@ -209,37 +250,46 @@ def run_session_with_player(
                 ghost_trades += 1
             continue
 
-        # 4. Player decide tamaño (NUEVO: separado de validación)
-        size_fraction = player_module.calculate_position_size(verdict, equity)
-        
-        # 5. Decidir acción: BET o GHOST
+        meta = None
+        if player_state is not None and hasattr(player_module, "prepare_state"):
+            player_state, meta = player_module.prepare_state(player_state, equity)
+
+        size_fraction = None
+        if hasattr(player_module, "calculate_position_size"):
+            size_fraction = player_module.calculate_position_size(verdict, equity, meta)
+
         if size_fraction and size_fraction > 0:
-            # BET: Apuesta real
             action = "BET"
             ghost = False
         else:
-            # GHOST: Shadow trading para entrenar sin riesgo
             action = "GHOST"
             ghost = True
-            size_fraction = 0.0  # Tamaño 0 para GHOST
-        
-        # 6. Construir orden (NUEVO: desde Verdict + size)
+            size_fraction = 0.0
+
         order = gemini.make_order_from_verdict(verdict, size_fraction, ghost=ghost)
-        
-        # Asegurar campos adicionales del candle
+        if isinstance(meta, dict):
+            unit_amount = meta.get("paroli_unit_amount")
+            unit_multiplier = meta.get("paroli_multiplier")
+            if unit_amount is not None:
+                try:
+                    order["unit_amount"] = float(unit_amount)
+                except (TypeError, ValueError):
+                    pass
+            if unit_multiplier is not None:
+                try:
+                    order["unit_multiplier"] = float(unit_multiplier)
+                except (TypeError, ValueError):
+                    pass
+
         order.setdefault("symbol", candle.get("symbol", table.symbol))
         order.setdefault("timestamp", candle.get("timestamp"))
         order.setdefault("timeframe", candle.get("timeframe", getattr(table, "timeframe", "UNKNOWN")))
-        
-        # 7. Ejecutar con Croupier (igual que antes)
+
         result = croupier.route_order(order)
-        
-        # 8. Actualizar memoria de Gemini (igual que antes)
-        if verdict.trade_id:
-            gemini.on_trade_result(verdict.trade_id, result)
-        
-        # 9. Contabilizar estadísticas
-        outcome = result.get("result", "").upper()
+
+        outcome = (result.get("result") or "").upper()
+        status = (result.get("status") or "").upper()
+
         if action == "BET":
             bet_trades += 1
             total_fees += float(result.get("fee", 0.0) or 0.0)
@@ -252,10 +302,15 @@ def run_session_with_player(
                 losses += 1
         elif action == "GHOST":
             ghost_trades += 1
-        
-        # 10. Log del trade
+
         balance = _get_table_state(table).get("balance")
         _log_trade(action, verdict, order, result, balance)
+
+        if verdict.trade_id:
+            gemini.on_trade_result(verdict.trade_id, result)
+
+        if player_state is not None and hasattr(player_module, "handle_trade_outcome") and outcome in {"WIN", "LOSS"}:
+            player_state = player_module.handle_trade_outcome(player_state, action, result)
 
     # Resumen final
     final_state = _get_table_state(table)
@@ -315,14 +370,6 @@ def main() -> None:
     """Main con soporte para múltiples players"""
     mode = getattr(config, "MODE", "backtest").lower()
 
-    if mode == "live":
-        logger.warning("Modo LIVE aún no soporta arquitectura Player. Usando main.py...")
-        run_live_session(symbol=None, interval=None)
-        return
-
-    print("\n🎰 Bienvenido al Casino V2 — Arquitectura Gemini + Player\n")
-
-    # Seleccionar player desde argumentos o usar default
     player_name = DEFAULT_PLAYER
     if len(sys.argv) > 1:
         arg = sys.argv[1].lower().replace("--player=", "")
@@ -331,13 +378,23 @@ def main() -> None:
         else:
             print(f"⚠️ Player '{arg}' no encontrado. Usando {DEFAULT_PLAYER}")
             print(f"Players disponibles: {', '.join(AVAILABLE_PLAYERS.keys())}")
-    
+
     player_module = AVAILABLE_PLAYERS[player_name]
+
+    if mode == "live":
+        print("\n🎰 Casino V2 — Live/Paper Trading\n")
+        print(f"🎮 Player seleccionado: {player_name.upper()}")
+        run_live_session(symbol=None, interval=None, player_module=player_module, player_name=player_name)
+        return
+
+    print("\n🎰 Bienvenido al Casino V2 — Arquitectura Gemini + Player\n")
+
+    # Seleccionar player desde argumentos o usar default
     print(f"🎮 Player seleccionado: {player_name.upper()}")
 
     # Configuración de sesión
     initial_balance = ask_initial_balance()
-    dataset_path = getattr(config, "DATASET_PATH", "tables/data/raw/BTCUSDT_5m__30d.csv")
+    dataset_path = getattr(config, "DATASET_PATH", "tables/data/raw/BTCUSDT_1m__30d.csv")
 
     # Inicializar Gemini (validador)
     gemini = Gemini()

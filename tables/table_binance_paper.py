@@ -55,17 +55,29 @@ class TableBinancePaper(BaseTable):
 
         self.balance_manager = BalanceManager(starting_balance=getattr(config, "STARTING_BALANCE", 10_000.0))
         self.position_manager = PositionManager()
+        self._ghost_positions: Deque[Dict[str, Any]] = deque()
         
         # Fetch exchange info to validate symbol and get properties
         self.exchange_info = self.client.get_exchange_info()
         self.instrument = self._resolve_instrument(self.raw_symbol_input)
         self.symbol = self.instrument.get("symbol", self.raw_symbol_input)
+        self.quantity_precision = int(self.instrument.get("quantityPrecision", 0))
+
+        lot_size_filter = next(
+            (f for f in self.instrument.get("filters", []) if f.get("filterType") == "LOT_SIZE"),
+            {},
+        )
+        self.min_qty = float(lot_size_filter.get("minQty", 0.0) or 0.0)
+        self.step_size = float(lot_size_filter.get("stepSize", 0.0) or 0.0)
         self.taker_fee = float(self.profile.get("taker_fee", 0.0004))
         self.entry_fee_rate = float(self.profile.get("entry_fee_rate", self.taker_fee))
         self.exit_fee_rate = float(self.profile.get("exit_fee_rate", self.taker_fee))
 
         self._candle_queue: Deque[Dict[str, Any]] = deque()
         self._last_timestamp: Optional[int] = None
+        self._pending_results: Deque[Dict[str, Any]] = deque()
+        self.R = getattr(config, "TAKE_PROFIT", 0.01)
+        self.L = getattr(config, "STOP_LOSS", 0.01)
 
         self._sync_balance_from_exchange()
         self._prime_cache()
@@ -96,6 +108,9 @@ class TableBinancePaper(BaseTable):
         candle = self._candle_queue.popleft()
         self._last_timestamp = candle["timestamp_ms"]
 
+        self._evaluate_open_position(candle)
+        self._evaluate_ghost_positions(candle)
+
         state = self.balance_manager.get_state()
         return {
             "timestamp": candle["timestamp_iso"],
@@ -112,6 +127,102 @@ class TableBinancePaper(BaseTable):
             "balance": state.get("balance"),
         }
 
+    def consume_completed_trades(self) -> list:
+        """Devuelve y limpia los trades completados desde la última lectura."""
+        results = list(self._pending_results)
+        self._pending_results.clear()
+        return results
+
+    def _evaluate_open_position(self, candle: Dict[str, Any]) -> None:
+        """Revisa si la vela actual cierra una posición abierta."""
+        if not self.position_manager.is_position_open():
+            return
+
+        open_pos = self.position_manager.get_open_position()
+        if not open_pos:
+            return
+
+        # Incrementar barras sostenidas
+        bars_held = int(open_pos.misc.get("bars_held", 0)) + 1
+        open_pos.misc["bars_held"] = bars_held
+
+        exit_signal = self.position_manager.check_exit(candle["high"], candle["low"])
+        if not exit_signal:
+            return
+
+        exit_price = open_pos.take_profit_price if exit_signal == "TP" else open_pos.stop_loss_price
+        reason = "take_profit" if exit_signal == "TP" else "stop_loss"
+
+        result = self.close_open_position(exit_price, reason, bars_held=bars_held)
+        if result.get("status") == "ERROR":
+            return
+
+        result.setdefault("timestamp", candle.get("timestamp_iso"))
+        result.setdefault("timeframe", self.interval)
+        result.setdefault("market", f"{self.symbol}@{self.interval}")
+        self._pending_results.append(result)
+
+    def _evaluate_ghost_positions(self, candle: Dict[str, Any]) -> None:
+        """Simula el resultado de posiciones ghost para entrenamiento."""
+        if not self._ghost_positions:
+            return
+
+        remaining: Deque[Dict[str, Any]] = deque()
+        high_price = candle["high"]
+        low_price = candle["low"]
+
+        for ghost in list(self._ghost_positions):
+            ghost["bars_held"] = int(ghost.get("bars_held", 0)) + 1
+            exit_signal = None
+
+            if ghost["side"] == "LONG":
+                if low_price <= ghost["sl_price"]:
+                    exit_signal = ("LOSS", ghost["sl_price"], "stop_loss")
+                elif high_price >= ghost["tp_price"]:
+                    exit_signal = ("WIN", ghost["tp_price"], "take_profit")
+            else:
+                if high_price >= ghost["sl_price"]:
+                    exit_signal = ("LOSS", ghost["sl_price"], "stop_loss")
+                elif low_price <= ghost["tp_price"]:
+                    exit_signal = ("WIN", ghost["tp_price"], "take_profit")
+
+            if exit_signal:
+                outcome, exit_price, reason = exit_signal
+                pnl_pct = self.R if outcome == "WIN" else (-self.L if outcome == "LOSS" else 0.0)
+
+                result = {
+                    "status": "CLOSED",
+                    "trade_id": ghost.get("trade_id"),
+                    "result": outcome,
+                    "pnl": 0.0,
+                    "pnl_net": 0.0,
+                    "fee": 0.0,
+                    "funding": 0.0,
+                    "liquidated": False,
+                    "exit_reason": reason,
+                    "entry_price": ghost["entry_price"],
+                    "exit_price": exit_price,
+                    "size": 0.0,
+                    "executed_qty": 0.0,
+                    "size_fraction": ghost.get("size_fraction", 0.0),
+                    "balance": float(self.balance_manager.get_state().get("balance", 0.0)),
+                    "notional": float(ghost.get("notional", 0.0)),
+                    "margin_used": 0.0,
+                    "leverage": 0.0,
+                    "pnl_pct": pnl_pct,
+                    "bars_held": ghost.get("bars_held", 0),
+                    "action": "GHOST",
+                    "ghost": True,
+                    "timestamp": candle.get("timestamp_iso"),
+                    "timeframe": self.interval,
+                    "market": f"{self.symbol}@{self.interval}",
+                }
+                self._pending_results.append(result)
+            else:
+                remaining.append(ghost)
+
+        self._ghost_positions = remaining
+
     # ------------------------------------------------------------------
     # Order routing
     # ------------------------------------------------------------------
@@ -119,24 +230,72 @@ class TableBinancePaper(BaseTable):
         """Abre una nueva posición y la registra en el PositionManager."""
         if self.position_manager.is_position_open():
             self.logger.warning("Se ignoró la orden de apertura porque ya hay una posición abierta.")
-            return {"status": "SKIPPED", "reason": "position_already_open"}
+            return {"status": "SKIPPED", "reason": "position_already_open", "result": "SKIPPED"}
 
         ghost = bool(order.get("ghost", False))
         if ghost:
-            # For now, we don't simulate ghost trades on live tables
-            return {"status": "SKIPPED", "reason": "ghost_order"}
+            side = order.get("side", "").upper()
+            if side not in {"LONG", "SHORT"}:
+                return {"status": "ERROR", "reason": "invalid_side", "result": "ERROR"}
+
+            try:
+                price_info = self.client.get_ticker_price(self.symbol)
+                entry_price = float(price_info["price"])
+            except (BinanceFuturesAPIError, KeyError, ValueError) as exc:
+                self.logger.error("No se pudo obtener el precio actual de Binance para ghost: %s", exc)
+                return {"status": "ERROR", "reason": "ghost_fetch_price_failed", "result": "ERROR"}
+
+            tp_factor = float(order.get("take_profit", 1.0 + self.R))
+            sl_factor = float(order.get("stop_loss", 1.0 - self.L))
+            if side == "LONG":
+                tp_price = entry_price * tp_factor
+                sl_price = entry_price * sl_factor
+            else:
+                tp_price = entry_price * (2 - tp_factor) if tp_factor > 1 else entry_price * tp_factor
+                sl_price = entry_price * (2 - sl_factor) if sl_factor < 1 else entry_price * sl_factor
+
+            equity_state = self.balance_manager.get_state()
+            equity = float(equity_state.get("equity", equity_state.get("balance", 0.0)))
+            size_fraction = float(order.get("size", 0.0))
+            notional = max(0.0, equity * size_fraction)
+
+            ghost_state = {
+                "trade_id": order.get("trade_id", ""),
+                "side": side,
+                "entry_price": entry_price,
+                "tp_price": tp_price,
+                "sl_price": sl_price,
+                "entry_timestamp": datetime.now(timezone.utc).isoformat(),
+                "bars_held": 0,
+                "size_fraction": size_fraction,
+                "notional": notional,
+                "timestamp": order.get("timestamp"),
+            }
+            self._ghost_positions.append(ghost_state)
+
+            return {
+                "status": "OPENED",
+                "result": "OPENED",
+                "trade_id": ghost_state["trade_id"],
+                "ghost": True,
+                "entry_price": entry_price,
+                "size_fraction": size_fraction,
+            }
 
         size_fraction = float(order.get("size", 0.0))
         if size_fraction <= 0.0:
-            return {"status": "SKIPPED", "reason": "invalid_size"}
+            return {"status": "SKIPPED", "reason": "invalid_size", "result": "SKIPPED"}
+
+        max_fraction = float(getattr(config, "MAX_POSITION_SIZE", 0.02))
+        size_fraction = min(size_fraction, max_fraction)
 
         equity = float(self.balance_manager.get_state().get("equity", 0.0))
         if equity <= 0:
-            return {"status": "SKIPPED", "reason": "no_equity"}
+            return {"status": "SKIPPED", "reason": "no_equity", "result": "SKIPPED"}
 
         side = order.get("side", "").upper()
         if side not in {"LONG", "SHORT"}:
-            return {"status": "ERROR", "reason": "invalid_side"}
+            return {"status": "ERROR", "reason": "invalid_side", "result": "ERROR"}
 
         # Fetch current price to calculate quantity
         try:
@@ -144,16 +303,47 @@ class TableBinancePaper(BaseTable):
             entry_price = float(price_info["price"])
         except (BinanceFuturesAPIError, KeyError, ValueError) as exc:
             self.logger.error("No se pudo obtener el precio actual de Binance: %s", exc)
-            return {"status": "ERROR", "reason": "fetch_price_failed"}
+            return {"status": "ERROR", "reason": "fetch_price_failed", "result": "ERROR"}
 
-        notional_value = equity * size_fraction
-        quantity = notional_value / entry_price
+        desired_notional = equity * size_fraction
+        max_notional = equity * max_fraction
+        if desired_notional <= 0 or max_notional <= 0 or entry_price <= 0:
+            return {"status": "SKIPPED", "reason": "invalid_notional", "result": "SKIPPED"}
 
-        # Adjust quantity to match symbol's precision rules
-        quantity = self._adjust_quantity_to_precision(quantity)
+        max_notional = min(desired_notional, max_notional)
+        raw_quantity = max_notional / entry_price
+
+        quantity = self._adjust_quantity_to_precision(raw_quantity)
+        max_qty_allowed = self._adjust_quantity_to_precision((equity * max_fraction) / entry_price)
+        if max_qty_allowed > 0:
+            quantity = min(quantity, max_qty_allowed)
+            quantity = self._adjust_quantity_to_precision(quantity)
+
+        if max_qty_allowed <= 0 or (self.min_qty and max_qty_allowed < self.min_qty):
+            self.logger.warning("Max quantity permitido insuficiente para cumplir minQty del exchange.")
+            return {"status": "SKIPPED", "reason": "quantity_below_min", "result": "SKIPPED"}
+
         if quantity <= 0:
-            self.logger.warning("La cantidad calculada es 0 después de ajustar la precisión.")
-            return {"status": "SKIPPED", "reason": "quantity_too_low"}
+            self.logger.warning("La cantidad calculada es 0 después de ajustar precisión y límites.")
+            return {"status": "SKIPPED", "reason": "quantity_too_low", "result": "SKIPPED"}
+
+        if self.min_qty and quantity < self.min_qty:
+            self.logger.warning(
+                "Cantidad ajustada %.8f menor al mínimo permitido %.8f. Trade omitido.",
+                quantity,
+                self.min_qty,
+            )
+            return {"status": "SKIPPED", "reason": "quantity_below_min", "result": "SKIPPED"}
+
+        actual_notional = quantity * entry_price
+        actual_fraction = actual_notional / equity if equity > 0 else 0.0
+        if actual_fraction > max_fraction + 1e-9:
+            self.logger.warning(
+                "Cantidad ajustada %.8f excede MAX_POSITION_SIZE (%.4f). Trade omitido.",
+                quantity,
+                max_fraction,
+            )
+            return {"status": "SKIPPED", "reason": "quantity_above_max", "result": "SKIPPED"}
 
         payload = {
             "symbol": self.symbol,
@@ -162,20 +352,42 @@ class TableBinancePaper(BaseTable):
             "quantity": str(quantity),
         }
 
+        leverage_override = order.get("leverage") or getattr(config, "MAX_LEVERAGE", 10)
+        try:
+            leverage_override = int(leverage_override)
+        except (TypeError, ValueError):
+            leverage_override = int(getattr(config, "MAX_LEVERAGE", 10))
+        leverage_override = max(1, min(leverage_override, int(getattr(config, "MAX_LEVERAGE", 10))))
+
+        try:
+            self.logger.debug("Setting leverage for %s to %s", self.symbol, leverage_override)
+            self.client.set_leverage(self.symbol, leverage_override)
+        except BinanceFuturesAPIError as exc:
+            self.logger.error("Binance Futures rechazó set_leverage: %s", exc)
+            return {"status": "ERROR", "reason": "set_leverage_failed", "details": str(exc), "result": "ERROR"}
+
         try:
             response = self.client.create_order(payload)
             self.logger.debug("Binance create_order payload=%s response=%s", payload, response)
         except BinanceFuturesAPIError as exc:
             self.logger.error("Binance Futures rechazó la orden: %s", exc)
-            return {"status": "ERROR", "reason": "api_error", "details": str(exc)}
+            return {"status": "ERROR", "reason": "api_error", "details": str(exc), "result": "ERROR"}
 
         # Assume immediate execution for market orders and use the ticker price as entry price
         # A more robust implementation would use the fill price from the order response
         order_id = response.get("orderId")
         tp_factor = float(order.get("take_profit", 1.0))
         sl_factor = float(order.get("stop_loss", 1.0))
-        tp_price = entry_price * tp_factor if side == "LONG" else entry_price * (2 - tp_factor)
-        sl_price = entry_price * sl_factor if side == "LONG" else entry_price * (2 - sl_factor)
+        tp_price = entry_price * tp_factor if side == "LONG" else (
+            entry_price * (2 - tp_factor) if tp_factor > 1 else entry_price * tp_factor
+        )
+        sl_price = entry_price * sl_factor if side == "LONG" else (
+            entry_price * (2 - sl_factor) if sl_factor < 1 else entry_price * sl_factor
+        )
+
+        leverage = float(order.get("leverage") or getattr(config, "MAX_LEVERAGE", 10))
+        leverage = max(1.0, min(leverage, getattr(config, "MAX_LEVERAGE", 10)))
+        margin_used = actual_notional / leverage if leverage > 0 else actual_notional
 
         self.position_manager.open_position(
             symbol=self.symbol,
@@ -186,13 +398,29 @@ class TableBinancePaper(BaseTable):
             stop_loss_price=sl_price,
             entry_timestamp=datetime.now(timezone.utc).isoformat(),
             trade_id=order.get("trade_id", ""),
-            misc={"order_id": order_id}
+            misc={
+                "order_id": order_id,
+                "size_fraction": actual_fraction,
+                "notional": actual_notional,
+                "margin_used": margin_used,
+                "leverage": leverage,
+                "bars_held": 0,
+                "ghost": ghost,
+            },
         )
 
         self.logger.info(f"POSICIÓN ABIERTA: {side} {quantity} {self.symbol} @ {entry_price:.4f}")
-        return {"status": "OPENED", "order_id": order_id, "response": response}
+        return {
+            "status": "OPENED",
+            "result": "OPENED",
+            "order_id": order_id,
+            "response": response,
+            "executed_qty": quantity,
+            "entry_price": entry_price,
+            "size_fraction": actual_fraction,
+        }
 
-    def close_open_position(self, exit_price: float, reason: str) -> Dict[str, Any]:
+    def close_open_position(self, exit_price: float, reason: str, bars_held: Optional[int] = None) -> Dict[str, Any]:
         """Cierra la posición abierta y calcula el resultado."""
         open_pos = self.position_manager.get_open_position()
         if not open_pos:
@@ -237,18 +465,37 @@ class TableBinancePaper(BaseTable):
         # Clear position from manager
         self.position_manager.close_position()
 
-        return {
+        balance_after = float(self.balance_manager.get_state().get("balance", 0.0))
+        pnl_pct = (exit_price - open_pos.entry_price) / open_pos.entry_price if open_pos.entry_price else 0.0
+        if open_pos.side == "SHORT":
+            pnl_pct = -pnl_pct
+
+        result = {
+            "status": "CLOSED",
             "trade_id": open_pos.trade_id,
             "result": "WIN" if net_pnl > 0 else "LOSS",
             "pnl": gross_pnl,
             "pnl_net": net_pnl,
             "fee": fee,
+            "funding": 0.0,
+            "liquidated": False,
             "exit_reason": reason,
             "entry_price": open_pos.entry_price,
             "exit_price": exit_price,
             "size": open_pos.size_contracts,
+            "executed_qty": open_pos.size_contracts,
+            "size_fraction": float(open_pos.misc.get("size_fraction", 0.0)),
+            "balance": balance_after,
+            "notional": float(open_pos.misc.get("notional", open_pos.size_contracts * open_pos.entry_price)),
+            "margin_used": float(open_pos.misc.get("margin_used", 0.0)),
+            "leverage": float(open_pos.misc.get("leverage", 1.0)),
+            "pnl_pct": pnl_pct,
+            "bars_held": int(bars_held if bars_held is not None else open_pos.misc.get("bars_held", 0)),
+            "action": "BET",
+            "ghost": bool(open_pos.misc.get("ghost", False)),
             "raw_close_response": response,
         }
+        return result
 
     # ------------------------------------------------------------------
     # State helpers
@@ -264,13 +511,21 @@ class TableBinancePaper(BaseTable):
     # Internal helpers
     # ------------------------------------------------------------------
     def _adjust_quantity_to_precision(self, quantity: float) -> float:
-        """Adjusts the quantity based on the symbol's quantityPrecision."""
-        precision = self.instrument.get("quantityPrecision")
-        if precision is None:
-            return quantity
-        
-        factor = 10 ** int(precision)
-        return math.floor(quantity * factor) / factor
+        """Adjust quantity to comply with Binance Futures precision and lot size."""
+        if quantity <= 0:
+            return 0.0
+
+        adjusted = quantity
+
+        if self.step_size:
+            steps = math.floor(adjusted / self.step_size)
+            adjusted = steps * self.step_size
+
+        if self.quantity_precision is not None:
+            factor = 10 ** int(self.quantity_precision)
+            adjusted = math.floor(adjusted * factor) / factor
+
+        return max(adjusted, 0.0)
 
     def _prime_cache(self) -> None:
         try:
@@ -325,6 +580,21 @@ class TableBinancePaper(BaseTable):
 
     def close_all_positions(self) -> None:
         self.logger.info("Closing all open orders on Binance...")
+        if self.position_manager.is_position_open():
+            try:
+                price_info = self.client.get_ticker_price(self.symbol)
+                last_price = float(price_info["price"])
+            except Exception as exc:  # pragma: no cover - defensivo
+                self.logger.error("Failed to fetch price while closing position: %s", exc)
+                last_price = float(self.position_manager.get_open_position().entry_price)
+
+            result = self.close_open_position(last_price, "session_shutdown")
+            if result.get("status") != "ERROR":
+                result.setdefault("timestamp", datetime.now(timezone.utc).isoformat())
+                result.setdefault("timeframe", self.interval)
+                result.setdefault("market", f"{self.symbol}@{self.interval}")
+                self._pending_results.append(result)
+
         try:
             open_orders = self.client.get_open_orders(self.symbol)
             for order in open_orders:

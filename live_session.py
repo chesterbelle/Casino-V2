@@ -11,7 +11,7 @@ from typing import Dict, Optional
 import config
 from croupier.broker_interface import BrokerInterface
 from croupier.croupier import Croupier
-from gemini.gemini_core import Decision, Gemini
+from gemini.gemini_core import Gemini, Verdict
 from sensors.sensor_manager import SensorManager
 
 LIVE_SLEEP_SECONDS = float(getattr(config, "LIVE_SLEEP_SECONDS", 1.0))
@@ -33,29 +33,6 @@ def _parse_positive_int(value) -> Optional[int]:
     return parsed if parsed > 0 else None
 
 
-def _prepare_order(
-    decision: Decision,
-    fallback_symbol: Optional[str],
-    fallback_timestamp: Optional[str],
-    fallback_timeframe: Optional[str],
-) -> Dict:
-    order = dict(decision.order or {})
-    order.setdefault("symbol", fallback_symbol)
-    order.setdefault("timestamp", fallback_timestamp)
-    order.setdefault("timeframe", fallback_timeframe)
-    if fallback_symbol and fallback_timeframe and fallback_timeframe != "UNKNOWN":
-        order.setdefault("market", f"{fallback_symbol}@{fallback_timeframe}")
-    order.setdefault("side", decision.side)
-    order.setdefault("size", 0.0)
-    tp_default = 1.0 + getattr(config, "TAKE_PROFIT", 0.01)
-    sl_default = 1.0 - getattr(config, "STOP_LOSS", 0.01)
-    order.setdefault("take_profit", tp_default)
-    order.setdefault("stop_loss", sl_default)
-    order["trade_id"] = decision.trade_id
-    order["ghost"] = decision.action == "GHOST"
-    return order
-
-
 def _get_table_state(table) -> Dict:
     if hasattr(table, "get_state"):
         try:
@@ -74,12 +51,16 @@ def _print_live_summary(stats: Dict) -> None:
     print("📊 Resumen sesión Live")
     print("-" * 60)
     print(f"   Exchange              : {stats.get('exchange', 'n/a')}")
+    if stats.get("player"):
+        print(f"   Player                : {stats.get('player')}")
     print(f"   Símbolo               : {stats.get('symbol', 'n/a')}")
     print(f"   Intervalo             : {stats.get('interval', 'n/a')}")
     print(f"   Velas procesadas      : {stats.get('candles', 0)}")
     print(f"   Límite configurado    : {max_candles_str}")
     print(f"   Trades BET            : {stats.get('bet_trades', 0)}")
     print(f"   Trades GHOST          : {stats.get('ghost_trades', 0)}")
+    if stats.get("skip_trades"):
+        print(f"   Trades SKIP           : {stats.get('skip_trades', 0)}")
     print(f"   Wins / Losses (BET)   : {stats.get('wins', 0)} / {stats.get('losses', 0)}")
     print(f"   WinRate (BET)         : {winrate:.2f}%")
     print(f"   Comisiones totales    : {stats.get('fees', 0.0):.4f}")
@@ -98,11 +79,17 @@ def run_live_session(
     symbol: Optional[str] = None,
     interval: Optional[str] = None,
     max_candles: Optional[int] = None,
+    *,
+    player_module=None,
+    player_name: Optional[str] = None,
 ) -> None:
     """Ejecuta el loop live reutilizando BrokerInterface (exchange actual)."""
     logging.getLogger().setLevel(getattr(logging, config.LOG_LEVEL, logging.INFO))
     exchange = getattr(config, "EXCHANGE", "SIMULATION").upper()
     RESULT_LOGGER.info("Iniciando sesión live (exchange=%s)", exchange)
+
+    if player_module is None:
+        raise ValueError("Se requiere un player_module para ejecutar sesiones live.")
 
     if "KRAKEN" in exchange:
         default_symbol = getattr(config, "KRAKEN_FUTURES_SYMBOL", "PF_XBTUSD")
@@ -185,6 +172,10 @@ def run_live_session(
         "funding": 0.0,
         "liquidations": 0,
         "max_candles": max_candles,
+        "skip_trades": 0,
+        "player": player_name or "legacy",
+        "final_balance": initial_balance,
+        "final_equity": initial_equity,
     }
     stop_reason = "Sesión finalizada correctamente."
     start_time = time.time()
@@ -197,14 +188,67 @@ def run_live_session(
         stop_reason = f"Límite de {max_candles} velas alcanzado."
         RESULT_LOGGER.info("Límite de velas alcanzado (%s). Finalizando sesión...", max_candles)
 
+    player_state = None
+    if hasattr(player_module, "init_state"):
+        player_state = player_module.init_state()
+
+    def handle_completed_trade(trade: Dict[str, Any]) -> None:
+        nonlocal player_state
+        if not isinstance(trade, dict):
+            return
+
+        outcome = (trade.get("result") or "").upper()
+        ghost_trade = bool(trade.get("ghost", False))
+        if outcome in {"WIN", "LOSS"}:
+            if not ghost_trade:
+                if outcome == "WIN":
+                    stats["wins"] += 1
+                else:
+                    stats["losses"] += 1
+                stats["fees"] += _safe_float(trade.get("fee"))
+                stats["funding"] += _safe_float(trade.get("funding"))
+                if trade.get("liquidated"):
+                    stats["liquidations"] += 1
+            new_balance = trade.get("balance")
+            if new_balance is not None:
+                stats["final_balance"] = _safe_float(new_balance, stats["final_balance"])
+                stats["final_equity"] = stats["final_balance"]
+            trade_id = trade.get("trade_id")
+            if trade_id:
+                try:
+                    gemini.on_trade_result(trade_id, trade)
+                except Exception as exc:  # pragma: no cover - defensivo
+                    RESULT_LOGGER.exception("Error actualizando memoria Gemini (%s): %s", trade_id, exc)
+
+            if player_state is not None and hasattr(player_module, "handle_trade_outcome"):
+                action_for_player = "GHOST" if ghost_trade else "BET"
+                player_state = player_module.handle_trade_outcome(player_state, action_for_player, trade)
+
+    def consume_completed_trades_from_table() -> None:
+        consumer = getattr(table, "consume_completed_trades", None)
+        if callable(consumer):
+            for completed_trade in consumer():
+                handle_completed_trade(completed_trade)
+
     try:
         while True:
+            consume_completed_trades_from_table()
+
             candle = table.next_candle()
             if candle is None:
                 time.sleep(LIVE_SLEEP_SECONDS)
                 continue
 
             stats["candles"] += 1
+
+            if getattr(table, "position_manager", None) and table.position_manager.is_position_open():
+                RESULT_LOGGER.debug("Posición abierta aún en curso; esperando cierre antes de nuevas entradas.")
+                stats["skip_trades"] += 1
+                if limit_reached():
+                    register_limit_exit()
+                    break
+                time.sleep(LIVE_SLEEP_SECONDS)
+                continue
 
             signals = sensors.process_candle(candle)
             if not signals:
@@ -218,19 +262,72 @@ def run_live_session(
                 state = _get_table_state(table)
                 equity = state.get("equity")
 
-            decision = gemini.evaluate_signals(signals, equity=equity or 0.0)
-            if decision.action == "SKIP":
+            verdict: Verdict = gemini.evaluate_signals_v2(signals, equity=equity or 0.0)
+            if not verdict.side:
+                stats["skip_trades"] += 1
+                if verdict.trade_id and verdict.reason == "conflicto_de_lado":
+                    ghost_order = gemini.make_order_from_verdict(verdict, size_fraction=0.0, ghost=True)
+                    ghost_order.setdefault("symbol", candle.get("symbol", table.symbol))
+                    ghost_order.setdefault("timestamp", candle.get("timestamp"))
+                    ghost_order.setdefault("timeframe", candle.get("timeframe", getattr(table, "timeframe", "UNKNOWN")))
+                    try:
+                        ghost_result = croupier.route_order(ghost_order)
+                        if verdict.trade_id:
+                            gemini.on_trade_result(verdict.trade_id, ghost_result)
+                    except Exception as exc:  # pragma: no cover - defensivo
+                        RESULT_LOGGER.exception("Fallo en orden GHOST por conflicto de lado: %s", exc)
                 if limit_reached():
                     register_limit_exit()
                     break
                 continue
 
-            order = _prepare_order(
-                decision,
-                fallback_symbol=candle.get("symbol"),
-                fallback_timestamp=candle.get("timestamp"),
-                fallback_timeframe=candle.get("timeframe"),
-            )
+            meta = None
+            if player_state is not None and hasattr(player_module, "prepare_state"):
+                player_state, meta = player_module.prepare_state(player_state, equity)
+
+            table_meta = {
+                "min_qty": getattr(table, "min_qty", None),
+                "step_size": getattr(table, "step_size", None),
+                "price": candle.get("close"),
+                "symbol": candle.get("symbol", table.symbol),
+                "max_position_fraction": getattr(config, "MAX_POSITION_SIZE", 0.0),
+            }
+
+            if meta is None:
+                meta = {}
+            meta.setdefault("table", {})
+            meta["table"].update({k: v for k, v in table_meta.items() if v is not None})
+
+            size_fraction = None
+            if hasattr(player_module, "calculate_position_size"):
+                size_fraction = player_module.calculate_position_size(verdict, equity, meta)
+
+            if size_fraction and size_fraction > 0:
+                action_label = "BET"
+                ghost_flag = False
+            else:
+                action_label = "GHOST"
+                ghost_flag = True
+                size_fraction = 0.0
+
+            order = gemini.make_order_from_verdict(verdict, size_fraction, ghost=ghost_flag)
+            if isinstance(meta, dict):
+                unit_amount = meta.get("paroli_unit_amount")
+                unit_multiplier = meta.get("paroli_multiplier")
+                if unit_amount is not None:
+                    try:
+                        order["unit_amount"] = float(unit_amount)
+                    except (TypeError, ValueError):
+                        pass
+                if unit_multiplier is not None:
+                    try:
+                        order["unit_multiplier"] = float(unit_multiplier)
+                    except (TypeError, ValueError):
+                        pass
+            order.setdefault("symbol", candle.get("symbol", table.symbol))
+            order.setdefault("timestamp", candle.get("timestamp"))
+            order.setdefault("timeframe", candle.get("timeframe", getattr(table, "timeframe", "UNKNOWN")))
+            trade_id = verdict.trade_id
 
             try:
                 result = croupier.route_order(order)
@@ -242,14 +339,52 @@ def run_live_session(
                     break
                 continue
 
+            actual_size_fraction = result.get("size_fraction")
+            if actual_size_fraction is not None:
+                order["size"] = actual_size_fraction
+
+            executed_qty = result.get("executed_qty")
+            entry_price = result.get("entry_price")
+            if executed_qty is not None and entry_price is not None:
+                try:
+                    notional_amount = float(executed_qty) * float(entry_price)
+                except (TypeError, ValueError):
+                    notional_amount = 0.0
+            elif result.get("notional") is not None:
+                try:
+                    notional_amount = float(result.get("notional", 0.0))
+                except (TypeError, ValueError):
+                    notional_amount = 0.0
+            else:
+                equity_reference = equity if equity else _safe_float(updated_state.get("equity"), 0.0)
+                notional_amount = float(order.get("size", 0.0)) * equity_reference
+
+            unit_multiplier_value = order.get("unit_multiplier")
+            try:
+                unit_multiplier_value = float(unit_multiplier_value)
+            except (TypeError, ValueError):
+                unit_multiplier_value = None
+            if unit_multiplier_value is None or unit_multiplier_value <= 0:
+                unit_multiplier_value = 1.0
+
+            unit_amount_value = order.get("unit_amount")
+            try:
+                unit_amount_value = float(unit_amount_value)
+            except (TypeError, ValueError):
+                unit_amount_value = None
+            if unit_amount_value is None or unit_amount_value <= 0:
+                unit_amount_value = notional_amount / unit_multiplier_value if unit_multiplier_value > 0 else notional_amount
+
+            unit_count_display = int(unit_multiplier_value) if abs(unit_multiplier_value - round(unit_multiplier_value)) < 1e-6 else unit_multiplier_value
+
             RESULT_LOGGER.info(
-                "live_trade | %s %s | action=%s | result=%s | qty=%s | size=%.4f",
+                "live_trade | %s %s | action=%s | result=%s | Unidad=%su(%.2fUSD)",
                 order.get("symbol"),
                 order.get("side"),
-                decision.action,
+                action_label,
                 result.get("result"),
-                result.get("executed_qty", order.get("size")),
-                float(order.get("size", 0.0)),
+                unit_count_display,
+                unit_amount_value,
             )
             updated_state = _get_table_state(table)
             RESULT_LOGGER.debug(
@@ -258,32 +393,33 @@ def run_live_session(
                 float(updated_state.get("equity", updated_state.get("balance", 0.0))),
             )
 
-            if decision.trade_id and result.get("result") in {"WIN", "LOSS"}:
-                gemini.on_trade_result(decision.trade_id, result)
-
+            status = (result.get("status") or "").upper()
             outcome = (result.get("result") or "").upper()
-            if decision.action == "BET":
-                stats["bet_trades"] += 1
-                stats["fees"] += _safe_float(result.get("fee"))
-                stats["funding"] += _safe_float(result.get("funding"))
-                if result.get("liquidated"):
-                    stats["liquidations"] += 1
-                if outcome == "WIN":
-                    stats["wins"] += 1
-                elif outcome == "LOSS":
-                    stats["losses"] += 1
-            elif decision.action == "GHOST":
+
+            if action_label == "BET":
+                if outcome in {"WIN", "LOSS"}:
+                    stats["bet_trades"] += 1
+                    handle_completed_trade(result)
+                elif status == "OPENED" or outcome == "OPENED":
+                    stats["bet_trades"] += 1
+                elif status == "SKIPPED":
+                    stats["skip_trades"] += 1
+            elif action_label == "GHOST":
                 stats["ghost_trades"] += 1
+                if outcome in {"WIN", "LOSS"}:
+                    handle_completed_trade(result)
 
             if limit_reached():
                 register_limit_exit()
                 break
 
             time.sleep(LIVE_SLEEP_SECONDS)
+            consume_completed_trades_from_table()
     except KeyboardInterrupt:
         stop_reason = "Sesión finalizada manualmente (Ctrl+C)."
         RESULT_LOGGER.info("Sesión live finalizada por el usuario.")
     finally:
+        consume_completed_trades_from_table()
         if hasattr(table, "close_all_positions"):
             table.close_all_positions()
         final_state = _get_table_state(table)

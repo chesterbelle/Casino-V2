@@ -17,7 +17,7 @@ Gemini, el Croupier y las Mesas leerán de aquí directamente.
 # Puede ser:
 #  - "backtest"  → usa dataset CSV y simula operaciones
 #  - "live"      → se conecta a un exchange real o de paper trading
-MODE = "backtest"
+MODE = "live"
 
 # Perfil del exchange (usa el JSON de tables/data/exchange_profiles)
 # Opciones: "asterdex_paper", "kraken_futures_demo", "binance_futures_testnet"
@@ -29,7 +29,7 @@ EXCHANGE = "BINANCE_FUTURES_TESTNET"
 
 # Ruta del dataset CSV (para modo backtest) — se utiliza tanto para Gemini
 # como para Oscar. Cambia este archivo para alternar rápidamente entre datasets.
-DATASET_PATH = "tables/data/raw/LTCUSDT_5m__training.csv"
+DATASET_PATH = "tables/data/raw/BNBUSDT_15m__90d.csv"
 
 
 # =====================================================
@@ -52,7 +52,7 @@ ASTER_API_SECRET = None
 # =====================================================
 BINANCE_BASE_URL = "https://testnet.binancefuture.com"
 BINANCE_DEFAULT_SYMBOL = "BTCUSDT"
-BINANCE_DEFAULT_INTERVAL = "15m"
+BINANCE_DEFAULT_INTERVAL = "1m"
 BINANCE_POLL_INTERVAL = 2.0
 BINANCE_API_KEY = None
 BINANCE_API_SECRET = None
@@ -66,7 +66,7 @@ LIVE_SLEEP_SECONDS = 1.0
 
 # Número máximo de velas a procesar antes de detener la sesión.
 # Usa None (o valores <= 0) para dejarlo en ejecución indefinida.
-LIVE_MAX_CANDLES = None
+LIVE_MAX_CANDLES = 500
 
 
 # =====================================================
@@ -89,8 +89,8 @@ STARTING_BALANCE = 10_000.0
 
 # Tamaños relativos de TP y SL (expresados en proporción decimal)
 # Ejemplo: 0.01 = 1% de take profit, 0.008 = 0.8% de stop loss
-TAKE_PROFIT = 0.012
-STOP_LOSS = 0.008
+TAKE_PROFIT = 0.005
+STOP_LOSS = 0.015
 
 # Fracción del criterio de Kelly a aplicar (1 = Kelly completo, 0.5 = medio Kelly)
 KELLY_FRACTION = 0.2
@@ -103,7 +103,7 @@ KELLY_FRACTION = 0.2
 WINDOW_SIZE = 120
 
 # Mínimo de muestras necesarias por bucket para confiar en la estadística
-MIN_SUPPORT = 60
+MIN_SUPPORT = 20
 
 # Umbral mínimo de diferencia estadística para considerar una mesa “caliente”
 # Parámetros bayesianos por defecto (coinciden con la biblia GEMINI)
@@ -111,7 +111,7 @@ BAYES_CREDIBILITY_THRESHOLD = 0.7
 BAYES_LOWER_PERCENTILE = 0.05
 BAYES_ALPHA = 1.0
 BAYES_BETA = 1.0
-EDGE_THRESHOLD = 0.02  # 2% de ventaja mínima
+EDGE_THRESHOLD = 0.01  # 2% de ventaja mínima
 
 
 # =====================================================
@@ -138,7 +138,7 @@ SENSOR_PARAMS = {
 # =====================================================
 # Configuración básica de trading
 MAX_LEVERAGE = 10           # máximo apalancamiento permitido (reducido para evitar liquidaciones)
-MAX_POSITION_SIZE = 0.02    # tamaño máximo (2% del equity)
+MAX_POSITION_SIZE = 0.032    # tamaño máximo (2% del equity para kelly  3.2 para paroli)
 COMMISSION_RATE = 0.0004    # equivalente al taker fee (0.04%)
 SLIPPAGE_DEFAULT = 0.0005   # spread estimado de ejecución
 MAINTENANCE_MARGIN_RATE = 0.005  # margen de mantenimiento (0.5% para Binance)

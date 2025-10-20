@@ -97,6 +97,14 @@ class BinanceFuturesClient:
         }
         return self._request_private("/fapi/v1/marginType", method="POST", params=params)
 
+    def set_leverage(self, symbol: str, leverage: int) -> Dict[str, Any]:
+        """Sets the leverage for a given symbol."""
+        params = {
+            "symbol": symbol,
+            "leverage": int(max(1, leverage)),
+        }
+        return self._request_private("/fapi/v1/leverage", method="POST", params=params)
+
     # ---------------------------------------------------------------------
     # Internal request machinery
     # ---------------------------------------------------------------------

@@ -22,12 +22,23 @@ Opcionalmente puedes definir las mismas variables en config.py
 
 import os
 import logging
+import sys
+from pathlib import Path
 from typing import Dict
 
 from dotenv import load_dotenv
 
-from utils.binance_futures_client import BinanceFuturesClient, BinanceFuturesAPIError
-import config
+
+def _ensure_project_root() -> None:
+    root = Path(__file__).resolve().parent.parent
+    if str(root) not in sys.path:
+        sys.path.insert(0, str(root))
+
+
+_ensure_project_root()
+
+from utils.binance_futures_client import BinanceFuturesClient, BinanceFuturesAPIError  # noqa: E402
+import config  # noqa: E402
 
 def load_binance_credentials(test_connection: bool = False) -> Dict[str, str]:
     """

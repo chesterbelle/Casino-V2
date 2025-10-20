@@ -10,6 +10,6 @@
     "per_size_fraction": 0.001
   },
   "funding_rate_per_hour": 0.0000125,
-  "leverage_limit": 125,
+  "leverage_limit": 10,
   "maintenance_margin_rate": 0.005
 }

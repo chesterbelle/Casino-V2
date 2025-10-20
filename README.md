@@ -51,6 +51,7 @@ Casino V2 es un **sistema de trading probabilístico** que:
 ### Players Disponibles
 - 🎮 **Kelly Player** - Kelly Criterion conservador (default)
 - 🎮 **Fixed Player** - Tamaño fijo por trade
+- 🎮 **Paroli Player** - Progresión 1-4-8 que ignora el edge de Gemini (apuesta mientras exista `side`)
 - 🎮 **Custom Players** - Crea tu propia estrategia
 
 ### Trading
@@ -265,7 +266,7 @@ python utils/fetch_funding_rates.py --symbol BTCUSDT
 ### Testear Conexión (Live)
 
 ```bash
-python -m utils.test_aster_connection --symbol BTCUSDT --interval 1m
+python3 -m utils.test_aster_connection --symbol BTCUSDT --interval 1m
 ```
 
 ---
@@ -338,6 +339,9 @@ Casino V2 no promete ganancias garantizadas. Es una herramienta para:
 - Aprender sobre gestión de riesgo
 - Experimentar con estrategias
 - Entender ventaja estadística
+
+**🎡 Metáfora de la ruleta:**  
+Imagina cada trade como apostar una ficha a rojo o negro. Cuando los sensores detectan un contexto con ventaja, Gemini autoriza la apuesta y los players deciden cuánto arriesgar. Si la jugada sale bien, ganas una ficha completa (menos costos); si sale mal, el stop loss devuelve media ficha y limitas el daño. Toda la arquitectura —sensores, memoria y gestión de tamaño— existe para encontrar esas “ruletas cargadas” donde la estadística se inclina a tu favor y las pérdidas quedan contenidas.
 
 **⚠️ Advertencia:** Trading con riesgo real puede resultar en pérdidas. Usa paper trading primero.
 

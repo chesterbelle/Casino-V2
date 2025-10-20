@@ -156,7 +156,11 @@ class TableBacktest:
         # Precio de entrada (close de la última vela entregada), con slippage simple
         entry_candle = self.data[self._last_index]
         entry_price = float(entry_candle["close"])
-        slippage_pct = self._compute_slippage(size_fraction)
+        max_leverage = self.leverage_limit if self.leverage_limit > 0 else 1.0
+        requested_leverage = float(order.get("leverage", max_leverage))
+        effective_leverage = max(1.0, min(requested_leverage, max_leverage))
+
+        slippage_pct = self._compute_slippage(size_fraction * effective_leverage)
         if slippage_pct > 0:
             if side == "LONG":
                 entry_price *= (1 + slippage_pct)
@@ -183,11 +187,12 @@ class TableBacktest:
 
         state = self.balance_manager.get_state()
         equity = float(state.get("equity", state.get("balance", 0.0)))
-        notional = max(0.0, equity * size_fraction)
-        margin_used = notional / self.leverage_limit if self.leverage_limit > 0 else notional
+        notional = max(0.0, equity * size_fraction * effective_leverage)
+        margin_used = notional / effective_leverage if effective_leverage > 0 else notional
         liquidation_level = None
-        if notional > 0.0 and self.leverage_limit > 0:
-            risk_ratio = (1.0 / self.leverage_limit) - max(0.0, self.maintenance_margin_rate)
+        if notional > 0.0 and effective_leverage > 0:
+            risk_ratio = (1.0 / effective_leverage) - max(0.0, self.maintenance_margin_rate)
+            risk_ratio = max(risk_ratio, 0.0)
             risk_ratio = min(risk_ratio, 0.95)
             if side == "LONG":
                 liquidation_level = entry_price * (1.0 - risk_ratio)
@@ -205,11 +210,23 @@ class TableBacktest:
             liquidation_level=liquidation_level,
         )
 
+        # Determinar precio de salida estimado
+        exit_price = trigger_price if trigger_price is not None else entry_price
+        pnl_pct_raw = 0.0
+        if entry_price and exit_price:
+            try:
+                if side == "LONG":
+                    pnl_pct_raw = (float(exit_price) - float(entry_price)) / float(entry_price)
+                else:
+                    pnl_pct_raw = (float(entry_price) - float(exit_price)) / float(entry_price)
+            except (TypeError, ValueError, ZeroDivisionError):
+                pnl_pct_raw = 0.0
+
         # Cálculo monetario (solo si no es ghost)
         fee_total = 0.0
         pnl_value = 0.0
         balance_after = None
-        pnl_pct = 0.0
+        pnl_pct = pnl_pct_raw
         funding_cost = 0.0
 
         if not ghost:
@@ -217,15 +234,6 @@ class TableBacktest:
             entry_fee = notional * self.entry_fee_rate
             exit_fee = notional * self.exit_fee_rate
             fee_total = entry_fee + exit_fee
-
-            # PnL bruto por R/L (usamos R y L de config para cuantificar el resultado)
-            # Nota: determinamos WIN/LOSS por niveles, pero cuantificamos % por R o L simétrico.
-            if outcome == "WIN":
-                pnl_pct = self.R
-            elif outcome == "LOSS":
-                pnl_pct = -self.L
-            else:
-                pnl_pct = 0.0
 
             pnl_value = notional * pnl_pct
 
@@ -239,6 +247,8 @@ class TableBacktest:
                 liquidation_loss = min(equity, margin_used) if margin_used > 0 else 0.0
                 pnl_value = -liquidation_loss
                 pnl_net = -liquidation_loss - fee_total - funding_cost
+                if notional > 0:
+                    pnl_pct = pnl_value / notional
             else:
                 pnl_net = pnl_value - fee_total - funding_cost
 
@@ -265,9 +275,10 @@ class TableBacktest:
             "liquidated": bool(liquidated if not ghost else False),
             "margin_used": float(margin_used if not ghost else 0.0),
             "notional": float(notional if not ghost else 0.0),
+            "leverage": float(effective_leverage if not ghost else 0.0),
             "symbol": symbol,
             "balance": balance_after,
-            "pnl_pct": float(pnl_pct if not ghost else (self.R if outcome == "WIN" else (-self.L if outcome == "LOSS" else 0.0))),
+            "pnl_pct": float(pnl_pct_raw),
             "entry_price": float(entry_price),
             "trigger_price": float(trigger_price),
             "bars_held": bars_held,

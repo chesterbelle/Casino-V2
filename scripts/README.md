@@ -1,6 +1,15 @@
 # 🤖 Scripts Automatizados - Casino V2
 
-Scripts para automatizar el proceso completo de entrenamiento y validación del sistema.
+> ℹ️ Todos los scripts ejecutables se movieron a `utils/`.  
+> Puedes llamarlos como módulos (`python3 -m utils.cli …`) o ejecutar directamente
+> los nuevos archivos (`python3 utils/train_memory.py`, etc.).
+
+La lógica principal reside en `utils/cli.py`, que centraliza cada comando.
+Recomendamos invocar los comandos con:
+
+```bash
+python3 -m utils.cli <comando>
+```
 
 ---
 
@@ -9,7 +18,13 @@ Scripts para automatizar el proceso completo de entrenamiento y validación del 
 ### **🚀 Pipeline Completo (Recomendado)**
 
 ```bash
-./scripts/full_pipeline.sh
+python3 -m utils.cli full-pipeline
+```
+
+También disponible como:
+
+```bash
+python3 utils/full_pipeline.py
 ```
 
 **Ejecuta todo el proceso:**
@@ -25,7 +40,13 @@ Scripts para automatizar el proceso completo de entrenamiento y validación del 
 ### **📥 1. Descargar Datos**
 
 ```bash
-./scripts/download_training_data.sh
+python3 -m utils.cli download-training-data
+```
+
+o de forma directa:
+
+```bash
+python3 utils/download_training_data.py
 ```
 
 **Qué hace:**
@@ -34,11 +55,12 @@ Scripts para automatizar el proceso completo de entrenamiento y validación del 
 - Guarda en `tables/data/raw/`
 
 **Personalizar:**
-Editar el script y modificar:
 ```bash
-SYMBOLS=("BTCUSDT" "ETHUSDT" "TU_SIMBOLO")
-INTERVAL="15m"  # o 5m, 1h, etc.
-LIMIT=35000     # más velas = más datos
+python3 -m utils.cli download-training-data \
+    --symbols BTCUSDT ETHUSDT SOLUSDT \
+    --interval 5m \
+    --days 120 \
+    --tag custom
 ```
 
 ---
@@ -46,7 +68,13 @@ LIMIT=35000     # más velas = más datos
 ### **🧠 2. Entrenar Memoria**
 
 ```bash
-./scripts/train_memory.sh
+python3 -m utils.cli train-memory
+```
+
+o con el ejecutable directo:
+
+```bash
+python3 utils/train_memory.py
 ```
 
 **Qué hace:**
@@ -57,13 +85,13 @@ LIMIT=35000     # más velas = más datos
 **Opciones:**
 ```bash
 # Entrenar con todos los datasets
-./scripts/train_memory.sh
+python3 -m utils.cli train-memory
 
 # Solo datasets de training
-./scripts/train_memory.sh "*training.csv"
+python3 -m utils.cli train-memory --pattern "*training.csv"
 
 # Solo un símbolo específico
-./scripts/train_memory.sh "BTCUSDT*.csv"
+python3 -m utils.cli train-memory --pattern "BTCUSDT*.csv"
 ```
 
 **Duración:** 1-3 horas dependiendo de cantidad de datos
@@ -73,7 +101,7 @@ LIMIT=35000     # más velas = más datos
 ### **📊 3. Analizar Memoria**
 
 ```bash
-python3 scripts/analyze_memory.py
+python3 -m utils.cli analyze-memory
 ```
 
 **Qué hace:**
@@ -102,7 +130,13 @@ python3 scripts/analyze_memory.py
 ### **✅ 4. Validar Estrategias**
 
 ```bash
-./scripts/validate_strategies.sh
+python3 -m utils.cli validate-strategies
+```
+
+o usando el archivo dedicado:
+
+```bash
+python3 utils/validate_strategies.py
 ```
 
 **Qué hace:**
@@ -122,7 +156,7 @@ python3 scripts/analyze_memory.py
 
 ```bash
 # 1. Pipeline completo automático
-./scripts/full_pipeline.sh
+python3 -m utils.cli full-pipeline
 
 # (El script irá pausando entre fases para que revises)
 ```
@@ -131,20 +165,20 @@ python3 scripts/analyze_memory.py
 
 ```bash
 # 1. Descargar más símbolos/períodos
-./scripts/download_training_data.sh
+python3 -m utils.cli download-training-data --symbols BTCUSDT ETHUSDT
 
 # 2. Re-entrenar (acumula sobre memoria existente)
-./scripts/train_memory.sh
+python3 -m utils.cli train-memory
 
 # 3. Ver cómo mejoró
-python3 scripts/analyze_memory.py
+python3 -m utils.cli analyze-memory
 ```
 
 ### **Solo Validación (después de cambios):**
 
 ```bash
 # Si modificaste config, sensores, etc.
-./scripts/validate_strategies.sh
+python3 -m utils.cli validate-strategies
 ```
 
 ---
@@ -198,7 +232,7 @@ STARTING_BALANCE = 10000       # Capital inicial
 
 ```bash
 # Ejecuta primero la descarga
-./scripts/download_training_data.sh
+python3 -m utils.cli download-training-data
 ```
 
 ### **Error: "utils/download_kline_dataset.py no encontrado"**
@@ -206,23 +240,21 @@ STARTING_BALANCE = 10000       # Capital inicial
 ```bash
 # Asegúrate de estar en la raíz del proyecto
 cd /ruta/a/Casino-V2
-./scripts/full_pipeline.sh
+python3 -m utils.cli full-pipeline
 ```
 
 ### **Entrenamiento muy lento**
 
 Reduce cantidad de datos:
 ```bash
-# Editar download_training_data.sh
-LIMIT=10000  # Menos velas (antes: 35000)
+python3 -m utils.cli download-training-data --days 120 --interval 15m
 ```
 
 ### **Pocas estrategias aprobadas**
 
 Necesitas más datos:
 ```bash
-# Descargar más símbolos o más historia
-# Editar download_training_data.sh y agregar símbolos
+python3 -m utils.cli download-training-data --symbols BTCUSDT ETHUSDT SOLUSDT ADAUSDT
 ```
 
 ---
@@ -270,10 +302,10 @@ Después de validar exitosamente:
 
 ## 💡 Tips
 
-- **Primera vez:** Usa `full_pipeline.sh` (más fácil)
-- **Re-entrenar:** Solo `train_memory.sh` (más rápido)
-- **Validar cambios:** Solo `validate_strategies.sh`
-- **Analizar siempre:** `analyze_memory.py` después de entrenar
+- **Primera vez:** Usa `python3 -m utils.cli full-pipeline` (más fácil)
+- **Re-entrenar:** Solo `python3 -m utils.cli train-memory` (más rápido)
+- **Validar cambios:** Solo `python3 -m utils.cli validate-strategies`
+- **Analizar siempre:** `python3 -m utils.cli analyze-memory` después de entrenar
 
 ---
 
@@ -288,7 +320,13 @@ Después de validar exitosamente:
 **¿Listo para entrenar? Ejecuta:**
 
 ```bash
-./scripts/full_pipeline.sh
+python3 -m utils.cli full-pipeline
+```
+
+o bien:
+
+```bash
+python3 utils/full_pipeline.py
 ```
 
 🎰 ¡Buena suerte!

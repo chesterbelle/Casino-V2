@@ -2,7 +2,7 @@
 Herramienta rápida para validar la conexión con ASTERDEx.
 
 Uso:
-    python -m utils.test_aster_connection --symbol BTCUSDT --interval 1m
+    python3 -m utils.test_aster_connection --symbol BTCUSDT --interval 1m
 """
 
 from __future__ import annotations
