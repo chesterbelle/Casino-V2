@@ -47,6 +47,7 @@ def _print_live_summary(stats: Dict) -> None:
     duration_minutes = stats.get("duration_seconds", 0.0) / 60.0
     max_candles = stats.get("max_candles")
     max_candles_str = str(max_candles) if max_candles else "∞"
+    currency = stats.get("currency", "USD?")
     print("\n" + "=" * 60)
     print("📊 Resumen sesión Live")
     print("-" * 60)
@@ -55,6 +56,7 @@ def _print_live_summary(stats: Dict) -> None:
         print(f"   Player                : {stats.get('player')}")
     print(f"   Símbolo               : {stats.get('symbol', 'n/a')}")
     print(f"   Intervalo             : {stats.get('interval', 'n/a')}")
+    print(f"   Moneda base           : {currency}")
     print(f"   Velas procesadas      : {stats.get('candles', 0)}")
     print(f"   Límite configurado    : {max_candles_str}")
     print(f"   Trades BET            : {stats.get('bet_trades', 0)}")
@@ -63,13 +65,15 @@ def _print_live_summary(stats: Dict) -> None:
         print(f"   Trades SKIP           : {stats.get('skip_trades', 0)}")
     print(f"   Wins / Losses (BET)   : {stats.get('wins', 0)} / {stats.get('losses', 0)}")
     print(f"   WinRate (BET)         : {winrate:.2f}%")
-    print(f"   Comisiones totales    : {stats.get('fees', 0.0):.4f}")
-    print(f"   Funding total         : {stats.get('funding', 0.0):.4f}")
+    print(f"   Comisiones totales    : {stats.get('fees', 0.0):.4f} {currency}")
+    print(f"   Funding total         : {stats.get('funding', 0.0):.4f} {currency}")
     print(f"   Liquidaciones         : {stats.get('liquidations', 0)}")
-    print(f"   Balance inicial       : {stats.get('initial_balance', 0.0):.2f}")
-    print(f"   Equity inicial        : {stats.get('initial_equity', 0.0):.2f}")
-    print(f"   Balance final         : {stats.get('final_balance', 0.0):.2f}")
-    print(f"   Equity final          : {stats.get('final_equity', 0.0):.2f}")
+    print(f"   Balance inicial       : {stats.get('initial_balance', 0.0):.2f} {currency}")
+    print(f"   Equity inicial        : {stats.get('initial_equity', 0.0):.2f} {currency}")
+    print(f"   Balance final         : {stats.get('final_balance', 0.0):.2f} {currency}")
+    print(f"   Equity final          : {stats.get('final_equity', 0.0):.2f} {currency}")
+    if stats.get("balance_source"):
+        print(f"   Fuente balance        : {stats.get('balance_source')}")
     print(f"   Duración (min)        : {duration_minutes:.2f}")
     print(f"   Motivo de salida      : {stats.get('stop_reason', 'Finalizado')}")
     print("=" * 60 + "\n")
@@ -144,6 +148,8 @@ def run_live_session(
         RESULT_LOGGER.info("Símbolo normalizado por la mesa: %s -> %s", symbol, actual_symbol)
         symbol = actual_symbol
     initial_state = _get_table_state(table)
+    currency = initial_state.get("currency") or getattr(config, "ACCOUNT_CURRENCY", "USDT")
+    balance_source = getattr(table, "balance_source", "table.get_state() / BalanceManager")
     default_balance = getattr(config, "STARTING_BALANCE", 0.0)
     initial_balance = _safe_float(initial_state.get("balance"), default_balance)
     initial_equity = _safe_float(initial_state.get("equity"), initial_balance)
@@ -176,6 +182,8 @@ def run_live_session(
         "player": player_name or "legacy",
         "final_balance": initial_balance,
         "final_equity": initial_equity,
+        "currency": currency,
+        "balance_source": balance_source,
     }
     stop_reason = "Sesión finalizada correctamente."
     start_time = time.time()
@@ -222,7 +230,65 @@ def run_live_session(
 
             if player_state is not None and hasattr(player_module, "handle_trade_outcome"):
                 action_for_player = "GHOST" if ghost_trade else "BET"
-                player_state = player_module.handle_trade_outcome(player_state, action_for_player, trade)
+                previous_state = player_state
+                updated_state = player_module.handle_trade_outcome(player_state, action_for_player, trade)
+
+                if (
+                    action_for_player == "BET"
+                    and getattr(player_module, "PROGRESSION", None)
+                    and isinstance(previous_state, dict)
+                ):
+                    progression = tuple(getattr(player_module, "PROGRESSION", ()) or ())
+                    if progression:
+                        prev_step = int(previous_state.get("step", 0))
+                        prev_unit = float(previous_state.get("unit") or 0.0)
+                        result_label = outcome
+                        multiplier_used = progression[min(prev_step, len(progression) - 1)]
+
+                        if result_label == "WIN":
+                            if prev_step >= len(progression) - 1:
+                                RESULT_LOGGER.info(
+                                    "Paroli | WIN completó ciclo (%s pasos) | mult=%s | unidad=%.4f %s",
+                                    len(progression),
+                                    multiplier_used,
+                                    prev_unit,
+                                    currency,
+                                )
+                            else:
+                                next_step = int(updated_state.get("step", prev_step + 1))
+                                next_multiplier = progression[min(next_step, len(progression) - 1)]
+                                next_unit = float(updated_state.get("unit") or prev_unit)
+                                RESULT_LOGGER.info(
+                                    "Paroli | WIN avanza a paso %s/%s | mult actual=%s → próximo=%s | unidad %.4f→%.4f %s",
+                                    prev_step + 2,
+                                    len(progression),
+                                    multiplier_used,
+                                    next_multiplier,
+                                    prev_unit,
+                                    next_unit,
+                                    currency,
+                                )
+                        elif result_label == "LOSS":
+                            RESULT_LOGGER.info(
+                                "Paroli | LOSS reinicia ciclo | perdió en paso %s/%s con mult=%s | unidad previa=%.4f %s",
+                                prev_step + 1,
+                                len(progression),
+                                multiplier_used,
+                                prev_unit,
+                                currency,
+                            )
+                        else:
+                            RESULT_LOGGER.info(
+                                "Paroli | Resultado %s | paso %s/%s | mult=%s | unidad=%.4f %s",
+                                result_label,
+                                prev_step + 1,
+                                len(progression),
+                                multiplier_used,
+                                prev_unit,
+                                currency,
+                            )
+
+                player_state = updated_state
 
     def consume_completed_trades_from_table() -> None:
         consumer = getattr(table, "consume_completed_trades", None)
@@ -377,14 +443,20 @@ def run_live_session(
 
             unit_count_display = int(unit_multiplier_value) if abs(unit_multiplier_value - round(unit_multiplier_value)) < 1e-6 else unit_multiplier_value
 
+            try:
+                notional_display = float(notional_amount)
+            except (TypeError, ValueError):
+                notional_display = 0.0
+
             RESULT_LOGGER.info(
-                "live_trade | %s %s | action=%s | result=%s | Unidad=%su(%.2fUSD)",
+                "live_trade | %s %s | action=%s | result=%s | Unidad=%su(%.2f %s)",
                 order.get("symbol"),
                 order.get("side"),
                 action_label,
                 result.get("result"),
                 unit_count_display,
-                unit_amount_value,
+                notional_display,
+                currency,
             )
             updated_state = _get_table_state(table)
             RESULT_LOGGER.debug(

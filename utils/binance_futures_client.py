@@ -76,6 +76,15 @@ class BinanceFuturesClient:
         params = {"symbol": symbol} if symbol else {}
         return self._request_private("/fapi/v1/openOrders", method="GET", params=params)
 
+    def get_order(self, symbol: str, order_id: Optional[int] = None, orig_client_order_id: Optional[str] = None) -> Dict[str, Any]:
+        """Retrieves a specific order's status and fill information."""
+        params = {"symbol": symbol}
+        if order_id:
+            params["orderId"] = order_id
+        if orig_client_order_id:
+            params["origClientOrderId"] = orig_client_order_id
+        return self._request_private("/fapi/v1/order", method="GET", params=params)
+
     def create_order(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         """Creates a new order."""
         return self._request_private("/fapi/v1/order", method="POST", params=payload)
