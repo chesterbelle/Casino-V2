@@ -1,251 +1,255 @@
 # 📋 PENDIENTES - Casino V2
 
-> **Enfoque**: Mejorar y fortalecer V2. NO hay migración a V3.
+> **Versión Actual**: v1.4
+> **Enfoque**: Mejorar y fortalecer V2. Sistema completamente funcional y operativo.
 
 ---
 
-## ✅ COMPLETADO
+## ✅ COMPLETADO (v1.4)
 
-### **Fase 1: Separación Gemini/Player**
-- ✅ Arquitectura modular implementada
+### **Fase 1: Arquitectura Modular**
+- ✅ Arquitectura modular Gemini/Player implementada
 - ✅ Kelly Player y Fixed Player funcionales
 - ✅ API V2 de Gemini (Verdict system)
-- ✅ Tests 11/11 pasando
+- ✅ Tests 14/14 pasando
 - ✅ Documentación completa
 - ✅ 100% retrocompatibilidad
 
-### **Mejoras de Robustez**
-- ✅ Position Manager para modo live
-- ✅ Cierre automático de posiciones al salir
-- ✅ Mejoras en TableBacktest (fees, slippage, funding, liquidaciones)
-- ✅ Scripts utilitarios (fetch_funding_rates.py, download_kline_dataset.py)
+### **Fase 2: Gestión de Posiciones Realista**
+- ✅ PositionTracker para backtest realista
+- ✅ PositionManager para live trading
+- ✅ Capital bloqueado en posiciones abiertas
+- ✅ Simulación de comportamiento live en backtest
+- ✅ Winrate validado: 89.71%
+
+### **Fase 3: Live Trading Operativo**
+- ✅ Live trading funcional (Kraken Demo validado)
+- ✅ Conexión a exchanges múltiples (Binance, Kraken, ASTER)
+- ✅ Gestión de posiciones en tiempo real
+- ✅ Balance y equity tracking
+- ✅ Risk management básico
+
+### **Fase 4: Calidad y Mantenimiento**
+- ✅ Limpieza de código legacy (50KB+ eliminados)
+- ✅ Repositorio optimizado
+- ✅ Arquitectura documentada
+- ✅ Tests exhaustivos
+- ✅ Git flow establecido (v1.4 rama principal)
 
 ---
 
-## 🔄 PENDIENTE
+## 🎯 PENDIENTE (v1.5)
 
-### **1. Mejoras de Calidad de Código (futurechanges.md)**
+### **Features Prioritarias para v1.5**
 
-#### ✅ `gemini/memory.py`: Mejorar carga inicial desde CSV
-**Estado**: ✅ IMPLEMENTADO Y TESTEADO
-**Descripción**: Sincronizar `_counts` totales cuando se carga desde CSV
-**Archivo**: `gemini/memory.py` - método `_warm_from_csv`
-**Test**: `test_mejoras_futurechanges.py::test_memory_csv_sync`
-
-#### ✅ `gemini/gemini_core.py`: Simplificar lógica de decisión
-**Estado**: ✅ IMPLEMENTADO Y TESTEADO
-**Descripción**: Refactorizar `evaluate_signals` para reducir ramas if/else
-**Archivo**: `gemini/gemini_core.py` - método `evaluate_signals`
-**Test**: `test_mejoras_futurechanges.py::test_gemini_decision_logic`
-
-#### ✅ `tables/table_backtest.py`: Robustez con órdenes sin `trade_id`
-**Estado**: ✅ IMPLEMENTADO Y TESTEADO
-**Descripción**: Asignar trade_id temporal si falta
-**Archivo**: `tables/table_backtest.py` - método `execute_order`
-**Test**: `test_mejoras_futurechanges.py::test_table_backtest_trade_id_fallback`
-
----
-
-### **2. Features Nuevos para V2**
-
-#### 🔜 Adaptive Player (Mencionado en docs)
-**Prioridad**: MEDIA
+#### 🎮 **Adaptive Player** (Alta Prioridad)
+**Estado**: 🔄 PENDIENTE
 **Descripción**: Player que ajusta Kelly según volatilidad del mercado
+**Beneficios**:
+- Mejor adaptación a condiciones de mercado
+- Gestión de riesgo dinámica
+- Performance potencial mejorada
+**Complejidad**: Media
+**Tiempo estimado**: 1 semana
 
-#### 🔜 Regime Player (Mencionado en docs)
-**Prioridad**: MEDIA
-**Descripción**: Cambia estrategia según régimen bull/bear
+#### 📊 **Dashboard Web Básico** (Alta Prioridad)
+**Estado**: 🔄 PENDIENTE
+**Descripción**: Visualización simple de resultados y métricas
+**Beneficios**:
+- Mejor monitoreo de performance
+- Debugging más fácil
+- UX mejorada para análisis
+**Complejidad**: Media
+**Tiempo estimado**: 1-2 semanas
 
-#### 🔜 Ensemble Player (Mencionado en docs)
-**Prioridad**: BAJA
-**Descripción**: Combina múltiples players con pesos
+#### 🛡️ **Kill-Switch Robusto** (Media Prioridad)
+**Estado**: 🔄 PENDIENTE
+**Descripción**: Sistema de protección automática de capital
+**Features**:
+- Stop loss de sesión
+- Drawdown máximo
+- Alertas automáticas
+- Cierre automático
+**Complejidad**: Media-Alta
+**Tiempo estimado**: 1 semana
 
-#### 🔜 Dashboard de Análisis (README V2)
-**Prioridad**: BAJA
-**Descripción**: Visualización de rendimiento y métricas
-
-#### 🔜 Multi-player Mode (README V2)
-**Prioridad**: BAJA
-**Descripción**: Comparar múltiples players en paralelo
-
----
-
-## 🎯 ROADMAP V2
-
-### **Inmediato** (1-2 días)
-1. **Implementar mejoras de `futurechanges.md`**
-   - ✅ Cambios pequeños y bien documentados
-   - ✅ Mejoran robustez sin romper nada
-   - ✅ Código más limpio y mantenible
-
-2. **Validar main_v2.py en producción**
-   - Comparar resultados Kelly V1 vs V2
-   - Experimentar con Fixed Player
-   - Ajustar parámetros si es necesario
-
-### **Corto Plazo** (1 semana)
-3. **Crear Adaptive Player**
-   - Ajusta Kelly según volatilidad del mercado
-   - Útil para mercados cambiantes
-   - Testing exhaustivo
-
-4. **Fortalecer sistema de sensores**
-   - Agregar más sensores técnicos
-   - Mejorar detección de contextos
-   - Optimizar performance
-
-### **Mediano Plazo** (2-4 semanas)
-5. **Regime Player**
-   - Detectar bull/bear/sideways
-   - Ajustar agresividad según régimen
-   - Backtesting en diferentes mercados
-
-6. **Stats & Kill-Switch robusto**
-   - EMA de drawdown para protección
-   - Alertas automáticas
-   - Stop loss de sesión
-
-### **Largo Plazo** (1-3 meses)
-7. **Dashboard de Análisis**
-   - Visualización web de métricas
-   - Gráficos de equity curve
-   - Análisis detallado de trades
-
-8. **Multi-player Mode**
-   - Comparar strategies en paralelo
-   - Tournament mode para backtesting
-   - Selección automática de mejor player
+#### 🎯 **Regime Detection** (Media Prioridad)
+**Estado**: 🔄 PENDIENTE
+**Descripción**: Detección automática de bull/bear/sideways
+**Beneficios**:
+- Estrategias adaptativas por régimen
+- Mejor timing de entradas
+- Reducción de trades en mercados laterales
+**Complejidad**: Alta
+**Tiempo estimado**: 2 semanas
 
 ---
 
-## 📊 PRIORIDADES POR IMPACTO
+## 🎯 ROADMAP v1.5
 
-### **ALTA** 🔴
-1. ✅ Implementar mejoras `futurechanges.md` (3 fixes) - COMPLETADO
-2. ❌ Validar main_v2.py en producción
-3. ❌ Crear Adaptive Player
+### **Fase 1: Core Features** (2-3 semanas)
+1. **Adaptive Player** ⭐⭐⭐
+   - Ajuste dinámico de Kelly por volatilidad
+   - Mejor gestión de riesgo
+   - Testing exhaustivo con datos históricos
 
-### **MEDIA** 🟡
-4. ❌ Fortalecer sensores existentes
-5. ❌ Regime Player (bull/bear detection)
-6. ❌ Stats & Kill-Switch robusto
+2. **Dashboard Web Básico** ⭐⭐⭐
+   - Visualización HTML de resultados
+   - Métricas en tiempo real
+   - Debugging mejorado
 
-### **BAJA** 🟢
-7. ❌ Dashboard de análisis
-8. ❌ Multi-player mode
-9. ❌ Ensemble Player
-10. ❌ Optimización de parámetros automática
+3. **Kill-Switch Robusto** ⭐⭐
+   - Protección automática de capital
+   - Stop loss de sesión dinámico
+   - Alertas configurables
 
----
+### **Fase 2: Advanced Features** (2-4 semanas)
+4. **Regime Detection** ⭐⭐
+   - Detección bull/bear/sideways
+   - Estrategias adaptativas
+   - Multi-timeframe analysis
 
-## 💡 PLAN DE ACCIÓN
+5. **Risk Management Avanzado** ⭐⭐
+   - Límites dinámicos de posición
+   - Portfolio heat management
+   - Correlation controls
 
-### **Fase A: Quick Wins** (1-2 días)
-1. Implementar las 3 mejoras de `futurechanges.md`
-2. Validar main_v2.py con datos reales
-3. Comparar resultados Kelly V1 vs V2
-- **Tiempo**: 1-2 días
-- **Riesgo**: Bajo
-- **Beneficio**: V2 más robusto y validado
+### **Fase 3: Ecosystem** (4-6 semanas)
+6. **Multi-Symbol Portfolio** ⭐
+   - Trading múltiple símbolos
+   - Balance correlation
+   - Diversificación automática
 
-### **Fase B: Features Útiles** (1 semana)
-1. Crear Adaptive Player (ajuste por volatilidad)
-2. Agregar más sensores técnicos
-3. Mejorar sistema de logging/reporting
-- **Tiempo**: 1 semana
-- **Riesgo**: Bajo
-- **Beneficio**: Más herramientas para trading
-
-### **Fase C: Features Avanzados** (2-4 semanas)
-1. Regime Player (bull/bear/sideways)
-2. Kill-Switch robusto (protección de capital)
-3. Backtesting masivo para optimización
-- **Tiempo**: 2-4 semanas
-- **Riesgo**: Medio
-- **Beneficio**: Sistema profesional completo
+7. **Optimization Framework** ⭐
+   - Parameter grid search
+   - Walk-forward testing
+   - Strategy selection automática
 
 ---
 
-## 🚦 SIGUIENTE PASO INMEDIATO
+## 📊 PRIORIDADES v1.5
 
-### **✅ COMPLETADO: Mejoras `futurechanges.md`**
+### **⭐⭐⭐ CRÍTICO** (Implementar primero)
+1. **Adaptive Player** - Mejora inmediata de performance
+2. **Dashboard Web** - Mejor UX y debugging
+3. **Kill-Switch** - Protección de capital esencial
 
-**3 cambios implementados y testeados:**
+### **⭐⭐ IMPORTANTE** (Funcionalidad avanzada)
+4. **Regime Detection** - Inteligencia de mercado
+5. **Risk Management** - Seguridad adicional
+6. **Multi-Symbol** - Escalabilidad
 
-1. ✅ **`gemini/memory.py`** - Sincronizar `_counts` desde CSV
-2. ✅ **`gemini/gemini_core.py`** - Simplificar lógica de decisión
-3. ✅ **`tables/table_backtest.py`** - Fallback para `trade_id`
-
-**Tests: 3/3 pasados** (✅ `test_mejoras_futurechanges.py`)
-
-**Beneficios obtenidos:**
-- ✅ Código más limpio y mantenible
-- ✅ Mayor robustez (manejo de edge cases)
-- ✅ Sincronización correcta de memoria
-- ✅ Sin breaking changes (100% compatible)
+### **⭐ BONUS** (Futuro)
+7. **Parameter Optimization** - Auto-tuning
+8. **Plugin System** - Extensibilidad
+9. **REST API** - Integración externa
 
 ---
 
-### **Próximo paso recomendado: Validar main.py en producción**
+## 🚀 PLAN DE ACCIÓN v1.5
 
-**Nota:** `main.py` ahora usa la arquitectura modular Gemini/Player (antigua `main_v2.py`)
+### **Fase 1A: Adaptive Player** (1 semana)
+**Objetivo**: Mejorar performance con volatilidad dinámica
+- Implementar cálculo de volatilidad
+- Ajuste dinámico de Kelly fraction
+- Testing exhaustivo con diferentes mercados
+- **Entrega**: Player funcional y testeado
 
-**Cómo:**
+### **Fase 1B: Dashboard Web** (1 semana)
+**Objetivo**: Mejorar monitoreo y análisis
+- HTML básico con métricas
+- Visualización de equity curve
+- Estado de posiciones en tiempo real
+- **Entrega**: Dashboard funcional local
+
+### **Fase 1C: Kill-Switch** (3-5 días)
+**Objetivo**: Protección robusta de capital
+- Stop loss de sesión automático
+- Alertas configurables
+- Cierre automático por drawdown
+- **Entrega**: Sistema de protección activo
+
+### **Fase 2: Features Avanzadas** (2-3 semanas)
+**Objetivo**: Inteligencia y escalabilidad
+- Regime Detection
+- Risk Management mejorado
+- Multi-symbol support
+- **Entrega**: Sistema completo v1.5
+
+---
+
+## 🎯 SIGUIENTE PASO INMEDIATO
+
+### **🚀 LISTO PARA DESARROLLO v1.5**
+
+**Estado Actual:** Sistema completamente funcional y probado
+- ✅ Live trading operativo (Kraken Demo)
+- ✅ Backtest realista (89.71% winrate)
+- ✅ Arquitectura modular sólida
+- ✅ Tests completos (14/14)
+
+**Próximo paso:** Implementar **Adaptive Player** como primera feature de v1.5
+
+### **Cómo empezar desarrollo:**
 ```bash
-# Ejecutar con arquitectura modular (Kelly Player por defecto)
-python main.py
+# Crear rama para feature
+git checkout -b feature/adaptive-player
 
-# Experimentar con Fixed Player
-python main.py --player=fixed
+# Ver documentación actual
+cat docs/development/PENDIENTES.md
 
-# Si necesitas la versión legacy (backup)
-python main_legacy.py.backup
+# Implementar Adaptive Player
+# ... desarrollo ...
+
+# Testing y documentación
+# ...
+
+# Merge a v1.5 cuando esté listo
 ```
 
-**Qué validar:**
-- Performance y estabilidad con datos reales
-- Logging y reporting correctos
-- Comparación Kelly vs Fixed Player
+**Recursos disponibles:**
+- 📚 `docs/architecture/overview.md` - Arquitectura completa
+- 📖 `docs/guides/creating-players.md` - Tutorial de players
+- 🧪 Tests existentes como referencia
+- 🎯 Métricas actuales para comparación
 
 ---
 
-## 📝 NOTAS
+## 📝 NOTAS TÉCNICAS
 
-- **V2** está funcionando y listo para producción ✅
-- Fase 1 (Gemini/Player) es un **éxito total** ✅
-- **Mejoras futurechanges.md** completadas ✅
-- **NO hay migración a V3** - enfoque 100% en V2
+### **Estado del Sistema (v1.4)**
+- ✅ **Arquitectura**: Modular Gemini/Player completamente implementada
+- ✅ **Live Trading**: Operativo con Kraken Demo (posición SHORT abierta)
+- ✅ **Backtest**: 89.71% winrate validado con gestión realista de posiciones
+- ✅ **Testing**: 14/14 tests pasando
+- ✅ **Documentación**: Completamente actualizada y organizada
 
-**El sistema está operativo y mejorado. Listo para validación en producción.**
+### **Decisiones Arquitectónicas**
+- **PositionTracker vs PositionManager**: Arquitectura dual intencional
+  - PositionTracker: Simula live trading en backtest
+  - PositionManager: Maneja posiciones reales en exchanges
+- **No migración a V3**: Enfoque en fortalecer V2
+- **Modularidad**: Fácil extensión con nuevos players y sensores
 
----
-
-## 🎉 LOGROS RECIENTES
-
-### ✅ Migración a Arquitectura Modular (Completada)
-- **Fecha**: Hoy
-- **Cambio**: `main.py` ahora usa arquitectura Gemini/Player separada
-- **Backup**: `main_legacy.py.backup` (versión antigua preservada)
-- **Players disponibles**: Kelly (default), Fixed
-- **Compatibilidad**: 100% funcional, tests pasando
-
-### ✅ Mejoras futurechanges.md (Completadas)
-- **Fecha**: Hoy
-- **Tests**: 3/3 pasados
-- **Archivos modificados**: 3
-  - `gemini/memory.py`
-  - `gemini/gemini_core.py`
-  - `tables/table_backtest.py`
-- **Impacto**: Código más robusto y mantenible
+### **Riesgos Mitigados**
+- ✅ **Compatibilidad**: 100% retrocompatible
+- ✅ **Testing**: Cobertura completa antes de cambios
+- ✅ **Backup**: Código legacy preservado
+- ✅ **Documentación**: Actualizada con cambios
 
 ---
 
-**¿Validamos main.py (nueva arquitectura) en producción ahora?** 🎯
-  - `gemini/gemini_core.py`
-  - `tables/table_backtest.py`
-- **Impacto**: Código más robusto y mantenible
+## 🎯 PRÓXIMOS PASOS PARA v1.5
 
----
+**Cuando inicies desarrollo:**
 
+1. **Leer `docs/workflow.md`** - Guidelines de desarrollo
+2. **Revisar `docs/development/PENDIENTES.md`** - Estado actual
+3. **Ver `docs/architecture/overview.md`** - Arquitectura completa
+4. **Crear rama feature/*** - Git flow establecido
 
-**¿Validamos main.py (nueva arquitectura) en producción ahora?** 🎯
+**Recursos disponibles:**
+- 📚 Documentación completa en `docs/`
+- 🧪 Tests como referencia
+- 🎯 Métricas actuales documentadas
+- 🚀 Sistema operativo probado

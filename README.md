@@ -5,7 +5,7 @@
 [![Version](https://img.shields.io/badge/Versión-0.1.2-blue)](docs/CHANGELOG.md)
 [![Python](https://img.shields.io/badge/Python-3.10+-green)](https://python.org)
 [![Tests](https://img.shields.io/badge/Tests-14/14_passing-brightgreen)](test_phase1.py)
-[![License](https://img.shields.io/badge/Licencia-MIT-lightgrey)](LICENSE)
+
 
 ---
 
