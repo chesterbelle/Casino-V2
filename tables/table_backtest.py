@@ -126,32 +126,29 @@ class TableBacktest:
     # ----------------------------------------------------
     def execute_order(self, order: Dict) -> Dict:
         """
-        Ejecuta TP/SL a partir de la vela actual hacia adelante.
-        • La entrada se asume al PRECIO DE CIERRE de la última vela entregada,
-          con un ajuste simple por slippage (si se desea).
-        • Se evalúa la secuencia de velas futuras hasta que toque TP o SL.
-        • Se aplican fees (entrada + salida) sobre el notional de la posición.
-        • Si 'ghost'==True → no modifica el balance (entrena sin riesgo).
+        Ejecuta órdenes para GHOST trades (entrenamiento sin riesgo).
 
-        Retorna resultado normalizado:
-        {
-          "trade_id": str,
-          "result": "WIN"|"LOSS",
-          "pnl": float,            # monetario aplicado (0 si ghost)
-          "fee": float,
-          "symbol": str,
-          "balance": float | None  # balance nuevo si no es ghost
-        }
+        ⚠️  IMPORTANTE: Esta función SOLO se usa para GHOST trades.
+           Para posiciones reales, usa PositionTracker.open_position() y check_and_close_positions().
+
+        • Si 'ghost'==True → simula trade completo inmediatamente (entrena sin riesgo)
+        • NO modifica balance ni posiciones abiertas
+
+        Retorna resultado normalizado para ghost trades.
         """
-        # Validación mínima
+        # Validación: solo para ghost trades
+        ghost = bool(order.get("ghost", False))
+        if not ghost:
+            raise ValueError("execute_order() solo debe usarse para ghost trades. Para posiciones reales usa PositionTracker.")
+
+        # Lógica completa para ghost trades (simula trade completo inmediatamente)
         side = order.get("side", "").upper()
         size_fraction = float(order.get("size", 0.0))
-        ghost = bool(order.get("ghost", False))
-        trade_id = order.get("trade_id") or f"backtest_{self.symbol}_{self._last_index}"
+        trade_id = order.get("trade_id") or f"ghost_{self.symbol}_{self._last_index}"
         symbol = order.get("symbol", self.symbol)
 
         if self._last_index < 0:
-            raise RuntimeError("No hay vela de referencia para ejecutar (llama a next_candle() primero).")
+            raise RuntimeError("No hay vela de referencia para ejecutar ghost trade.")
 
         # Precio de entrada (close de la última vela entregada), con slippage simple
         entry_candle = self.data[self._last_index]
@@ -178,8 +175,6 @@ class TableBacktest:
             tp_level = entry_price * tp_factor
             sl_level = entry_price * sl_factor
         elif side == "SHORT":
-            # Para corto: TP por debajo, SL por encima
-            # tp_factor ~ (1 - R), sl_factor ~ (1 + L)
             tp_level = entry_price * (2 - tp_factor) if tp_factor > 1 else entry_price * tp_factor
             sl_level = entry_price * (2 - sl_factor) if sl_factor < 1 else entry_price * sl_factor
         else:
@@ -201,7 +196,7 @@ class TableBacktest:
             if liquidation_level is not None and liquidation_level <= 0:
                 liquidation_level = None
 
-        # Buscar el primer toque: conservador => SL tiene prioridad si se cruzan en la misma vela
+        # Simular trade completo inmediatamente (para ghost training)
         outcome, trigger_price, bars_held, exit_reason, liquidated, exit_timestamp_ms = self._walk_to_outcome(
             side,
             start_index=self._last_index + 1,
@@ -222,62 +217,41 @@ class TableBacktest:
             except (TypeError, ValueError, ZeroDivisionError):
                 pnl_pct_raw = 0.0
 
-        # Cálculo monetario (solo si no es ghost)
+        # Cálculo monetario (simulado, no afecta balance)
         fee_total = 0.0
         pnl_value = 0.0
-        balance_after = None
-        pnl_pct = pnl_pct_raw
         funding_cost = 0.0
 
-        if not ghost:
-            # Fees: entrada + salida (por defecto taker)
-            entry_fee = notional * self.entry_fee_rate
-            exit_fee = notional * self.exit_fee_rate
-            fee_total = entry_fee + exit_fee
+        # Fees: entrada + salida (simulados)
+        entry_fee = notional * self.entry_fee_rate
+        exit_fee = notional * self.exit_fee_rate
+        fee_total = entry_fee + exit_fee
 
-            pnl_value = notional * pnl_pct
+        pnl_value = notional * pnl_pct_raw
 
-            if entry_timestamp_ms is not None and exit_timestamp_ms is not None:
-                funding_cost = self._funding_cost_between(entry_timestamp_ms, exit_timestamp_ms, notional, side)
-            elif self.funding_rate_per_hour != 0.0:
-                hold_hours = self._bars_to_hours(bars_held)
-                funding_cost = notional * self.funding_rate_per_hour * hold_hours
+        if entry_timestamp_ms is not None and exit_timestamp_ms is not None:
+            funding_cost = self._funding_cost_between(entry_timestamp_ms, exit_timestamp_ms, notional, side)
+        elif self.funding_rate_per_hour != 0.0:
+            hold_hours = self._bars_to_hours(bars_held)
+            funding_cost = notional * self.funding_rate_per_hour * hold_hours
 
-            if exit_reason == "LIQUIDATION":
-                liquidation_loss = min(equity, margin_used) if margin_used > 0 else 0.0
-                pnl_value = -liquidation_loss
-                pnl_net = -liquidation_loss - fee_total - funding_cost
-                if notional > 0:
-                    pnl_pct = pnl_value / notional
-            else:
-                pnl_net = pnl_value - fee_total - funding_cost
+        if exit_reason == "LIQUIDATION":
+            liquidation_loss = min(equity, margin_used) if margin_used > 0 else 0.0
+            pnl_value = -liquidation_loss
 
-            # Actualizar balance
-            try:
-                # 🔧 PUNTO DE EXTENSIÓN: si tu BalanceManager expone otro método, ajústalo aquí
-                self.balance_manager.balance += pnl_net
-            except Exception:
-                # fallback si la propiedad no es accesible
-                s = self.balance_manager.get_state()
-                base = float(s.get("balance", 0.0)) + pnl_net
-                if hasattr(self.balance_manager, "set_balance"):
-                    self.balance_manager.set_balance(base)
-
-            balance_after = float(self.balance_manager.get_state().get("balance", 0.0))
-
-        # Resultado normalizado
+        # Resultado normalizado para ghost trade
         result_dict = {
             "trade_id": trade_id,
             "result": outcome,
-            "pnl": float(pnl_value if not ghost else 0.0),
-            "fee": float(fee_total if not ghost else 0.0),
-            "funding": float(funding_cost if not ghost else 0.0),
-            "liquidated": bool(liquidated if not ghost else False),
-            "margin_used": float(margin_used if not ghost else 0.0),
-            "notional": float(notional if not ghost else 0.0),
-            "leverage": float(effective_leverage if not ghost else 0.0),
+            "pnl": float(pnl_value),
+            "fee": float(fee_total),
+            "funding": float(funding_cost),
+            "liquidated": bool(liquidated),
+            "margin_used": float(margin_used),
+            "notional": float(notional),
+            "leverage": float(effective_leverage),
             "symbol": symbol,
-            "balance": balance_after,
+            "balance": None,  # No afecta balance
             "pnl_pct": float(pnl_pct_raw),
             "entry_price": float(entry_price),
             "trigger_price": float(trigger_price),
@@ -288,8 +262,8 @@ class TableBacktest:
             "timeframe": self.timeframe,
             "timestamp": order.get("timestamp"),
             "side": side,
-            "action": "BET" if not ghost else "GHOST",
-            "ghost": ghost,
+            "action": "GHOST",
+            "ghost": True,
         }
 
         return result_dict

@@ -21,11 +21,11 @@ MODE = "live"
 
 # Perfil del exchange (usa el JSON de tables/data/exchange_profiles)
 # Opciones: "asterdex_paper", "kraken_futures_demo", "binance_futures_testnet"
-EXCHANGE_PROFILE = "binance_futures_testnet"
+EXCHANGE_PROFILE = "kraken_futures_demo"
 
 # Exchange a utilizar en modo "live"
 # Opciones: "ASTER_PAPER", "KRAKEN_DEMO", "BINANCE_FUTURES_TESTNET"
-EXCHANGE = "BINANCE_FUTURES_TESTNET"
+EXCHANGE = "KRAKEN_DEMO"
 
 # Ruta del dataset CSV (para modo backtest) — se utiliza tanto para Gemini
 # como para Oscar. Cambia este archivo para alternar rápidamente entre datasets.

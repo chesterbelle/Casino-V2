@@ -42,6 +42,7 @@ from croupier.croupier import Croupier
 from gemini.gemini_core import Verdict, Gemini
 from sensors.sensor_manager import SensorManager
 from tables.table_backtest import TableBacktest
+from tables.position_tracker import PositionTracker
 from players import kelly_player, fixed_player, paroli_player
 
 from live_session import run_live_session
@@ -178,15 +179,15 @@ def run_session_with_player(
     player_name: str
 ) -> Dict:
     """
-    Ejecuta una sesión de backtest usando la arquitectura Gemini + Player.
-    
+    Ejecuta una sesión de backtest usando la arquitectura Gemini + Player con gestión de posiciones.
+
     Args:
         dataset_path: Ruta al CSV con datos históricos
         initial_balance: Capital inicial
         gemini: Instancia de Gemini (validador)
         player_module: Módulo del player (kelly_player, fixed_player, etc.)
         player_name: Nombre del player para logging
-    
+
     Returns:
         Dict con estadísticas de la sesión
     """
@@ -199,6 +200,9 @@ def run_session_with_player(
 
     sensors = SensorManager()
     croupier = Croupier(table)
+
+    # Inicializar Position Tracker
+    position_tracker = PositionTracker(max_concurrent_positions=1)  # Una posición por vez
 
     player_state = player_module.init_state() if hasattr(player_module, "init_state") else None
 
@@ -220,43 +224,85 @@ def run_session_with_player(
             break
 
         candles += 1
-        
-        # 1. Sensores detectan señales
+
+        # 1. PRIMERO: Cerrar posiciones que tocaron TP/SL en esta vela
+        closed_positions = position_tracker.check_and_close_positions(candle)
+
+        # Procesar cierres de posiciones
+        for closed_result in closed_positions:
+            outcome = (closed_result.get("result") or "").upper()
+
+            bet_trades += 1
+            total_fees += float(closed_result.get("fee", 0.0) or 0.0)
+            total_funding += float(closed_result.get("funding", 0.0) or 0.0)
+            if closed_result.get("liquidated"):
+                total_liquidations += 1
+            if outcome == "WIN":
+                wins += 1
+            elif outcome == "LOSS":
+                losses += 1
+
+            # Actualizar balance en la mesa
+            pnl_net = float(closed_result.get("pnl", 0.0)) - float(closed_result.get("fee", 0.0))
+            current_balance = _get_table_state(table).get("balance", initial_balance)
+            new_balance = current_balance + pnl_net
+
+            # Aplicar cambio de balance
+            try:
+                table.balance_manager.balance = new_balance
+            except Exception:
+                if hasattr(table.balance_manager, "set_balance"):
+                    table.balance_manager.set_balance(new_balance)
+
+            # Log del trade cerrado
+            _log_trade("CLOSE", None, closed_result, closed_result, new_balance)
+
+            # Actualizar memoria de Gemini
+            if closed_result.get("trade_id"):
+                gemini.on_trade_result(closed_result["trade_id"], closed_result)
+
+            # Actualizar estado del player
+            if player_state is not None and hasattr(player_module, "handle_trade_outcome") and outcome in {"WIN", "LOSS"}:
+                player_state = player_module.handle_trade_outcome(player_state, "BET", closed_result)
+
+        # 2. SEGUNDO: Intentar abrir nuevas posiciones si hay capital disponible
+
+        # Obtener equity actual (después de posibles cierres)
+        current_balance = _get_table_state(table).get("balance", initial_balance)
+        available_equity = position_tracker.get_available_equity(current_balance)
+
+        # Sensores detectan señales
         signals = sensors.process_candle(candle)
         if not signals:
             continue
 
-        # 2. Obtener equity actual
-        equity = candle.get("equity")
-        if equity is None:
-            equity = _get_table_state(table).get("equity", initial_balance)
+        # Gemini valida oportunidad
+        verdict = gemini.evaluate_signals_v2(signals, equity=available_equity)
 
-        # 3. Gemini valida oportunidad (NUEVO: retorna Verdict)
-        verdict = gemini.evaluate_signals_v2(signals, equity=equity)
-        
         # Si no hay side, no se puede operar
         if not verdict.side:
             skip_trades += 1
             # Si hay trade_id registrado, finalizar como GHOST para entrenar
             if verdict.trade_id and verdict.reason == "conflicto_de_lado":
-                # Simular resultado para entrenar (usamos WIN/LOSS aleatorio basado en cierre)
                 ghost_order = gemini.make_order_from_verdict(verdict, size_fraction=0.0, ghost=True)
                 ghost_order["symbol"] = candle.get("symbol", table.symbol)
                 ghost_order["timestamp"] = candle.get("timestamp")
                 ghost_order["timeframe"] = candle.get("timeframe", getattr(table, "timeframe", "UNKNOWN"))
-                
+
                 ghost_result = croupier.route_order(ghost_order)
                 gemini.on_trade_result(verdict.trade_id, ghost_result)
                 ghost_trades += 1
             continue
 
+        # Preparar estado del player
         meta = None
         if player_state is not None and hasattr(player_module, "prepare_state"):
-            player_state, meta = player_module.prepare_state(player_state, equity)
+            player_state, meta = player_module.prepare_state(player_state, available_equity)
 
+        # Player calcula tamaño de posición
         size_fraction = None
         if hasattr(player_module, "calculate_position_size"):
-            size_fraction = player_module.calculate_position_size(verdict, equity, meta)
+            size_fraction = player_module.calculate_position_size(verdict, available_equity, meta)
 
         if size_fraction and size_fraction > 0:
             action = "BET"
@@ -266,6 +312,7 @@ def run_session_with_player(
             ghost = True
             size_fraction = 0.0
 
+        # Crear orden
         order = gemini.make_order_from_verdict(verdict, size_fraction, ghost=ghost)
         if isinstance(meta, dict):
             unit_amount = meta.get("paroli_unit_amount")
@@ -285,37 +332,94 @@ def run_session_with_player(
         order.setdefault("timestamp", candle.get("timestamp"))
         order.setdefault("timeframe", candle.get("timeframe", getattr(table, "timeframe", "UNKNOWN")))
 
-        result = croupier.route_order(order)
+        if ghost:
+            # Ejecutar GHOST trade inmediatamente (no afecta balance)
+            ghost_result = croupier.route_order(order)
+            ghost_trades += 1
 
-        outcome = (result.get("result") or "").upper()
-        status = (result.get("status") or "").upper()
+            # Log del ghost trade
+            _log_trade(action, verdict, order, ghost_result, current_balance)
 
-        if action == "BET":
+            if verdict.trade_id:
+                gemini.on_trade_result(verdict.trade_id, ghost_result)
+        else:
+            # Verificar si se puede abrir la posición
+            margin_required = order.get("margin_used", 0.0)
+
+            if position_tracker.can_open_position(margin_required, available_equity):
+                # Calcular precio de entrada (close de vela actual)
+                entry_price = float(candle.get("close", 0.0))
+
+                # Abrir posición en el tracker
+                position = position_tracker.open_position(order, entry_price, candle.get("timestamp", ""), available_equity)
+
+                if position:
+                    # Log de apertura
+                    _log_trade("OPEN", verdict, order, {"result": "OPEN"}, current_balance)
+
+                    # Aplicar fees de apertura al balance
+                    entry_fee = float(order.get("fee", 0.0))
+                    if entry_fee > 0:
+                        try:
+                            table.balance_manager.balance = current_balance - entry_fee
+                            total_fees += entry_fee
+                        except Exception:
+                            pass
+                else:
+                    logger.warning("No se pudo abrir posición a pesar de validación")
+            else:
+                # No hay capital suficiente - log como skip
+                skip_trades += 1
+                logger.info(f"⏭️  SKIP | Capital insuficiente | Disponible: {available_equity:.2f} | Requerido: {margin_required:.2f}")
+
+    # 3. Al final: Forzar cierre de posiciones abiertas
+    if position_tracker.open_positions:
+        logger.info(f"🔚 Cerrando {len(position_tracker.open_positions)} posiciones abiertas al final del backtest")
+        final_candle = {
+            "close": table.data[-1]["close"] if table.data else candle.get("close", 0),
+            "timestamp": table.data[-1]["timestamp"] if table.data else candle.get("timestamp", ""),
+            "market": table.market_id,
+            "timeframe": table.timeframe
+        }
+
+        forced_closes = position_tracker.force_close_all_positions(final_candle)
+
+        for closed_result in forced_closes:
+            outcome = (closed_result.get("result") or "").upper()
+
             bet_trades += 1
-            total_fees += float(result.get("fee", 0.0) or 0.0)
-            total_funding += float(result.get("funding", 0.0) or 0.0)
-            if result.get("liquidated"):
-                total_liquidations += 1
+            total_fees += float(closed_result.get("fee", 0.0) or 0.0)
+            total_funding += float(closed_result.get("funding", 0.0) or 0.0)
+
             if outcome == "WIN":
                 wins += 1
             elif outcome == "LOSS":
                 losses += 1
-        elif action == "GHOST":
-            ghost_trades += 1
 
-        balance = _get_table_state(table).get("balance")
-        _log_trade(action, verdict, order, result, balance)
+            # Aplicar P&L final
+            pnl_net = float(closed_result.get("pnl", 0.0)) - float(closed_result.get("fee", 0.0))
+            current_balance = _get_table_state(table).get("balance", initial_balance)
+            new_balance = current_balance + pnl_net
 
-        if verdict.trade_id:
-            gemini.on_trade_result(verdict.trade_id, result)
+            try:
+                table.balance_manager.balance = new_balance
+            except Exception:
+                if hasattr(table.balance_manager, "set_balance"):
+                    table.balance_manager.set_balance(new_balance)
 
-        if player_state is not None and hasattr(player_module, "handle_trade_outcome") and outcome in {"WIN", "LOSS"}:
-            player_state = player_module.handle_trade_outcome(player_state, action, result)
+            _log_trade("FORCE_CLOSE", None, closed_result, closed_result, new_balance)
+
+            if closed_result.get("trade_id"):
+                gemini.on_trade_result(closed_result["trade_id"], closed_result)
 
     # Resumen final
     final_state = _get_table_state(table)
     final_balance = float(final_state.get("balance", initial_balance))
     winrate = (wins / bet_trades * 100) if bet_trades > 0 else 0.0
+
+    # Log estadísticas del position tracker
+    tracker_stats = position_tracker.get_stats()
+    logger.info(f"📊 Position Tracker: {tracker_stats}")
 
     return {
         "dataset": dataset_name,
@@ -332,6 +436,8 @@ def run_session_with_player(
         "funding": total_funding,
         "final_balance": final_balance,
         "liquidations": total_liquidations,
+        "open_positions_final": tracker_stats["open_positions"],
+        "blocked_capital_final": tracker_stats["blocked_capital"],
     }
 
 
