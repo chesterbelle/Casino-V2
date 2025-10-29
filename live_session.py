@@ -102,19 +102,12 @@ def run_live_session(
         default_symbol = getattr(config, "ASTER_DEFAULT_SYMBOL", "BTCUSDT")
         default_interval = getattr(config, "ASTER_DEFAULT_INTERVAL", "1m")
 
+    # En modo automatizado, usar valores por defecto sin pedir input
     if not symbol:
-        try:
-            user_symbol = input(f"Símbolo a operar [{default_symbol}]: ").strip().upper()
-        except EOFError:
-            user_symbol = ""
-        symbol = user_symbol or default_symbol
+        symbol = default_symbol
 
     if not interval:
-        try:
-            user_interval = input(f"Intervalo de velas [{default_interval}]: ").strip()
-        except EOFError:
-            user_interval = ""
-        interval = user_interval or default_interval
+        interval = default_interval
 
     if max_candles is not None:
         max_candles = _parse_positive_int(max_candles)

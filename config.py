@@ -20,12 +20,12 @@ Gemini, el Croupier y las Mesas leerán de aquí directamente.
 MODE = "live"
 
 # Perfil del exchange (usa el JSON de tables/data/exchange_profiles)
-# Opciones: "asterdex_paper", "kraken_futures_demo", "binance_futures_testnet"
-EXCHANGE_PROFILE = "kraken_futures_demo"
+# Opciones: "asterdex_paper", "kraken_futures_demo", "binance_futures_testnet", "hyperliquid"
+EXCHANGE_PROFILE = "hyperliquid"
 
 # Exchange a utilizar en modo "live"
-# Opciones: "ASTER_PAPER", "KRAKEN_DEMO", "BINANCE_FUTURES_TESTNET"
-EXCHANGE = "KRAKEN_DEMO"
+# Opciones: "ASTER_PAPER", "KRAKEN_DEMO", "BINANCE_FUTURES_TESTNET", "HYPERLIQUID"
+EXCHANGE = "HYPERLIQUID"
 
 # Ruta del dataset CSV (para modo backtest) — se utiliza tanto para Gemini
 # como para Oscar. Cambia este archivo para alternar rápidamente entre datasets.
@@ -66,7 +66,8 @@ LIVE_SLEEP_SECONDS = 1.0
 
 # Número máximo de velas a procesar antes de detener la sesión.
 # Usa None (o valores <= 0) para dejarlo en ejecución indefinida.
-LIVE_MAX_CANDLES = 500
+# Para live trading inicial, limitar a sesiones cortas
+LIVE_MAX_CANDLES = 100  # Sesiones más cortas para testing inicial
 
 
 # =====================================================
@@ -82,6 +83,19 @@ KRAKEN_FUTURES_API_SECRET = None
 
 
 # =====================================================
+# HYPERLIQUID — PARÁMETROS LIVE
+# =====================================================
+HYPERLIQUID_BASE_URL = "https://api.hyperliquid.xyz"
+HYPERLIQUID_WS_URL = "wss://api.hyperliquid.xyz/ws"
+HYPERLIQUID_DEFAULT_SYMBOL = "BTC"
+HYPERLIQUID_DEFAULT_INTERVAL = "1m"
+HYPERLIQUID_POLL_INTERVAL = 1.0
+HYPERLIQUID_API_KEY = None
+HYPERLIQUID_API_SECRET = None
+HYPERLIQUID_VAULT_ADDRESS = None  # Para vault trading
+
+
+# =====================================================
 # 💰 CONFIGURACIÓN FINANCIERA
 # =====================================================
 # Capital inicial con el que empieza el jugador
@@ -93,7 +107,8 @@ TAKE_PROFIT = 0.005
 STOP_LOSS = 0.015
 
 # Fracción del criterio de Kelly a aplicar (1 = Kelly completo, 0.5 = medio Kelly)
-KELLY_FRACTION = 0.2
+# Para live trading, usar valores conservadores
+KELLY_FRACTION = 0.1  # Más conservador para live trading
 
 
 # =====================================================
@@ -119,7 +134,28 @@ EDGE_THRESHOLD = 0.01  # 2% de ventaja mínima
 # =====================================================
 # Activar o desactivar detectores individuales (puedes probar combinaciones)
 ACTIVE_SENSORS = {
-  
+    # Mean Reversion (8 sensores)
+    "RSIReversion": True,
+    "BollingerTouch": True,
+    "KeltnerReversion": True,
+    "StochasticReversion": True,
+    "BollingerSqueeze": True,
+    "WilliamsRReversion": True,
+    "CCIReversion": True,
+    "ZScoreReversion": True,
+
+    # Momentum/Trend (5 sensores)
+    "EMACrossover": True,
+    "MACDCrossover": True,
+    "Supertrend": True,
+    "ADXFilter": True,
+    "ParabolicSAR": True,
+
+    # Volume (4 sensores)
+    "OBVBreakout": True,
+    "VWAPDeviation": True,
+    "MFIReversion": True,
+    "AccumulationDistribution": True,
 }
 
 # Parámetros personalizados por sensor (si deseas ajustarlos)
@@ -137,11 +173,11 @@ SENSOR_PARAMS = {
 # 🪙 PERFIL DEL CASINO (GENERAL)
 # =====================================================
 # Configuración básica de trading
-MAX_LEVERAGE = 10           # máximo apalancamiento permitido (reducido para evitar liquidaciones)
-MAX_POSITION_SIZE = 0.032    # tamaño máximo (2% del equity para kelly  3.2 para paroli)
-COMMISSION_RATE = 0.0004    # equivalente al taker fee (0.04%)
-SLIPPAGE_DEFAULT = 0.0005   # spread estimado de ejecución
-MAINTENANCE_MARGIN_RATE = 0.005  # margen de mantenimiento (0.5% para Binance)
+MAX_LEVERAGE = 50           # máximo apalancamiento permitido (Hyperliquid soporta hasta 50x)
+MAX_POSITION_SIZE = 0.02    # tamaño máximo conservador (2% del equity para live trading)
+COMMISSION_RATE = 0.0005    # taker fee de Hyperliquid (0.05%)
+SLIPPAGE_DEFAULT = 0.0003   # spread más ajustado para Hyperliquid
+MAINTENANCE_MARGIN_RATE = 0.003  # margen de mantenimiento de Hyperliquid (0.3%)
 DEFAULT_MARGIN_TYPE = "ISOLATED"  # Opciones: ISOLATED, CROSSED
 
 

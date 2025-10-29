@@ -42,6 +42,8 @@ from croupier.croupier import Croupier
 from gemini.gemini_core import Verdict, Gemini
 from sensors.sensor_manager import SensorManager
 from tables.table_backtest import TableBacktest
+from tables.table_ccxt_pro import TableCCXTPro
+from tables.table_backtest_multiasset import TableBacktestMultiAsset
 from tables.position_tracker import PositionTracker
 from players import kelly_player, fixed_player, paroli_player
 
@@ -176,7 +178,9 @@ def run_session_with_player(
     initial_balance: float,
     gemini: Gemini,
     player_module,
-    player_name: str
+    player_name: str,
+    mode: str = "backtest",
+    multi_asset_config: Optional[Dict] = None
 ) -> Dict:
     """
     Ejecuta una sesión de backtest usando la arquitectura Gemini + Player con gestión de posiciones.
@@ -195,8 +199,32 @@ def run_session_with_player(
     print(f"\n🎰 Ejecutando dataset: {dataset_name}")
     print(f"🎮 Player activo: {player_name.upper()}")
 
-    table = TableBacktest(dataset_path)
-    _set_table_balance(table, initial_balance)
+    # Seleccionar tabla según modo
+    if mode == "multi_asset_backtest" and multi_asset_config:
+        print("🔄 Usando TableBacktestMultiAsset")
+        table = TableBacktestMultiAsset(
+            symbol_configs=multi_asset_config,
+            start_date=getattr(config, 'START_DATE', None),
+            end_date=getattr(config, 'END_DATE', None)
+        )
+        # Para multi-asset, usar balance unificado
+        _set_table_balance(table, initial_balance)
+    elif mode == "live_ccxt":
+        print("🔄 Usando TableCCXTPro")
+        # Configuración para live trading
+        exchange_id = getattr(config, 'EXCHANGE', 'binance').lower()
+        symbols = getattr(config, 'MULTI_ASSET_SYMBOLS', ['BTC/USDT'])
+        table = TableCCXTPro(
+            exchange_id=exchange_id,
+            symbols=symbols,
+            timeframe=getattr(config, 'TIMEFRAME', '1m'),
+            testnet=getattr(config, 'TESTNET', True)
+        )
+        # Balance ya inicializado en TableCCXTPro
+    else:
+        print("🔄 Usando TableBacktest (single-asset)")
+        table = TableBacktest(dataset_path)
+        _set_table_balance(table, initial_balance)
 
     sensors = SensorManager()
     croupier = Croupier(table)
@@ -219,14 +247,41 @@ def run_session_with_player(
 
     # Loop principal vela por vela
     while True:
-        candle = table.next_candle()
-        if candle is None:
-            break
+        if hasattr(table, 'next_candle_batch'):
+            # Modo multi-asset
+            batch = table.next_candle_batch()
+            if batch is None:
+                break
 
-        candles += 1
+            # Procesar batch multi-asset
+            # Por ahora, procesamos solo el primer símbolo con datos
+            current_candle = None
+            current_symbol = None
+
+            for symbol, timeframes in batch.items():
+                for timeframe, candle in timeframes.items():
+                    if candle is not None:
+                        candles += 1
+                        current_candle = candle
+                        current_symbol = symbol
+                        break
+                if current_candle:
+                    break
+
+            if not current_candle:
+                continue  # Continuar con el siguiente batch
+        else:
+            # Modo single-asset tradicional
+            candle = table.next_candle()
+            if candle is None:
+                break
+
+            candles += 1
+            current_candle = candle
+            current_symbol = candle.get('symbol', 'UNKNOWN')
 
         # 1. PRIMERO: Cerrar posiciones que tocaron TP/SL en esta vela
-        closed_positions = position_tracker.check_and_close_positions(candle)
+        closed_positions = position_tracker.check_and_close_positions(current_candle)
 
         # Procesar cierres de posiciones
         for closed_result in closed_positions:
@@ -272,7 +327,7 @@ def run_session_with_player(
         available_equity = position_tracker.get_available_equity(current_balance)
 
         # Sensores detectan señales
-        signals = sensors.process_candle(candle)
+        signals = sensors.process_candle(current_candle)
         if not signals:
             continue
 
@@ -285,9 +340,9 @@ def run_session_with_player(
             # Si hay trade_id registrado, finalizar como GHOST para entrenar
             if verdict.trade_id and verdict.reason == "conflicto_de_lado":
                 ghost_order = gemini.make_order_from_verdict(verdict, size_fraction=0.0, ghost=True)
-                ghost_order["symbol"] = candle.get("symbol", table.symbol)
-                ghost_order["timestamp"] = candle.get("timestamp")
-                ghost_order["timeframe"] = candle.get("timeframe", getattr(table, "timeframe", "UNKNOWN"))
+                ghost_order["symbol"] = current_candle.get("symbol", current_symbol)
+                ghost_order["timestamp"] = current_candle.get("timestamp")
+                ghost_order["timeframe"] = current_candle.get("timeframe", "multi")
 
                 ghost_result = croupier.route_order(ghost_order)
                 gemini.on_trade_result(verdict.trade_id, ghost_result)
@@ -328,9 +383,9 @@ def run_session_with_player(
                 except (TypeError, ValueError):
                     pass
 
-        order.setdefault("symbol", candle.get("symbol", table.symbol))
-        order.setdefault("timestamp", candle.get("timestamp"))
-        order.setdefault("timeframe", candle.get("timeframe", getattr(table, "timeframe", "UNKNOWN")))
+        order.setdefault("symbol", current_symbol)
+        order.setdefault("timestamp", current_candle.get("timestamp"))
+        order.setdefault("timeframe", current_candle.get("timeframe", getattr(table, "timeframe", "UNKNOWN")))
 
         if ghost:
             # Ejecutar GHOST trade inmediatamente (no afecta balance)
@@ -348,10 +403,10 @@ def run_session_with_player(
 
             if position_tracker.can_open_position(margin_required, available_equity):
                 # Calcular precio de entrada (close de vela actual)
-                entry_price = float(candle.get("close", 0.0))
+                entry_price = float(current_candle.get("close", 0.0))
 
                 # Abrir posición en el tracker
-                position = position_tracker.open_position(order, entry_price, candle.get("timestamp", ""), available_equity)
+                position = position_tracker.open_position(order, entry_price, current_candle.get("timestamp", ""), available_equity)
 
                 if position:
                     # Log de apertura
@@ -473,17 +528,27 @@ def print_session_summary(stats: Dict) -> None:
 # 🚀 ENTRYPOINT
 # ============================================================
 def main() -> None:
-    """Main con soporte para múltiples players"""
+    """Main con soporte para múltiples players y modos multi-asset"""
     mode = getattr(config, "MODE", "backtest").lower()
 
     player_name = DEFAULT_PLAYER
+    multi_asset_config = None
+
+    # Parsear argumentos
     if len(sys.argv) > 1:
-        arg = sys.argv[1].lower().replace("--player=", "")
-        if arg in AVAILABLE_PLAYERS:
-            player_name = arg
-        else:
-            print(f"⚠️ Player '{arg}' no encontrado. Usando {DEFAULT_PLAYER}")
-            print(f"Players disponibles: {', '.join(AVAILABLE_PLAYERS.keys())}")
+        for arg in sys.argv[1:]:
+            arg = arg.lower()
+            if arg.startswith("--player="):
+                player_name = arg.replace("--player=", "")
+            elif arg == "--multi-asset":
+                mode = "multi_asset_backtest"
+            elif arg == "--ccxt-live":
+                mode = "live_ccxt"
+
+    if player_name not in AVAILABLE_PLAYERS:
+        print(f"⚠️ Player '{player_name}' no encontrado. Usando {DEFAULT_PLAYER}")
+        print(f"Players disponibles: {', '.join(AVAILABLE_PLAYERS.keys())}")
+        player_name = DEFAULT_PLAYER
 
     player_module = AVAILABLE_PLAYERS[player_name]
 
@@ -493,35 +558,52 @@ def main() -> None:
         run_live_session(symbol=None, interval=None, player_module=player_module, player_name=player_name)
         return
 
-    print("\n🎰 Bienvenido al Casino V2 — Arquitectura Gemini + Player\n")
+    print("\n🎰 Bienvenido al Casino V2 — Arquitectura Multi-Asset\n")
 
-    # Seleccionar player desde argumentos o usar default
+    # Configurar modo
+    if mode == "multi_asset_backtest":
+        print("🔄 MODO: Multi-Asset Backtest")
+        # Configuración multi-asset desde config
+        multi_asset_config = getattr(config, "MULTI_ASSET_CONFIG", {
+            'BTCUSDT': {'timeframes': ['5m', '15m'], 'data_path': ''},
+            'ETHUSDT': {'timeframes': ['1m'], 'data_path': ''},
+            'LTCUSDT': {'timeframes': ['1m'], 'data_path': ''}
+        })
+        dataset_path = "multi_asset"  # Placeholder
+    elif mode == "live_ccxt":
+        print("🔄 MODO: Live Trading con CCXT Pro")
+        dataset_path = "live_ccxt"  # Placeholder
+    else:
+        print("🔄 MODO: Single-Asset Backtest")
+        dataset_path = getattr(config, "DATASET_PATH", "tables/data/raw/BTCUSDT_1m__30d.csv")
+
     print(f"🎮 Player seleccionado: {player_name.upper()}")
 
     # Configuración de sesión
     initial_balance = ask_initial_balance()
-    dataset_path = getattr(config, "DATASET_PATH", "tables/data/raw/BTCUSDT_1m__30d.csv")
 
     # Inicializar Gemini (validador)
     gemini = Gemini()
 
-    print(f"\n🟢 Iniciando sesión de backtest: {dataset_path}")
-    
-    # Ejecutar sesión con player seleccionado
+    print(f"\n🟢 Iniciando sesión: {mode}")
+
+    # Ejecutar sesión con configuración apropiada
     stats = run_session_with_player(
         dataset_path,
         initial_balance,
         gemini,
         player_module,
-        player_name
+        player_name,
+        mode=mode,
+        multi_asset_config=multi_asset_config
     )
-    
+
     print_session_summary(stats)
 
     # Guardar memoria
     gemini.memory.save()
     print("💾 Memoria de Gemini guardada.")
-    
+
     print("✅ Sesión completada.\n")
 
 

@@ -38,9 +38,33 @@
 
 ---
 
-## 🎯 PENDIENTE (v1.5)
+## ✅ COMPLETADO (v1.5 - Migración CCXT Pro)
 
-### **Features Prioritarias para v1.5**
+### **Fase 1: Migración a TableCCXTPro** ✅
+**Estado**: ✅ **COMPLETADO**
+**Descripción**: Migración completa a arquitectura TableCCXTPro con CCXT Pro
+**Logros**:
+- ✅ TableCCXTPro integrada como mesa universal
+- ✅ Eliminadas mesas legacy (TableKrakenPaper, TableBinancePaper, TableAsterPaper)
+- ✅ BrokerInterface simplificado y unificado
+- ✅ Soporte para exchanges con testnet: Kraken, Binance, Hyperliquid
+- ✅ Arquitectura probada y operativa
+- ✅ Tests 14/14 pasando
+
+### **Fase 1.5: TableCCXTPro WebSocket Integration** ✅
+**Estado**: ✅ **COMPLETADO**
+**Descripción**: Implementación completa de conexiones WebSocket reales en TableCCXTPro
+**Logros**:
+- ✅ Conexiones WebSocket reales implementadas en `connect()`
+- ✅ Procesamiento de datos OHLCV en tiempo real en `start_listening()`
+- ✅ Método `next_candle()` actualizado para datos en tiempo real
+- ✅ Manejo robusto de errores en WebSocket handlers
+- ✅ Watchdog mejorado para monitoreo de conexiones
+- ✅ Estado extendido con información WebSocket
+- ✅ Tests de integración WebSocket creados
+- ✅ Interface multi-asset preparada para operaciones concurrentes
+
+### **Features Prioritarias para v1.5+**
 
 #### 🎮 **Adaptive Player** (Alta Prioridad)
 **Estado**: 🔄 PENDIENTE
@@ -85,7 +109,7 @@
 
 ---
 
-## 🎯 ROADMAP v1.5
+## 🎯 ROADMAP v1.5+
 
 ### **Fase 1: Core Features** (2-3 semanas)
 1. **Adaptive Player** ⭐⭐⭐
@@ -103,6 +127,23 @@
    - Stop loss de sesión dinámico
    - Alertas configurables
 
+4. **TableCCXTPro WebSocket Integration** ⭐⭐⭐ ✅ **COMPLETADO**
+    - ✅ Conexiones WebSocket reales implementadas
+    - ✅ Datos en tiempo real eficientes
+    - ✅ Multi-asset streaming concurrente preparado
+
+### **Fase 2: Multi-Asset Foundation** (En Desarrollo 🚧)
+4. **TableCCXTPro WebSocket Integration** ⭐⭐⭐
+   - Implementar conexiones WebSocket reales en TableCCXTPro
+   - Datos en tiempo real eficientes
+   - Multi-asset streaming concurrente
+
+5. **TableBacktestMultiAsset** ⭐⭐⭐
+   - Backtest multi-asset con sincronización temporal
+   - Balance portfolio unificado
+   - Position tracking por símbolo
+   - Gestión realista de posiciones abiertas concurrentes
+
 ### **Fase 2: Advanced Features** (2-4 semanas)
 4. **Regime Detection** ⭐⭐
    - Detección bull/bear/sideways
@@ -114,15 +155,32 @@
    - Portfolio heat management
    - Correlation controls
 
-### **Fase 3: Ecosystem** (4-6 semanas)
-6. **Multi-Symbol Portfolio** ⭐
-   - Trading múltiple símbolos
-   - Balance correlation
-   - Diversificación automática
+6. **CCXT Pro Integration** ⭐⭐⭐ (En Desarrollo 🚧)
+   - Librerías CCXT Pro para conexiones a exchanges
+   - Procesamiento unificado de órdenes multi-exchange
+   - WebSockets para datos en tiempo real
+   - Interface compatible con Croupier existente
 
-7. **Optimization Framework** ⭐
-   - Parameter grid search
-   - Walk-forward testing
+7. **TableBacktestMultiAsset** ⭐⭐⭐ (En Desarrollo 🚧)
+   - Backtest multi-asset con sincronización temporal
+   - Balance portfolio unificado
+   - Position tracking por símbolo
+   - Gestión realista de posiciones abiertas concurrentes
+
+### **Fase 3: Advanced Multi-Asset** (4-6 semanas)
+6. **Multi-Symbol Portfolio** ⭐⭐
+   - Trading múltiple símbolos simultáneo
+   - Balance correlation y gestión de riesgo
+   - Diversificación automática por volatilidad
+
+7. **Real-Time Multi-Asset Engine** ⭐⭐
+   - Procesamiento concurrente de múltiples feeds
+   - Sincronización temporal precisa
+   - Gestión unificada de órdenes y posiciones
+
+8. **Optimization Framework** ⭐
+   - Parameter grid search multi-asset
+   - Walk-forward testing con portfolio
    - Strategy selection automática
 
 ---
@@ -130,9 +188,11 @@
 ## 📊 PRIORIDADES v1.5
 
 ### **⭐⭐⭐ CRÍTICO** (Implementar primero)
-1. **Adaptive Player** - Mejora inmediata de performance
-2. **Dashboard Web** - Mejor UX y debugging
-3. **Kill-Switch** - Protección de capital esencial
+1. **TableCCXTPro WebSocket Integration** - ✅ **COMPLETADO** Fundación multi-asset esencial
+2. **TableBacktestMultiAsset** - Backtest multi-símbolo crítico
+3. **Adaptive Player** - Mejora de performance
+4. **Dashboard Web** - Mejor UX y debugging
+5. **Kill-Switch** - Protección de capital esencial
 
 ### **⭐⭐ IMPORTANTE** (Funcionalidad avanzada)
 4. **Regime Detection** - Inteligencia de mercado
@@ -148,12 +208,21 @@
 
 ## 🚀 PLAN DE ACCIÓN v1.5
 
-### **Fase 1A: Adaptive Player** (1 semana)
-**Objetivo**: Mejorar performance con volatilidad dinámica
-- Implementar cálculo de volatilidad
-- Ajuste dinámico de Kelly fraction
-- Testing exhaustivo con diferentes mercados
-- **Entrega**: Player funcional y testeado
+### **Fase 1A: CCXT Pro Integration** (1-2 semanas)
+**Objetivo**: Fundación multi-asset con conexiones WebSocket
+- Implementar TableCCXTPro con CCXT Pro
+- Conexiones multi-exchange unificadas
+- Procesamiento de órdenes con WebSockets
+- Interface compatible con Croupier
+- **Entrega**: Sistema multi-exchange funcional
+
+### **Fase 1B: TableBacktestMultiAsset** (1 semana)
+**Objetivo**: Backtest sincronizado multi-símbolo
+- Implementar sincronización temporal precisa
+- Balance portfolio unificado
+- Position tracking por símbolo
+- Gestión realista de posiciones concurrentes
+- **Entrega**: Backtest multi-asset operativo
 
 ### **Fase 1B: Dashboard Web** (1 semana)
 **Objetivo**: Mejorar monitoreo y análisis
@@ -169,12 +238,34 @@
 - Cierre automático por drawdown
 - **Entrega**: Sistema de protección activo
 
+### **Fase 1D: Multi-Asset Foundation** (En Desarrollo 🚧)
+**Objetivo**: Base para trading multi-asset
+- **TableCCXTPro WebSocket Integration**: ✅ **COMPLETADO** Conexiones WebSocket reales
+- **TableBacktestMultiAsset**: Backtest sincronizado multi-símbolo
+- **TableCCXTPro Multi-Asset**: Live trading multi-asset con WebSockets
+- **Entrega**: Arquitectura multi-asset funcional
+
 ### **Fase 2: Features Avanzadas** (2-3 semanas)
 **Objetivo**: Inteligencia y escalabilidad
 - Regime Detection
 - Risk Management mejorado
 - Multi-symbol support
 - **Entrega**: Sistema completo v1.5
+
+### **Fase 2.5: Multi-Asset Engine** (En Desarrollo 🚧)
+**Objetivo**: Motor multi-asset completo
+- **TableCCXTPro WebSocket Integration**: ✅ **COMPLETADO** Conexiones WebSocket reales
+- **TableBacktestMultiAsset**: Backtest sincronizado
+- **TableCCXTPro Multi-Asset**: Live trading multi-asset
+- **Position Management**: Tracking unificado de posiciones
+- **Entrega**: Arquitectura multi-asset operativa
+
+### **Fase 3: Ecosystem Expansion** (4-6 semanas)
+**Objetivo**: Expansión del ecosistema multi-exchange
+- **Hyperliquid Integration**: Soporte completo para Hyperliquid
+- **Multi-Exchange Portfolio**: Trading simultáneo en múltiples exchanges
+- **Cross-Exchange Arbitrage**: Oportunidades arbitrage
+- **Entrega**: Ecosistema multi-exchange operativo
 
 ---
 
@@ -188,17 +279,17 @@
 - ✅ Arquitectura modular sólida
 - ✅ Tests completos (14/14)
 
-**Próximo paso:** Implementar **Adaptive Player** como primera feature de v1.5
+**Próximo paso:** Completar **TableBacktestMultiAsset** (TableCCXTPro WebSocket Integration ✅ **COMPLETADO**)
 
 ### **Cómo empezar desarrollo:**
 ```bash
 # Crear rama para feature
-git checkout -b feature/adaptive-player
+git checkout -b feature/multi-asset-foundation
 
 # Ver documentación actual
 cat docs/development/PENDIENTES.md
 
-# Implementar Adaptive Player
+# Implementar CCXT Pro Integration y TableBacktestMultiAsset
 # ... desarrollo ...
 
 # Testing y documentación
@@ -209,7 +300,8 @@ cat docs/development/PENDIENTES.md
 
 **Recursos disponibles:**
 - 📚 `docs/architecture/overview.md` - Arquitectura completa
-- 📖 `docs/guides/creating-players.md` - Tutorial de players
+- 📖 `tables/table_ccxt_pro.py` - Template CCXT Pro existente
+- 📖 `tables/table_backtest_multiasset.py` - Template multi-asset existente
 - 🧪 Tests existentes como referencia
 - 🎯 Métricas actuales para comparación
 

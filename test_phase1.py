@@ -142,13 +142,13 @@ def create_mock_verdict_approved() -> Verdict:
         support=100,
         p_hat=0.65,
         credibility=0.85,
-        p_conservative=0.58,
+        p_conservative=0.85,  # Aumentado para superar P_STAR=0.815
         kelly=0.15,
         approved=True,
         reason="approved",
-        p_star=0.5,
-        r_net=0.01,
-        l_net=0.01
+        p_star=0.815,  # Actualizado para coincidir con config
+        r_net=0.0037,  # Actualizado según config
+        l_net=0.0163   # Actualizado según config
     )
     
     return Verdict(

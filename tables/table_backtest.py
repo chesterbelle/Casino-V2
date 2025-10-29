@@ -144,7 +144,7 @@ class TableBacktest:
         # Lógica completa para ghost trades (simula trade completo inmediatamente)
         side = order.get("side", "").upper()
         size_fraction = float(order.get("size", 0.0))
-        trade_id = order.get("trade_id") or f"ghost_{self.symbol}_{self._last_index}"
+        trade_id = order.get("trade_id") or f"backtest_{self.symbol}_{self._last_index}"
         symbol = order.get("symbol", self.symbol)
 
         if self._last_index < 0:

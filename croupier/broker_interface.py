@@ -31,9 +31,7 @@ import config
 
 # Importaciones condicionales (según modo)
 from tables.table_backtest import TableBacktest
-from tables.table_aster_paper import TableAsterPaper
-from tables.table_kraken_paper import TableKrakenPaper
-from tables.table_binance_paper import TableBinancePaper
+from tables.table_ccxt_pro import TableCCXTPro
 
 
 class BrokerInterface:
@@ -114,19 +112,33 @@ class BrokerInterface:
 
     def _create_live_engine(self, symbol: str | None, interval: str | None, exchange: str):
         """
-        Construye la mesa realtime según el exchange configurado.
+        Construye la mesa CCXT Pro según el exchange configurado.
+        Nueva arquitectura unificada con CCXT Pro.
         """
         exchange = getattr(config, "EXCHANGE", "SIMULATION").upper()
 
-        class Engine:
-            def __init__(self, symbol, interval):
-                if "ASTER" in exchange:
-                    self.table = TableAsterPaper(symbol=symbol, interval=interval)
-                elif "KRAKEN" in exchange:
-                    self.table = TableKrakenPaper(symbol=symbol, interval=interval)
-                elif "BINANCE" in exchange:
-                    self.table = TableBinancePaper(symbol=symbol, interval=interval)
-                else:
-                    raise NotImplementedError(f"Exchange LIVE no soportado: {exchange}")
+        # Mapear exchanges a configuración CCXT
+        if "KRAKEN" in exchange:
+            exchange_id = "kraken"
+            testnet = False  # Kraken no tiene sandbox, usar cuenta demo real
+        elif "BINANCE" in exchange:
+            exchange_id = "binance"
+            testnet = True
+        elif "HYPERLIQUID" in exchange:
+            exchange_id = "hyperliquid"  # Placeholder - ajustar según implementación real
+            testnet = True
+        else:
+            raise NotImplementedError(f"Exchange LIVE no soportado: {exchange}. Exchanges soportados: Kraken, Binance, Hyperliquid")
 
-        return Engine(symbol, interval)
+        class Engine:
+            def __init__(self, symbol, interval, exchange_id, testnet):
+                # Nueva arquitectura: TableCCXTPro para exchanges soportados
+                symbols = [symbol] if symbol else ["BTC/USDT"]  # Default si no hay símbolo
+                self.table = TableCCXTPro(
+                    exchange_id=exchange_id,
+                    symbols=symbols,
+                    timeframe=interval or "1m",
+                    testnet=testnet
+                )
+
+        return Engine(symbol, interval, exchange_id, testnet)
