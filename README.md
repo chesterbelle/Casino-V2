@@ -28,15 +28,25 @@ python main.py --player=fixed
 
 ## 💡 ¿Qué es Casino V2?
 
-Casino V2 es un **sistema de trading probabilístico** que:
+Casino V2 es un **motor de trading probabilístico avanzado** diseñado para:
 
+### **🎯 Visión Principal**
+- **🎰 Multi-Asset Trading**: Operar múltiples criptomonedas simultáneamente en un mismo exchange
+- **⏱️ Multi-Timeframe Analysis**: Analizar diferentes marcos temporales concurrentemente
+- **🔄 Real-Time Processing**: Procesar flujos de velas en tiempo real para todas las parejas
+- **🎯 Sensor-Driven Decisions**: Tomar decisiones de trading basadas en señales técnicas por activo
+- **💰 Unified Risk Management**: Gestionar capital y riesgo de manera holística across assets
+
+### **🔬 Enfoque Probabilístico**
 - ✅ No intenta predecir el mercado
 - ✅ Busca **contextos con ventaja estadística** (EV > 0)
 - ✅ Apuesta solo cuando las probabilidades están a favor
 - ✅ Aprende de la experiencia empírica
 
-**Filosofía:**  
+**Filosofía:**
 > *"No se trata de ganar todas las manos, sino de apostar cuando la ventaja está del lado del jugador."*
+
+**Estado Actual:** Arquitectura modular single-asset como base sólida para expansión multi-asset.
 
 ---
 

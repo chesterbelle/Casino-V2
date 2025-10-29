@@ -1,5 +1,19 @@
 # 🏗️ Arquitectura - Overview
 
+## 🎯 Visión General del Sistema
+
+**Casino V2 es un motor de trading probabilístico avanzado diseñado para:**
+
+- **🎰 Multi-Asset Trading**: Operar múltiples criptomonedas simultáneamente en un mismo exchange
+- **⏱️ Multi-Timeframe Analysis**: Analizar diferentes marcos temporales concurrentemente
+- **🔄 Real-Time Processing**: Procesar flujos de velas en tiempo real para todas las parejas
+- **🎯 Sensor-Driven Decisions**: Tomar decisiones de trading basadas en señales técnicas por activo
+- **💰 Unified Risk Management**: Gestionar capital y riesgo de manera holística across assets
+
+**Estado Actual**: Arquitectura modular single-asset como base sólida para expansión multi-asset.
+
+---
+
 Casino V2 está diseñado como un ecosistema modular inspirado en un casino real, donde cada componente tiene un rol específico.
 
 ---

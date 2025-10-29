@@ -21,17 +21,28 @@
 
 ## 🎯 ESTADO DEL PROYECTO
 
-### **Versión Actual: v1.4**
+### **Visión Final: Multi-Asset Multi-Timeframe Trading Engine**
+
+**Casino V2 aspira a ser un motor de trading probabilístico avanzado capaz de:**
+
+- **🎰 Multi-Asset Trading**: Operar múltiples criptomonedas simultáneamente en un mismo exchange
+- **⏱️ Multi-Timeframe Analysis**: Analizar diferentes marcos temporales concurrentemente
+- **🔄 Real-Time Processing**: Procesar flujos de velas en tiempo real para todas las parejas
+- **🎯 Sensor-Driven Decisions**: Tomar decisiones de trading basadas en señales técnicas por activo
+- **💰 Unified Risk Management**: Gestionar capital y riesgo de manera holística across assets
+
+**Estado Actual: v1.4** (Single-Asset Foundation)
 - ✅ **Arquitectura**: Modular Gemini/Player
 - ✅ **Live Trading**: Operativo (Kraken Demo validado)
 - ✅ **Backtest**: 89.71% winrate con gestión realista
 - ✅ **Tests**: 14/14 pasando
 - ✅ **Documentación**: Completamente actualizada
 
-### **Próxima Versión: v1.5**
+### **Próxima Versión: v1.5** (Hacia Multi-Asset)
 - 🎯 **Adaptive Player** (Alta prioridad)
 - 🎯 **Dashboard Web** (Alta prioridad)
 - 🎯 **Kill-Switch** (Media prioridad)
+- 🎯 **Multi-Asset Foundation** (Objetivo final)
 
 ### **Archivos Críticos para Leer Primero:**
 ```
