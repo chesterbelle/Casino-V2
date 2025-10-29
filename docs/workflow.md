@@ -87,8 +87,9 @@ git show-branch 1.4
 ### **Paso 1: Planificación**
 1. ✅ **Leer PENDIENTES.md** - Ver features disponibles
 2. ✅ **Elegir feature** - Priorizar según impacto
-3. ✅ **Crear issue** - Documentar alcance y criterios
-4. ✅ **Diseñar solución** - Sketch arquitectura
+3. ✅ **Decidir ubicación** - Consultar tabla de organización arriba
+4. ✅ **Crear issue** - Documentar alcance y criterios
+5. ✅ **Diseñar solución** - Sketch arquitectura respetando estructura
 
 ### **Paso 2: Desarrollo**
 1. ✅ **Crear rama feature/** - `git checkout -b feature/nombre`
@@ -115,17 +116,149 @@ git show-branch 1.4
 ### **Organización de Archivos**
 ```
 Casino-V2/
-├── main.py                    # Entry point
-├── config.py                  # Configuración global
-├── gemini/                    # Motor de decisión
-├── players/                   # Estrategias de sizing
-├── sensors/                   # Detectores técnicos
-├── tables/                    # Interfaces de exchange
-├── croupier/                  # Ejecución de órdenes
-├── utils/                     # Herramientas CLI
-├── docs/                      # Documentación
-└── tests/                     # Testing
+├── main.py                    # 🚀 Entry point principal
+├── config.py                  # ⚙️ Configuración global del sistema
+├── gemini/                    # 🎯 Motor de decisión probabilística
+│   ├── gemini_core.py         # Lógica principal de validación
+│   ├── memory.py              # Sistema de aprendizaje (winrates)
+│   ├── bucket_manager.py      # Clasificación de contextos
+│   └── decision_logger.py     # Logging de decisiones
+├── players/                   # 🎮 Estrategias de position sizing
+│   ├── kelly_player.py        # Kelly Criterion conservador
+│   ├── fixed_player.py        # Tamaño fijo por trade
+│   └── paroli_player.py       # Progresión 1-4-8
+├── sensors/                   # 👁️ Detectores técnicos
+│   ├── sensor_manager.py      # Coordinador de sensores
+│   ├── mean_reversion/        # Sensores de reversión media
+│   ├── momentum_trend_following/  # Sensores momentum/tendencia
+│   └── volumen_flujo_capital/     # Sensores volumen/capital
+├── tables/                    # 🪙 Interfaces de exchanges
+│   ├── table_backtest.py      # Backtest sobre CSV
+│   ├── table_binance_paper.py # Binance Futures (paper/live)
+│   ├── table_kraken_paper.py  # Kraken Futures (demo)
+│   ├── table_aster_paper.py   # ASTER (paper)
+│   ├── balance_manager.py     # Gestión de capital
+│   └── position_tracker.py    # Gestión de posiciones abiertas
+├── croupier/                  # 🧤 Ejecución de órdenes
+│   ├── croupier.py            # Router de órdenes
+│   └── broker_interface.py    # Interface con exchanges
+├── utils/                     # 🛠️ Herramientas y CLI
+│   ├── cli.py                 # CLI unificado
+│   ├── analyze_memory.py      # Análisis de memoria
+│   ├── download_kline_dataset.py  # Descarga de datos
+│   └── [otras utilidades]
+├── docs/                      # 📚 Documentación
+│   ├── README.md              # Índice principal
+│   ├── workflow.md            # Guidelines de desarrollo
+│   ├── architecture/          # Arquitectura del sistema
+│   ├── guides/                # Guías de uso
+│   └── development/           # Desarrollo y roadmap
+└── tests/                     # 🧪 Testing
+    └── test_*.py              # Tests unitarios/integration
 ```
+
+### **Reglas de Organización por Carpeta**
+
+#### **📋 Decisiones de Arquitectura por Carpeta**
+
+##### **¿Dónde poner nueva funcionalidad?**
+
+| Tipo de Código | Carpeta | Ejemplo | Razón |
+|---------------|---------|---------|-------|
+| **Validación probabilística** | `/gemini/` | `gemini/volatility_analyzer.py` | Es decisión de entrada |
+| **Cálculo de position size** | `/players/` | `players/adaptive_player.py` | Es sizing strategy |
+| **Nuevo indicador técnico** | `/sensors/` | `sensors/volatility/bbands_squeeze.py` | Es detección de contexto |
+| **Nueva conexión exchange** | `/tables/` | `tables/table_bybit_paper.py` | Es interface de mercado |
+| **Script de análisis** | `/utils/` | `utils/analyze_volatility.py` | Es herramienta CLI |
+| **Nueva guía** | `/docs/guides/` | `docs/guides/volatility-trading.md` | Es documentación |
+| **Test de nueva feature** | `/tests/` | `tests/test_adaptive_player.py` | Es validación |
+
+##### **❌ NO PONER en estas carpetas:**
+
+- **NO sizing en `/gemini/`** → Va en `/players/`
+- **NO indicadores en `/players/`** → Van en `/sensors/`
+- **NO lógica core en `/utils/`** → Solo herramientas
+- **NO código en `/docs/`** → Solo documentación
+- **NO archivos sueltos en root** → Todo organizado
+
+##### **📁 Estructura de Subcarpetas**
+
+```
+sensors/
+├── mean_reversion/           # ✅ Agrupado por tipo
+├── momentum_trend_following/ # ✅ Agrupado por tipo
+└── volumen_flujo_capital/    # ✅ Agrupado por tipo
+
+NO HACER:
+sensors/
+├── rsi.py                    # ❌ Archivos sueltos
+├── macd.py                   # ❌ Archivos sueltos
+└── bollinger.py              # ❌ Archivos sueltos
+```
+
+##### **🧩 Plugins y Extensiones**
+
+**Para código extensible:**
+- **Sensores**: `sensors/{categoria}/{sensor}.py`
+- **Players**: `players/{strategy}_player.py`
+- **Utils**: `utils/{funcion}.py`
+- **Tests**: `tests/test_{feature}.py`
+
+**Ejemplos correctos:**
+```
+✅ sensors/mean_reversion/keltner_reversion.py
+✅ players/volatility_adaptive_player.py
+✅ utils/download_funding_rates.py
+✅ tests/test_volatility_adaptive_player.py
+```
+
+**Ejemplos incorrectos:**
+```
+❌ sensors/keltner.py (sin subcategoría)
+❌ players/adaptive.py (sin _player)
+❌ utils/funding.py (sin función específica)
+❌ tests/volatility_test.py (sin test_)
+```
+
+#### **🎯 `/gemini/` - Motor de Decisión**
+- **Propósito**: Validación probabilística y aprendizaje
+- **Contenido**: Solo lógica de decisión, memoria y buckets
+- **Regla**: NO sizing aquí (delegado a players)
+
+#### **🎮 `/players/` - Estrategias de Sizing**
+- **Propósito**: Decidir cuánto apostar
+- **Contenido**: Implementaciones de position sizing
+- **Regla**: Solo lógica de cálculo de tamaño, NO decisiones de entrada
+
+#### **👁️ `/sensors/` - Detectores Técnicos**
+- **Propósito**: Identificar contextos favorables
+- **Contenido**: Indicadores técnicos y señales
+- **Regla**: Solo detección, NO decisiones de trade
+
+#### **🪙 `/tables/` - Interfaces de Exchange**
+- **Propósito**: Conectar con mercados y simular trades
+- **Contenido**: Conexiones API, simulación, balance/position management
+- **Regla**: Solo I/O con mercados, NO lógica de decisión
+
+#### **🧤 `/croupier/` - Ejecución**
+- **Propósito**: Routing de órdenes sin cuestionar
+- **Contenido**: Interfaces de broker, ejecución pura
+- **Regla**: Solo ejecutar, NO decidir
+
+#### **🛠️ `/utils/` - Herramientas**
+- **Propósito**: Utilidades CLI y helpers
+- **Contenido**: Scripts de análisis, descarga, configuración
+- **Regla**: Solo herramientas, NO lógica core del sistema
+
+#### **📚 `/docs/` - Documentación**
+- **Propósito**: Conocimiento organizado
+- **Contenido**: Guías, arquitectura, desarrollo
+- **Regla**: Toda documentación aquí, NO en código
+
+#### **🧪 `/tests/` - Testing**
+- **Propósito**: Validación de funcionalidad
+- **Contenido**: Tests unitarios, integration, performance
+- **Regla**: Tests para TODO código nuevo
 
 ### **Estándares de Código**
 
