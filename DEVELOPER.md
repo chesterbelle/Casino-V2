@@ -12,7 +12,7 @@
 
 **Versión Actual**: v1.6 (WebSocket Integration Completada)
 
-**Estado**: Arquitectura modular funcional → Próximo: Multi-Asset Foundation (v1.7)
+**Estado**: Arquitectura modular funcional → Próximo: Code Cleanup (v1.7) → Multi-Asset Foundation (v1.8)
 
 ---
 
@@ -154,7 +154,7 @@ python test_websocket_live.py         # Tests con datos reales
 ### **Ramas Principales**
 ```
 1.6     ← Producción actual (WebSocket completado)
-1.7     ← Desarrollo (multi-asset)
+1.7     ← Desarrollo (Code Cleanup)
 main    ← Backup (no tocar)
 ```
 
