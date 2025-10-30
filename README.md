@@ -100,16 +100,70 @@ Casino V2 es un **motor de trading probabilístico avanzado** diseñado para:
                   └──────────┘      └──────────┘
 ```
 
-**🎰 Metáfora del Casino:**
+## 🎭 Analogías del Casino
 
-| Rol | Módulo | Función |
-|-----|--------|---------|
-| 🎩 Jugador Racional | `gemini/` | Evalúa probabilidades |
-| 🎮 Estratega | `players/` | Decide tamaño de apuesta |
-| 👁️ Analistas | `sensors/` | Detectan contextos |
-| 🧤 Crupier | `croupier/` | Ejecuta órdenes |
-| 🪙 Mesa | `tables/` | Provee datos y ejecuta |
-| 💰 Cajero | `balance_manager.py` | Administra capital |
+Casino V2 usa analogías del casino para explicar conceptos complejos de trading algorítmico de manera intuitiva:
+
+### **1. 🎯 Jugador (Player)**
+- **Analogía**: El apostador que decide cuánto arriesgar
+- **Función Técnica**: Algoritmo de money management (Kelly, Fixed, etc.)
+- **Responsabilidad**: Calcular `size_fraction` basado en equity disponible
+- **Ejemplo**: "El jugador pide apostar 2% del bankroll"
+
+### **2. 👁️ Gemini (Spotter/Observador)**
+- **Analogía**: Spotter que vigila mesas y avisa cuándo están calientes
+- **Función Técnica**: Sistema de aprendizaje que evalúa señales
+- **Responsabilidad**: Generar `Verdict` con side y confidence
+- **Ejemplo**: "Gemini dice 'la estrategia RSI en BTC está pagando bien'"
+
+### **3. 🎲 Croupier (Router)**
+- **Analogía**: El dealer que recibe órdenes del spotter y las enruta a la mesa apropiada
+- **Función Técnica**: `croupier/croupier.py` - `route_order()`
+- **Responsabilidad**: Enrutar órdenes al destino correcto
+- **Ejemplo**: "El croupier toma la orden del spotter y la lleva a la mesa correcta"
+
+### **4. 🪙 Mesa/Table (Ejecutor)**
+- **Analogía**: La mesa específica donde se ejecuta la acción
+- **Función Técnica**: `tables/table_*.py` - `execute_order()`
+- **Responsabilidad**: Ejecutar órdenes y manejar posiciones
+- **Ejemplo**: "La mesa recibe la orden del croupier y ejecuta la apuesta"
+
+### **5. 🃏 Señales (Signals)**
+- **Analogía**: Cartas que llegan a la mesa
+- **Función Técnica**: Datos técnicos procesados por sensores
+- **Ejemplo**: "Llegan cartas de RSI, MACD, Supertrend"
+
+### **6. 💰 Fichas (Size Fraction)**
+- **Analogía**: Cantidad de fichas apostadas
+- **Función Técnica**: Porcentaje del equity a arriesgar
+- **Ejemplo**: "Apostar 1% del bankroll = 1 ficha"
+
+### **7. 📊 Verdict (Decisión del Spotter)**
+- **Analogía**: Aviso del spotter sobre mesa caliente
+- **Función Técnica**: `Verdict(side='BUY', confidence=0.8)`
+- **Ejemplo**: "Verdict: BUY con 80% confidence"
+
+### **8. 👻 Ghost Trades**
+- **Analogía**: Carta que se registra pero no se juega
+- **Función Técnica**: Trade simulado para aprendizaje
+- **Ejemplo**: "Carta mala pero se registra para aprender"
+
+### **9. 🏢 Pisos del Casino (Trading Modes)**
+- **Analogía**: Diferentes pisos del casino con diferentes reglas y riesgos
+- **Piso 1**: Ruleta Americana (Backtest) - simulación histórica, sin riesgo
+- **Piso 2**: Ruleta Francesa (Paper Trading) - datos reales, sin dinero
+- **Piso 3**: Ruleta Europea (Live Trading) - dinero real, máximo riesgo
+- **Función Técnica**: `MODE` en config.py determina el piso
+
+### **10. 🎰 Casino (Sistema Completo)**
+- **Analogía**: El establecimiento completo de juegos
+- **Función Técnica**: Todo el sistema de trading algorítmico
+- **Ejemplo**: "El casino que combina spotters, jugadores, dealers y mesas"
+
+### **11. 🎯 Sensores**
+- **Analogía**: Los dados o ruletas que generan números aleatorios
+- **Función Técnica**: Indicadores técnicos que generan señales
+- **Ejemplo**: "Los dados tiran números, los sensores generan señales"
 
 **📐 [Ver arquitectura completa →](docs/architecture/overview.md)**
 
@@ -332,8 +386,8 @@ Casino V2 no promete ganancias garantizadas. Es una herramienta para:
 - Experimentar con estrategias
 - Entender ventaja estadística
 
-**🎡 Metáfora de la ruleta:**  
-Imagina cada trade como apostar una ficha a rojo o negro. Cuando los sensores detectan un contexto con ventaja, Gemini autoriza la apuesta y los players deciden cuánto arriesgar. Si la jugada sale bien, ganas una ficha completa (menos costos); si sale mal, el stop loss devuelve media ficha y limitas el daño. Toda la arquitectura —sensores, memoria y gestión de tamaño— existe para encontrar esas “ruletas cargadas” donde la estadística se inclina a tu favor y las pérdidas quedan contenidas.
+**🎡 Metáfora de la ruleta:**
+Cada trade es como apostar a rojo o negro en una ruleta. Los sensores detectan contextos con ventaja estadística, Gemini autoriza la apuesta, los players deciden cuánto arriesgar. Si sale bien, ganas (menos costos); si sale mal, el stop loss limita el daño. El sistema busca "ruletas cargadas" donde la estadística favorece al jugador.
 
 **⚠️ Advertencia:** Trading con riesgo real puede resultar en pérdidas. Usa paper trading primero.
 
