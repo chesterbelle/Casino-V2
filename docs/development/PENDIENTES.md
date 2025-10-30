@@ -15,24 +15,24 @@
 
 ### **Alcance del Cleanup:**
 
-#### **🏗️ Arquitectura Core**
-- **Unificar jerarquía Table**: Hacer que todas las Tables hereden de `BaseTable`
-  - `TableBacktest(BaseTable)`
-  - `TableCCXTPro(BaseTable)`
-  - `TableRealtime(BaseTable)`
-  - `TableBacktestMultiAsset(BaseTable)`
-- **Type Safety**: Verificación automática de interfaces
-- **Consistencia**: Contrato formal para todas las Tables
+#### **🏗️ Arquitectura Core** ✅ **COMPLETADO**
+- ✅ **Unificar jerarquía Table**: Todas las Tables heredan de `BaseTable`
+  - `TableBacktest(BaseTable)` ✅
+  - `TableCCXTPro(BaseTable)` ✅
+  - `TableRealtime(BaseTable)` ❌ ELIMINADO (legacy)
+  - `TableBacktestMultiAsset(BaseTable)` ❌ ELIMINADO (incompleto)
+- ✅ **Type Safety**: Verificación automática de interfaces
+- ✅ **Consistencia**: Contrato formal para todas las Tables
 
-#### **📁 Reorganización de Archivos**
-- **Módulos dispersos**: Consolidar funciones relacionadas
-- **Utils organization**: Mejor estructura en `utils/` (clients, analyzers, etc.)
-- **Imports cleanup**: Eliminar imports circulares y optimizar
+#### **📁 Reorganización de Archivos** ✅ **COMPLETADO**
+- ✅ **Módulos dispersos**: Consolidar funciones relacionadas
+- ✅ **Utils organization**: Mejor estructura en `utils/` (exchanges/, analysis/, data/, training/)
+- ✅ **Imports cleanup**: Eliminar imports circulares y optimizar
 
-#### **🔧 Refactoring de Código**
-- **main.py**: Separar en módulos más pequeños (640+ líneas → módulos específicos)
-- **Config.py**: Mejor organización y validación
-- **Funciones helper**: Mover a módulos apropiados
+#### **🔧 Refactoring de Código** ✅ **COMPLETADO**
+- ✅ **main.py**: Separar en módulos core/ (644→180 líneas)
+- ✅ **Config.py**: Mejor organización y validación
+- ✅ **Funciones helper**: Mover a módulos apropiados (core/session_*)
 
 #### **📚 Mejora de Documentación**
 - **Type hints**: Completos en todos los módulos core
@@ -204,7 +204,8 @@ git checkout -b feature/table-backtest-multiasset
 
 # Ver recursos disponibles
 cat docs/development/PENDIENTES.md
-cat tables/table_backtest_multiasset.py  # Template existente
+# Nota: table_backtest_multiasset.py fue eliminado por ser incompleto
+# Usar tables/table_backtest.py y tables/table_ccxt_pro.py como referencia
 
 # Implementar y testear
 # ... desarrollo ...
@@ -213,7 +214,8 @@ cat tables/table_backtest_multiasset.py  # Template existente
 ```
 
 **Recursos disponibles:**
-- 📖 `tables/table_backtest_multiasset.py` - Template base
-- 📖 `tables/table_ccxt_pro.py` - Referencia multi-asset
+- 📖 `tables/table_backtest.py` - Referencia single-asset backtest
+- 📖 `tables/table_ccxt_pro.py` - Referencia multi-asset live
+- 📖 `tables/table_base.py` - Base class para heredar
 - 🧪 Tests existentes como guía
 - 📚 Documentación completa en `docs/`
