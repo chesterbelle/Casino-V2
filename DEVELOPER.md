@@ -189,24 +189,9 @@ refactor: Cambios sin nueva funcionalidad
 
 ---
 
-## 🎯 Prioridades de Desarrollo
+## 🎯 Próximos Pasos
 
-### **v1.6 → v1.7** (Próxima Versión)
-
-**⭐⭐⭐ CRÍTICO:**
-1. **TableBacktestMultiAsset** - Backtest sincronizado multi-símbolo
-2. **Portfolio Management** - Balance unificado
-3. **Multi-Timeframe Analysis** - Contextos higher TF
-
-**⭐⭐ IMPORTANTE:**
-4. **Live Multi-Asset Trading** - Extensión WebSocket
-5. **Risk Management Multi-Asset** - Portfolio heat management
-
-### **Reglas de Priorización**
-- ✅ **Completar v1.6** antes de empezar v1.7
-- ✅ **WebSocket funcional** antes de multi-asset
-- ✅ **Tests pasando** en cada paso
-- ✅ **Documentación actualizada** con cambios
+**📖 Ver roadmap completo en `docs/development/PENDIENTES.md`**
 
 ---
 
