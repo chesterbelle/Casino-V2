@@ -1,6 +1,6 @@
 # 🚀 WORKFLOW - Casino V2 Development Guidelines
 
-> **Versión**: v1.4
+> **Versión**: v1.6
 > **Última actualización**: Octubre 2025
 > **Propósito**: Guidelines para desarrollo colaborativo consistente
 
@@ -31,24 +31,27 @@
 - **🎯 Sensor-Driven Decisions**: Tomar decisiones de trading basadas en señales técnicas por activo
 - **💰 Unified Risk Management**: Gestionar capital y riesgo de manera holística across assets
 
-**Estado Actual: v1.4** (Single-Asset Foundation)
-- ✅ **Arquitectura**: Modular Gemini/Player
-- ✅ **Live Trading**: Operativo (Kraken Demo validado)
-- ✅ **Backtest**: 89.71% winrate con gestión realista
-- ✅ **Tests**: 14/14 pasando
+**Estado Actual: v1.6** (WebSocket Integration Completada)
+- ✅ **Arquitectura**: Modular Gemini/Player con WebSocket
+- ✅ **Live Trading**: Operativo (Multi-exchange testnet: Hyperliquid, Binance, Kraken)
+- ✅ **Backtest**: 76.19% winrate (LTCUSDT 1d) con gestión realista
+- ✅ **WebSocket**: Datos en tiempo real completos
+- ✅ **17 Sensores**: Mean Reversion, Momentum, Volume activos
+- ✅ **Tests**: 14/14 pasando + tests WebSocket
 - ✅ **Documentación**: Completamente actualizada
 
-### **Próxima Versión: v1.5** (Hacia Multi-Asset)
-- 🎯 **Adaptive Player** (Alta prioridad)
-- 🎯 **Dashboard Web** (Alta prioridad)
-- 🎯 **Kill-Switch** (Media prioridad)
-- 🎯 **Multi-Asset Foundation** (Objetivo final)
+### **Próxima Versión: v1.7** (Multi-Asset Foundation)
+- 🎯 **TableBacktestMultiAsset** (Alta prioridad)
+- 🎯 **Portfolio Management** (Alta prioridad)
+- 🎯 **Multi-Timeframe Analysis** (Media prioridad)
+- 🎯 **Risk Diversification** (Objetivo final)
 
 ### **Archivos Críticos para Leer Primero:**
 ```
+🚨 DEVELOPER.md                        # ⚠️ OBLIGATORIO - Leer primero
+📚 docs/workflow.md                   # Guidelines de desarrollo
 📚 docs/development/PENDIENTES.md     # Estado actual y roadmap
 📚 docs/architecture/overview.md      # Arquitectura completa
-📚 docs/workflow.md                   # Este archivo
 🧪 test_*.py                          # Tests como referencia
 ```
 
@@ -88,7 +91,7 @@ python main.py  # Cambiar config a live si se quiere probar
 git log --oneline -10
 
 # Ver cambios en rama principal
-git show-branch 1.4
+git show-branch 1.6
 ```
 
 ---
@@ -127,6 +130,7 @@ git show-branch 1.4
 ### **Organización de Archivos**
 ```
 Casino-V2/
+├── DEVELOPER.md               # 🚨 Guía obligatoria para desarrolladores
 ├── main.py                    # 🚀 Entry point principal
 ├── config.py                  # ⚙️ Configuración global del sistema
 ├── gemini/                    # 🎯 Motor de decisión probabilística
@@ -138,16 +142,15 @@ Casino-V2/
 │   ├── kelly_player.py        # Kelly Criterion conservador
 │   ├── fixed_player.py        # Tamaño fijo por trade
 │   └── paroli_player.py       # Progresión 1-4-8
-├── sensors/                   # 👁️ Detectores técnicos
+├── sensors/                   # 👁️ Detectores técnicos (17 sensores)
 │   ├── sensor_manager.py      # Coordinador de sensores
-│   ├── mean_reversion/        # Sensores de reversión media
-│   ├── momentum_trend_following/  # Sensores momentum/tendencia
-│   └── volumen_flujo_capital/     # Sensores volumen/capital
+│   ├── mean_reversion/        # 8 sensores de reversión media
+│   ├── momentum_trend_following/  # 5 sensores momentum/tendencia
+│   └── volumen_flujo_capital/     # 4 sensores volumen/capital
 ├── tables/                    # 🪙 Interfaces de exchanges
 │   ├── table_backtest.py      # Backtest sobre CSV
-│   ├── table_binance_paper.py # Binance Futures (paper/live)
-│   ├── table_kraken_paper.py  # Kraken Futures (demo)
-│   ├── table_aster_paper.py   # ASTER (paper)
+│   ├── table_ccxt_pro.py      # CCXT Pro con WebSocket (v1.6)
+│   ├── table_backtest_multiasset.py # Multi-asset backtest (v1.7)
 │   ├── balance_manager.py     # Gestión de capital
 │   └── position_tracker.py    # Gestión de posiciones abiertas
 ├── croupier/                  # 🧤 Ejecución de órdenes
@@ -158,14 +161,16 @@ Casino-V2/
 │   ├── analyze_memory.py      # Análisis de memoria
 │   ├── download_kline_dataset.py  # Descarga de datos
 │   └── [otras utilidades]
-├── docs/                      # 📚 Documentación
-│   ├── README.md              # Índice principal
+├── docs/                      # 📚 Documentación completa
+│   ├── README.md              # Overview del proyecto
 │   ├── workflow.md            # Guidelines de desarrollo
 │   ├── architecture/          # Arquitectura del sistema
-│   ├── guides/                # Guías de uso
-│   └── development/           # Desarrollo y roadmap
-└── tests/                     # 🧪 Testing
-    └── test_*.py              # Tests unitarios/integration
+│   ├── guides/                # Guías de instalación/configuración
+│   └── development/           # Roadmap y troubleshooting
+└── tests/                     # 🧪 Testing completo
+    ├── test_*.py              # Tests unitarios/integration
+    ├── test_websocket_*.py    # Tests WebSocket (v1.6)
+    └── [tests específicos]
 ```
 
 ### **Reglas de Organización por Carpeta**
@@ -463,34 +468,34 @@ python -m pytest -m "not slow"
 
 ### **Ramas Principales**
 ```
-1.4     ← Rama principal (producción)
-1.5     ← Rama de desarrollo
+1.6     ← Rama principal (producción - WebSocket completado)
+1.7     ← Rama de desarrollo (multi-asset)
 main    ← Backup (no usar)
 ```
 
 ### **Flujo de Trabajo**
 ```bash
 # 1. Actualizar rama principal
-git checkout 1.4
-git pull origin 1.4
+git checkout 1.6
+git pull origin 1.6
 
 # 2. Crear rama feature
-git checkout -b feature/adaptive-player
+git checkout -b feature/table-backtest-multiasset
 
 # 3. Desarrollo con commits descriptivos
-git commit -m "feat: Implementar Adaptive Player base"
-git commit -m "test: Agregar tests para volatilidad"
-git commit -m "docs: Documentar Adaptive Player"
+git commit -m "feat: Implementar TableBacktestMultiAsset base"
+git commit -m "test: Agregar tests para sincronización multi-asset"
+git commit -m "docs: Documentar multi-asset backtest"
 
 # 4. Push rama
-git push -u origin feature/adaptive-player
+git push -u origin feature/table-backtest-multiasset
 
-# 5. Crear Pull Request a 1.5
+# 5. Crear Pull Request a 1.7
 # GitHub: Compare & pull request
 
 # 6. Merge cuando aprobado
-git checkout 1.5
-git merge feature/adaptive-player
+git checkout 1.7
+git merge feature/table-backtest-multiasset
 ```
 
 ### **Commits Estándar**
@@ -523,8 +528,8 @@ chore: Mantenimiento (linting, etc.)
 # Actualizar versión en config.py si aplica
 # Actualizar CHANGELOG.md
 # Asegurar todos tests pasan
-git tag v1.5.0
-git push origin v1.5
+git tag v1.7.0
+git push origin 1.7
 git push origin --tags
 ```
 
@@ -535,12 +540,12 @@ git push origin --tags
 
 #### **3. Post-Release**
 ```bash
-# Merge a 1.4 si es stable
-git checkout 1.4
-git merge 1.5
+# Merge a 1.6 si es stable
+git checkout 1.6
+git merge 1.7
 
 # Crear nueva rama de desarrollo
-git checkout -b 1.6
+git checkout -b 1.8
 ```
 
 ---
@@ -548,7 +553,7 @@ git checkout -b 1.6
 ## ⚠️ REGLAS IMPORTANTES
 
 ### **NO HACER:**
-- ❌ **Commits directos a 1.4** (usar PR)
+- ❌ **Commits directos a 1.6** (usar PR)
 - ❌ **Cambios sin tests**
 - ❌ **Código sin documentación**
 - ❌ **Merge sin code review**

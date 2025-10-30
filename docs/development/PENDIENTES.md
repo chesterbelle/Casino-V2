@@ -1,6 +1,6 @@
 # 📋 PENDIENTES - Casino V2
 
-> **Versión Actual**: v1.4
+> **Versión Actual**: v1.6
 > **Enfoque**: Mejorar y fortalecer V2. Sistema completamente funcional y operativo.
 
 ---
@@ -327,7 +327,7 @@
 - ✅ Arquitectura modular sólida
 - ✅ Tests completos (14/14)
 
-**Próximo paso:** Completar **TableBacktestMultiAsset** (TableCCXTPro WebSocket Integration ✅ **COMPLETADO**)
+**Próximo paso:** Implementar **TableBacktestMultiAsset** (WebSocket Integration ✅ **COMPLETADO**)
 
 ### **Cómo empezar desarrollo:**
 ```bash
@@ -343,7 +343,7 @@ cat docs/development/PENDIENTES.md
 # Testing y documentación
 # ...
 
-# Merge a v1.5 cuando esté listo
+# Merge a v1.7 cuando esté listo
 ```
 
 **Recursos disponibles:**
@@ -357,11 +357,13 @@ cat docs/development/PENDIENTES.md
 
 ## 📝 NOTAS TÉCNICAS
 
-### **Estado del Sistema (v1.4)**
-- ✅ **Arquitectura**: Modular Gemini/Player completamente implementada
-- ✅ **Live Trading**: Operativo con Kraken Demo (posición SHORT abierta)
-- ✅ **Backtest**: 89.71% winrate validado con gestión realista de posiciones
-- ✅ **Testing**: 14/14 tests pasando
+### **Estado del Sistema (v1.6)**
+- ✅ **Arquitectura**: Modular Gemini/Player con WebSocket integration
+- ✅ **Live Trading**: Operativo multi-exchange (Hyperliquid, Binance, Kraken testnet)
+- ✅ **Backtest**: 76.19% winrate (LTCUSDT 1d) con gestión realista
+- ✅ **WebSocket**: Datos en tiempo real completos
+- ✅ **17 Sensores**: Mean Reversion, Momentum, Volume activos
+- ✅ **Testing**: 14/14 tests pasando + tests WebSocket
 - ✅ **Documentación**: Completamente actualizada y organizada
 
 ### **Decisiones Arquitectónicas**
