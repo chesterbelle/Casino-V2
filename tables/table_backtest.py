@@ -40,8 +40,9 @@ from typing import List, Dict, Optional, Tuple
 
 import config
 from .balance_manager import BalanceManager
+from .table_base import BaseTable
 
-class TableBacktest:
+class TableBacktest(BaseTable):
     """
     Backtest secuencial vela-por-vela.
     next_candle() avanza un índice interno.
