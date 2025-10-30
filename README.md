@@ -117,26 +117,14 @@ Casino V2 es un **motor de trading probabilístico avanzado** diseñado para:
 
 ### 🚀 Para Empezar
 - [Quick Start](docs/guides/quickstart.md) - Primeros pasos en 5 minutos
-- [Configuración](docs/guides/configuration.md) - Configurar el sistema
-- [Backtesting](docs/guides/backtest.md) - Hacer backtests
-
-### 📈 Trading
-- [Live Trading](docs/guides/live-trading.md) - Paper/Real trading
 - [Crear Players](docs/guides/creating-players.md) - Custom sizing strategies
 
 ### 🏗️ Arquitectura
 - [Overview](docs/architecture/overview.md) - Visión general
 - [Gemini/Player](docs/architecture/gemini-player.md) - Separación de responsabilidades
 
-### 📚 Referencia
-- [Config Reference](docs/reference/config-reference.md) - Todas las configuraciones
-- [API Gemini](docs/reference/api-gemini.md) - API de validación
-- [API Players](docs/reference/api-players.md) - API de sizing
-
 ### 🛠️ Desarrollo
-- [Contributing](docs/development/contributing.md) - Guía de contribución
-- [Testing](docs/development/testing.md) - Tests y validación
-- [Roadmap](docs/development/PENDIENTES.md) - Pendientes y features
+- [Roadmap](docs/development/PENDIENTES.md) - Estado actual y features pendientes
 
 ---
 
@@ -252,7 +240,7 @@ MIN_SUPPORT = 500            # Mínimo trades para aprobar
 MEMORY_WINDOW = 500          # Ventana por estrategia
 ```
 
-**📖 [Ver configuración completa →](docs/guides/configuration.md)**
+**📖 [Ver ejemplos de configuración en el código →](config.py)**
 
 ---
 
@@ -283,19 +271,6 @@ python3 -m utils.test_aster_connection --symbol BTCUSDT --interval 1m
 
 ## 🗺️ Roadmap
 
-### ✅ Completado (v0.1.2)
-- Arquitectura modular Gemini/Player
-- Kelly y Fixed Players
-- Sistema de memoria con aprendizaje
-- Backtesting robusto (fees/slippage/funding)
-- Live trading (Binance/Kraken/ASTERDEx)
-- Tests automatizados (14/14 passing)
-
-### 🔜 Próximas Features
-- **Adaptive Player** - Ajusta Kelly por volatilidad
-- **Regime Player** - Detecta bull/bear/sideways
-- **Dashboard Web** - Análisis visual de resultados
-- **Multi-Player Mode** - Comparar strategies en paralelo
 
 **📖 [Ver roadmap completo →](docs/development/PENDIENTES.md)**
 
@@ -311,7 +286,7 @@ python3 -m utils.test_aster_connection --symbol BTCUSDT --interval 1m
 4. Push: `git push origin feature/mi-feature`
 5. Abre un Pull Request
 
-**📖 [Ver guía de contribución →](docs/development/contributing.md)**
+**📖 [Ver ejemplos en el código y tests →](test_phase1.py)**
 
 ---
 
