@@ -14,53 +14,72 @@ DEFAULT_BASE_URL = "https://demo-futures.kraken.com/derivatives/api/"
 DEFAULT_CHARTS_URL = "https://demo-futures.kraken.com/api/charts/v1/"
 
 
-def load_kraken_credentials(test_connection: bool = False) -> Dict[str, str]:
+def load_kraken_config() -> Dict[str, str]:
     """
-    Carga credenciales y URLs para Kraken Futures desde `.env` o `config.py`.
+    Load Kraken configuration from environment variables.
+
+    Expected environment variables:
+    - KRAKEN_FUTURES_API_KEY: Your Kraken API key
+    - KRAKEN_FUTURES_API_SECRET: Your Kraken API secret
+
+    Returns:
+        Dict with Kraken configuration
     """
     logger = logging.getLogger("KrakenEnvLoader")
 
-    env_path = os.path.join(os.getcwd(), ".env")
+    # Load .env file if available
+    env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
     if os.path.exists(env_path):
         load_dotenv(env_path)
         logger.info("Archivo .env encontrado en la raíz del proyecto: %s", env_path)
+
+    # Load API credentials
+    api_key = os.getenv('KRAKEN_FUTURES_API_KEY')
+    api_secret = os.getenv('KRAKEN_FUTURES_API_SECRET')
+
+    if api_key:
+        logger.info("✅ Kraken API key loaded")
     else:
-        logger.warning("No se encontró archivo .env en la raíz del proyecto.")
+        logger.warning("⚠️ KRAKEN_FUTURES_API_KEY not found in environment variables")
 
-    import config  # noqa: WPS433  # deferred import to honour runtime config
+    if api_secret:
+        logger.info("✅ Kraken API secret loaded")
+    else:
+        logger.warning("⚠️ KRAKEN_FUTURES_API_SECRET not found in environment variables")
 
-    api_key = os.getenv("KRAKEN_FUTURES_API_KEY") or getattr(config, "KRAKEN_FUTURES_API_KEY", None)
-    api_secret = os.getenv("KRAKEN_FUTURES_API_SECRET") or getattr(config, "KRAKEN_FUTURES_API_SECRET", None)
-    base_url = (os.getenv("KRAKEN_FUTURES_BASE_URL") or getattr(config, "KRAKEN_FUTURES_BASE_URL", DEFAULT_BASE_URL)).rstrip("/") + "/"
-    charts_url = (os.getenv("KRAKEN_FUTURES_CHARTS_URL") or getattr(config, "KRAKEN_FUTURES_CHARTS_URL", DEFAULT_CHARTS_URL)).rstrip("/") + "/"
-
-    if not api_key or not api_secret:
-        logger.warning("Claves de Kraken Futures incompletas; se deshabilitan llamadas privadas.")
-
-    connected = False
-    if test_connection and api_key and api_secret:
-        from utils.kraken_futures_client import KrakenFuturesClient  # local import to avoid circulars
-
-        try:
-            client = KrakenFuturesClient(
-                api_key=api_key,
-                api_secret=api_secret,
-                base_url=base_url,
-                charts_url=charts_url,
-            )
-            client.get_accounts()
-            connected = True
-            logger.info("Kraken Futures API responde correctamente (accounts).")
-        except Exception as exc:
-            logger.error("Error validando credenciales de Kraken Futures: %s", exc)
-
-    return {
-        "api_key": api_key,
-        "api_secret": api_secret,
-        "base_url": base_url,
-        "charts_url": charts_url,
-        "connected": connected,
+    # Load additional configuration
+    config = {
+        'api_key': api_key,
+        'api_secret': api_secret,
+        'base_url': os.getenv('KRAKEN_FUTURES_BASE_URL', DEFAULT_BASE_URL),
+        'charts_url': os.getenv('KRAKEN_FUTURES_CHARTS_URL', DEFAULT_CHARTS_URL),
+        'testnet': True,  # Always demo for safety
     }
+
+    return config
+
+
+def validate_kraken_config(config: Dict[str, str]) -> bool:
+    """
+    Validate Kraken configuration.
+
+    Args:
+        config: Configuration dictionary
+
+    Returns:
+        True if configuration is valid for trading
+    """
+    logger = logging.getLogger("KrakenEnvLoader")
+
+    required_fields = ['api_key', 'api_secret']
+
+    for field in required_fields:
+        if not config.get(field):
+            logger.error(f"❌ Missing required Kraken config: {field}")
+            return False
+
+    logger.info("✅ Kraken configuration validated")
+    return True
 
 
 if __name__ == "__main__":

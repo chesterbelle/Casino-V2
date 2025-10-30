@@ -17,7 +17,7 @@ Gemini, el Croupier y las Mesas leerán de aquí directamente.
 # Puede ser:
 #  - "backtest"  → usa dataset CSV y simula operaciones
 #  - "live"      → se conecta a un exchange real o de paper trading
-MODE = "live"
+MODE = "backtest"
 
 # Perfil del exchange (usa el JSON de tables/data/exchange_profiles)
 # Opciones: "asterdex_paper", "kraken_futures_demo", "binance_futures_testnet", "hyperliquid"
@@ -25,7 +25,7 @@ EXCHANGE_PROFILE = "hyperliquid"
 
 # Exchange a utilizar en modo "live"
 # Opciones: "ASTER_PAPER", "KRAKEN_DEMO", "BINANCE_FUTURES_TESTNET", "HYPERLIQUID"
-EXCHANGE = "HYPERLIQUID"
+EXCHANGE = "KRAKEN_DEMO"
 
 # Ruta del dataset CSV (para modo backtest) — se utiliza tanto para Gemini
 # como para Oscar. Cambia este archivo para alternar rápidamente entre datasets.

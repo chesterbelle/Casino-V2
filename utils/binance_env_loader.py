@@ -1,93 +1,125 @@
 """
-====================================================
-🔐 Binance Env Loader — Cargador y Validador de Claves API
-====================================================
-
-Rol:
-----
-• Carga las claves API de Binance desde `.env` o `config.py`.
-• Valida la conexión con Binance Futures Testnet (opcional).
-• Devuelve un diccionario estándar con las claves y URLs.
-
-====================================================
-🔧 Configuración esperada:
---------------------------
-Archivo .env (en la raíz del repo):
-
-    BINANCE_API_KEY=tu_api_key_testnet
-    BINANCE_API_SECRET=tu_api_secret_testnet
-
-Opcionalmente puedes definir las mismas variables en config.py
+Binance Environment Loader
+Loads API credentials and configuration from environment variables for Binance exchange.
 """
 
 import os
 import logging
-import sys
-from pathlib import Path
-from typing import Dict
+from typing import Optional, Dict, Any
 
-from dotenv import load_dotenv
+try:
+    from dotenv import load_dotenv
+    DOTENV_AVAILABLE = True
+except ImportError:
+    DOTENV_AVAILABLE = False
 
-
-def _ensure_project_root() -> None:
-    root = Path(__file__).resolve().parent.parent
-    if str(root) not in sys.path:
-        sys.path.insert(0, str(root))
+logger = logging.getLogger(__name__)
 
 
-_ensure_project_root()
-
-from utils.binance_futures_client import BinanceFuturesClient, BinanceFuturesAPIError  # noqa: E402
-import config  # noqa: E402
-
-def load_binance_credentials(test_connection: bool = False) -> Dict[str, str]:
+def load_binance_config() -> Dict[str, Any]:
     """
-    Carga las credenciales de Binance API desde .env o config.py
-    y valida la conexión si se solicita.
+    Load Binance configuration from environment variables.
 
-    Retorna:
-    --------
-    {
-        "api_key": str | None,
-        "api_secret": str | None,
-        "base_url": str,
-        "connected": bool
-    }
+    Expected environment variables:
+    - BINANCE_API_KEY: Your Binance API key
+    - BINANCE_API_SECRET: Your Binance API secret
+
+    Returns:
+        Dict with Binance configuration
     """
-    logger = logging.getLogger("BinanceEnvLoader")
+    # Load .env file if available
+    if DOTENV_AVAILABLE:
+        env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
+        if os.path.exists(env_path):
+            load_dotenv(env_path)
+            logger.info("Archivo .env encontrado en la raíz del proyecto: %s", env_path)
 
-    env_path = os.path.join(os.getcwd(), ".env")
-    if os.path.exists(env_path):
-        load_dotenv(env_path)
+    config = {}
 
-    api_key = os.getenv("BINANCE_API_KEY") or getattr(config, "BINANCE_API_KEY", None)
-    api_secret = os.getenv("BINANCE_API_SECRET") or getattr(config, "BINANCE_API_SECRET", None)
-    base_url = getattr(config, "BINANCE_BASE_URL", "https://testnet.binancefuture.com")
+    # Load API credentials
+    api_key = os.getenv('BINANCE_API_KEY')
+    api_secret = os.getenv('BINANCE_API_SECRET')
 
-    connected = False
-    if not api_key or not api_secret:
-        logger.warning("🔑 Claves API de Binance no configuradas. No se puede conectar.")
-    elif test_connection:
-        try:
-            client = BinanceFuturesClient(api_key=api_key, api_secret=api_secret, base_url=base_url)
-            client.get_account_balance()
-            connected = True
-            logger.info("✅ Conexión válida con Binance Futures Testnet API.")
-        except BinanceFuturesAPIError as e:
-            logger.error(f"❌ Error probando conexión con Binance: {e}")
+    if api_key:
+        config['api_key'] = api_key
+        logger.info("✅ Binance API key loaded")
     else:
-        logger.info("🔌 Claves de Binance cargadas (sin test de conexión).")
+        logger.warning("⚠️ BINANCE_API_KEY not found in environment variables")
+
+    if api_secret:
+        config['api_secret'] = api_secret
+        logger.info("✅ Binance API secret loaded")
+    else:
+        logger.warning("⚠️ BINANCE_API_SECRET not found in environment variables")
+
+    # Load additional configuration
+    config.update({
+        'base_url': os.getenv('BINANCE_BASE_URL', 'https://testnet.binancefuture.com'),
+        'timeout': int(os.getenv('BINANCE_TIMEOUT', '30000')),  # 30 seconds
+        'testnet': True,  # Always testnet for safety
+    })
+
+    return config
+
+
+def validate_binance_config(config: Dict[str, Any]) -> bool:
+    """
+    Validate Binance configuration.
+
+    Args:
+        config: Configuration dictionary
+
+    Returns:
+        True if configuration is valid for trading
+    """
+    required_fields = ['api_key', 'api_secret']
+
+    for field in required_fields:
+        if not config.get(field):
+            logger.error(f"❌ Missing required Binance config: {field}")
+            return False
+
+    logger.info("✅ Binance configuration validated")
+    return True
+
+
+def get_binance_credentials() -> Optional[Dict[str, str]]:
+    """
+    Get Binance API credentials in the format expected by CCXT.
+
+    Returns:
+        Dict with 'apiKey' and 'secret', or None if not configured
+    """
+    config = load_binance_config()
+
+    if not validate_binance_config(config):
+        return None
 
     return {
-        "api_key": api_key,
-        "api_secret": api_secret,
-        "base_url": base_url,
-        "connected": connected
+        'apiKey': config['api_key'],
+        'secret': config['api_secret'],
     }
 
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
-    creds = load_binance_credentials(test_connection=True)
-    print("\n🔍 Resultado:")
-    for k, v in creds.items():
-        print(f"  {k}: {v}")
+
+if __name__ == '__main__':
+    # Test the loader
+    print("🔍 Testing Binance environment loader...")
+
+    config = load_binance_config()
+    print(f"Config loaded: {bool(config)}")
+
+    if config:
+        print(f"API Key configured: {bool(config.get('api_key'))}")
+        print(f"API Secret configured: {bool(config.get('api_secret'))}")
+        print(f"Testnet: {config.get('testnet', False)}")
+
+        is_valid = validate_binance_config(config)
+        print(f"Configuration valid: {is_valid}")
+
+        credentials = get_binance_credentials()
+        if credentials:
+            print("✅ Credentials ready for CCXT")
+        else:
+            print("❌ Credentials not available")
+    else:
+        print("❌ No configuration found")

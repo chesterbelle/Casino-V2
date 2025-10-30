@@ -528,13 +528,13 @@ def print_session_summary(stats: Dict) -> None:
 # 🚀 ENTRYPOINT
 # ============================================================
 def main() -> None:
-    """Main con soporte para múltiples players y modos multi-asset"""
+    """Main unificado: detecta MODE de config y ejecuta live o backtest"""
     mode = getattr(config, "MODE", "backtest").lower()
 
     player_name = DEFAULT_PLAYER
     multi_asset_config = None
 
-    # Parsear argumentos
+    # Parsear argumentos de línea de comandos
     if len(sys.argv) > 1:
         for arg in sys.argv[1:]:
             arg = arg.lower()
@@ -552,15 +552,47 @@ def main() -> None:
 
     player_module = AVAILABLE_PLAYERS[player_name]
 
+    # =====================================================
+    # 🎯 DETECCIÓN AUTOMÁTICA DE MODO
+    # =====================================================
+
     if mode == "live":
-        print("\n🎰 Casino V2 — Live/Paper Trading\n")
+        print("\n🎰 Casino V2 — Live Trading (Testnet)\n")
         print(f"🎮 Player seleccionado: {player_name.upper()}")
+        print(f"🏦 Exchange: {getattr(config, 'EXCHANGE', 'HYPERLIQUID')}")
+
+        # Verificar credenciales antes de iniciar
+        exchange = getattr(config, 'EXCHANGE', 'HYPERLIQUID')
+        if exchange == 'HYPERLIQUID':
+            from utils.hyperliquid_env_loader import validate_hyperliquid_config, load_hyperliquid_config
+            if not validate_hyperliquid_config(load_hyperliquid_config()):
+                print("❌ Credenciales de Hyperliquid no configuradas.")
+                print("Configura HYPERLIQUID_API_KEY y HYPERLIQUID_API_SECRET en tu .env")
+                return
+        elif exchange == 'BINANCE_FUTURES_TESTNET':
+            from utils.binance_env_loader import validate_binance_config, load_binance_config
+            if not validate_binance_config(load_binance_config()):
+                print("❌ Credenciales de Binance no configuradas.")
+                print("Configura BINANCE_API_KEY y BINANCE_API_SECRET en tu .env")
+                return
+        elif exchange == 'KRAKEN_DEMO':
+            from utils.kraken_env_loader import validate_kraken_config, load_kraken_config
+            if not validate_kraken_config(load_kraken_config()):
+                print("❌ Credenciales de Kraken no configuradas.")
+                print("Configura KRAKEN_API_KEY y KRAKEN_API_SECRET en tu .env")
+                return
+
+        # Ejecutar live session integrada
         run_live_session(symbol=None, interval=None, player_module=player_module, player_name=player_name)
         return
 
-    print("\n🎰 Bienvenido al Casino V2 — Arquitectura Multi-Asset\n")
+    # =====================================================
+    # 📊 MODO BACKTEST
+    # =====================================================
 
-    # Configurar modo
+    print("\n🎰 Casino V2 — Backtest Mode\n")
+
+    # Configurar modo backtest
     if mode == "multi_asset_backtest":
         print("🔄 MODO: Multi-Asset Backtest")
         # Configuración multi-asset desde config
@@ -578,6 +610,7 @@ def main() -> None:
         dataset_path = getattr(config, "DATASET_PATH", "tables/data/raw/BTCUSDT_1m__30d.csv")
 
     print(f"🎮 Player seleccionado: {player_name.upper()}")
+    print(f"📁 Dataset: {dataset_path}")
 
     # Configuración de sesión
     initial_balance = ask_initial_balance()
