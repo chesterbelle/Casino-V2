@@ -116,8 +116,8 @@ git show-branch 1.4
 
 ### **Paso 4: Merge**
 1. ✅ **Squash commits** - Historia limpia
-2. ✅ **Merge a 1.5** - Pull request con descripción
-3. ✅ **Actualizar docs** - PENDIENTES.md y changelog
+2. ✅ **Merge a 1.7** - Pull request con descripción
+3. ✅ **Actualizar docs** - PENDIENTES.md, changelog, COMPLETED_FEATURES.md
 4. ✅ **Tag release** - Si es milestone importante
 
 ---
@@ -435,6 +435,7 @@ python -m pytest -m "not slow"
 #### **1. Nuevas Features**
 - ✅ Crear archivo en `docs/`
 - ✅ Actualizar `PENDIENTES.md`
+- ✅ **Actualizar `COMPLETED_FEATURES.md`** - Registrar feature completada
 - ✅ Agregar ejemplos de uso
 
 #### **2. Cambios en API**
@@ -447,6 +448,11 @@ python -m pytest -m "not slow"
 - ✅ Actualizar CHANGELOG.md
 - ✅ Notificar impacto
 
+#### **4. Mejoras de Documentación**
+- ✅ **Actualizar `DOCUMENTATION_HISTORY.md`** - Registrar cambios en docs
+- ✅ Documentar qué se cambió y por qué
+- ✅ Mantener historial de evolución
+
 ### **Dónde Documentar:**
 
 | Tipo de Cambio | Archivo | Ejemplo |
@@ -455,6 +461,8 @@ python -m pytest -m "not slow"
 | Arquitectura | `docs/architecture/` | `docs/architecture/position-management.md` |
 | API cambio | `docs/reference/` | `docs/reference/api-players.md` |
 | Roadmap | `docs/development/PENDIENTES.md` | Marcar completado |
+| **Feature completada** | `docs/development/COMPLETED_FEATURES.md` | Registrar nueva feature |
+| **Docs mejorada** | `docs/development/DOCUMENTATION_HISTORY.md` | Registrar cambios |
 | Release | `docs/CHANGELOG.md` | Nueva versión |
 
 ---
@@ -557,6 +565,16 @@ git checkout -b 1.8
 >
 > **Campos a sincronizar:** versión, estado del proyecto, ramas Git, prioridades, arquitectura
 
+### **REGLA DE REGISTRO: MANTENIMIENTO DE HISTORIALES**
+> **Cada cambio debe registrarse en el archivo correspondiente:**
+>
+> - ✅ **Nueva feature implementada** → `COMPLETED_FEATURES.md`
+> - ✅ **Mejora de documentación** → `DOCUMENTATION_HISTORY.md`
+> - ✅ **Cambio de versión** → Ambos archivos
+> - ✅ **Nuevo archivo creado** → `DOCUMENTATION_HISTORY.md`
+>
+> **Esto asegura trazabilidad completa y evita perder conocimiento histórico.**
+
 ### **NO HACER:**
 - ❌ **Commits directos a 1.6** (usar PR a 1.7)
 - ❌ **Cambios sin tests**
@@ -570,6 +588,8 @@ git checkout -b 1.8
 - ✅ **Documentar cambios**
 - ✅ **Code review para merges**
 - ✅ **Mantener sincronizados los 4 archivos pilares**
+- ✅ **Registrar features completadas en `COMPLETED_FEATURES.md`**
+- ✅ **Registrar mejoras de docs en `DOCUMENTATION_HISTORY.md`**
 
 ---
 

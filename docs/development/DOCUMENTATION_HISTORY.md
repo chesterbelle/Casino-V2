@@ -298,5 +298,27 @@ La documentación de Casino V2 ha sido **completamente renovada**:
 
 ---
 
-*Documentado por: Sistema de Documentación Casino V2*  
-*Fecha: Enero 2025*
+---
+
+## 📝 **Plantilla para Registrar Cambios de Documentación**
+
+### **Formato para nuevas entradas:**
+
+```markdown
+### **[Fecha] - [Tipo de Cambio]**
+**Archivos:** [Archivos modificados]
+**Motivo:** [Por qué se cambió]
+
+#### **Cambios Realizados:**
+- [Detalle específico del cambio]
+- [Otro cambio si aplica]
+
+#### **Impacto:**
+- [Cómo mejora la documentación]
+- [Beneficios para usuarios/desarrolladores]
+```
+
+---
+
+*Sistema de Documentación Casino V2*
+*Última actualización: Octubre 2025*

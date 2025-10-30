@@ -370,4 +370,32 @@ python3 -m utils.cli full-pipeline
 
 ---
 
-*Última actualización: Enero 2025*
+---
+
+## 📝 **Plantilla para Registrar Nuevas Features**
+
+### **Formato para nuevas entradas:**
+
+```markdown
+### **v[X.Y] - [Nombre de Feature]**
+**Fecha:** [Fecha de completado]
+**Tipo:** [Nueva Feature/Mejora/Refactor]
+
+#### **Descripción:**
+- [Qué se implementó]
+
+#### **Archivos Afectados:**
+- `ruta/archivo.py` - [Qué cambió]
+- `docs/archivo.md` - [Documentación]
+
+#### **Tests Agregados:**
+- `tests/test_feature.py` - [Cobertura]
+
+#### **Impacto:**
+- [Cómo afecta al sistema]
+- [Beneficios obtenidos]
+```
+
+---
+
+*Última actualización: Octubre 2025*
