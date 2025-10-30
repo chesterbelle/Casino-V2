@@ -109,7 +109,55 @@
 
 ---
 
-## 🎯 ROADMAP v1.5+
+## 🎯 ROADMAP v1.7 (Próxima Versión)
+
+**📖 [Roadmap v1.7 Detallado →](ROADMAP_V1.7.md)**
+
+### **Fase 1: Multi-Asset Backtest** (2-3 semanas)
+1. **TableBacktestMultiAsset** ⭐⭐⭐
+   - Sincronización temporal precisa entre símbolos
+   - Balance portfolio unificado
+   - Position tracking por símbolo
+   - Gestión realista de posiciones concurrentes
+
+2. **Portfolio Balance Manager** ⭐⭐⭐
+   - Balance total del portfolio
+   - Equity por símbolo
+   - Risk allocation por asset
+
+3. **Multi-Asset Position Tracker** ⭐⭐⭐
+   - Posiciones abiertas por símbolo
+   - Capital bloqueado total
+   - P&L por asset y portfolio
+
+### **Fase 2: Multi-Timeframe Analysis** (1-2 semanas)
+4. **Multi-Timeframe Sensors** ⭐⭐
+   - Higher TF context para decisiones
+   - Trend confirmation across TFs
+   - Volatility analysis multi-TF
+
+5. **Timeframe Synchronization** ⭐⭐
+   - Sincronización de datos entre timeframes
+
+### **Fase 3: Risk Management Multi-Asset** (1 semana)
+6. **Portfolio Risk Controls** ⭐⭐
+   - Maximum portfolio drawdown
+   - Correlation limits entre assets
+   - Dynamic position sizing
+
+7. **Diversification Engine** ⭐⭐
+   - Optimización automática de diversificación
+
+### **Fase 4: Integration & Testing** (1 semana)
+8. **Live Multi-Asset Trading** ⭐⭐⭐
+   - Extensión de WebSocket para múltiples símbolos
+
+9. **Comprehensive Testing** ⭐⭐⭐
+   - Tests exhaustivos del sistema multi-asset
+
+---
+
+## 🎯 ROADMAP v1.5+ (Legacy - Completado)
 
 ### **Fase 1: Core Features** (2-3 semanas)
 1. **Adaptive Player** ⭐⭐⭐

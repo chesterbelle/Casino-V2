@@ -2,27 +2,54 @@
 
 > Sistema de trading modular basado en ventaja estadística, no en predicción.
 
-[![Version](https://img.shields.io/badge/Versión-0.1.2-blue)](docs/CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Versión-1.6-blue)](docs/CHANGELOG.md)
 [![Python](https://img.shields.io/badge/Python-3.10+-green)](https://python.org)
 [![Tests](https://img.shields.io/badge/Tests-14/14_passing-brightgreen)](test_phase1.py)
+[![Live Trading](https://img.shields.io/badge/Live-Trading_Supported-success)](docs/guides/hyperliquid_setup.md)
+
+## 🚨 Para Desarrolladores
+
+> **⚠️ IMPORTANTE**: Si vas a contribuir código, lee **[DEVELOPER.md](DEVELOPER.md)** ANTES de empezar. Es obligatorio.
 
 
 ---
 
 ## 🚀 Quick Start
 
+### **Opción A: Backtest (Recomendado para empezar)**
+
 ```bash
 # 1. Instalar dependencias
 pip install -r requirements.txt
 
-# 2. Ejecutar primer backtest
-python main.py
+# 2. Configurar modo backtest
+# Editar config.py:
+MODE = "backtest"
+DATASET_PATH = "tables/data/raw/LTCUSDT_1m__1d.csv"
 
-# 3. Probar con Fixed Player
-python main.py --player=fixed
+# 3. Ejecutar backtest
+python main.py
 ```
 
-**📖 [Guía completa de inicio →](docs/guides/quickstart.md)**
+### **Opción B: Live Trading (Testnet)**
+
+```bash
+# 1. Configurar credenciales en .env
+echo "HYPERLIQUID_API_KEY=tu_api_key" >> .env
+echo "HYPERLIQUID_API_SECRET=tu_secret" >> .env
+
+# 2. Configurar modo live
+# Editar config.py:
+MODE = "live"
+EXCHANGE = "HYPERLIQUID"
+
+# 3. Ejecutar live trading
+python main.py
+```
+
+**📖 [Guía completa de instalación →](docs/guides/installation.md)**
+
+**📖 [Tutorial paso a paso →](docs/guides/getting-started.md)**
 
 ---
 
@@ -30,12 +57,20 @@ python main.py --player=fixed
 
 Casino V2 es un **motor de trading probabilístico avanzado** diseñado para:
 
-### **🎯 Visión Principal**
-- **🎰 Multi-Asset Trading**: Operar múltiples criptomonedas simultáneamente en un mismo exchange
-- **⏱️ Multi-Timeframe Analysis**: Analizar diferentes marcos temporales concurrentemente
-- **🔄 Real-Time Processing**: Procesar flujos de velas en tiempo real para todas las parejas
-- **🎯 Sensor-Driven Decisions**: Tomar decisiones de trading basadas en señales técnicas por activo
-- **💰 Unified Risk Management**: Gestionar capital y riesgo de manera holística across assets
+### **🎯 Estado Actual (v1.6)**
+- ✅ **Arquitectura Unificada**: Un solo `main.py` para live y backtest
+- ✅ **Multi-Exchange Testnet**: Hyperliquid, Binance, Kraken
+- ✅ **WebSocket Integration**: Datos en tiempo real completos
+- ✅ **17 Sensores Activos**: Mean Reversion, Momentum, Volume
+- ✅ **Sistema de Memoria**: Aprendizaje bayesiano funcional
+- ✅ **Risk Management**: Conservador y probado
+
+### **🚀 Visión Futura (v1.7+)**
+- **🎰 Multi-Asset Trading**: Operar múltiples criptomonedas simultáneamente
+- **⏱️ Multi-Timeframe Analysis**: Analizar diferentes marcos temporales
+- **🔄 Real-Time Processing**: Procesar flujos de velas concurrentemente
+- **🎯 Sensor-Driven Decisions**: Señales técnicas por activo
+- **💰 Unified Risk Management**: Gestión holística del portfolio
 
 ### **🔬 Enfoque Probabilístico**
 - ✅ No intenta predecir el mercado
@@ -66,8 +101,10 @@ Casino V2 es un **motor de trading probabilístico avanzado** diseñado para:
 
 ### Trading
 - 📊 **Backtesting Robusto** - Fees, slippage, funding, liquidaciones
-- 📈 **Live Trading** - Binance, Kraken, ASTERDEx (paper/real)
+- 📈 **Live Trading Testnet** - Hyperliquid, Binance, Kraken (testnet)
+- 🔌 **WebSocket Integration** - Datos en tiempo real eficientes
 - 👻 **GHOST Trades** - Entrena sin riesgo cuando no hay datos
+- 🎯 **Multi-Exchange Support** - Tres exchanges principales
 
 ### Análisis
 - 📝 **Decision Logging** - Log detallado de cada decisión
@@ -116,52 +153,84 @@ Casino V2 es un **motor de trading probabilístico avanzado** diseñado para:
 ## 📖 Documentación
 
 ### 🚀 Para Empezar
-- [Quick Start](docs/guides/quickstart.md) - Primeros pasos en 5 minutos
-- [Configuración](docs/guides/configuration.md) - Configurar el sistema
-- [Backtesting](docs/guides/backtest.md) - Hacer backtests
+- [Instalación Completa](docs/guides/installation.md) - Setup desde cero
+- [Primeros Pasos](docs/guides/getting-started.md) - Tutorial paso a paso
+- [Configuración Básica](docs/guides/configuration.md) - Config inicial
 
 ### 📈 Trading
-- [Live Trading](docs/guides/live-trading.md) - Paper/Real trading
+- [Backtesting](docs/guides/backtesting.md) - Estrategias de simulación
+- [Live Trading](docs/guides/live-trading.md) - Trading en testnet
+- [Multi-Exchange Setup](docs/guides/exchange-setup.md) - Configurar exchanges
 - [Crear Players](docs/guides/creating-players.md) - Custom sizing strategies
 
 ### 🏗️ Arquitectura
-- [Overview](docs/architecture/overview.md) - Visión general
+- [Sistema Completo](docs/architecture/overview.md) - Arquitectura v1.6
 - [Gemini/Player](docs/architecture/gemini-player.md) - Separación de responsabilidades
+- [WebSocket Integration](docs/architecture/websocket-integration.md) - Datos en tiempo real
 
 ### 📚 Referencia
 - [Config Reference](docs/reference/config-reference.md) - Todas las configuraciones
 - [API Gemini](docs/reference/api-gemini.md) - API de validación
 - [API Players](docs/reference/api-players.md) - API de sizing
+- [Sensores](docs/reference/sensors.md) - Guía de indicadores
 
 ### 🛠️ Desarrollo
 - [Contributing](docs/development/contributing.md) - Guía de contribución
 - [Testing](docs/development/testing.md) - Tests y validación
+- [Troubleshooting](docs/development/troubleshooting.md) - Solución de problemas
 - [Roadmap](docs/development/PENDIENTES.md) - Pendientes y features
 
 ---
 
 ## 🎯 Ejemplos
 
-### Backtest Básico (Kelly Player)
+### Backtest Básico (v1.6)
 
 ```bash
+# Configurar en config.py
+MODE = "backtest"
+DATASET_PATH = "tables/data/raw/LTCUSDT_1m__1d.csv"
+
+# Ejecutar
 python main.py
 ```
 
-**Salida:**
+**Salida de ejemplo:**
 ```
-🎰 CASINO V2 - BACKTEST
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-💰 Balance final: 10,542.33 USDT (+5.42%)
-🏆 Winrate: 57.6%
-⚙️ Trades: 182 (155 BET + 27 GHOST)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎰 Casino V2 — Backtest Mode
+🔄 MODO: Single-Asset Backtest
+🎮 Player seleccionado: PAROLI
+📁 Dataset: tables/data/raw/LTCUSDT_1m__1d.csv
+
+🟢 Iniciando sesión: backtest
+============================================================
+📌 Dataset: LTCUSDT_1m__1d.csv
+🎮 Player:  PAROLI
+------------------------------------------------------------
+   Balance inicial       : 10000.00
+   Velas procesadas      : 1440
+   Trades BET            : 21
+   Trades GHOST          : 774
+   Trades SKIP           : 1344
+   Wins / Losses         : 16 / 5
+   WinRate (BET)         : 76.19%
+   Comisiones totales    : 0.00
+   Funding total         : 0.00
+   Liquidaciones         : 0
+   Balance final         : 10002.08
+   PnL Total             : +2.08 (+0.02%)
+============================================================
 ```
 
-### Backtest con Fixed Player
+### Live Trading (Testnet)
 
 ```bash
-python main.py --player=fixed
+# Configurar en config.py
+MODE = "live"
+EXCHANGE = "HYPERLIQUID"  # o "BINANCE_FUTURES_TESTNET" o "KRAKEN_DEMO"
+
+# Ejecutar
+python main.py
 ```
 
 ### Crear Custom Player
@@ -283,19 +352,23 @@ python3 -m utils.test_aster_connection --symbol BTCUSDT --interval 1m
 
 ## 🗺️ Roadmap
 
-### ✅ Completado (v0.1.2)
-- Arquitectura modular Gemini/Player
-- Kelly y Fixed Players
-- Sistema de memoria con aprendizaje
-- Backtesting robusto (fees/slippage/funding)
-- Live trading (Binance/Kraken/ASTERDEx)
-- Tests automatizados (14/14 passing)
+### ✅ Completado (v1.6)
+- ✅ Arquitectura unificada main.py
+- ✅ Multi-exchange testnet (Hyperliquid, Binance, Kraken)
+- ✅ WebSocket integration completa
+- ✅ 17 sensores técnicos activos
+- ✅ Sistema de memoria bayesiano
+- ✅ Risk management conservador
+- ✅ Tests automatizados (14/14 passing)
 
-### 🔜 Próximas Features
-- **Adaptive Player** - Ajusta Kelly por volatilidad
-- **Regime Player** - Detecta bull/bear/sideways
-- **Dashboard Web** - Análisis visual de resultados
-- **Multi-Player Mode** - Comparar strategies en paralelo
+### 🔜 Próximas Features (v1.7)
+- **Multi-Asset Trading** - Múltiples criptos simultáneas
+- **Portfolio Management** - Balance unificado across assets
+- **Multi-Timeframe Analysis** - Análisis concurrente
+- **Risk Diversification** - Gestión de correlación
+- **Live Multi-Asset** - Trading simultáneo en testnet
+
+**📖 [Roadmap v1.7 Completo →](docs/development/ROADMAP_V1.7.md)**
 
 **📖 [Ver roadmap completo →](docs/development/PENDIENTES.md)**
 
@@ -317,10 +390,13 @@ python3 -m utils.test_aster_connection --symbol BTCUSDT --interval 1m
 
 ## 📝 Changelog
 
-**v0.1.2** (Actual)
-- ✅ Mejoras de calidad de código (3 fixes)
-- ✅ Migración a arquitectura modular
-- ✅ Tests actualizados (14/14)
+**v1.6** (Actual)
+- ✅ Arquitectura unificada main.py
+- ✅ Multi-exchange testnet (3 exchanges)
+- ✅ WebSocket integration completa
+- ✅ 17 sensores técnicos implementados
+- ✅ Sistema de memoria bayesiano funcional
+- ✅ Risk management conservador probado
 
 **📖 [Ver changelog completo →](docs/CHANGELOG.md)**
 
