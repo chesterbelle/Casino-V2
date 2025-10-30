@@ -36,8 +36,9 @@ import ccxt.async_support as ccxt_async
 
 from .balance_manager import BalanceManager
 from .position_tracker import PositionTracker
+from .table_base import BaseTable
 
-class TableCCXTPro:
+class TableCCXTPro(BaseTable):
     """
     Mesa multi-asset usando CCXT Pro para live trading.
 
