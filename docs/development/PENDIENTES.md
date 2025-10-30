@@ -1,15 +1,33 @@
 # 📋 PENDIENTES - Casino V2
 
 > **Versión Actual**: v1.6
-> **Enfoque**: Multi-Asset Foundation - Próxima fase de evolución
+> **Próxima Versión**: v1.7 - Code Cleanup & Organization
 
 ---
 
-## 🎯 PRÓXIMAS PRIORIDADES (v1.7)
+## 🎯 v1.7: CODE CLEANUP & ORGANIZATION
+
+### **Objetivo**: Limpiar y reorganizar el código existente
+- ✅ Mantener toda funcionalidad actual
+- ✅ Mejorar mantenibilidad y legibilidad
+- ✅ Preparar base sólida para v1.8
+- ✅ Reducir technical debt acumulado
+
+### **Alcance del Cleanup:**
+- 📁 Reorganización de archivos y módulos
+- 🔧 Refactoring de código legacy
+- 📚 Mejora de documentación inline
+- 🧪 Fortalecimiento de tests
+- ⚡ Optimizaciones menores de performance
+- 🛡️ Mejora de code quality
+
+---
+
+## 🎯 v1.8: MULTI-ASSET EXPANSION
 
 ### **⭐⭐⭐ CRÍTICO - Multi-Asset Foundation**
 
-#### 🚀 **TableBacktestMultiAsset** (Alta Prioridad - Próxima)
+#### 🚀 **TableBacktestMultiAsset** (Alta Prioridad)
 **Estado**: 🔄 PENDIENTE
 **Descripción**: Backtest multi-asset con sincronización temporal
 **Beneficios**:
@@ -20,7 +38,18 @@
 **Complejidad**: Alta
 **Tiempo estimado**: 1-2 semanas
 
-### **⭐⭐⭐ CORE FEATURES**
+#### 🚀 **TableCCXTPro Multi-Asset Live Trading** (Alta Prioridad)
+**Estado**: 🔄 PENDIENTE
+**Descripción**: Live trading multi-asset con WebSockets
+**Beneficios**:
+- Trading simultáneo de múltiples símbolos
+- Gestión de portfolio real-time
+- Sincronización de órdenes concurrentes
+- Balance unificado multi-símbolo
+**Complejidad**: Alta
+**Tiempo estimado**: 1 semana
+
+### **⭐⭐⭐ CORE FEATURES** (v1.8)
 
 #### 🎮 **Adaptive Player** (Alta Prioridad)
 **Estado**: 🔄 PENDIENTE
@@ -53,7 +82,7 @@
 **Complejidad**: Media-Alta
 **Tiempo estimado**: 1 semana
 
-### **⭐⭐ ADVANCED FEATURES**
+### **⭐⭐ ADVANCED FEATURES** (v1.8)
 
 #### 🎯 **Regime Detection** (Media Prioridad)
 **Estado**: 🔄 PENDIENTE
