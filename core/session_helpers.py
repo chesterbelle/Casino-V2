@@ -1,9 +1,12 @@
 """
 Session helpers and utilities for Casino V2 trading system.
+
+This module provides utility functions for session management, balance handling,
+and trade logging in the Casino V2 trading system.
 """
 
 import logging
-from typing import Dict, Optional
+from typing import Dict, Optional, Any, Union
 
 import config
 
@@ -11,7 +14,20 @@ logger = logging.getLogger("SessionHelpers")
 
 
 def ask_initial_balance() -> float:
-    """Pide balance inicial por consola; fallback a config.STARTING_BALANCE."""
+    """Pide balance inicial por consola con validación; fallback a config.STARTING_BALANCE.
+
+    Solicita al usuario que ingrese un balance inicial válido. Si el input es inválido
+    o vacío, usa el valor por defecto de config.STARTING_BALANCE.
+
+    Returns:
+        Balance inicial válido como float positivo.
+
+    Example:
+        >>> balance = ask_initial_balance()
+        💰 Ingrese balance inicial (ej. 10000): 50000
+        >>> print(balance)
+        50000.0
+    """
     try:
         raw = input("💰 Ingrese balance inicial (ej. 10000): ").strip()
         if not raw:
@@ -26,8 +42,36 @@ def ask_initial_balance() -> float:
         return default
 
 
-def set_table_balance(table, amount: float) -> None:
-    """Fuerza el balance inicial de la mesa."""
+def set_table_balance(table: Any, amount: float) -> None:
+    """Fuerza el balance inicial de la mesa con validación.
+
+    Establece el balance inicial en el balance manager de la mesa.
+    Compatible con diferentes implementaciones de balance managers.
+
+    Args:
+        table: Instancia de mesa (TableBacktest, TableCCXTPro, etc.).
+        amount: Monto del balance inicial (debe ser positivo).
+
+    Raises:
+        ValueError: Si amount es negativo o cero.
+    """
+    if amount <= 0:
+        raise ValueError(f"Balance amount must be positive, got {amount}")
+
+    bm = getattr(table, "balance_manager", None)
+    if not bm:
+        logger.warning("Table has no balance_manager, cannot set balance")
+        return
+
+    try:
+        bm.balance = amount
+        bm.equity = amount
+    except Exception as e:
+        logger.debug(f"Direct balance setting failed: {e}")
+        if hasattr(bm, "set_balance"):
+            bm.set_balance(amount)
+        else:
+            logger.error(f"Cannot set balance on table {type(table).__name__}")
     bm = getattr(table, "balance_manager", None)
     if not bm:
         return
@@ -39,18 +83,47 @@ def set_table_balance(table, amount: float) -> None:
             bm.set_balance(amount)
 
 
-def get_table_state(table) -> Dict:
+def get_table_state(table: Any) -> Dict[str, Union[float, int, str]]:
+    """Obtiene el estado actual de la mesa de forma segura.
+
+    Args:
+        table: Instancia de mesa con balance_manager.
+
+    Returns:
+        Dict con estado del balance manager, o dict vacío si falla.
+
+    Example:
+        >>> state = get_table_state(table)
+        >>> print(state)
+        {'balance': 10000.0, 'equity': 9500.0}
+    """
     bm = getattr(table, "balance_manager", None)
     if bm and hasattr(bm, "get_state"):
         try:
             return bm.get_state()
-        except Exception:
+        except Exception as e:
+            logger.debug(f"Failed to get table state: {e}")
             return {}
     return {}
 
 
-def log_trade(action: str, verdict, order: Dict, result: Dict, balance: Optional[float]) -> None:
-    """Log estandarizado de trades"""
+def log_trade(action: str, verdict: Optional[Any], order: Dict[str, Any], result: Dict[str, Any], balance: Optional[float]) -> None:
+    """Log estandarizado de trades con formato estructurado.
+
+    Registra información detallada de cada trade incluyendo símbolo, lado,
+    tamaño de posición, resultado y métricas financieras.
+
+    Args:
+        action: Tipo de acción ('OPEN', 'CLOSE', 'GHOST', etc.).
+        verdict: Objeto Verdict de Gemini (opcional).
+        order: Dict con detalles de la orden.
+        result: Dict con resultado de la ejecución.
+        balance: Balance actual después del trade (opcional).
+
+    Example:
+        >>> log_trade('OPEN', verdict, order, result, 9500.0)
+        🎲 OPEN | BTC/USDT BUY | Unidad=1u(100.00USD) | outcome=WIN | exit=TP | bars=5 | pnl_pct=0.0250 | balance=9500.00
+    """
     notional_amount = result.get("notional")
     if notional_amount is None:
         size_fraction = float(order.get("size", 0.0))

@@ -6,7 +6,7 @@ Contains the main session execution logic with Gemini + Player architecture.
 
 import os
 import logging
-from typing import Dict, Optional
+from typing import Dict, Optional, Any, Union
 
 import config
 from croupier.croupier import Croupier
@@ -24,23 +24,48 @@ def run_session_with_player(
     dataset_path: str,
     initial_balance: float,
     gemini: Gemini,
-    player_module,
+    player_module: Any,
     player_name: str,
     mode: str = "backtest",
-    multi_asset_config: Optional[Dict] = None
-) -> Dict:
+    multi_asset_config: Optional[Dict[str, Any]] = None
+) -> Dict[str, Union[str, float, int]]:
     """
     Ejecuta una sesión de backtest usando la arquitectura Gemini + Player con gestión de posiciones.
 
+    Esta función coordina la ejecución completa de una sesión de trading, manejando:
+    - Procesamiento vela por vela de datos históricos
+    - Gestión de posiciones abiertas y cerradas
+    - Interacción entre Gemini (validador), Player (sizing) y Croupier (ejecución)
+    - Actualización de estadísticas y logging
+
     Args:
-        dataset_path: Ruta al CSV con datos históricos
-        initial_balance: Capital inicial
-        gemini: Instancia de Gemini (validador)
-        player_module: Módulo del player (kelly_player, fixed_player, etc.)
-        player_name: Nombre del player para logging
+        dataset_path: Ruta al archivo CSV con datos históricos OHLCV.
+        initial_balance: Capital inicial en USD para la sesión.
+        gemini: Instancia de Gemini que valida señales y toma decisiones.
+        player_module: Módulo del player que calcula tamaños de posición
+            (ej: kelly_player, fixed_player, paroli_player).
+        player_name: Nombre identificador del player para logging.
+        mode: Modo de ejecución ('backtest', 'live_ccxt', 'multi_asset_backtest').
+        multi_asset_config: Configuración opcional para modo multi-asset.
 
     Returns:
-        Dict con estadísticas de la sesión
+        Dict con estadísticas completas de la sesión incluyendo:
+        - dataset: Nombre del dataset procesado
+        - player: Nombre del player usado
+        - initial_balance: Balance inicial
+        - final_balance: Balance final
+        - candles: Número total de velas procesadas
+        - bet_trades: Número de trades reales ejecutados
+        - ghost_trades: Número de trades simulados para entrenamiento
+        - wins/losses: Conteo de resultados
+        - winrate: Porcentaje de victorias
+        - fees/funding: Costos totales
+        - liquidations: Número de liquidaciones forzadas
+
+    Raises:
+        NotImplementedError: Si se solicita modo multi-asset (pendiente v1.8).
+        FileNotFoundError: Si el dataset_path no existe.
+        ValueError: Si parámetros son inválidos.
     """
     dataset_name = os.path.basename(dataset_path)
     print(f"\n🎰 Ejecutando dataset: {dataset_name}")
