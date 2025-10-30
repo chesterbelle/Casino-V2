@@ -19,7 +19,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Iterable, List, Optional
 
-from . import analyze_memory, check_sensors
+from .analysis import analyze_memory, check_sensors
 
 ROOT = Path(__file__).resolve().parent.parent
 PYTHON = sys.executable
