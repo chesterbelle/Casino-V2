@@ -246,23 +246,33 @@ Los siguientes archivos fueron **eliminados** por estar desactualizados o redund
 
 ---
 
-## 🔜 Próximos Pasos (Documentación)
+## 🔜 Estado Actual (v1.6)
 
-### **Alta Prioridad**
-1. ❌ `docs/guides/configuration.md` - Guía de configuración
-2. ❌ `docs/guides/backtest.md` - Guía de backtesting
-3. ❌ `docs/guides/live-trading.md` - Guía de live trading
+### **Documentación v1.6 Completada:**
+- ✅ **README.md** - Actualizado con v1.6 y WebSocket
+- ✅ **DEVELOPER.md** - Guía técnica completa creada
+- ✅ **docs/workflow.md** - Actualizado con v1.6 y regla de sincronización
+- ✅ **docs/development/PENDIENTES.md** - Roadmap actualizado
+- ✅ **Regla de sincronización** implementada en todos los archivos pilares
 
-### **Media Prioridad**
-4. ❌ `docs/reference/config-reference.md` - Ref completa config.py
-5. ❌ `docs/reference/api-gemini.md` - API de Gemini
-6. ❌ `docs/reference/api-players.md` - API de Players
+### **Archivos Archivados:**
+- 📦 `docs/archive/PLAN_V0.2.0_ARCHIVED.md` - Planificación histórica movida a archive
 
-### **Baja Prioridad**
-7. ❌ `docs/guides/faq.md` - Preguntas frecuentes
-8. ❌ `docs/guides/troubleshooting.md` - Troubleshooting
-9. ❌ `docs/development/contributing.md` - Guía de contribución
-10. ❌ `docs/development/testing.md` - Guía de testing
+### **Próximos Pasos (Documentación):**
+
+#### **Alta Prioridad (v1.7)**
+1. 📋 `docs/guides/multi-asset-backtesting.md` - Guía de TableBacktestMultiAsset
+2. 📋 `docs/architecture/websocket-integration.md` - Documentación técnica WebSocket
+3. 📋 `docs/guides/live-trading.md` - Guía de live trading con WebSocket
+
+#### **Media Prioridad**
+4. 📋 `docs/reference/config-reference.md` - Referencia completa config.py
+5. 📋 `docs/reference/api-gemini.md` - API de Gemini
+6. 📋 `docs/reference/api-players.md` - API de Players
+
+#### **Baja Prioridad**
+7. 📋 `docs/guides/faq.md` - Preguntas frecuentes
+8. 📋 `docs/guides/troubleshooting.md` - Troubleshooting avanzado
 
 ---
 
