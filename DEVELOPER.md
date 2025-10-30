@@ -1,0 +1,271 @@
+# 🚨 DEVELOPER.md — Guía Técnica Obligatoria
+
+> **⚠️ OBLIGATORIO LEER ANTES DE CUALQUIER DESARROLLO**
+>
+> Este documento es tu "prompt" técnico. Si pierdes el contexto, lee esto primero.
+
+---
+
+## 🎯 Proyecto: Casino V2
+
+**Visión**: Motor de trading probabilístico multi-asset multi-timeframe.
+
+**Versión Actual**: v1.6 (WebSocket Integration Completada)
+
+**Estado**: Arquitectura modular funcional → Próximo: Multi-Asset Foundation (v1.7)
+
+---
+
+## 📋 Checklist Obligatorio (Antes de Cualquier Cambio)
+
+### ✅ **1. Leer Documentación Base**
+```bash
+# Orden de lectura OBLIGATORIO:
+1. DEVELOPER.md              ← Este archivo (tú lo acabas de leer)
+2. docs/workflow.md          ← Cómo desarrollamos
+3. docs/development/PENDIENTES.md  ← Qué implementar
+4. README.md                  ← Vista general
+```
+
+### ✅ **2. Verificar Estado del Sistema**
+```bash
+# Sistema debe estar funcional
+python main.py                    # Backtest básico funciona
+python test_phase1.py            # Tests pasan (14/14)
+python test_websocket_live.py    # WebSocket funciona (si tienes credenciales)
+```
+
+### ✅ **3. Conocer Arquitectura**
+```
+📂 Estructura Crítica:
+├── main.py                    # 🚀 Entry point
+├── config.py                  # ⚙️ Configuración global
+├── gemini/                    # 🎯 Motor de decisión probabilística
+├── players/                   # 🎮 Estrategias de sizing
+├── sensors/                   # 👁️ Detectores técnicos (17 sensores)
+├── tables/                    # 🪙 Interfaces de exchanges
+├── croupier/                  # 🧤 Ejecución de órdenes
+└── docs/                      # 📚 Documentación
+```
+
+---
+
+## 🧠 Arquitectura Técnica
+
+### **Flujo Principal**
+```
+Sensores → Gemini → Player → Croupier → BrokerInterface → Table → BalanceManager
+```
+
+### **Componentes Críticos**
+
+#### **🎯 Gemini** (`gemini/gemini_core.py`)
+- **Función**: Valida probabilísticamente si operar
+- **Entrada**: Señales de sensores
+- **Salida**: `verdict.side` (LONG/SHORT/NONE)
+- **Regla**: NUNCA decide tamaño de posición
+
+#### **🎮 Players** (`players/`)
+- **Función**: Calcula tamaño de posición
+- **Entrada**: `verdict` de Gemini + equity
+- **Salida**: Fracción de equity (0.0-1.0)
+- **Regla**: NUNCA decide cuándo operar
+
+#### **🧤 Croupier** (`croupier/croupier.py`)
+- **Función**: Ejecutor imparcial
+- **Interface**: `route_order(order_dict) → result_dict`
+- **Validación**: Campos requeridos del order
+
+#### **🤝 BrokerInterface** (`croupier/broker_interface.py`)
+- **Función**: Crea mesas según modo (backtest/live)
+- **Lógica**: `config.MODE` → `TableBacktest` o `TableCCXTPro`
+
+#### **🪙 Tables** (`tables/`)
+- **TableBacktest**: Backtest vela-por-vela con TP/SL
+- **TableCCXTPro**: Live trading con WebSocket
+- **BalanceManager**: Gestiona capital
+- **PositionTracker**: Simula posiciones abiertas
+
+---
+
+## 🎮 Modos de Operación
+
+### **Backtest** (`MODE = "backtest"`)
+```python
+# config.py
+MODE = "backtest"
+DATASET_PATH = "tables/data/raw/BTCUSDT_15m.csv"
+```
+
+**Flujo**: CSV → TableBacktest → Croupier → Gemini → Resultados
+
+### **Live** (`MODE = "live"`)
+```python
+# config.py
+MODE = "live"
+EXCHANGE = "KRAKEN"  # o "BINANCE" o "HYPERLIQUID"
+```
+
+**Flujo**: WebSocket → TableCCXTPro → Croupier → Gemini → Órdenes reales
+
+---
+
+## 🧪 Testing Strategy
+
+### **Tests Obligatorios**
+```bash
+# Arquitectura (siempre)
+python test_phase1.py           # ✅ 14/14 tests
+
+# Mejoras específicas
+python test_mejoras_futurechanges.py  # ✅ 3/3 tests
+
+# WebSocket (si aplica)
+python test_websocket_integration.py  # Tests unitarios
+python test_websocket_live.py         # Tests con datos reales
+```
+
+### **Reglas de Testing**
+- ✅ **Todo código nuevo** debe tener tests
+- ✅ **Tests pasan** antes de commit
+- ✅ **Cobertura completa** para lógica crítica
+- ✅ **Integration tests** para flujos completos
+
+---
+
+## 🌳 Git Workflow
+
+### **Ramas Principales**
+```
+1.6     ← Producción actual (WebSocket completado)
+1.7     ← Desarrollo (multi-asset)
+main    ← Backup (no tocar)
+```
+
+### **Flujo de Desarrollo**
+```bash
+# 1. Actualizar rama principal
+git checkout 1.6 && git pull
+
+# 2. Crear feature branch
+git checkout -b feature/nombre-descriptivo
+
+# 3. Desarrollo + commits
+git commit -m "feat: descripción"
+git commit -m "test: tests agregados"
+
+# 4. Push y PR
+git push -u origin feature/nombre-descriptivo
+# → GitHub PR a 1.7
+
+# 5. Merge cuando aprobado
+git checkout 1.7 && git merge feature/nombre-descriptivo
+```
+
+### **Commits Estándar**
+```
+feat: Nueva funcionalidad
+fix: Corrección de bug
+docs: Cambios en documentación
+test: Agregar/modificar tests
+refactor: Cambios sin nueva funcionalidad
+```
+
+---
+
+## 🎯 Prioridades de Desarrollo
+
+### **v1.6 → v1.7** (Próxima Versión)
+
+**⭐⭐⭐ CRÍTICO:**
+1. **TableBacktestMultiAsset** - Backtest sincronizado multi-símbolo
+2. **Portfolio Management** - Balance unificado
+3. **Multi-Timeframe Analysis** - Contextos higher TF
+
+**⭐⭐ IMPORTANTE:**
+4. **Live Multi-Asset Trading** - Extensión WebSocket
+5. **Risk Management Multi-Asset** - Portfolio heat management
+
+### **Reglas de Priorización**
+- ✅ **Completar v1.6** antes de empezar v1.7
+- ✅ **WebSocket funcional** antes de multi-asset
+- ✅ **Tests pasando** en cada paso
+- ✅ **Documentación actualizada** con cambios
+
+---
+
+## 🛠️ Comandos Útiles
+
+### **Desarrollo Diario**
+```bash
+# Ver estado
+python main.py                    # Backtest rápido
+python main.py --player=fixed     # Probar player alternativo
+
+# Tests
+python -m pytest                  # Todos los tests
+python test_phase1.py            # Tests arquitectura
+
+# Documentación
+cat docs/workflow.md             # Cómo desarrollar
+cat docs/development/PENDIENTES.md  # Qué hacer
+```
+
+### **Live Trading**
+```bash
+# Configurar en config.py
+MODE = "live"
+EXCHANGE = "KRAKEN"  # o BINANCE o HYPERLIQUID
+
+# Ejecutar
+python main.py
+```
+
+### **Debugging**
+```bash
+# Logs detallados
+python main.py --verbose
+
+# Ver memoria entrenada
+python -m utils.analyze_memory
+
+# Tests específicos
+python -m pytest tests/test_gemini.py -v
+```
+
+---
+
+## ⚠️ Reglas Importantes
+
+### **NO HACER:**
+- ❌ **Commits directos** a ramas principales (1.6, 1.7)
+- ❌ **Cambios sin tests**
+- ❌ **Código sin documentación**
+- ❌ **Merge sin code review**
+
+### **SIEMPRE HACER:**
+- ✅ **Leer DEVELOPER.md** antes de cualquier cambio
+- ✅ **Tests pasan** antes de commit
+- ✅ **Documentar cambios** en PENDIENTES.md
+- ✅ **Code review** para todos los merges
+
+---
+
+## 📞 Contacto & Referencias
+
+**Documentos Relacionados:**
+- `docs/workflow.md` - Proceso de desarrollo detallado
+- `docs/development/PENDIENTES.md` - Roadmap y prioridades
+- `README.md` - Vista general del proyecto
+
+**Si pierdes el contexto:**
+1. Lee este archivo (DEVELOPER.md)
+2. Revisa `docs/workflow.md`
+3. Verifica `docs/development/PENDIENTES.md`
+4. Corre tests para verificar funcionalidad
+
+---
+
+**🎰 Casino V2 - Arquitectura Modular para Trading Probabilístico**
+
+*Última actualización: Octubre 2025*

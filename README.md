@@ -2,7 +2,7 @@
 
 > Sistema de trading modular basado en ventaja estadística, no en predicción.
 
-[![Version](https://img.shields.io/badge/Versión-0.1.2-blue)](docs/CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Versión-1.6-blue)](docs/CHANGELOG.md)
 [![Python](https://img.shields.io/badge/Python-3.10+-green)](https://python.org)
 [![Tests](https://img.shields.io/badge/Tests-14/14_passing-brightgreen)](test_phase1.py)
 
@@ -46,7 +46,7 @@ Casino V2 es un **motor de trading probabilístico avanzado** diseñado para:
 **Filosofía:**
 > *"No se trata de ganar todas las manos, sino de apostar cuando la ventaja está del lado del jugador."*
 
-**Estado Actual:** Arquitectura modular single-asset como base sólida para expansión multi-asset.
+**Estado Actual:** v1.6 - Arquitectura modular con WebSocket integration completada.
 
 ---
 
@@ -57,6 +57,7 @@ Casino V2 es un **motor de trading probabilístico avanzado** diseñado para:
 - ✅ **Sistema de Memoria** - Aprende winrate por estrategia/contexto
 - ✅ **Bucket System** - Clasifica contextos de mercado
 - ✅ **Bayesian Inference** - Credibilidad estadística robusta
+- ✅ **WebSocket Integration** - Datos en tiempo real para live trading
 
 ### Players Disponibles
 - 🎮 **Kelly Player** - Kelly Criterion conservador (default)
@@ -66,13 +67,14 @@ Casino V2 es un **motor de trading probabilístico avanzado** diseñado para:
 
 ### Trading
 - 📊 **Backtesting Robusto** - Fees, slippage, funding, liquidaciones
-- 📈 **Live Trading** - Binance, Kraken, ASTERDEx (paper/real)
+- 📈 **Live Trading** - Binance, Kraken, Hyperliquid (paper/real con WebSocket)
 - 👻 **GHOST Trades** - Entrena sin riesgo cuando no hay datos
 
 ### Análisis
 - 📝 **Decision Logging** - Log detallado de cada decisión
 - 📊 **Métricas por Estrategia** - Winrate, soporte, credibilidad
 - 🔍 **Trazabilidad Completa** - Desde señal hasta resultado
+- 📡 **WebSocket Monitoring** - Estado de conexiones y datos en tiempo real
 
 ---
 
@@ -122,8 +124,11 @@ Casino V2 es un **motor de trading probabilístico avanzado** diseñado para:
 ### 🏗️ Arquitectura
 - [Overview](docs/architecture/overview.md) - Visión general
 - [Gemini/Player](docs/architecture/gemini-player.md) - Separación de responsabilidades
+- [WebSocket Integration](docs/architecture/websocket-integration.md) - Datos en tiempo real
 
 ### 🛠️ Desarrollo
+- [Developer Guide](DEVELOPER.md) - ⚠️ **OBLIGATORIO** para desarrolladores
+- [Workflow](docs/workflow.md) - Cómo desarrollamos
 - [Roadmap](docs/development/PENDIENTES.md) - Estado actual y features pendientes
 
 ---
@@ -292,10 +297,12 @@ python3 -m utils.test_aster_connection --symbol BTCUSDT --interval 1m
 
 ## 📝 Changelog
 
-**v0.1.2** (Actual)
-- ✅ Mejoras de calidad de código (3 fixes)
-- ✅ Migración a arquitectura modular
-- ✅ Tests actualizados (14/14)
+**v1.6** (Actual - WebSocket Integration)
+- ✅ WebSocket integration completa para live trading
+- ✅ Soporte multi-exchange (Binance, Kraken, Hyperliquid)
+- ✅ 17 sensores técnicos implementados y activos
+- ✅ Arquitectura modular con PositionTracker
+- ✅ Tests automatizados (14/14 + WebSocket)
 
 **📖 [Ver changelog completo →](docs/CHANGELOG.md)**
 
