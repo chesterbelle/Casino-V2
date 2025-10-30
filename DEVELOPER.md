@@ -267,6 +267,75 @@ python -m pytest tests/test_gemini.py -v
 
 ---
 
+## 🎭 Glosario de Analogías del Casino
+
+**Referencia rápida para comunicación consistente entre humano y AI:**
+
+### **1. 🎯 Jugador (Player)**
+- **Analogía**: El apostador que decide cuánto arriesgar
+- **Función Técnica**: `players/` - Algoritmos de money management
+- **Código**: `players/kelly_player.py`, `players/fixed_player.py`
+- **Responsabilidad**: Calcular `size_fraction` basado en equity
+
+### **2. 👁️ Gemini (Spotter/Observador)**
+- **Analogía**: Spotter que vigila mesas y avisa cuándo están calientes
+- **Función Técnica**: `gemini/` - Sistema de aprendizaje probabilístico
+- **Código**: `gemini/gemini_core.py`, `gemini/memory.py`
+- **Responsabilidad**: Generar `Verdict` con side y confidence
+
+### **3. 🎲 Croupier (Router)**
+- **Analogía**: El dealer que recibe órdenes del spotter y las enruta
+- **Función Técnica**: `croupier/` - Enrutador de órdenes
+- **Código**: `croupier/croupier.py` - `route_order()`
+- **Responsabilidad**: Validar y enrutar órdenes al destino correcto
+
+### **4. 🪙 Mesa/Table (Ejecutor)**
+- **Analogía**: La mesa específica donde se ejecuta la acción
+- **Función Técnica**: `tables/` - Interfaces con exchanges/brokers
+- **Código**: `tables/table_*.py` - `execute_order()`
+- **Responsabilidad**: Ejecutar órdenes y manejar posiciones
+
+### **5. 🃏 Señales (Signals)**
+- **Analogía**: Cartas que llegan a la mesa
+- **Función Técnica**: `sensors/` - Indicadores técnicos procesados
+- **Código**: `sensors/mean_reversion/`, `sensors/momentum_trend_following/`
+- **Ejemplo**: RSI, MACD, Supertrend generan señales
+
+### **6. 💰 Fichas (Size Fraction)**
+- **Analogía**: Cantidad de fichas apostadas
+- **Función Técnica**: Porcentaje del equity a arriesgar (0.0-1.0)
+- **Código**: `size_fraction` en órdenes
+- **Ejemplo**: 0.02 = 2% del bankroll
+
+### **7. 📊 Verdict (Decisión del Spotter)**
+- **Analogía**: Aviso del spotter sobre mesa caliente
+- **Función Técnica**: `Verdict(side='BUY', confidence=0.8)`
+- **Código**: `gemini_core.Verdict`
+- **Ejemplo**: BUY con 80% confidence
+
+### **8. 👻 Ghost Trades**
+- **Analogía**: Carta que se registra pero no se juega
+- **Función Técnica**: Trade simulado para aprendizaje
+- **Código**: `order["ghost"] = True`
+- **Ejemplo**: Entrena sin tocar balance
+
+### **9. 🏢 Pisos del Casino (Trading Modes)**
+- **Analogía**: Diferentes pisos con reglas y riesgos distintos
+- **Piso 1**: Ruleta Americana (Backtest) - `MODE = "backtest"`
+- **Piso 2**: Ruleta Francesa (Paper Trading) - `MODE = "live"` con testnet
+- **Piso 3**: Ruleta Europea (Live Trading) - `MODE = "live"` con mainnet
+
+### **10. 🎰 Casino (Sistema Completo)**
+- **Analogía**: El establecimiento completo de juegos
+- **Función Técnica**: Todo el sistema de trading algorítmico
+- **Código**: `main.py` + todos los módulos
+
+### **11. 🎯 Sensores**
+- **Analogía**: Los dados o ruletas que generan números aleatorios
+- **Función Técnica**: Indicadores técnicos que generan señales
+- **Código**: 17 sensores en `sensors/`
+- **Ejemplo**: RSI = dado que tira valores 0-100
+
 ## 📞 Contacto & Referencias
 
 **Documentos Relacionados:**
