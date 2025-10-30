@@ -14,12 +14,45 @@
 - ✅ Reducir technical debt acumulado
 
 ### **Alcance del Cleanup:**
-- 📁 Reorganización de archivos y módulos
-- 🔧 Refactoring de código legacy
-- 📚 Mejora de documentación inline
-- 🧪 Fortalecimiento de tests
-- ⚡ Optimizaciones menores de performance
-- 🛡️ Mejora de code quality
+
+#### **🏗️ Arquitectura Core**
+- **Unificar jerarquía Table**: Hacer que todas las Tables hereden de `BaseTable`
+  - `TableBacktest(BaseTable)`
+  - `TableCCXTPro(BaseTable)`
+  - `TableRealtime(BaseTable)`
+  - `TableBacktestMultiAsset(BaseTable)`
+- **Type Safety**: Verificación automática de interfaces
+- **Consistencia**: Contrato formal para todas las Tables
+
+#### **📁 Reorganización de Archivos**
+- **Módulos dispersos**: Consolidar funciones relacionadas
+- **Utils organization**: Mejor estructura en `utils/` (clients, analyzers, etc.)
+- **Imports cleanup**: Eliminar imports circulares y optimizar
+
+#### **🔧 Refactoring de Código**
+- **main.py**: Separar en módulos más pequeños (640+ líneas → módulos específicos)
+- **Config.py**: Mejor organización y validación
+- **Funciones helper**: Mover a módulos apropiados
+
+#### **📚 Mejora de Documentación**
+- **Type hints**: Completos en todos los módulos core
+- **Docstrings**: Consistentes siguiendo Google style
+- **README**: Sección de analogías del casino
+
+#### **🧪 Fortalecimiento de Tests**
+- **Test coverage**: Aumentar cobertura de módulos core
+- **Test structure**: Mejor organización de fixtures y helpers
+- **Integration tests**: Más tests entre módulos
+
+#### **⚡ Optimizaciones Menores**
+- **Performance**: Eliminar cuellos de botella identificados
+- **Memory**: Mejor uso de recursos
+- **Logging**: Sistema de logging consistente
+
+#### **🛡️ Code Quality**
+- **Linting**: Configuración unificada (black, flake8, mypy)
+- **Pre-commit hooks**: Validaciones automáticas
+- **Error handling**: Estándares consistentes
 
 ---
 
