@@ -27,6 +27,22 @@
 4. README.md                  ← Vista general
 ```
 
+### ✅ **2. Regla de Sincronización de Documentación**
+**⚠️ IMPORTANTE:** Si modificas cualquiera de los 4 archivos pilares, debes actualizar TODOS los archivos para mantener consistencia:
+
+- **README.md** - Vista del usuario (¿qué es?)
+- **DEVELOPER.md** - Guía técnica (¿cómo funciona?)
+- **docs/workflow.md** - Proceso de desarrollo (¿cómo trabajamos?)
+- **docs/development/PENDIENTES.md** - Roadmap (¿hacia dónde vamos?)
+
+**Campos que deben mantenerse sincronizados:**
+- ✅ Número de versión actual
+- ✅ Estado del proyecto y features completadas
+- ✅ Ramas Git activas (ej: 1.6 producción, 1.7 desarrollo)
+- ✅ Próximas prioridades de desarrollo
+- ✅ Arquitectura y componentes principales
+- ✅ Referencias cruzadas entre documentos
+
 ### ✅ **2. Verificar Estado del Sistema**
 ```bash
 # Sistema debe estar funcional

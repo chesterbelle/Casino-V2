@@ -1,6 +1,6 @@
 # 🚀 WORKFLOW - Casino V2 Development Guidelines
 
-> **Versión**: v1.4
+> **Versión**: v1.6
 > **Última actualización**: Octubre 2025
 > **Propósito**: Guidelines para desarrollo colaborativo consistente
 
@@ -31,24 +31,27 @@
 - **🎯 Sensor-Driven Decisions**: Tomar decisiones de trading basadas en señales técnicas por activo
 - **💰 Unified Risk Management**: Gestionar capital y riesgo de manera holística across assets
 
-**Estado Actual: v1.4** (Single-Asset Foundation)
-- ✅ **Arquitectura**: Modular Gemini/Player
-- ✅ **Live Trading**: Operativo (Kraken Demo validado)
-- ✅ **Backtest**: 89.71% winrate con gestión realista
-- ✅ **Tests**: 14/14 pasando
-- ✅ **Documentación**: Completamente actualizada
+**Estado Actual: v1.6** (WebSocket Integration Completada)
+- ✅ **Arquitectura**: Modular Gemini/Player con WebSocket
+- ✅ **Live Trading**: Multi-exchange (Kraken, Binance, Hyperliquid)
+- ✅ **Backtest**: Gestión realista con PositionTracker
+- ✅ **Sensores**: 17 sensores técnicos activos
+- ✅ **WebSocket**: Datos en tiempo real para live trading
+- ✅ **Tests**: 14/14 + WebSocket pasando
+- ✅ **Documentación**: 4 archivos pilares sincronizados
 
-### **Próxima Versión: v1.5** (Hacia Multi-Asset)
-- 🎯 **Adaptive Player** (Alta prioridad)
-- 🎯 **Dashboard Web** (Alta prioridad)
-- 🎯 **Kill-Switch** (Media prioridad)
-- 🎯 **Multi-Asset Foundation** (Objetivo final)
+### **Próxima Versión: v1.7** (Multi-Asset Foundation)
+- 🎯 **TableBacktestMultiAsset** (Alta prioridad)
+- 🎯 **Portfolio Management** (Alta prioridad)
+- 🎯 **Multi-Timeframe Analysis** (Media prioridad)
+- 🎯 **Live Multi-Asset Trading** (Objetivo final)
 
 ### **Archivos Críticos para Leer Primero:**
 ```
+📚 DEVELOPER.md                       # ⚠️ OBLIGATORIO - Guía técnica completa
+📚 docs/workflow.md                   # Cómo desarrollamos
 📚 docs/development/PENDIENTES.md     # Estado actual y roadmap
-📚 docs/architecture/overview.md      # Arquitectura completa
-📚 docs/workflow.md                   # Este archivo
+📚 README.md                          # Vista general del proyecto
 🧪 test_*.py                          # Tests como referencia
 ```
 
@@ -60,14 +63,11 @@
 
 #### **1. Leer Documentación Actual**
 ```bash
-# Estado del proyecto
-cat docs/development/PENDIENTES.md
-
-# Arquitectura completa
-cat docs/architecture/overview.md
-
-# Guidelines de desarrollo
-cat docs/workflow.md
+# ⚠️ ORDEN OBLIGATORIO - Leer TODOS antes de desarrollar:
+1. cat DEVELOPER.md                    # Guía técnica completa
+2. cat docs/workflow.md                # Cómo desarrollamos
+3. cat docs/development/PENDIENTES.md  # Estado actual y roadmap
+4. cat README.md                       # Vista general
 ```
 
 #### **2. Verificar Sistema Funciona**
@@ -463,34 +463,34 @@ python -m pytest -m "not slow"
 
 ### **Ramas Principales**
 ```
-1.4     ← Rama principal (producción)
-1.5     ← Rama de desarrollo
+1.6     ← Rama principal (producción - WebSocket completado)
+1.7     ← Rama de desarrollo (multi-asset)
 main    ← Backup (no usar)
 ```
 
 ### **Flujo de Trabajo**
 ```bash
 # 1. Actualizar rama principal
-git checkout 1.4
-git pull origin 1.4
+git checkout 1.6
+git pull origin 1.6
 
 # 2. Crear rama feature
-git checkout -b feature/adaptive-player
+git checkout -b feature/table-backtest-multiasset
 
 # 3. Desarrollo con commits descriptivos
-git commit -m "feat: Implementar Adaptive Player base"
-git commit -m "test: Agregar tests para volatilidad"
-git commit -m "docs: Documentar Adaptive Player"
+git commit -m "feat: Implementar TableBacktestMultiAsset base"
+git commit -m "test: Agregar tests para sincronización temporal"
+git commit -m "docs: Documentar multi-asset backtesting"
 
 # 4. Push rama
-git push -u origin feature/adaptive-player
+git push -u origin feature/table-backtest-multiasset
 
-# 5. Crear Pull Request a 1.5
+# 5. Crear Pull Request a 1.7
 # GitHub: Compare & pull request
 
 # 6. Merge cuando aprobado
-git checkout 1.5
-git merge feature/adaptive-player
+git checkout 1.7
+git merge feature/table-backtest-multiasset
 ```
 
 ### **Commits Estándar**
@@ -535,29 +535,41 @@ git push origin --tags
 
 #### **3. Post-Release**
 ```bash
-# Merge a 1.4 si es stable
-git checkout 1.4
-git merge 1.5
+# Merge a 1.6 si es stable
+git checkout 1.6
+git merge 1.7
 
 # Crear nueva rama de desarrollo
-git checkout -b 1.6
+git checkout -b 1.8
 ```
 
 ---
 
 ## ⚠️ REGLAS IMPORTANTES
 
+### **REGLA DE ORO: SINCRONIZACIÓN DE DOCUMENTACIÓN**
+> **Si modificas cualquiera de los 4 archivos pilares, actualiza TODOS para mantener consistencia:**
+>
+> - **README.md** - Vista del usuario
+> - **DEVELOPER.md** - Guía técnica
+> - **docs/workflow.md** - Proceso de desarrollo
+> - **docs/development/PENDIENTES.md** - Roadmap
+>
+> **Campos a sincronizar:** versión, estado del proyecto, ramas Git, prioridades, arquitectura
+
 ### **NO HACER:**
-- ❌ **Commits directos a 1.4** (usar PR)
+- ❌ **Commits directos a 1.6** (usar PR a 1.7)
 - ❌ **Cambios sin tests**
 - ❌ **Código sin documentación**
 - ❌ **Merge sin code review**
+- ❌ **Modificar un archivo pilar sin actualizar los otros 3**
 
 ### **SIEMPRE HACER:**
-- ✅ **Leer docs antes de cambiar código**
+- ✅ **Leer los 4 archivos pilares antes de cualquier cambio**
 - ✅ **Tests pasan antes de commit**
 - ✅ **Documentar cambios**
 - ✅ **Code review para merges**
+- ✅ **Mantener sincronizados los 4 archivos pilares**
 
 ---
 
