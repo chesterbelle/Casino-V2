@@ -10,9 +10,9 @@
 
 **Visión**: Motor de trading probabilístico multi-asset multi-timeframe.
 
-**Versión Actual**: v1.6 (WebSocket Integration Completada)
+**Versión Actual**: v1.7 (Code Cleanup & Organization Completado)
 
-**Estado**: Arquitectura modular funcional → Próximo: Code Cleanup (v1.7) → Multi-Asset Foundation (v1.8)
+**Estado**: Code Cleanup completado → Próximo: Multi-Asset Expansion (v1.8)
 
 ---
 
@@ -153,15 +153,15 @@ python test_websocket_live.py         # Tests con datos reales
 
 ### **Ramas Principales**
 ```
-1.6     ← Producción actual (WebSocket completado)
-1.7     ← Desarrollo (Code Cleanup)
+1.7     ← Producción actual (Code Cleanup completado)
+1.8     ← Desarrollo (Multi-Asset Expansion)
 main    ← Backup (no tocar)
 ```
 
 ### **Flujo de Desarrollo**
 ```bash
 # 1. Actualizar rama principal
-git checkout 1.6 && git pull
+git checkout 1.7 && git pull
 
 # 2. Crear feature branch
 git checkout -b feature/nombre-descriptivo
@@ -172,10 +172,10 @@ git commit -m "test: tests agregados"
 
 # 4. Push y PR
 git push -u origin feature/nombre-descriptivo
-# → GitHub PR a 1.7
+# → GitHub PR a 1.8
 
 # 5. Merge cuando aprobado
-git checkout 1.7 && git merge feature/nombre-descriptivo
+git checkout 1.8 && git merge feature/nombre-descriptivo
 ```
 
 ### **Commits Estándar**

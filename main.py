@@ -22,7 +22,7 @@ Uso:
 ----
     python main_v2.py              # Usa Kelly Player (default)
     python main_v2.py --player=fixed  # Usa Fixed Player
-    
+
 Compatibilidad:
 ---------------
 • Usa las mismas mesas, sensores y croupiers que V1
@@ -37,10 +37,20 @@ import os
 import sys
 from typing import Dict, Optional
 
-import config
-from players import kelly_player, fixed_player, paroli_player
-from core import run_session_with_player, ask_initial_balance, print_session_summary
-from live_session import run_live_session
+# Add current directory to path for config import
+sys.path.insert(0, os.getcwd())
+from core import (
+    ask_initial_balance,
+    config,
+    print_session_summary,
+    run_session_with_player,
+)
+from players import fixed_player, kelly_player, paroli_player
+
+try:
+    from live_session import run_live_session
+except ImportError:
+    from core.live_session import run_live_session
 
 
 # ============================================================
@@ -105,21 +115,26 @@ def main() -> None:
         print(f"🏦 Exchange: {getattr(config, 'EXCHANGE', 'HYPERLIQUID')}")
 
         # Verificar credenciales antes de iniciar
-        exchange = getattr(config, 'EXCHANGE', 'HYPERLIQUID')
-        if exchange == 'HYPERLIQUID':
-            from utils.hyperliquid_env_loader import validate_hyperliquid_config, load_hyperliquid_config
+        exchange = getattr(config, "EXCHANGE", "HYPERLIQUID")
+        if exchange == "HYPERLIQUID":
+            from utils.hyperliquid_env_loader import (
+                load_hyperliquid_config,
+                validate_hyperliquid_config,
+            )
+
             if not validate_hyperliquid_config(load_hyperliquid_config()):
                 print("❌ Credenciales de Hyperliquid no configuradas.")
                 print("Configura HYPERLIQUID_API_KEY y HYPERLIQUID_API_SECRET en tu .env")
                 return
-        elif exchange == 'BINANCE_FUTURES_TESTNET':
-            from utils.binance_env_loader import validate_binance_config, load_binance_config
-            if not validate_binance_config(load_binance_config()):
-                print("❌ Credenciales de Binance no configuradas.")
-                print("Configura BINANCE_API_KEY y BINANCE_API_SECRET en tu .env")
-                return
-        elif exchange == 'KRAKEN_DEMO':
-            from utils.kraken_env_loader import validate_kraken_config, load_kraken_config
+        elif exchange == "KRAKEN_DEMO":
+            print("🎯 Usando Kraken Futures Demo - no requiere credenciales")
+            print("Exchange confiable para testing inicial")
+        elif exchange == "KRAKEN_DEMO":
+            from utils.kraken_env_loader import (
+                load_kraken_config,
+                validate_kraken_config,
+            )
+
             if not validate_kraken_config(load_kraken_config()):
                 print("❌ Credenciales de Kraken no configuradas.")
                 print("Configura KRAKEN_API_KEY y KRAKEN_API_SECRET en tu .env")
@@ -153,19 +168,14 @@ def main() -> None:
     initial_balance = ask_initial_balance()
 
     # Inicializar Gemini (validador)
+    from gemini.gemini_core import Gemini
+
     gemini = Gemini()
 
     print(f"\n🟢 Iniciando sesión: {mode}")
 
     # Ejecutar sesión con configuración apropiada
-    stats = run_session_with_player(
-        dataset_path,
-        initial_balance,
-        gemini,
-        player_module,
-        player_name,
-        mode=mode
-    )
+    stats = run_session_with_player(dataset_path, initial_balance, gemini, player_module, player_name, mode=mode)
 
     print_session_summary(stats)
 

@@ -1,6 +1,6 @@
 # 🚀 WORKFLOW - Casino V2 Development Guidelines
 
-> **Versión**: v1.6
+> **Versión**: v1.7
 > **Última actualización**: Octubre 2025
 > **Propósito**: Guidelines para desarrollo colaborativo consistente
 
@@ -31,20 +31,20 @@
 - **🎯 Sensor-Driven Decisions**: Tomar decisiones de trading basadas en señales técnicas por activo
 - **💰 Unified Risk Management**: Gestionar capital y riesgo de manera holística across assets
 
-**Estado Actual: v1.6** (WebSocket Integration Completada)
-- ✅ **Arquitectura**: Modular Gemini/Player con WebSocket
-- ✅ **Live Trading**: Multi-exchange (Kraken, Binance, Hyperliquid)
-- ✅ **Backtest**: Gestión realista con PositionTracker
-- ✅ **Sensores**: 17 sensores técnicos activos
-- ✅ **WebSocket**: Datos en tiempo real para live trading
-- ✅ **Tests**: 14/14 + WebSocket pasando
+**Estado Actual: v1.7** (Code Cleanup & Organization Completado)
+- ✅ **Arquitectura Core**: Refactorizada con módulos core/ consolidados
+- ✅ **Code Quality**: Type hints completos, docstrings consistentes, linting unificado
+- ✅ **Tests**: Fortalecidos con mejor cobertura y estructura
+- ✅ **Multi-Asset Foundation**: TableBacktestMultiAsset + TableCCXTPro híbrido completados
+- ✅ **Performance**: Optimizaciones aplicadas, cuellos de botella eliminados
 - ✅ **Documentación**: 4 archivos pilares sincronizados
 
-### **Próxima Versión: v1.7** (Multi-Asset Foundation)
-- 🎯 **TableBacktestMultiAsset** (Alta prioridad)
-- 🎯 **Portfolio Management** (Alta prioridad)
-- 🎯 **Multi-Timeframe Analysis** (Media prioridad)
-- 🎯 **Live Multi-Asset Trading** (Objetivo final)
+### **Próxima Versión: v1.8** (Multi-Asset Expansion)
+- 🎯 **Adaptive Player** (Alta prioridad)
+- 🎯 **Dashboard Web Básico** (Alta prioridad)
+- 🎯 **Kill-Switch Robusto** (Media prioridad)
+- 🎯 **Regime Detection** (Media prioridad)
+- 🎯 **Risk Management Avanzado** (Media prioridad)
 
 ### **Archivos Críticos para Leer Primero:**
 ```
@@ -129,6 +129,16 @@ git show-branch 1.4
 Casino-V2/
 ├── main.py                    # 🚀 Entry point principal
 ├── config.py                  # ⚙️ Configuración global del sistema
+├── core/                      # 🧠 Módulos core refactorizados (v1.7)
+│   ├── __init__.py            # Inicialización del módulo core
+│   ├── session_runner.py      # Ejecución de sesiones de trading
+│   ├── session_helpers.py     # Helpers para gestión de sesiones
+│   ├── live_session.py        # Loop principal para trading live
+│   ├── exceptions.py          # Jerarquía de excepciones personalizadas
+│   ├── logger.py              # Sistema de logging centralizado
+│   ├── validators.py          # Validaciones robustas de parámetros
+│   ├── cache.py               # Sistema de caching inteligente
+│   └── session_summary.py     # Utilidades para resúmenes de sesión
 ├── gemini/                    # 🎯 Motor de decisión probabilística
 │   ├── gemini_core.py         # Lógica principal de validación
 │   ├── memory.py              # Sistema de aprendizaje (winrates)
@@ -138,16 +148,17 @@ Casino-V2/
 │   ├── kelly_player.py        # Kelly Criterion conservador
 │   ├── fixed_player.py        # Tamaño fijo por trade
 │   └── paroli_player.py       # Progresión 1-4-8
-├── sensors/                   # 👁️ Detectores técnicos
+├── sensors/                   # 👁️ Detectores técnicos (17 sensores)
 │   ├── sensor_manager.py      # Coordinador de sensores
-│   ├── mean_reversion/        # Sensores de reversión media
-│   ├── momentum_trend_following/  # Sensores momentum/tendencia
-│   └── volumen_flujo_capital/     # Sensores volumen/capital
+│   ├── mean_reversion/        # Sensores de reversión media (8)
+│   ├── momentum_trend_following/  # Sensores momentum/tendencia (5)
+│   └── volumen_flujo_capital/     # Sensores volumen/capital (4)
 ├── tables/                    # 🪙 Interfaces de exchanges
 │   ├── table_backtest.py      # Backtest sobre CSV
-│   ├── table_binance_paper.py # Binance Futures (paper/live)
-│   ├── table_kraken_paper.py  # Kraken Futures (demo)
-│   ├── table_aster_paper.py   # ASTER (paper)
+│   ├── table_ccxt_pro.py      # Live trading con WebSocket (CCXT Pro)
+│   ├── table_binance_paper.py # Binance Futures (legacy)
+│   ├── table_kraken_paper.py  # Kraken Futures (legacy)
+│   ├── table_aster_paper.py   # ASTER (legacy)
 │   ├── balance_manager.py     # Gestión de capital
 │   └── position_tracker.py    # Gestión de posiciones abiertas
 ├── croupier/                  # 🧤 Ejecución de órdenes
@@ -157,14 +168,23 @@ Casino-V2/
 │   ├── cli.py                 # CLI unificado
 │   ├── analyze_memory.py      # Análisis de memoria
 │   ├── download_kline_dataset.py  # Descarga de datos
+│   ├── fetch_funding_rates.py # Tasas de funding
 │   └── [otras utilidades]
 ├── docs/                      # 📚 Documentación
 │   ├── README.md              # Índice principal
 │   ├── workflow.md            # Guidelines de desarrollo
 │   ├── architecture/          # Arquitectura del sistema
 │   ├── guides/                # Guías de uso
+│   │   ├── quickstart.md      # Inicio rápido
+│   │   ├── development-setup.md # Configuración desarrollo
+│   │   └── creating-players.md # Crear players
 │   └── development/           # Desarrollo y roadmap
 └── tests/                     # 🧪 Testing
+    ├── test_phase1.py         # Tests arquitectura (14/14 ✅)
+    ├── test_mejoras_futurechanges.py # Tests mejoras (3/3 ✅)
+    ├── test_websocket_integration.py # Tests WebSocket
+    ├── test_core_architecture.py # Tests módulos core
+    ├── test_core_integration.py # Tests integración core
     └── test_*.py              # Tests unitarios/integration
 ```
 
@@ -172,17 +192,6 @@ Casino-V2/
 
 #### **📋 Decisiones de Arquitectura por Carpeta**
 
-##### **¿Dónde poner nueva funcionalidad?**
-
-| Tipo de Código | Carpeta | Ejemplo | Razón |
-|---------------|---------|---------|-------|
-| **Validación probabilística** | `/gemini/` | `gemini/volatility_analyzer.py` | Es decisión de entrada |
-| **Cálculo de position size** | `/players/` | `players/adaptive_player.py` | Es sizing strategy |
-| **Nuevo indicador técnico** | `/sensors/` | `sensors/volatility/bbands_squeeze.py` | Es detección de contexto |
-| **Nueva conexión exchange** | `/tables/` | `tables/table_bybit_paper.py` | Es interface de mercado |
-| **Script de análisis** | `/utils/` | `utils/analyze_volatility.py` | Es herramienta CLI |
-| **Nueva guía** | `/docs/guides/` | `docs/guides/volatility-trading.md` | Es documentación |
-| **Test de nueva feature** | `/tests/` | `tests/test_adaptive_player.py` | Es validación |
 
 ##### **❌ NO PONER en estas carpetas:**
 
@@ -251,6 +260,20 @@ sensors/
 - **Contenido**: Conexiones API, simulación, balance/position management
 - **Regla**: Solo I/O con mercados, NO lógica de decisión
 
+#### **🧠 `/core/` - Módulos Core (v1.7)**
+- **Propósito**: Funcionalidad central refactorizada
+- **Contenido**: Session runners, validaciones, logging, caching, excepciones
+- **Regla**: Lógica core del sistema, altamente reutilizable
+- **Archivos clave**:
+  - `session_runner.py` - Ejecución de sesiones de trading
+  - `session_helpers.py` - Helpers para gestión de sesiones
+  - `live_session.py` - Loop principal para trading live
+  - `exceptions.py` - Jerarquía de excepciones personalizadas
+  - `logger.py` - Sistema de logging centralizado
+  - `validators.py` - Validaciones robustas de parámetros
+  - `cache.py` - Sistema de caching inteligente
+  - `session_summary.py` - Utilidades para resúmenes de sesión
+
 #### **🧤 `/croupier/` - Ejecución**
 - **Propósito**: Routing de órdenes sin cuestionar
 - **Contenido**: Interfaces de broker, ejecución pura
@@ -291,23 +314,23 @@ from .. import *
 # ✅ Correcto
 class MyPlayer:
     """Una línea describiendo qué hace."""
-    
+
     def __init__(self, param: float) -> None:
         self.param = param
-    
+
     def calculate_position_size(
-        self, 
-        verdict: Verdict, 
-        equity: float, 
+        self,
+        verdict: Verdict,
+        equity: float,
         meta: Optional[Dict] = None
     ) -> Optional[float]:
         """Calcula tamaño de posición.
-        
+
         Args:
             verdict: Decisión de Gemini
             equity: Capital disponible
             meta: Metadata adicional
-            
+
         Returns:
             Fracción de equity a usar (0.0-1.0) o None
         """
@@ -362,7 +385,7 @@ class TestMyPlayer:
         result = player.calculate_position_size(verdict, 10000.0)
         assert result is not None
         assert 0.0 <= result <= 1.0
-    
+
     def test_calculate_position_size_none(self):
         player = MyPlayer(param=0.5)
         verdict = create_mock_verdict(side=None)  # No side
@@ -377,7 +400,7 @@ def test_full_backtest_pipeline():
     # Config test
     config.MODE = "backtest"
     config.STARTING_BALANCE = 10000
-    
+
     # Run backtest
     from main import run_session_with_player
     stats = run_session_with_player(
@@ -387,7 +410,7 @@ def test_full_backtest_pipeline():
         player_module=kelly_player,
         player_name="kelly"
     )
-    
+
     # Assertions
     assert stats["final_balance"] > 9000  # No huge losses
     assert stats["wins"] + stats["losses"] > 0  # Some trades
@@ -400,10 +423,10 @@ import time
 
 def test_backtest_performance():
     start_time = time.time()
-    
+
     # Run backtest with 1000 candles
     stats = run_backtest(dataset_1000_candles)
-    
+
     duration = time.time() - start_time
     assert duration < 30.0  # Should complete in < 30 seconds
 ```
@@ -471,34 +494,34 @@ python -m pytest -m "not slow"
 
 ### **Ramas Principales**
 ```
-1.6     ← Rama principal (producción - WebSocket completado)
-1.7     ← Rama de desarrollo (multi-asset)
+1.7     ← Rama principal (producción - Code Cleanup completado)
+1.8     ← Rama de desarrollo (multi-asset expansion)
 main    ← Backup (no usar)
 ```
 
 ### **Flujo de Trabajo**
 ```bash
 # 1. Actualizar rama principal
-git checkout 1.6
-git pull origin 1.6
+git checkout 1.7
+git pull origin 1.7
 
 # 2. Crear rama feature
-git checkout -b feature/table-backtest-multiasset
+git checkout -b feature/adaptive-player
 
 # 3. Desarrollo con commits descriptivos
-git commit -m "feat: Implementar TableBacktestMultiAsset base"
-git commit -m "test: Agregar tests para sincronización temporal"
-git commit -m "docs: Documentar multi-asset backtesting"
+git commit -m "feat: Implementar Adaptive Player con ajuste dinámico de Kelly"
+git commit -m "test: Agregar tests para volatilidad adaptativa"
+git commit -m "docs: Documentar estrategia de sizing adaptativo"
 
 # 4. Push rama
-git push -u origin feature/table-backtest-multiasset
+git push -u origin feature/adaptive-player
 
-# 5. Crear Pull Request a 1.7
+# 5. Crear Pull Request a 1.8
 # GitHub: Compare & pull request
 
 # 6. Merge cuando aprobado
-git checkout 1.7
-git merge feature/table-backtest-multiasset
+git checkout 1.8
+git merge feature/adaptive-player
 ```
 
 ### **Commits Estándar**
@@ -575,12 +598,33 @@ git checkout -b 1.8
 >
 > **Esto asegura trazabilidad completa y evita perder conocimiento histórico.**
 
+### **REGLA CRÍTICA: APROBACIÓN MANUAL PARA CAMBIOS DE VERSIÓN**
+> **⚠️ ANTES DE PASAR A LA SIGUIENTE VERSIÓN, REQUIERE APROBACIÓN MANUAL DEL DESARROLLADOR PRINCIPAL**
+>
+> **Proceso obligatorio para cambios de versión:**
+> 1. ✅ **Implementar todos los features planeados** de la versión actual
+> 2. ✅ **Pasar todos los tests** (unitarios, integration, performance)
+> 3. ✅ **Actualizar documentación completa** (4 archivos pilares sincronizados)
+> 4. ✅ **Probar manualmente** - El desarrollador principal debe probar personalmente:
+>    - Backtest básico funciona
+>    - Live trading simulado funciona
+>    - No hay regressions en features existentes
+>    - Performance es aceptable
+> 5. ✅ **Aprobación explícita** - Solo después de la aprobación manual del desarrollador principal se puede:
+>    - Actualizar números de versión
+>    - Hacer merge a rama principal
+>    - Crear tag de release
+>    - Comunicar el lanzamiento
+>
+> **Esta regla asegura calidad y estabilidad antes de cada lanzamiento importante.**
+
 ### **NO HACER:**
-- ❌ **Commits directos a 1.6** (usar PR a 1.7)
+- ❌ **Commits directos a 1.7** (usar PR a 1.8)
 - ❌ **Cambios sin tests**
 - ❌ **Código sin documentación**
 - ❌ **Merge sin code review**
 - ❌ **Modificar un archivo pilar sin actualizar los otros 3**
+- ❌ **Cambiar versión sin aprobación manual del desarrollador principal**
 
 ### **SIEMPRE HACER:**
 - ✅ **Leer los 4 archivos pilares antes de cualquier cambio**
@@ -590,6 +634,7 @@ git checkout -b 1.8
 - ✅ **Mantener sincronizados los 4 archivos pilares**
 - ✅ **Registrar features completadas en `COMPLETED_FEATURES.md`**
 - ✅ **Registrar mejoras de docs en `DOCUMENTATION_HISTORY.md`**
+- ✅ **Obtener aprobación manual antes de cambios de versión**
 
 ---
 

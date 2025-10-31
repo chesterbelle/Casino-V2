@@ -36,6 +36,7 @@ Bienvenido a la documentación completa de Casino V2 - Sistema de Trading Probab
 
 ## 🛠️ Desarrollo
 
+- 🛠️ [**Development Setup**](guides/development-setup.md) - Configuración completa del entorno de desarrollo
 - 🤝 [**Contributing**](development/contributing.md) - Guía de contribución
 - 🧪 [**Testing**](development/testing.md) - Guía de testing
 - 🗺️ [**Roadmap**](development/PENDIENTES.md) - Roadmap y pendientes

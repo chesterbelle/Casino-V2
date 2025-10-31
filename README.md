@@ -2,7 +2,7 @@
 
 > Sistema de trading modular basado en ventaja estadística, no en predicción.
 
-[![Version](https://img.shields.io/badge/Versión-1.6-blue)](docs/CHANGELOG.md)
+[![Version](https://img.shields.io/badge/Versión-1.7-blue)](docs/CHANGELOG.md)
 [![Python](https://img.shields.io/badge/Python-3.10+-green)](https://python.org)
 [![Tests](https://img.shields.io/badge/Tests-14/14_passing-brightgreen)](test_phase1.py)
 
@@ -46,7 +46,7 @@ Casino V2 es un **motor de trading probabilístico avanzado** diseñado para:
 **Filosofía:**
 > *"No se trata de ganar todas las manos, sino de apostar cuando la ventaja está del lado del jugador."*
 
-**Estado Actual:** v1.6 - Arquitectura modular con WebSocket integration completada.
+**Estado Actual:** v1.7 - Code Cleanup & Organization completado, base sólida para Multi-Asset Expansion.
 
 ---
 
@@ -220,14 +220,14 @@ def calculate_position_size(verdict, equity, meta=None):
     """Mi estrategia personalizada."""
     if not verdict or not verdict.side:
         return None
-    
+
     approved = [m for m in verdict.metrics if m.approved]
     if not approved:
         return None
-    
+
     # Tu lógica aquí
     avg_p_hat = sum(m.p_hat for m in approved) / len(approved)
-    
+
     if avg_p_hat > 0.57:
         return 0.02  # 2%
     elif avg_p_hat > 0.54:
@@ -332,6 +332,7 @@ python3 -m utils.test_aster_connection --symbol BTCUSDT --interval 1m
 
 
 **📖 [Ver roadmap completo →](docs/development/PENDIENTES.md)**
+**✅ [Ver features completadas →](docs/development/COMPLETED_FEATURES.md)**
 
 ---
 
@@ -351,12 +352,13 @@ python3 -m utils.test_aster_connection --symbol BTCUSDT --interval 1m
 
 ## 📝 Changelog
 
-**v1.6** (Actual - WebSocket Integration)
-- ✅ WebSocket integration completa para live trading
-- ✅ Soporte multi-exchange (Binance, Kraken, Hyperliquid)
-- ✅ 17 sensores técnicos implementados y activos
-- ✅ Arquitectura modular con PositionTracker
-- ✅ Tests automatizados (14/14 + WebSocket)
+**v1.7** (Actual - Code Cleanup & Organization)
+- ✅ Arquitectura Core refactorizada (main.py reducido 644→180 líneas)
+- ✅ Módulos core/ consolidados (session_runner, validators, cache, etc.)
+- ✅ Jerarquía Table unificada con BaseTable
+- ✅ Type safety completo y docstrings consistentes
+- ✅ Tests fortalecidos con mejor cobertura
+- ✅ Multi-Asset Foundation completada (TableBacktestMultiAsset + TableCCXTPro híbrido)
 
 **📖 [Ver changelog completo →](docs/CHANGELOG.md)**
 

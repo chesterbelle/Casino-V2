@@ -31,16 +31,33 @@ from __future__ import annotations
 
 import csv
 import json
-import math
 import logging
+import math
 import os
 import re
 from datetime import datetime
-from typing import List, Dict, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
-import config
+try:
+    import config
+except ImportError:
+    # Fallback for when config is in core/
+    import os
+    import sys
+
+    # Add project root to path
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if project_root not in sys.path:
+        sys.path.insert(0, project_root)
+    try:
+        import config
+    except ImportError:
+        # Last resort: import from core
+        from core import config
+
 from .balance_manager import BalanceManager
 from .table_base import BaseTable
+
 
 class TableBacktest(BaseTable):
     """
@@ -58,8 +75,8 @@ class TableBacktest(BaseTable):
         self.market_id = f"{self.symbol}@{self.timeframe}" if self.timeframe != "UNKNOWN" else self.symbol
         self.data: List[Dict] = self._load_csv(csv_path)
         self.n = len(self.data)
-        self._cursor = 0           # índice de la PROXIMA vela a entregar
-        self._last_index = -1      # última vela entregada (para saber desde dónde simular)
+        self._cursor = 0  # índice de la PROXIMA vela a entregar
+        self._last_index = -1  # última vela entregada (para saber desde dónde simular)
         self.balance_manager = BalanceManager(starting_balance=getattr(config, "STARTING_BALANCE", 10_000.0))
 
         # Parámetros de costos (cargados desde perfil de exchange)
@@ -140,7 +157,9 @@ class TableBacktest(BaseTable):
         # Validación: solo para ghost trades
         ghost = bool(order.get("ghost", False))
         if not ghost:
-            raise ValueError("execute_order() solo debe usarse para ghost trades. Para posiciones reales usa PositionTracker.")
+            raise ValueError(
+                "execute_order() solo debe usarse para ghost trades. Para posiciones reales usa PositionTracker."
+            )
 
         # Lógica completa para ghost trades (simula trade completo inmediatamente)
         side = order.get("side", "").upper()
@@ -161,9 +180,9 @@ class TableBacktest(BaseTable):
         slippage_pct = self._compute_slippage(size_fraction * effective_leverage)
         if slippage_pct > 0:
             if side == "LONG":
-                entry_price *= (1 + slippage_pct)
+                entry_price *= 1 + slippage_pct
             else:
-                entry_price *= (1 - slippage_pct)
+                entry_price *= 1 - slippage_pct
 
         entry_timestamp_ms = self._resolve_order_timestamp(order, entry_candle)
 
@@ -278,10 +297,7 @@ class TableBacktest(BaseTable):
         """
         s = self.balance_manager.get_state()
         # Asegurar claves
-        return {
-            "balance": float(s.get("balance", 0.0)),
-            "equity": float(s.get("equity", s.get("balance", 0.0)))
-        }
+        return {"balance": float(s.get("balance", 0.0)), "equity": float(s.get("equity", s.get("balance", 0.0)))}
 
     def _compute_slippage(self, size_fraction: float) -> float:
         """
@@ -297,7 +313,7 @@ class TableBacktest(BaseTable):
 
         volatility_factor = self._volatility_factor()
         if volatility_factor > 0:
-            base *= (1 + volatility_factor)
+            base *= 1 + volatility_factor
 
         return max(0.0, base)
 
@@ -349,11 +365,13 @@ class TableBacktest(BaseTable):
             return 0.0
 
         variance = sum((c - mean_price) ** 2 for c in closes) / len(closes)
-        std_dev = variance ** 0.5
+        std_dev = variance**0.5
         volatility = std_dev / mean_price
         return float(max(0.0, volatility * multiplier))
 
-    def _funding_cost_between(self, start_ms: Optional[int], end_ms: Optional[int], notional: float, side: str) -> float:
+    def _funding_cost_between(
+        self, start_ms: Optional[int], end_ms: Optional[int], notional: float, side: str
+    ) -> float:
         if start_ms is None or end_ms is None or start_ms >= end_ms:
             return 0.0
 
@@ -511,15 +529,17 @@ class TableBacktest(BaseTable):
                 try:
                     ts_raw = row.get("timestamp") or row.get("date") or row.get("time") or ""
                     ts_ms = self._parse_timestamp_to_ms(ts_raw)
-                    out.append({
-                        "timestamp": ts_raw,
-                        "timestamp_ms": ts_ms,
-                        "open": float(row["open"]),
-                        "high": float(row["high"]),
-                        "low": float(row["low"]),
-                        "close": float(row["close"]),
-                        "volume": float(row.get("volume", 0.0)),
-                    })
+                    out.append(
+                        {
+                            "timestamp": ts_raw,
+                            "timestamp_ms": ts_ms,
+                            "open": float(row["open"]),
+                            "high": float(row["high"]),
+                            "low": float(row["low"]),
+                            "close": float(row["close"]),
+                            "volume": float(row.get("volume", 0.0)),
+                        }
+                    )
                 except Exception:
                     # Saltar filas corruptas
                     continue

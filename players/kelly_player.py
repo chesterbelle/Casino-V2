@@ -30,13 +30,29 @@ donde:
 """
 
 from __future__ import annotations
-from typing import TYPE_CHECKING, Optional
+
 import logging
+from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from gemini.gemini_core import Verdict
 
-import config
+try:
+    import config
+except ImportError:
+    # Fallback for when config is in core/
+    import os
+    import sys
+
+    # Add project root to path
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if project_root not in sys.path:
+        sys.path.insert(0, project_root)
+    try:
+        import config
+    except ImportError:
+        # Last resort: import from core
+        from core import config
 
 # Logger
 logger = logging.getLogger("KellyPlayer")
@@ -67,37 +83,34 @@ MAX_POSITION_SIZE = getattr(config, "MAX_POSITION_SIZE", 0.02)
 def calculate_position_size(verdict: Verdict, equity: float, meta: dict = None) -> Optional[float]:
     """
     Calcula el tamaño de posición usando Kelly Criterion.
-    
+
     Args:
         verdict: Veredicto de Gemini con métricas de participantes
         equity: Capital disponible (usado solo para logging)
         meta: Metadatos adicionales (no usado actualmente)
-    
+
     Returns:
         float: Fracción del equity a arriesgar [0, 1]
         None: Si no se debe apostar
-    
+
     Estrategia conservadora:
         - Usa la p_conservative MÁS BAJA entre participantes aprobados
         - Aplica KELLY_FRACTION (típicamente 0.2 = 20% del Kelly óptimo)
         - Limita por MAX_POSITION_SIZE
     """
-    
+
     # Validaciones básicas
     if not verdict or not verdict.metrics:
         logger.debug("No verdict or metrics available")
         return None
-    
+
     if not verdict.side:
         logger.debug("No side determined (likely conflict)")
         return None
-    
+
     # Filtrar solo participantes aprobados con edge positivo
-    approved_metrics = [
-        m for m in verdict.metrics 
-        if m.approved and m.p_conservative > P_STAR
-    ]
-    
+    approved_metrics = [m for m in verdict.metrics if m.approved and m.p_conservative > P_STAR]
+
     if not approved_metrics:
         logger.debug(
             f"No approved participants with edge. "
@@ -105,29 +118,26 @@ def calculate_position_size(verdict: Verdict, equity: float, meta: dict = None) 
             f"Approved: {len([m for m in verdict.metrics if m.approved])}"
         )
         return None
-    
+
     # Verificar que B > 0 (necesario para Kelly)
     if B <= 0:
-        logger.warning(
-            f"B={B:.4f} <= 0. Kelly no aplicable. "
-            f"Revisa TAKE_PROFIT y STOP_LOSS en config."
-        )
+        logger.warning(f"B={B:.4f} <= 0. Kelly no aplicable. " f"Revisa TAKE_PROFIT y STOP_LOSS en config.")
         return None
-    
+
     # Estrategia conservadora: usar el p_conservative MÁS BAJO
     # (el más pesimista de los aprobados)
     p_conservative = min(m.p_conservative for m in approved_metrics)
     q = 1.0 - p_conservative
-    
+
     # Calcular Kelly óptimo: f = p - q/b
     f_kelly = p_conservative - (q / B)
-    
+
     # Aplicar fracción de Kelly (conservador)
     f_fractional = max(0.0, f_kelly) * KELLY_FRACTION
-    
+
     # Limitar por tamaño máximo configurado
     size_fraction = min(f_fractional, MAX_POSITION_SIZE)
-    
+
     # Logging detallado
     logger.info(
         f"Kelly Calculation | "
@@ -138,23 +148,23 @@ def calculate_position_size(verdict: Verdict, equity: float, meta: dict = None) 
         f"f_frac={f_fractional:.4f} | "
         f"final={size_fraction:.4f}"
     )
-    
+
     # Solo retornar si el size es significativo
     if size_fraction <= 0:
         logger.debug("Calculated size <= 0, no bet")
         return None
-    
+
     return size_fraction
 
 
 def get_kelly_info(verdict: Verdict) -> dict:
     """
     Retorna información detallada del cálculo de Kelly para análisis.
-    
+
     Útil para debugging, logging avanzado o dashboards.
-    
+
     Returns:
-        dict con keys: p_conservative, p_star, b, f_kelly, f_fractional, 
+        dict con keys: p_conservative, p_star, b, f_kelly, f_fractional,
                       approved_count, total_participants
     """
     if not verdict or not verdict.metrics:
@@ -167,9 +177,9 @@ def get_kelly_info(verdict: Verdict) -> dict:
             "approved_count": 0,
             "total_participants": 0,
         }
-    
+
     approved = [m for m in verdict.metrics if m.approved and m.p_conservative > P_STAR]
-    
+
     if not approved:
         p_cons = None
         f_kelly = 0.0
@@ -177,9 +187,9 @@ def get_kelly_info(verdict: Verdict) -> dict:
         p_cons = min(m.p_conservative for m in approved)
         q = 1.0 - p_cons
         f_kelly = p_cons - (q / B) if B > 0 else 0.0
-    
+
     f_frac = max(0.0, f_kelly) * KELLY_FRACTION if f_kelly else 0.0
-    
+
     return {
         "p_conservative": p_cons,
         "p_star": P_STAR,

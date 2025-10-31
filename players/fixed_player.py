@@ -37,23 +37,35 @@ Desventajas vs Kelly:
 """
 
 from __future__ import annotations
-from typing import TYPE_CHECKING, Optional
+
 import logging
+from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from gemini.gemini_core import Verdict
 
-import config
+try:
+    import config
+except ImportError:
+    # Fallback for when config is in core/
+    import os
+    import sys
+
+    # Add project root to path
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if project_root not in sys.path:
+        sys.path.insert(0, project_root)
+    try:
+        import config
+    except ImportError:
+        # Last resort: import from core
+        from core import config
 
 # Logger
 logger = logging.getLogger("FixedPlayer")
 
 # Configuración
-FIXED_SIZE = getattr(
-    config, 
-    "FIXED_POSITION_SIZE", 
-    getattr(config, "MAX_POSITION_SIZE", 0.01)
-)
+FIXED_SIZE = getattr(config, "FIXED_POSITION_SIZE", getattr(config, "MAX_POSITION_SIZE", 0.01))
 
 # Para validación de edge (mismo que Kelly)
 R_GROSS = getattr(config, "TAKE_PROFIT", 0.01)
@@ -69,37 +81,34 @@ P_STAR = L_NET / (L_NET + R_NET) if (L_NET + R_NET) > 0 else 1.0
 def calculate_position_size(verdict: Verdict, equity: float, meta: dict = None) -> Optional[float]:
     """
     Retorna un tamaño fijo si hay edge positivo, None si no.
-    
+
     Args:
         verdict: Veredicto de Gemini con métricas de participantes
         equity: Capital disponible (usado solo para logging)
         meta: Metadatos adicionales (no usado)
-    
+
     Returns:
         float: FIXED_SIZE si hay edge positivo
         None: Si no hay participantes aprobados con edge
-    
+
     Lógica:
         1. Verifica que haya participantes aprobados
         2. Verifica que al menos uno tenga p_conservative > P_STAR
         3. Retorna tamaño fijo configurado
     """
-    
+
     # Validaciones básicas
     if not verdict or not verdict.metrics:
         logger.debug("No verdict or metrics available")
         return None
-    
+
     if not verdict.side:
         logger.debug("No side determined (likely conflict)")
         return None
-    
+
     # Filtrar participantes con edge positivo
-    approved_with_edge = [
-        m for m in verdict.metrics 
-        if m.approved and m.p_conservative > P_STAR
-    ]
-    
+    approved_with_edge = [m for m in verdict.metrics if m.approved and m.p_conservative > P_STAR]
+
     if not approved_with_edge:
         logger.debug(
             f"No approved participants with positive edge. "
@@ -107,7 +116,7 @@ def calculate_position_size(verdict: Verdict, equity: float, meta: dict = None) 
             f"Approved: {len([m for m in verdict.metrics if m.approved])}"
         )
         return None
-    
+
     # Retornar tamaño fijo
     logger.info(
         f"Fixed Size | "
@@ -115,14 +124,14 @@ def calculate_position_size(verdict: Verdict, equity: float, meta: dict = None) 
         f"approved_with_edge={len(approved_with_edge)}/{len(verdict.metrics)} | "
         f"best_p={max(m.p_conservative for m in approved_with_edge):.4f}"
     )
-    
+
     return FIXED_SIZE
 
 
 def get_info(verdict: Verdict) -> dict:
     """
     Retorna información sobre la decisión para análisis.
-    
+
     Returns:
         dict con keys: fixed_size, approved_count, has_edge
     """
@@ -132,12 +141,9 @@ def get_info(verdict: Verdict) -> dict:
             "approved_count": 0,
             "has_edge": False,
         }
-    
-    approved_with_edge = [
-        m for m in verdict.metrics 
-        if m.approved and m.p_conservative > P_STAR
-    ]
-    
+
+    approved_with_edge = [m for m in verdict.metrics if m.approved and m.p_conservative > P_STAR]
+
     return {
         "fixed_size": FIXED_SIZE,
         "approved_count": len(approved_with_edge),

@@ -45,14 +45,30 @@ Desde config.py se leen:
 from __future__ import annotations
 
 import logging
-from typing import Dict, List, Optional, Tuple, Set, Iterable
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Dict, Iterable, List, Optional, Set, Tuple
 
-import config
-from .memory import GeminiMemory
+try:
+    import config
+except ImportError:
+    # Fallback for when config is in core/
+    import os
+    import sys
+
+    # Add project root to path
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if project_root not in sys.path:
+        sys.path.insert(0, project_root)
+    try:
+        import config
+    except ImportError:
+        # Last resort: import from core
+        from core import config
+
 from .bucket_manager import BucketManager
 from .decision_logger import DecisionLogger
+from .memory import GeminiMemory
 
 try:
     from scipy.stats import beta as scipy_beta  # type: ignore
@@ -60,7 +76,6 @@ except ImportError:  # pragma: no cover - optional dependency
     scipy_beta = None
 
 from statistics import NormalDist
-
 
 # =========================================================
 # Utilidades y parámetros por defecto seguros
@@ -87,16 +102,18 @@ BETA_PRIOR = float(getattr(config, "BAYES_BETA", 1.0))
 CREDIBILITY_THRESHOLD = float(getattr(config, "BAYES_CREDIBILITY_THRESHOLD", 0.6))
 LOWER_CREDIBLE_PERCENTILE = float(getattr(config, "BAYES_LOWER_PERCENTILE", 0.1))
 
+
 # =========================================================
 # Dataclasses de decisión
 # =========================================================
 @dataclass
 class Decision:
     """Decision completa (legacy) - incluye orden construida"""
-    action: str              # "BET" | "GHOST" | "SKIP"
-    side: Optional[str]      # "LONG" | "SHORT" | None
-    order: Optional[dict]    # Orden estandarizada o None
-    reason: str              # explicación breve
+
+    action: str  # "BET" | "GHOST" | "SKIP"
+    side: Optional[str]  # "LONG" | "SHORT" | None
+    order: Optional[dict]  # Orden estandarizada o None
+    reason: str  # explicación breve
     trade_id: Optional[str]  # id para correlacionar con memory/log
 
 
@@ -104,16 +121,17 @@ class Decision:
 class Verdict:
     """
     Verdict de validación probabilística (nuevo).
-    
+
     Separa la validación (Gemini) del sizing (Player).
     Contiene toda la información para que un Player decida cuánto apostar.
     """
-    trade_id: Optional[str]       # id del trade potencial
-    side: Optional[str]           # "LONG" | "SHORT" | None (None = conflict)
-    reason: str                   # razón de la decisión
+
+    trade_id: Optional[str]  # id del trade potencial
+    side: Optional[str]  # "LONG" | "SHORT" | None (None = conflict)
+    reason: str  # razón de la decisión
     metrics: List[ParticipantMetrics]  # métricas de todos los participantes
-    participants: List[Participant]    # participantes que votaron
-    meta: Dict                    # metadata (timestamp, symbol, timeframe)
+    participants: List[Participant]  # participantes que votaron
+    meta: Dict  # metadata (timestamp, symbol, timeframe)
 
 
 @dataclass(frozen=True)
@@ -182,9 +200,9 @@ class Gemini:
     def evaluate_signals_v2(self, signals: List[dict], equity: float) -> Verdict:
         """
         [NUEVO] Evalúa señales y retorna Verdict (solo validación).
-        
+
         El Player decide el tamaño de posición basándose en el Verdict.
-        
+
         Returns:
             Verdict: Contiene side, metrics, participants, meta
                     - Si Verdict.side es None → no apostar (conflict o SKIP)
@@ -192,34 +210,27 @@ class Gemini:
                     - Si hay metrics aprobados → Player puede apostar
         """
         if not signals:
-            return Verdict(
-                trade_id=None,
-                side=None,
-                reason="sin_señales",
-                metrics=[],
-                participants=[],
-                meta={}
-            )
-        
+            return Verdict(trade_id=None, side=None, reason="sin_señales", metrics=[], participants=[], meta={})
+
         # Determinar consenso de lado
         long_voters, short_voters, base_meta = self._collect_votes_by_side(signals)
-        
+
         # Conflicto de lado: no apostar
         if long_voters and short_voters:
             participants = list({*long_voters, *short_voters})
             trade_id = self._make_trade_id(base_meta, side="CONFLICT")
             self.memory.register_vote_set(trade_id, self._serialize_participants(participants))
             self._last_verdict_meta = base_meta
-            
+
             return Verdict(
                 trade_id=trade_id,
                 side=None,
                 reason="conflicto_de_lado",
                 metrics=[],
                 participants=participants,
-                meta=base_meta
+                meta=base_meta,
             )
-        
+
         # Elegir lado
         if long_voters:
             chosen_side = "LONG"
@@ -229,22 +240,17 @@ class Gemini:
             side_voters = short_voters
         else:
             return Verdict(
-                trade_id=None,
-                side=None,
-                reason="señales_no_votantes",
-                metrics=[],
-                participants=[],
-                meta=base_meta
+                trade_id=None, side=None, reason="señales_no_votantes", metrics=[], participants=[], meta=base_meta
             )
-        
+
         # Calcular métricas probabilísticas
         participant_metrics = self._participant_metrics(side_voters)
         participants = [m.participant for m in participant_metrics]
-        
+
         trade_id = self._make_trade_id(base_meta, side=chosen_side)
         self.memory.register_vote_set(trade_id, self._serialize_participants(participants))
         self._last_verdict_meta = base_meta
-        
+
         # Determinar razón
         approved_metrics = [m for m in participant_metrics if m.approved]
         if not approved_metrics:
@@ -252,17 +258,17 @@ class Gemini:
         else:
             positive_metrics = [m for m in approved_metrics if m.kelly > 0]
             reason = "aprobado" if positive_metrics else "kelly_no_positivo"
-        
+
         # Log de la decisión (para análisis)
         self._log_verdict(trade_id, chosen_side, reason, base_meta, participants, participant_metrics, equity)
-        
+
         return Verdict(
             trade_id=trade_id,
             side=chosen_side,
             reason=reason,
             metrics=participant_metrics,
             participants=participants,
-            meta=base_meta
+            meta=base_meta,
         )
 
     # -----------------------------------------------------
@@ -554,13 +560,15 @@ class Gemini:
         """Convierte los participantes en payload para GeminiMemory."""
         payload = []
         for p in participants:
-            payload.append({
-                "strategy": p.strategy,
-                "bucket": p.bucket,
-                "symbol": p.symbol,
-                "timeframe": p.timeframe,
-                "market": p.market,
-            })
+            payload.append(
+                {
+                    "strategy": p.strategy,
+                    "bucket": p.bucket,
+                    "symbol": p.symbol,
+                    "timeframe": p.timeframe,
+                    "market": p.market,
+                }
+            )
         return payload
 
     def _log_decision(
@@ -645,16 +653,23 @@ class Gemini:
 
         self.decision_logger.log(rows)
 
-    def _log_verdict(self, trade_id: str, side: str, reason: str, meta: Dict,
-                     participants: List[Participant], metrics: List[ParticipantMetrics],
-                     equity: float) -> None:
+    def _log_verdict(
+        self,
+        trade_id: str,
+        side: str,
+        reason: str,
+        meta: Dict,
+        participants: List[Participant],
+        metrics: List[ParticipantMetrics],
+        equity: float,
+    ) -> None:
         """Log simplificado para Verdict (sin orden)"""
         if not self.decision_logger or not trade_id:
             return
-        
+
         contributors = sorted({p.strategy for p in participants}) or []
         market = f"{meta.get('symbol', 'UNKNOWN')}@{meta.get('timeframe', 'UNKNOWN')}"
-        
+
         if metrics:
             rows = [
                 {
@@ -712,7 +727,7 @@ class Gemini:
                     "l_net": L_NET,
                 }
             ]
-        
+
         self.decision_logger.log(rows)
 
     # -----------------------------------------------------
@@ -721,31 +736,31 @@ class Gemini:
     def make_order_from_verdict(self, verdict: Verdict, size_fraction: float, ghost: bool = False) -> dict:
         """
         Construye una orden desde un Verdict y un tamaño decidido por el Player.
-        
+
         Args:
             verdict: Veredicto de evaluate_signals_v2()
             size_fraction: Fracción del equity a arriesgar [0, 1]
             ghost: Si True, marca como GHOST trade (shadow trading)
-        
+
         Returns:
             dict: Orden estandarizada para el Croupier
-        
+
         Nota:
             Si verdict.side es None (conflicto), se usa "LONG" arbitrariamente
             para construir la orden GHOST (el lado no importa en GHOST)
         """
         if not verdict:
             raise ValueError("Verdict es None")
-        
+
         # Si hay conflicto (side=None), usar LONG arbitrariamente para GHOST
         side = verdict.side or "LONG"
-        
+
         meta = verdict.meta or self._last_verdict_meta or {}
-        
+
         order = self._make_order(meta, side, size_fraction)
         order["trade_id"] = verdict.trade_id
         order["ghost"] = ghost
-        
+
         return order
 
     # -----------------------------------------------------
@@ -764,7 +779,7 @@ class Gemini:
         # Normal approximation fallback
         mean = alpha / (alpha + beta)
         var = (alpha * beta) / (((alpha + beta) ** 2) * (alpha + beta + 1))
-        std = var ** 0.5 if var > 0 else 0.0
+        std = var**0.5 if var > 0 else 0.0
         if std == 0:
             return 1.0 if mean > threshold else 0.0
         nd = NormalDist(mean, std)
@@ -778,7 +793,7 @@ class Gemini:
 
         mean = alpha / (alpha + beta)
         var = (alpha * beta) / (((alpha + beta) ** 2) * (alpha + beta + 1))
-        std = var ** 0.5 if var > 0 else 0.0
+        std = var**0.5 if var > 0 else 0.0
         if std == 0:
             return mean
         nd = NormalDist(mean, std)

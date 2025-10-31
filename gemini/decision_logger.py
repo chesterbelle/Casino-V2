@@ -2,9 +2,24 @@ from __future__ import annotations
 
 import csv
 import os
-from typing import Iterable, Dict, Any
+from typing import Any, Dict, Iterable
 
-import config
+try:
+    import config
+except ImportError:
+    # Fallback for when config is in core/
+    import os
+    import sys
+
+    # Add project root to path
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if project_root not in sys.path:
+        sys.path.insert(0, project_root)
+    try:
+        import config
+    except ImportError:
+        # Last resort: import from core
+        from core import config
 
 
 class DecisionLogger:

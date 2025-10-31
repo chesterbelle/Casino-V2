@@ -5,21 +5,29 @@ Contains the main session execution logic with Gemini + Player architecture.
 """
 
 import os
-import logging
-from typing import Dict, Optional, Any, Union
+from typing import Any, Dict, Optional, Union
 
-import config
 from croupier.croupier import Croupier
-from gemini.gemini_core import Verdict, Gemini
+from gemini.gemini_core import Gemini
 from sensors.sensor_manager import SensorManager
+from tables.position_tracker import PositionTracker
 from tables.table_backtest import TableBacktest
 from tables.table_ccxt_pro import TableCCXTPro
-from tables.position_tracker import PositionTracker
-from .session_helpers import set_table_balance, get_table_state, log_trade
 
-logger = logging.getLogger("SessionRunner")
+from . import config
+from .cache import data_cache
+from .exceptions import CasinoError, TradingError
+from .logger import logger, performance_monitor
+from .session_helpers import get_table_state, log_trade, set_table_balance
+from .validators import (
+    ValidationError,
+    validate_config_section,
+    validate_positive_number,
+    validate_string,
+)
 
 
+@performance_monitor("run_session_with_player")
 def run_session_with_player(
     dataset_path: str,
     initial_balance: float,
@@ -27,7 +35,7 @@ def run_session_with_player(
     player_module: Any,
     player_name: str,
     mode: str = "backtest",
-    multi_asset_config: Optional[Dict[str, Any]] = None
+    multi_asset_config: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Union[str, float, int]]:
     """
     Ejecuta una sesión de backtest usando la arquitectura Gemini + Player con gestión de posiciones.
@@ -63,35 +71,61 @@ def run_session_with_player(
         - liquidations: Número de liquidaciones forzadas
 
     Raises:
+        ValidationError: Si los parámetros de entrada son inválidos.
+        TradingError: Si ocurre un error durante el trading.
+        CasinoError: Para errores generales del sistema.
         NotImplementedError: Si se solicita modo multi-asset (pendiente v1.8).
         FileNotFoundError: Si el dataset_path no existe.
-        ValueError: Si parámetros son inválidos.
     """
-    dataset_name = os.path.basename(dataset_path)
-    print(f"\n🎰 Ejecutando dataset: {dataset_name}")
-    print(f"🎮 Player activo: {player_name.upper()}")
+    # Validación de parámetros de entrada
+    try:
+        validated_dataset = validate_string(dataset_path, "dataset_path", 1, 500)
+        validated_balance = validate_positive_number(initial_balance, "initial_balance")
+        validated_player_name = validate_string(player_name, "player_name", 1, 50)
+        validated_mode = validate_string(mode, "mode", 1, 20)
+
+        if validated_mode not in ["backtest", "live", "live_ccxt"]:
+            raise ValidationError(f"Modo inválido: {validated_mode}")
+
+    except ValidationError as e:
+        logger.error(f"Parámetros de entrada inválidos: {e}")
+        raise
+    except Exception as e:
+        logger.error(f"Error inesperado en validación: {e}")
+        raise CasinoError(f"Error en validación de parámetros: {e}")
+
+    dataset_name = os.path.basename(validated_dataset)
+    logger.info(f"🎰 Ejecutando dataset: {dataset_name}")
+    logger.info(f"🎮 Player activo: {validated_player_name.upper()}")
 
     # Seleccionar tabla según modo
-    if mode == "multi_asset_backtest" and multi_asset_config:
-        print("🔄 Usando TableBacktestMultiAsset")
-        # Placeholder - será implementado en v1.8
-        raise NotImplementedError("Multi-asset backtest not yet implemented in v1.7")
-    elif mode == "live_ccxt":
-        print("🔄 Usando TableCCXTPro")
-        # Configuración para live trading
-        exchange_id = getattr(config, 'EXCHANGE', 'binance').lower()
-        symbols = getattr(config, 'MULTI_ASSET_SYMBOLS', ['BTC/USDT'])
-        table = TableCCXTPro(
-            exchange_id=exchange_id,
-            symbols=symbols,
-            timeframe=getattr(config, 'TIMEFRAME', '1m'),
-            testnet=getattr(config, 'TESTNET', True)
-        )
-        # Balance ya inicializado en TableCCXTPro
-    else:
-        print("🔄 Usando TableBacktest (single-asset)")
-        table = TableBacktest(dataset_path)
-        set_table_balance(table, initial_balance)
+    try:
+        if validated_mode == "multi_asset_backtest" and multi_asset_config:
+            logger.info("🔄 Usando TableBacktestMultiAsset")
+            # Placeholder - será implementado en v1.8
+            raise NotImplementedError("Multi-asset backtest not yet implemented in v1.7")
+        elif validated_mode == "live_ccxt":
+            logger.info("🔄 Usando TableCCXTPro")
+            # Configuración para live trading
+            exchange_id = getattr(config, "EXCHANGE", "binance").lower()
+            symbols = getattr(config, "MULTI_ASSET_SYMBOLS", ["BTC/USDT"])
+            table = TableCCXTPro(
+                exchange_id=exchange_id,
+                symbols=symbols,
+                timeframe=getattr(config, "TIMEFRAME", "1m"),
+                testnet=getattr(config, "TESTNET", True),
+            )
+            # Balance ya inicializado en TableCCXTPro
+        else:
+            logger.info("🔄 Usando TableBacktest (single-asset)")
+            if not os.path.exists(validated_dataset):
+                raise FileNotFoundError(f"Dataset no encontrado: {validated_dataset}")
+
+            table = TableBacktest(validated_dataset)
+            set_table_balance(table, validated_balance)
+    except Exception as e:
+        logger.error(f"Error inicializando tabla: {e}")
+        raise TradingError(f"No se pudo inicializar la tabla: {e}")
 
     sensors = SensorManager()
     croupier = Croupier(table)
@@ -114,7 +148,7 @@ def run_session_with_player(
 
     # Loop principal vela por vela
     while True:
-        if hasattr(table, 'next_candle_batch'):
+        if hasattr(table, "next_candle_batch"):
             # Modo multi-asset (placeholder)
             raise NotImplementedError("Multi-asset mode not implemented in v1.7")
         else:
@@ -125,7 +159,7 @@ def run_session_with_player(
 
             candles += 1
             current_candle = candle
-            current_symbol = candle.get('symbol', 'UNKNOWN')
+            current_symbol = candle.get("symbol", "UNKNOWN")
 
         # 1. PRIMERO: Cerrar posiciones que tocaron TP/SL en esta vela
         closed_positions = position_tracker.check_and_close_positions(current_candle)
@@ -164,7 +198,11 @@ def run_session_with_player(
                 gemini.on_trade_result(closed_result["trade_id"], closed_result)
 
             # Actualizar estado del player
-            if player_state is not None and hasattr(player_module, "handle_trade_outcome") and outcome in {"WIN", "LOSS"}:
+            if (
+                player_state is not None
+                and hasattr(player_module, "handle_trade_outcome")
+                and outcome in {"WIN", "LOSS"}
+            ):
                 player_state = player_module.handle_trade_outcome(player_state, "BET", closed_result)
 
         # 2. SEGUNDO: Intentar abrir nuevas posiciones si hay capital disponible
@@ -253,7 +291,9 @@ def run_session_with_player(
                 entry_price = float(current_candle.get("close", 0.0))
 
                 # Abrir posición en el tracker
-                position = position_tracker.open_position(order, entry_price, current_candle.get("timestamp", ""), available_equity)
+                position = position_tracker.open_position(
+                    order, entry_price, current_candle.get("timestamp", ""), available_equity
+                )
 
                 if position:
                     # Log de apertura
@@ -272,7 +312,9 @@ def run_session_with_player(
             else:
                 # No hay capital suficiente - log como skip
                 skip_trades += 1
-                logger.info(f"⏭️  SKIP | Capital insuficiente | Disponible: {available_equity:.2f} | Requerido: {margin_required:.2f}")
+                logger.info(
+                    f"⏭️  SKIP | Capital insuficiente | Disponible: {available_equity:.2f} | Requerido: {margin_required:.2f}"
+                )
 
     # 3. Al final: Forzar cierre de posiciones abiertas
     if position_tracker.open_positions:
@@ -281,7 +323,7 @@ def run_session_with_player(
             "close": table.data[-1]["close"] if table.data else candle.get("close", 0),
             "timestamp": table.data[-1]["timestamp"] if table.data else candle.get("timestamp", ""),
             "market": table.market_id,
-            "timeframe": table.timeframe
+            "timeframe": table.timeframe,
         }
 
         forced_closes = position_tracker.force_close_all_positions(final_candle)

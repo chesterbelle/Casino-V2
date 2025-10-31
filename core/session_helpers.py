@@ -5,12 +5,18 @@ This module provides utility functions for session management, balance handling,
 and trade logging in the Casino V2 trading system.
 """
 
-import logging
-from typing import Dict, Optional, Any, Union
+from typing import Any, Dict, Optional, Union
 
-import config
-
-logger = logging.getLogger("SessionHelpers")
+from .exceptions import BalanceError, ValidationError
+from .logger import logger
+from .validators import (
+    create_validation_error,
+    validate_non_negative_number,
+    validate_order_side,
+    validate_positive_number,
+    validate_string,
+    validate_symbol,
+)
 
 
 def ask_initial_balance() -> float:
@@ -22,6 +28,9 @@ def ask_initial_balance() -> float:
     Returns:
         Balance inicial válido como float positivo.
 
+    Raises:
+        ValidationError: Si el valor por defecto también es inválido.
+
     Example:
         >>> balance = ask_initial_balance()
         💰 Ingrese balance inicial (ej. 10000): 50000
@@ -31,19 +40,24 @@ def ask_initial_balance() -> float:
     try:
         raw = input("💰 Ingrese balance inicial (ej. 10000): ").strip()
         if not raw:
-            raise ValueError
+            raise ValueError("Input vacío")
         value = float(raw.replace(",", ""))
-        if value <= 0:
-            raise ValueError
-        return value
-    except Exception:
-        default = float(getattr(config, "STARTING_BALANCE", 10_000.0))
-        print(f"⚠️ Valor inválido. Usando STARTING_BALANCE de config: {default:.2f}")
-        return default
+        return validate_positive_number(value, "initial_balance")
+    except Exception as e:
+        logger.warning(f"Error en input de usuario: {e}")
+        try:
+            from . import config
+
+            default = float(getattr(config, "STARTING_BALANCE", 10_000.0))
+            validated_default = validate_positive_number(default, "STARTING_BALANCE")
+            print(f"⚠️ Usando STARTING_BALANCE de config: {validated_default:.2f}")
+            return validated_default
+        except Exception as config_error:
+            raise ValidationError(f"Configuración inválida: {config_error}")
 
 
 def set_table_balance(table: Any, amount: float) -> None:
-    """Fuerza el balance inicial de la mesa con validación.
+    """Fuerza el balance inicial de la mesa con validación robusta.
 
     Establece el balance inicial en el balance manager de la mesa.
     Compatible con diferentes implementaciones de balance managers.
@@ -53,25 +67,29 @@ def set_table_balance(table: Any, amount: float) -> None:
         amount: Monto del balance inicial (debe ser positivo).
 
     Raises:
-        ValueError: Si amount es negativo o cero.
+        ValidationError: Si amount es inválido.
+        BalanceError: Si no se puede establecer el balance.
     """
-    if amount <= 0:
-        raise ValueError(f"Balance amount must be positive, got {amount}")
+    validated_amount = validate_positive_number(amount, "balance_amount")
 
     bm = getattr(table, "balance_manager", None)
     if not bm:
-        logger.warning("Table has no balance_manager, cannot set balance")
-        return
+        raise BalanceError("Table has no balance_manager", {"table_type": type(table).__name__})
 
     try:
-        bm.balance = amount
-        bm.equity = amount
+        bm.balance = validated_amount
+        bm.equity = validated_amount
+        logger.info(f"Balance set to {validated_amount:.2f} on {type(table).__name__}")
     except Exception as e:
         logger.debug(f"Direct balance setting failed: {e}")
         if hasattr(bm, "set_balance"):
-            bm.set_balance(amount)
+            try:
+                bm.set_balance(validated_amount)
+                logger.info(f"Balance set via set_balance method: {validated_amount:.2f}")
+            except Exception as set_error:
+                raise BalanceError(f"Cannot set balance on table {type(table).__name__}: {set_error}")
         else:
-            logger.error(f"Cannot set balance on table {type(table).__name__}")
+            raise BalanceError(f"No balance setting method available on {type(table).__name__}")
     bm = getattr(table, "balance_manager", None)
     if not bm:
         return
@@ -107,7 +125,9 @@ def get_table_state(table: Any) -> Dict[str, Union[float, int, str]]:
     return {}
 
 
-def log_trade(action: str, verdict: Optional[Any], order: Dict[str, Any], result: Dict[str, Any], balance: Optional[float]) -> None:
+def log_trade(
+    action: str, verdict: Optional[Any], order: Dict[str, Any], result: Dict[str, Any], balance: Optional[float]
+) -> None:
     """Log estandarizado de trades con formato estructurado.
 
     Registra información detallada de cada trade incluyendo símbolo, lado,
@@ -159,7 +179,9 @@ def log_trade(action: str, verdict: Optional[Any], order: Dict[str, Any], result
         unit_display = float(unit_amount)
     except (TypeError, ValueError):
         unit_display = 0.0
-    unit_count_display = int(unit_multiplier) if abs(unit_multiplier - round(unit_multiplier)) < 1e-6 else unit_multiplier
+    unit_count_display = (
+        int(unit_multiplier) if abs(unit_multiplier - round(unit_multiplier)) < 1e-6 else unit_multiplier
+    )
 
     logger.info(
         "🎲 %s | %s %s | Unidad=%su(%.2fUSD) | outcome=%s | exit=%s | bars=%s | pnl_pct=%.4f | balance=%s",

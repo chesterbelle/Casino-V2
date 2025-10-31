@@ -8,31 +8,46 @@ Cada sensor devuelve señales crudas con contexto y score de confianza.
 import logging
 from typing import Dict, Iterable, List, Tuple
 
-import config
+try:
+    import config
+except ImportError:
+    # Fallback for when config is in core/
+    import os
+    import sys
+
+    # Add project root to path
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if project_root not in sys.path:
+        sys.path.insert(0, project_root)
+    try:
+        import config
+    except ImportError:
+        # Last resort: import from core
+        from core import config
+
 from .mean_reversion import (
+    BollingerSqueeze,
     BollingerTouch,
+    CCIReversion,
     KeltnerReversion,
     RSIReversion,
     StochasticReversion,
-    BollingerSqueeze,
     WilliamsRReversion,
-    CCIReversion,
     ZScoreReversion,
 )
 from .momentum_trend_following import (
+    ADXFilter,
     EMACrossover,
     MACDCrossover,
-    Supertrend,
-    ADXFilter,
     ParabolicSAR,
+    Supertrend,
 )
 from .volumen_flujo_capital import (
+    AccumulationDistribution,
+    MFIReversion,
     OBVBreakout,
     VWAPDeviation,
-    MFIReversion,
-    AccumulationDistribution,
 )
-
 
 SENSOR_REGISTRY: Dict[str, type] = {
     # Mean Reversion (8 sensores)
@@ -62,7 +77,9 @@ class SensorManager:
     def __init__(self):
         self.logger = logging.getLogger("SensorManager")
         self.sensors = list(self._load_sensors())
-        self.cooldown_bars = max(0, int(getattr(config, "SENSOR_COOLDOWN_BARS", getattr(config, "SENSOR_COOLDOWN", 0)) or 0))
+        self.cooldown_bars = max(
+            0, int(getattr(config, "SENSOR_COOLDOWN_BARS", getattr(config, "SENSOR_COOLDOWN", 0)) or 0)
+        )
         self._candle_index = -1
         self._last_trigger: Dict[str, int] = {}
 
@@ -103,71 +120,87 @@ class SensorManager:
         """
         Ejecuta todos los sensores sobre una vela.
         Devuelve una lista de señales (LONG, SHORT o NONE).
+
+        Optimizado con caching para mejorar performance.
         """
         self._candle_index += 1
         per_side: Dict[str, List[Tuple[str, dict]]] = {"LONG": [], "SHORT": []}
 
-        for name, sensor in self.sensors:
-            signal = sensor.check_signal(candle)
-            if not signal:
-                continue
+        # Process sensors in batches to reduce memory pressure
+        batch_size = getattr(config, "SENSOR_BATCH_SIZE", 5)
+        sensor_batches = [self.sensors[i : i + batch_size] for i in range(0, len(self.sensors), batch_size)]
 
-            if not self._can_fire(name):
-                self.logger.debug(f"⏸️ Cooldown activo para {name}; señal ignorada.")
-                continue
+        for batch in sensor_batches:
+            for name, sensor in batch:
+                # Try cache first for expensive sensors
+                from core.cache import sensor_cache
 
-            side = signal.get("side", "").upper()
-            if side not in per_side:
-                self.logger.debug(f"⚠️ Señal descartada por lado inválido: {signal}")
-                continue
+                cached_signal = sensor_cache.get_signal(name, candle)
+                if cached_signal is not None:
+                    signal = cached_signal
+                    self.logger.debug(f"💾 Cache hit for {name}")
+                else:
+                    signal = sensor.check_signal(candle)
+                    if signal:  # Only cache non-empty signals
+                        sensor_cache.set_signal(name, candle, signal)
 
-            signal.setdefault("origin", name)
-            self.logger.debug(f"📡 Señal detectada: {signal}")
-            per_side[side].append((name, signal))
-            self._last_trigger[name] = self._candle_index
+                if not signal:
+                    continue
 
+                if not self._can_fire(name):
+                    self.logger.debug(f"⏸️ Cooldown activo para {name}; señal ignorada.")
+                    continue
+
+                side = signal.get("side", "").upper()
+                if side not in per_side:
+                    self.logger.debug(f"⚠️ Señal descartada por lado inválido: {signal}")
+                    continue
+
+                signal.setdefault("origin", name)
+                self.logger.debug(f"📡 Señal detectada: {signal}")
+                per_side[side].append((name, signal))
+                self._last_trigger[name] = self._candle_index
+
+        # Memory-efficient consolidation using generators
         consolidated: List[dict] = []
         for side, entries in per_side.items():
             if not entries:
                 continue
 
-            contributors = []
-            range_score = 0
+            # Use generator expressions for memory efficiency
+            contributors = [origin for origin, _ in entries]
+            range_scores = (int(sig.get("range_score", 1) or 0) for _, sig in entries)
+
+            # Calculate aggregates efficiently
+            features_iter = ((origin, sig.get("features") or {}) for origin, sig in entries)
+
             merged_features: Dict[str, float] = {}
+            bbw_values = []
+            atr_values = []
+            rsi_values = []
 
-            sum_bbw = 0.0
-            bbw_count = 0
-            sum_atr = 0.0
-            atr_count = 0
-            avg_rsi = 0.0
-            rsi_weight = 0
-
-            for origin, sig in entries:
-                contributors.append(origin)
-                range_score += int(sig.get("range_score", 1) or 0)
-                features = sig.get("features") or {}
+            for origin, features in features_iter:
                 for feat_key, feat_val in features.items():
                     merged_features[f"{origin}.{feat_key}"] = feat_val
 
                 if "bbw" in features:
-                    sum_bbw += float(features["bbw"])
-                    bbw_count += 1
+                    bbw_values.append(float(features["bbw"]))
                 if "atr" in features:
-                    sum_atr += float(features["atr"])
-                    atr_count += 1
+                    atr_values.append(float(features["atr"]))
                 if "rsi2" in features:
-                    avg_rsi += float(features["rsi2"])
-                    rsi_weight += 1
+                    rsi_values.append(float(features["rsi2"]))
 
+            # Efficient aggregation
             bucket_features = dict(merged_features)
-            if bbw_count > 0:
-                bucket_features["bbw"] = sum_bbw / bbw_count
-            if atr_count > 0:
-                bucket_features["atr"] = sum_atr / atr_count
-            if rsi_weight > 0:
-                bucket_features["rsi2"] = avg_rsi / rsi_weight
+            if bbw_values:
+                bucket_features["bbw"] = sum(bbw_values) / len(bbw_values)
+            if atr_values:
+                bucket_features["atr"] = sum(atr_values) / len(atr_values)
+            if rsi_values:
+                bucket_features["rsi2"] = sum(rsi_values) / len(rsi_values)
 
-            bucket_features["range_score"] = range_score if range_score > 0 else len(contributors)
+            total_range_score = sum(range_scores)
+            bucket_features["range_score"] = total_range_score if total_range_score > 0 else len(contributors)
 
             base_signal = {
                 "timestamp": candle.get("timestamp"),

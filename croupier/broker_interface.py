@@ -27,7 +27,23 @@ puede operar sin preocuparse del origen de los datos.
 """
 
 import logging
-import config
+
+try:
+    import config
+except ImportError:
+    # Fallback for when config is in core/
+    import os
+    import sys
+
+    # Add project root to path
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if project_root not in sys.path:
+        sys.path.insert(0, project_root)
+    try:
+        import config
+    except ImportError:
+        # Last resort: import from core
+        from core import config
 
 # Importaciones condicionales (según modo)
 from tables.table_backtest import TableBacktest
@@ -79,6 +95,17 @@ class BrokerInterface:
             self.logger.info("🚀 Iniciando mesa LIVE (config.EXCHANGE=%s)", exchange)
             self.engine = self._create_live_engine(symbol, self.interval, exchange)
 
+            # Para live trading, necesitamos conectar la mesa inmediatamente
+            if hasattr(self.engine.table, "connect"):
+                import asyncio
+
+                try:
+                    asyncio.run(self.engine.table.connect())
+                    self.logger.info("✅ Mesa live conectada y lista")
+                except Exception as e:
+                    self.logger.error(f"❌ Error conectando mesa live: {e}")
+                    raise
+
         else:
             raise ValueError(f"Modo desconocido en config.MODE: {self.mode}")
 
@@ -92,9 +119,7 @@ class BrokerInterface:
             except Exception as e:
                 self.logger.error(f"Failed to set margin type for {symbol} to {margin_type}: {e}")
         else:
-            self.logger.warning(
-                f"Exchange engine {type(self.engine).__name__} does not support setting margin type."
-            )
+            self.logger.warning(f"Exchange engine {type(self.engine).__name__} does not support setting margin type.")
 
     # ----------------------------------------------------
     # 🪙 Creación de motores (mesas)
@@ -104,6 +129,7 @@ class BrokerInterface:
         Crea una instancia del motor de backtest
         y la expone con la estructura esperada.
         """
+
         class Engine:
             def __init__(self, csv_path, symbol):
                 self.table = TableBacktest(csv_path=csv_path, symbol=symbol)
@@ -128,17 +154,16 @@ class BrokerInterface:
             exchange_id = "hyperliquid"  # Placeholder - ajustar según implementación real
             testnet = True
         else:
-            raise NotImplementedError(f"Exchange LIVE no soportado: {exchange}. Exchanges soportados: Kraken, Binance, Hyperliquid")
+            raise NotImplementedError(
+                f"Exchange LIVE no soportado: {exchange}. Exchanges soportados: Kraken, Binance, Hyperliquid"
+            )
 
         class Engine:
             def __init__(self, symbol, interval, exchange_id, testnet):
                 # Nueva arquitectura: TableCCXTPro para exchanges soportados
                 symbols = [symbol] if symbol else ["BTC/USDT"]  # Default si no hay símbolo
                 self.table = TableCCXTPro(
-                    exchange_id=exchange_id,
-                    symbols=symbols,
-                    timeframe=interval or "1m",
-                    testnet=testnet
+                    exchange_id=exchange_id, symbols=symbols, timeframe=interval or "1m", testnet=testnet
                 )
 
         return Engine(symbol, interval, exchange_id, testnet)

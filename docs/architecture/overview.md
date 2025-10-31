@@ -97,11 +97,11 @@ players/
 def calculate_position_size(verdict: Verdict, equity: float) -> Optional[float]:
     """
     Calcula fracción de equity a arriesgar [0, 1]
-    
+
     Args:
         verdict: Veredicto de Gemini (probabilidades, métricas)
         equity: Capital disponible
-    
+
     Returns:
         float: Fracción a apostar (0.0 - 1.0)
         None: Si no se debe apostar
@@ -154,8 +154,11 @@ croupier/
 ```
 tables/
 ├── table_backtest.py          # Backtest sobre CSV
-├── table_kraken_paper.py      # Kraken Futures demo
+├── table_backtest_multiasset.py # Backtest multi-símbolo sincronizado
+├── table_ccxt_pro.py          # Live trading híbrido (WebSocket + REST)
+├── table_kraken_paper.py      # Kraken Futures demo (legacy)
 ├── balance_manager.py         # Gestión de capital
+├── position_tracker.py        # Gestión de posiciones abiertas
 └── data/
     ├── raw/                   # Datasets CSV
     ├── exchange_profiles/     # Configs de exchanges
@@ -163,8 +166,14 @@ tables/
 ```
 
 **Modos:**
-- `backtest`: Simula sobre CSV histórico
-- `live`: Conecta a exchange real (paper/real)
+- `backtest`: Simula sobre CSV histórico (single/multi-asset)
+- `live`: Conecta a exchange real (paper/real) con modo híbrido
+
+#### **TableCCXTPro - Arquitectura Híbrida**
+- **WebSocket-first**: Intenta usar WebSockets para baja latencia en live trading real
+- **REST fallback**: Polling automático cuando WebSockets no están disponibles (testnets)
+- **Auto-detección**: Detecta automáticamente qué método usar basado en soporte del exchange
+- **Multi-exchange**: Binance, Kraken, Hyperliquid con unified API
 
 ---
 
