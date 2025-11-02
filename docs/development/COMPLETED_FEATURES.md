@@ -1,5 +1,45 @@
 # ✅ COMPLETED FEATURES - Casino V2
 
+## 🎯 v1.7.1: ASYNC REFACTOR & LIVE TRADING ✅ COMPLETADO
+
+### **🚀 Refactorización Async Completa** ✅ **COMPLETADO**
+- ✅ **`live_session.py` async**: Función principal convertida a async
+- ✅ **`main.py` async entry point**: Usa `asyncio.run()` para live trading
+- ✅ **`table_ccxt_pro.py` async**: `execute_order()` y métodos async
+- ✅ **Eliminados threads**: Listener ahora usa `asyncio.create_task()`
+- ✅ **Event loop management**: Sin conflictos ni deadlocks
+
+### **🎮 CLI Improvements** ✅ **COMPLETADO**
+- ✅ **Flags no-interactivas**: `--symbol`, `--interval`, `--max-candles`
+- ✅ **Help mejorado**: `--help` con ejemplos y documentación
+- ✅ **Ejecución sin inputs**: Perfecto para scripts y automation
+
+### **🏦 Kraken Futures Demo Integration** ✅ **COMPLETADO**
+- ✅ **Conexión exitosa**: Sistema se conecta a Kraken Demo
+- ✅ **Balance real**: Obtiene 5000 USD del exchange
+- ✅ **REST Polling**: Recibe datos cada segundo
+- ✅ **Configuración correcta**: `sandbox=True` para demo environment
+- ✅ **Normalización de símbolos**: LTC/USD:USD formato correcto
+
+### **🔧 Technical Improvements** ✅ **COMPLETADO**
+- ✅ **`execute_order_sync()` wrapper**: Compatibilidad con Croupier síncrono
+- ✅ **`get_balance_sync()`**: Obtiene balance sin cerrar exchange
+- ✅ **Mejor `_run_async_sync()`**: Manejo robusto de event loops
+- ✅ **Croupier actualizado**: Detecta y usa métodos async cuando disponibles
+
+### **📊 Testing & Validation** ✅ **COMPLETADO**
+- ✅ **10 velas procesadas**: Sistema estable sin crashes
+- ✅ **Gemini funcionando**: 10 señales generadas correctamente
+- ✅ **Logs completos**: Todos los eventos registrados
+- ✅ **Balance tracking**: Inicial y final correctos
+
+### **📚 Documentation** ✅ **COMPLETADO**
+- ✅ **ASYNC_REFACTOR_V1.7.1.md**: Documentación técnica completa
+- ✅ **QUICK_START_LIVE_TRADING.md**: Guía rápida de uso
+- ✅ **Ejemplos de uso**: CLI flags y configuración
+
+---
+
 ## 🎯 v1.7: CODE CLEANUP & ORGANIZATION ✅ COMPLETADO
 
 ### **🏗️ Arquitectura Core** ✅ **COMPLETADO**

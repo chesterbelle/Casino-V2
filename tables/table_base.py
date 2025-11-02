@@ -9,9 +9,11 @@ Define el contrato universal:
 """
 
 import abc
-import pandas as pd
 import json
 import os
+from typing import Dict, Optional
+
+import pandas as pd
 
 
 class BaseTable(abc.ABC):
@@ -33,12 +35,27 @@ class BaseTable(abc.ABC):
     # 🔁 Métodos abstractos
     # =========================================================
     @abc.abstractmethod
-    def next_candle(self):
-        """Retorna la próxima vela normalizada."""
+    def next_candle(self, symbol: Optional[str] = None) -> Optional[Dict]:
+        """
+        Retorna la próxima vela normalizada para un símbolo específico o el primero por defecto.
+
+        Args:
+            symbol: Símbolo específico (opcional, usa primer símbolo si no se especifica)
+
+        Returns:
+            Dict con datos de vela o None si no disponible
+        """
         pass
 
     @abc.abstractmethod
-    def execute_order(self, order: dict) -> dict:
-        """Ejecuta o simula la orden y devuelve el resultado estandarizado."""
-        pass
+    def execute_order(self, order: Dict) -> Dict:
+        """
+        Ejecuta o simula la orden y devuelve el resultado estandarizado.
 
+        Args:
+            order: Orden en formato estándar
+
+        Returns:
+            Resultado normalizado de la ejecución
+        """
+        pass

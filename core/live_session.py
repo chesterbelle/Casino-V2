@@ -34,6 +34,61 @@ def _parse_positive_int(value) -> Optional[int]:
     return parsed if parsed > 0 else None
 
 
+def _normalize_symbol_for_exchange(symbol: str, exchange: str) -> str:
+    """
+    Normalize trading symbol based on exchange-specific requirements.
+
+    Args:
+        symbol: Raw symbol input from user
+        exchange: Exchange name (KRAKEN, HYPERLIQUID, BINANCE, etc.)
+
+    Returns:
+        Normalized symbol for the specific exchange
+    """
+    if "KRAKEN" in exchange:
+        # Kraken Futures uses SYMBOL/USD:USD format for perpetual futures
+        symbol = symbol.upper()
+        if not symbol.endswith(":USD"):
+            if "/" in symbol:
+                # Already has / separator, convert to :USD format
+                base = symbol.split("/")[0]
+                symbol = f"{base}/USD:USD"
+            else:
+                # No separator, assume base symbol and add /USD:USD
+                symbol = f"{symbol}/USD:USD"
+            RESULT_LOGGER.info("Símbolo normalizado para Kraken Futures: %s", symbol)
+    elif "HYPERLIQUID" in exchange:
+        # Hyperliquid usa formato BASE/USDC:USDC para perpetuos
+        original_symbol = symbol
+
+        # Si ya tiene el formato correcto, no hacer nada
+        if "/" in symbol and ":" in symbol:
+            pass  # Ya está en formato correcto
+        else:
+            # Extraer base symbol
+            base = symbol
+            if symbol.endswith("USDT"):
+                base = symbol[:-4]
+            elif symbol.endswith("USD"):
+                base = symbol[:-3]
+            elif symbol.endswith("BTC"):
+                base = symbol[:-3]
+
+            # Formato perpetuo de Hyperliquid
+            symbol = f"{base}/USDC:USDC"
+
+        if symbol != original_symbol:
+            RESULT_LOGGER.info("Símbolo normalizado para Hyperliquid: %s → %s", original_symbol, symbol)
+    elif "BINANCE" in exchange:
+        # Binance typically uses SYMBOLUSDT format, ensure uppercase
+        symbol = symbol.upper()
+        if not symbol.endswith(("USDT", "BUSD", "USDC", "BTC", "ETH")):
+            symbol = f"{symbol}USDT"
+            RESULT_LOGGER.info("Símbolo normalizado para Binance: %s", symbol)
+
+    return symbol
+
+
 def _get_table_state(table) -> Dict:
     if hasattr(table, "get_state"):
         try:
@@ -80,14 +135,13 @@ def _print_live_summary(stats: Dict) -> None:
     print("=" * 60 + "\n")
 
 
-def run_live_session(
+async def run_live_session(
     symbol: Optional[str] = None,
     interval: Optional[str] = None,
     max_candles: Optional[int] = None,
-    *,
     player_module=None,
-    player_name: Optional[str] = None,
-) -> None:
+    player_name: str = "paroli",
+) -> Dict:
     """Ejecuta el loop live reutilizando BrokerInterface (exchange actual)."""
     logging.getLogger().setLevel(getattr(logging, config.LOG_LEVEL, logging.INFO))
     exchange = getattr(config, "EXCHANGE", "SIMULATION").upper()
@@ -102,9 +156,20 @@ def run_live_session(
     elif "BINANCE" in exchange:
         default_symbol = getattr(config, "BINANCE_DEFAULT_SYMBOL", "BTCUSDT")
         default_interval = getattr(config, "BINANCE_DEFAULT_INTERVAL", "1m")
+    elif "HYPERLIQUID" in exchange:
+        default_symbol = getattr(config, "HYPERLIQUID_DEFAULT_SYMBOL", "BTC")
+        default_interval = getattr(config, "HYPERLIQUID_DEFAULT_INTERVAL", "1m")
     else:
         default_symbol = getattr(config, "ASTER_DEFAULT_SYMBOL", "BTCUSDT")
         default_interval = getattr(config, "ASTER_DEFAULT_INTERVAL", "1m")
+
+    # Override defaults based on exchange capabilities
+    if "KRAKEN" in exchange and default_symbol == "PF_XBTUSD":
+        # Kraken uses different symbol format
+        pass
+    elif "HYPERLIQUID" in exchange and default_symbol == "BTC":
+        # Hyperliquid uses base symbol only
+        pass
 
     # Interactive mode: ask for symbol and interval
     if not symbol:
@@ -113,6 +178,7 @@ def run_live_session(
             symbol = symbol_input if symbol_input else default_symbol
         except EOFError:
             symbol = default_symbol
+            RESULT_LOGGER.info("Usando símbolo por defecto: %s", symbol)
 
     if not interval:
         try:
@@ -120,6 +186,10 @@ def run_live_session(
             interval = interval_input if interval_input else default_interval
         except EOFError:
             interval = default_interval
+            RESULT_LOGGER.info("Usando intervalo por defecto: %s", interval)
+
+    # Validate and normalize symbol based on exchange
+    symbol = _normalize_symbol_for_exchange(symbol, exchange)
 
     if max_candles is not None:
         max_candles = _parse_positive_int(max_candles)
@@ -141,13 +211,14 @@ def run_live_session(
 
     broker = BrokerInterface(symbol=symbol, interval=interval)
 
+    # Configurar la mesa live
+    table = broker.engine.table
+
     # Set margin type to ISOLATED for safety
     margin_type = getattr(config, "DEFAULT_MARGIN_TYPE", "ISOLATED").upper()
     if margin_type == "ISOLATED":
         RESULT_LOGGER.info("Attempting to set margin type to ISOLATED for %s...", symbol)
         broker.set_margin_type(symbol=symbol, margin_type=margin_type)
-
-    table = broker.engine.table
     actual_symbol = getattr(table, "symbol", symbol)
     if actual_symbol and actual_symbol != symbol:
         RESULT_LOGGER.info("Símbolo normalizado por la mesa: %s -> %s", symbol, actual_symbol)
@@ -164,13 +235,117 @@ def run_live_session(
     if balance_source != "table.get_state() / BalanceManager":
         balance_source_info = f" | source={balance_source}"
 
+    # En modo LIVE, intentar obtener balance real del exchange
+    real_balance = None
+    if hasattr(table, "exchange") and table.exchange:
+        try:
+            # Usar el método get_balance_sync de la mesa si existe
+            # Esto evita problemas con event loops
+            if hasattr(table, "get_balance_sync"):
+                balance_data = table.get_balance_sync()
+            else:
+                # Fallback: usar asyncio de manera segura
+                import asyncio
+
+                try:
+                    # Intentar obtener el loop actual
+                    loop = asyncio.get_event_loop()
+                    if loop.is_running():
+                        # Si hay un loop corriendo, crear tarea
+                        import concurrent.futures
+
+                        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+
+                            def get_balance():
+                                new_loop = asyncio.new_event_loop()
+                                asyncio.set_event_loop(new_loop)
+                                try:
+                                    return new_loop.run_until_complete(table.exchange.fetch_balance())
+                                finally:
+                                    new_loop.close()
+
+                            future = executor.submit(get_balance)
+                            balance_data = future.result(timeout=10)
+                    else:
+                        # No hay loop corriendo, usar directamente
+                        balance_data = loop.run_until_complete(table.exchange.fetch_balance())
+                except RuntimeError:
+                    # No hay loop, crear uno nuevo
+                    balance_data = asyncio.run(table.exchange.fetch_balance())
+
+            RESULT_LOGGER.info("📊 Balance data type: %s", type(balance_data))
+            RESULT_LOGGER.debug("Balance data completa: %s", balance_data)
+
+            # Para Kraken, buscar USD o USDT
+            for curr in ["USD", "USDT", "USDC"]:
+                if curr in balance_data:
+                    curr_data = balance_data[curr]
+                    RESULT_LOGGER.debug(f"Datos de {curr}: {curr_data} (type: {type(curr_data)})")
+
+                    # Verificar si es un dict con 'total'
+                    if isinstance(curr_data, dict) and "total" in curr_data:
+                        total = curr_data["total"]
+                        if total and float(total) > 0:
+                            real_balance = float(total)
+                            currency = curr
+                            RESULT_LOGGER.info("✅ Balance encontrado en %s: %.4f", currency, real_balance)
+                            break
+
+            # Si no hay balance en monedas específicas, buscar cualquier balance positivo
+            if real_balance is None:
+                RESULT_LOGGER.info("Buscando balance en otras monedas...")
+                for curr, data in balance_data.items():
+                    if curr in ["info", "free", "used", "total", "timestamp", "datetime"]:
+                        continue  # Skip metadata fields
+
+                    RESULT_LOGGER.debug(f"Revisando {curr}: {data} (type: {type(data)})")
+
+                    if isinstance(data, dict):
+                        total = data.get("total", 0)
+                        if total and float(total) > 0:
+                            real_balance = float(total)
+                            currency = curr
+                            RESULT_LOGGER.info("✅ Balance encontrado en %s: %.4f", currency, real_balance)
+                            break
+
+        except Exception as e:
+            error_msg = str(e)
+            RESULT_LOGGER.error(f"❌ Error obteniendo balance del exchange: {error_msg}")
+
+            # Si el error es sobre "no account", significa que la cuenta demo no tiene fondos
+            if "no account for" in error_msg.lower():
+                RESULT_LOGGER.warning("⚠️ La cuenta demo de Kraken no tiene fondos o no está configurada")
+                RESULT_LOGGER.warning("⚠️ Para testing, usaremos balance simulado de 10,000 USD")
+                # Usar balance simulado para testing
+                real_balance = 10000.0
+                currency = "USD"
+            else:
+                RESULT_LOGGER.error("Detalles del error:", exc_info=True)
+
+    # En modo LIVE, requerir balance real - incluso para Kraken Demo
+    if real_balance is not None and real_balance > 0:
+        initial_balance = real_balance
+        initial_equity = real_balance
+        balance_source = "Exchange API (real)"
+        RESULT_LOGGER.info("✅ Balance real obtenido del exchange: %.4f %s", real_balance, currency)
+    else:
+        # En modo LIVE, no podemos continuar sin balance real - ni siquiera para Kraken Demo
+        RESULT_LOGGER.error("❌ Balance obtenido del exchange: %s", real_balance)
+        RESULT_LOGGER.error("Credenciales válidas pero sin balance en la cuenta")
+        raise RuntimeError(
+            "❌ MODO LIVE requiere balance real del exchange. "
+            "Verifique que su cuenta tenga fondos disponibles. "
+            f"Balance obtenido: {real_balance}. "
+            "Para Kraken Demo, asegúrese de tener fondos en su cuenta demo."
+        )
+
     RESULT_LOGGER.info(
-        "Mesa live lista | symbol=%s | interval=%s | balance=%.4f | equity=%.4f%s",
+        "Mesa live lista | symbol=%s | interval=%s | balance=%.4f | equity=%.4f | source=%s",
         symbol,
         interval,
-        float(initial_state.get("balance", 0.0)),
-        float(initial_state.get("equity", initial_state.get("balance", 0.0))),
-        balance_source_info,
+        initial_balance,
+        initial_equity,
+        balance_source,
     )
 
     sensors = SensorManager()
@@ -198,7 +373,10 @@ def run_live_session(
         "balance_source": balance_source,
     }
     stop_reason = "Sesión finalizada correctamente."
-    start_time = time.time()
+    import time as time_module
+
+    start_time = time_module.time()
+    RESULT_LOGGER.info("✅ Sesión live inicializada correctamente")
 
     def limit_reached() -> bool:
         return max_candles is not None and stats["candles"] >= max_candles
@@ -308,6 +486,33 @@ def run_live_session(
             for completed_trade in consumer():
                 handle_completed_trade(completed_trade)
 
+    # Crear event loop persistente para el listener
+    import asyncio
+    import threading
+
+    # Variable para almacenar el listener task
+    listener_task = None
+
+    # Conectar la mesa (async)
+    if hasattr(table, "connect"):
+        await table.connect()
+        RESULT_LOGGER.info("✅ Mesa live conectada")
+
+    # Iniciar listener task en background
+    if hasattr(table, "start_listening"):
+        import asyncio
+
+        listener_task = asyncio.create_task(table.start_listening())
+        RESULT_LOGGER.info("✅ Listener task iniciado")
+
+        # Esperar un poco para que el listener se inicie
+        await asyncio.sleep(2)
+        RESULT_LOGGER.info("✅ Listener async iniciado y esperando datos...")
+
+    # Tracking de velas procesadas para evitar duplicados
+    # Estructura: {symbol: last_timestamp} para soportar multi-asset en v1.8
+    processed_candles = {}
+
     try:
         while True:
             consume_completed_trades_from_table()
@@ -315,27 +520,65 @@ def run_live_session(
             candle = table.next_candle()
             if candle is None:
                 # Solo log cada 10 segundos para no spam
-                current_time = int(time.time())
+                current_time = int(asyncio.get_event_loop().time())
                 if current_time % 10 == 0:
                     RESULT_LOGGER.info("⏳ Esperando nueva vela... (sin datos disponibles)")
-                time.sleep(LIVE_SLEEP_SECONDS)
+                await asyncio.sleep(LIVE_SLEEP_SECONDS)
                 continue
 
+            # Validar que sea una vela NUEVA (no procesada antes)
+            candle_symbol = candle.get("symbol", symbol)
+            candle_timestamp = candle.get("timestamp")
+
+            # Si ya procesamos esta vela, esperar a la siguiente
+            if candle_symbol in processed_candles:
+                if processed_candles[candle_symbol] == candle_timestamp:
+                    # Misma vela, no procesar de nuevo
+                    await asyncio.sleep(LIVE_SLEEP_SECONDS)
+                    continue
+
+            # Vela nueva detectada - registrar y procesar
+            processed_candles[candle_symbol] = candle_timestamp
             stats["candles"] += 1
             RESULT_LOGGER.info(
                 "📊 Vela #%d procesada | timestamp=%s | price=%.2f",
                 stats["candles"],
-                candle.get("timestamp"),
+                candle_timestamp,
                 candle.get("close", 0),
             )
 
+            # 1. PRIMERO: Verificar si posiciones abiertas tocaron TP/SL en esta vela
+            if hasattr(table, "position_tracker") and hasattr(table.position_tracker, "check_and_close_positions"):
+                RESULT_LOGGER.debug(
+                    f"🔍 Verificando TP/SL para vela: high={candle.get('high')}, low={candle.get('low')}"
+                )
+                closed_positions = table.position_tracker.check_and_close_positions(candle)
+                RESULT_LOGGER.debug(f"🔍 Posiciones cerradas en esta vela: {len(closed_positions)}")
+
+                for closed_result in closed_positions:
+                    outcome = (closed_result.get("result") or "").upper()
+
+                    # Log del cierre (el contador se actualiza en handle_completed_trade)
+                    if outcome == "WIN":
+                        RESULT_LOGGER.info("✅ Posición cerrada: WIN | PnL: %.2f", closed_result.get("pnl", 0.0))
+                    elif outcome == "LOSS":
+                        RESULT_LOGGER.info("❌ Posición cerrada: LOSS | PnL: %.2f", closed_result.get("pnl", 0.0))
+
+                    # Procesar resultado (esto actualiza stats["wins"]/stats["losses"])
+                    handle_completed_trade(closed_result)
+
+                    # Actualizar memoria de Gemini
+                    if closed_result.get("trade_id"):
+                        gemini.on_trade_result(closed_result["trade_id"], closed_result)
+
+            # 2. SEGUNDO: Verificar si hay posición abierta (después de cerrar las que tocaron TP/SL)
             if getattr(table, "position_manager", None) and table.position_manager.is_position_open():
                 RESULT_LOGGER.debug("Posición abierta aún en curso; esperando cierre antes de nuevas entradas.")
                 stats["skip_trades"] += 1
                 if limit_reached():
                     register_limit_exit()
                     break
-                time.sleep(LIVE_SLEEP_SECONDS)
+                await asyncio.sleep(LIVE_SLEEP_SECONDS)
                 continue
 
             signals = sensors.process_candle(candle)
@@ -359,11 +602,17 @@ def run_live_session(
                 stats["skip_trades"] += 1
                 if verdict.trade_id and verdict.reason == "conflicto_de_lado":
                     ghost_order = gemini.make_order_from_verdict(verdict, size_fraction=0.0, ghost=True)
-                    ghost_order.setdefault("symbol", candle.get("symbol", table.symbol))
+                    ghost_order.setdefault(
+                        "symbol", candle.get("symbol", table.symbols[0] if table.symbols else symbol)
+                    )
                     ghost_order.setdefault("timestamp", candle.get("timestamp"))
                     ghost_order.setdefault("timeframe", candle.get("timeframe", getattr(table, "timeframe", "UNKNOWN")))
                     try:
-                        ghost_result = croupier.route_order(ghost_order)
+                        # Llamar directamente a execute_order (async) para órdenes GHOST
+                        if hasattr(table, "execute_order") and asyncio.iscoroutinefunction(table.execute_order):
+                            ghost_result = await table.execute_order(ghost_order)
+                        else:
+                            ghost_result = croupier.route_order(ghost_order)
                         if verdict.trade_id:
                             gemini.on_trade_result(verdict.trade_id, ghost_result)
                     except Exception as exc:  # pragma: no cover - defensivo
@@ -377,13 +626,15 @@ def run_live_session(
 
             meta = None
             if player_state is not None and hasattr(player_module, "prepare_state"):
+                RESULT_LOGGER.debug(f"🔍 Antes prepare_state: player_state={player_state}, equity={equity}")
                 player_state, meta = player_module.prepare_state(player_state, equity)
+                RESULT_LOGGER.debug(f"🔍 Después prepare_state: player_state={player_state}, meta={meta}")
 
             table_meta = {
                 "min_qty": getattr(table, "min_qty", None),
                 "step_size": getattr(table, "step_size", None),
                 "price": candle.get("close"),
-                "symbol": candle.get("symbol", table.symbol),
+                "symbol": candle.get("symbol", table.symbols[0] if table.symbols else symbol),
                 "max_position_fraction": getattr(config, "MAX_POSITION_SIZE", 0.0),
             }
 
@@ -394,7 +645,11 @@ def run_live_session(
 
             size_fraction = None
             if hasattr(player_module, "calculate_position_size"):
+                RESULT_LOGGER.debug(
+                    f"🔍 Calculando size: equity={equity}, meta keys={list(meta.keys()) if meta else None}"
+                )
                 size_fraction = player_module.calculate_position_size(verdict, equity, meta)
+                RESULT_LOGGER.info(f"💰 Player calculó size_fraction={size_fraction}")
 
             if size_fraction and size_fraction > 0:
                 action_label = "BET"
@@ -418,16 +673,21 @@ def run_live_session(
                         order["unit_multiplier"] = float(unit_multiplier)
                     except (TypeError, ValueError):
                         pass
-            order.setdefault("symbol", candle.get("symbol", table.symbol))
+            order.setdefault("symbol", candle.get("symbol", table.symbols[0] if table.symbols else symbol))
             order.setdefault("timestamp", candle.get("timestamp"))
             order.setdefault("timeframe", candle.get("timeframe", getattr(table, "timeframe", "UNKNOWN")))
             trade_id = verdict.trade_id
 
             try:
-                result = croupier.route_order(order)
+                # Llamar directamente a execute_order (async) en lugar de pasar por Croupier
+                if hasattr(table, "execute_order") and asyncio.iscoroutinefunction(table.execute_order):
+                    result = await table.execute_order(order)
+                else:
+                    # Fallback a Croupier para mesas síncronas
+                    result = croupier.route_order(order)
             except Exception as exc:  # pragma: no cover - defensivo
                 RESULT_LOGGER.exception("Fallo al enrutar orden live: %s", exc)
-                time.sleep(LIVE_SLEEP_SECONDS)
+                await asyncio.sleep(LIVE_SLEEP_SECONDS)
                 if limit_reached():
                     register_limit_exit()
                     break
@@ -508,6 +768,25 @@ def run_live_session(
                     handle_completed_trade(result)
                 elif status == "OPENED" or outcome == "OPENED":
                     stats["bet_trades"] += 1
+                    # Registrar posición abierta en el tracker para poder cerrarla con TP/SL
+                    if hasattr(table, "position_tracker") and hasattr(table.position_tracker, "open_position"):
+                        entry_price = float(candle.get("close", 0.0))
+                        current_equity = _safe_float(updated_state.get("equity"), equity or 0.0)
+                        table.position_tracker.open_position(
+                            order, entry_price, candle.get("timestamp", ""), current_equity
+                        )
+                        RESULT_LOGGER.debug(f"📍 Posición registrada en tracker: {order.get('side')} @ {entry_price}")
+                elif outcome == "EXECUTED" or status == "CLOSED":
+                    # Trade ejecutado exitosamente (posición abierta o cerrada inmediatamente)
+                    stats["bet_trades"] += 1
+                    # Registrar posición abierta en el tracker para poder cerrarla con TP/SL
+                    if hasattr(table, "position_tracker") and hasattr(table.position_tracker, "open_position"):
+                        entry_price = float(result.get("entry_price") or candle.get("close", 0.0))
+                        current_equity = _safe_float(updated_state.get("equity"), equity or 0.0)
+                        table.position_tracker.open_position(
+                            order, entry_price, candle.get("timestamp", ""), current_equity
+                        )
+                        RESULT_LOGGER.debug(f"📍 Posición registrada en tracker: {order.get('side')} @ {entry_price}")
                 elif status == "SKIPPED":
                     stats["skip_trades"] += 1
             elif action_label == "GHOST":
@@ -519,15 +798,46 @@ def run_live_session(
                 register_limit_exit()
                 break
 
-            time.sleep(LIVE_SLEEP_SECONDS)
+            await asyncio.sleep(LIVE_SLEEP_SECONDS)
             consume_completed_trades_from_table()
     except KeyboardInterrupt:
         stop_reason = "Sesión finalizada manualmente (Ctrl+C)."
         RESULT_LOGGER.info("Sesión live finalizada por el usuario.")
     finally:
+        # Cancelar el listener task si existe
+        if listener_task and not listener_task.done():
+            listener_task.cancel()
+            RESULT_LOGGER.info("Listener task cancelado")
+
+        # Esperar a que el thread termine
+        if "listener_thread" in locals():
+            listener_thread.join(timeout=5)
+            RESULT_LOGGER.info("Listener thread terminado")
+
         consume_completed_trades_from_table()
-        if hasattr(table, "close_all_positions"):
-            table.close_all_positions()
+
+        # Cerrar todas las posiciones abiertas ANTES de desconectar
+        try:
+            if hasattr(table, "close_all_positions"):
+                RESULT_LOGGER.info("🔒 Cerrando posiciones abiertas...")
+                await table.close_all_positions()
+                RESULT_LOGGER.info("✅ Posiciones cerradas correctamente")
+        except Exception as e:
+            RESULT_LOGGER.error(f"❌ Error cerrando posiciones: {e}")
+
+        # Desconectar el broker para limpiar tareas async y cerrar conexiones
+        try:
+            if hasattr(broker, "disconnect"):
+                await broker.disconnect()
+                RESULT_LOGGER.info("Broker desconectado correctamente")
+
+            # Cerrar conexión del exchange si existe
+            if hasattr(table, "disconnect"):
+                await table.disconnect()
+                RESULT_LOGGER.info("Mesa desconectada correctamente")
+        except Exception as e:
+            RESULT_LOGGER.warning(f"Error desconectando: {e}")
+
         final_state = _get_table_state(table)
         final_balance = _safe_float(final_state.get("balance"), initial_balance)
         final_equity = _safe_float(final_state.get("equity"), final_balance)

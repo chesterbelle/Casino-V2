@@ -11,21 +11,23 @@ Gemini, el Croupier y las Mesas leerán de aquí directamente.
 ====================================================
 """
 
+from typing import Literal
+
 # =====================================================
 # 🎯 MODO DEL CASINO
 # =====================================================
 # Puede ser:
 #  - "backtest"  → usa dataset CSV y simula operaciones
 #  - "live"      → se conecta a un exchange real o de paper trading
-MODE = "live"
+MODE: Literal["backtest", "live"] = "live"  # Para simulación usar 'live' + TESTNET=True
 
 # Perfil del exchange (usa el JSON de tables/data/exchange_profiles)
 # Opciones: "asterdex_paper", "kraken_futures_demo", "binance_futures_testnet", "hyperliquid"
-EXCHANGE_PROFILE = "kraken_futures_demo"
+EXCHANGE_PROFILE = "hyperliquid"
 
 # Exchange a utilizar en modo "live"
 # Opciones: "ASTER_PAPER", "KRAKEN_DEMO", "BINANCE_FUTURES_TESTNET", "HYPERLIQUID"
-EXCHANGE = "KRAKEN_DEMO"
+EXCHANGE = "HYPERLIQUID"
 
 # Ruta del dataset CSV (para modo backtest) — se utiliza tanto para Gemini
 # como para Oscar. Cambia este archivo para alternar rápidamente entre datasets.
@@ -39,7 +41,7 @@ DATASET_PATH = "tables/data/raw/LTCUSDT_1m__1d.csv"
 # configurarse via variables de entorno o .env (ver utils/aster_env_loader.py).
 ASTER_BASE_URL = "https://fapi.asterdex.com"
 ASTER_WS_URL = "wss://fstream.asterdex.com"
-ASTER_DEFAULT_SYMBOL = "BTCUSDT"
+ASTER_DEFAULT_SYMBOL = "LTC"
 ASTER_DEFAULT_INTERVAL = "1m"
 ASTER_RECV_WINDOW = 5000
 ASTER_POLL_INTERVAL = 2.0
@@ -51,8 +53,8 @@ ASTER_API_SECRET = None
 # BINANCE FUTURES — PARÁMETROS TESTNET/LIVE
 # =====================================================
 BINANCE_BASE_URL = "https://testnet.binancefuture.com"
-BINANCE_DEFAULT_SYMBOL = "BTCUSDT"
-BINANCE_DEFAULT_INTERVAL = "1m"
+BINANCE_DEFAULT_SYMBOL = "BTC/USDT"
+BINANCE_DEFAULT_INTERVAL = "15m"
 BINANCE_POLL_INTERVAL = 2.0
 BINANCE_API_KEY = None
 BINANCE_API_SECRET = None
@@ -75,7 +77,7 @@ LIVE_MAX_CANDLES = 10  # Sesión muy corta para testing inicial
 # =====================================================
 KRAKEN_FUTURES_BASE_URL = "https://demo-futures.kraken.com/derivatives/api/"
 KRAKEN_FUTURES_CHARTS_URL = "https://demo-futures.kraken.com/api/charts/v1/"
-KRAKEN_FUTURES_SYMBOL = "PF_XBTUSD"
+KRAKEN_FUTURES_SYMBOL = "BTC"
 KRAKEN_FUTURES_INTERVAL = "1m"
 KRAKEN_POLL_INTERVAL = 2.0
 KRAKEN_FUTURES_API_KEY = None
@@ -87,7 +89,7 @@ KRAKEN_FUTURES_API_SECRET = None
 # =====================================================
 HYPERLIQUID_BASE_URL = "https://api.hyperliquid.xyz"
 HYPERLIQUID_WS_URL = "wss://api.hyperliquid.xyz/ws"
-HYPERLIQUID_DEFAULT_SYMBOL = "BTC"
+HYPERLIQUID_DEFAULT_SYMBOL = "LTC"
 HYPERLIQUID_DEFAULT_INTERVAL = "1m"
 HYPERLIQUID_POLL_INTERVAL = 1.0
 HYPERLIQUID_API_KEY = None
@@ -104,8 +106,8 @@ STARTING_BALANCE = 10_000.0
 
 # Tamaños relativos de TP y SL (expresados en proporción decimal)
 # Ejemplo: 0.01 = 1% de take profit, 0.008 = 0.8% de stop loss
-TAKE_PROFIT = 0.005
-STOP_LOSS = 0.015
+TAKE_PROFIT = 0.01  # 1%
+STOP_LOSS = 0.01  # 1%
 
 # Fracción del criterio de Kelly a aplicar (1 = Kelly completo, 0.5 = medio Kelly)
 # Para live trading, usar valores conservadores
@@ -197,3 +199,8 @@ TRADE_RESULTS_LOG_PATH = "gemini/data/gemini_trade_results.csv"
 # 🧱 OPCIONAL — SEMILLA ALEATORIA (reproducibilidad)
 # =====================================================
 SEED = 42
+
+# Configuración definitiva para Kraken Demo
+TESTNET = True
+SYMBOL = "BTC/USD"  # Kraken usa este formato
+TIMEFRAME = "15m"

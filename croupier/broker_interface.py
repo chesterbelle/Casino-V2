@@ -95,16 +95,9 @@ class BrokerInterface:
             self.logger.info("🚀 Iniciando mesa LIVE (config.EXCHANGE=%s)", exchange)
             self.engine = self._create_live_engine(symbol, self.interval, exchange)
 
-            # Para live trading, necesitamos conectar la mesa inmediatamente
-            if hasattr(self.engine.table, "connect"):
-                import asyncio
-
-                try:
-                    asyncio.run(self.engine.table.connect())
-                    self.logger.info("✅ Mesa live conectada y lista")
-                except Exception as e:
-                    self.logger.error(f"❌ Error conectando mesa live: {e}")
-                    raise
+            # Para live trading, la conexión se maneja en live_session.py
+            # para evitar problemas con asyncio.run() y tareas async
+            self.logger.info("✅ Mesa live preparada (conexión pendiente)")
 
         else:
             raise ValueError(f"Modo desconocido en config.MODE: {self.mode}")
@@ -145,8 +138,8 @@ class BrokerInterface:
 
         # Mapear exchanges a configuración CCXT
         if "KRAKEN" in exchange:
-            exchange_id = "kraken"
-            testnet = False  # Kraken no tiene sandbox, usar cuenta demo real
+            exchange_id = "krakenfutures"
+            testnet = False  # Kraken Futures usa cuenta demo real
         elif "BINANCE" in exchange:
             exchange_id = "binance"
             testnet = True

@@ -31,7 +31,9 @@ La orden estandarizada esperada contiene:
 """
 
 from __future__ import annotations
+
 import logging
+
 
 class Croupier:
     def __init__(self, table):
@@ -63,7 +65,11 @@ class Croupier:
             if k not in order:
                 raise ValueError(f"Orden incompleta: falta '{k}'")
 
-        result = self.table.execute_order(order)
+        # Usar execute_order_sync si existe (para mesas async), sino execute_order
+        if hasattr(self.table, "execute_order_sync"):
+            result = self.table.execute_order_sync(order)
+        else:
+            result = self.table.execute_order(order)
 
         # Log estándar consolidado
         self.logger.debug(

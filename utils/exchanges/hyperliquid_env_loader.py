@@ -3,12 +3,13 @@ Hyperliquid Environment Loader
 Loads API credentials and configuration from environment variables for Hyperliquid exchange.
 """
 
-import os
 import logging
-from typing import Optional, Dict, Any
+import os
+from typing import Any, Dict, Optional
 
 try:
     from dotenv import load_dotenv
+
     DOTENV_AVAILABLE = True
 except ImportError:
     DOTENV_AVAILABLE = False
@@ -30,7 +31,8 @@ def load_hyperliquid_config() -> Dict[str, Any]:
     """
     # Load .env file if available
     if DOTENV_AVAILABLE:
-        env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
+        # Buscar .env en la raíz del proyecto (2 niveles arriba de utils/exchanges/)
+        env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), ".env")
         if os.path.exists(env_path):
             load_dotenv(env_path)
             logger.info("Archivo .env encontrado en la raíz del proyecto: %s", env_path)
@@ -38,35 +40,37 @@ def load_hyperliquid_config() -> Dict[str, Any]:
     config = {}
 
     # Load API credentials
-    api_key = os.getenv('HYPERLIQUID_API_KEY')
-    api_secret = os.getenv('HYPERLIQUID_API_SECRET')
-    vault_address = os.getenv('HYPERLIQUID_VAULT_ADDRESS')
+    api_key = os.getenv("HYPERLIQUID_API_KEY")
+    api_secret = os.getenv("HYPERLIQUID_API_SECRET")
+    vault_address = os.getenv("HYPERLIQUID_VAULT_ADDRESS")
 
     if api_key:
-        config['api_key'] = api_key
+        config["api_key"] = api_key
         logger.info("✅ Hyperliquid API key loaded")
     else:
         logger.warning("⚠️ HYPERLIQUID_API_KEY not found in environment variables")
 
     if api_secret:
-        config['api_secret'] = api_secret
+        config["api_secret"] = api_secret
         logger.info("✅ Hyperliquid API secret loaded")
     else:
         logger.warning("⚠️ HYPERLIQUID_API_SECRET not found in environment variables")
 
     if vault_address:
-        config['vault_address'] = vault_address
+        config["vault_address"] = vault_address
         logger.info("✅ Hyperliquid vault address loaded")
     else:
         logger.info("ℹ️ No vault address configured (using main account)")
 
     # Load additional configuration
-    config.update({
-        'base_url': os.getenv('HYPERLIQUID_BASE_URL', 'https://api.hyperliquid.xyz'),
-        'ws_url': os.getenv('HYPERLIQUID_WS_URL', 'wss://api.hyperliquid.xyz/ws'),
-        'testnet': os.getenv('HYPERLIQUID_TESTNET', 'false').lower() == 'true',
-        'timeout': int(os.getenv('HYPERLIQUID_TIMEOUT', '30000')),  # 30 seconds
-    })
+    config.update(
+        {
+            "base_url": os.getenv("HYPERLIQUID_BASE_URL", "https://api.hyperliquid.xyz"),
+            "ws_url": os.getenv("HYPERLIQUID_WS_URL", "wss://api.hyperliquid.xyz/ws"),
+            "testnet": os.getenv("HYPERLIQUID_TESTNET", "false").lower() == "true",
+            "timeout": int(os.getenv("HYPERLIQUID_TIMEOUT", "30000")),  # 30 seconds
+        }
+    )
 
     return config
 
@@ -81,7 +85,7 @@ def validate_hyperliquid_config(config: Dict[str, Any]) -> bool:
     Returns:
         True if configuration is valid for trading
     """
-    required_fields = ['api_key', 'api_secret']
+    required_fields = ["api_key", "api_secret"]
 
     for field in required_fields:
         if not config.get(field):
@@ -96,8 +100,12 @@ def get_hyperliquid_credentials() -> Optional[Dict[str, str]]:
     """
     Get Hyperliquid API credentials in the format expected by CCXT.
 
+    Hyperliquid uses wallet-based authentication:
+    - walletAddress: Ethereum wallet address (0x...)
+    - privateKey: Private key for signing transactions (0x...)
+
     Returns:
-        Dict with 'apiKey' and 'secret', or None if not configured
+        Dict with 'walletAddress' and 'privateKey', or None if not configured
     """
     config = load_hyperliquid_config()
 
@@ -105,12 +113,12 @@ def get_hyperliquid_credentials() -> Optional[Dict[str, str]]:
         return None
 
     return {
-        'apiKey': config['api_key'],
-        'secret': config['api_secret'],
+        "walletAddress": config["api_key"],  # API_KEY es la wallet address
+        "privateKey": config["api_secret"],  # API_SECRET es la private key
     }
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # Test the loader
     print("🔍 Testing Hyperliquid environment loader...")
 

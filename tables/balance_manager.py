@@ -26,6 +26,16 @@ class BalanceManager:
         """Verifica si el jugador puede arriesgar ese monto."""
         return risk_amount <= self.balance
 
+    def set_balance(self, new_balance: float):
+        """
+        Actualiza el balance con un valor del exchange.
+
+        CRÍTICO: Este método se usa para sincronizar el balance local
+        con el balance real del exchange después de cada trade.
+        """
+        self.balance = new_balance
+        self.equity = new_balance
+
     def get_state(self):
         """Snapshot actual del capital."""
         return {"balance": round(self.balance, 4), "equity": round(self.equity, 4), "trades": len(self.history)}

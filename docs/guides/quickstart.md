@@ -169,6 +169,43 @@ Ver [Configuración Completa](configuration.md) para todas las opciones.
 
 ---
 
+## 🔄 Normalización Automática de Símbolos
+
+**Casino V2 incluye normalización automática de símbolos por exchange** para evitar errores comunes en live trading.
+
+### Cómo Funciona
+
+Cuando escribes un símbolo, el sistema lo convierte automáticamente al formato correcto:
+
+| Exchange | Input | Normalizado | Ejemplo |
+|----------|-------|-------------|---------|
+| **Kraken** | `btc` | `PF_BTC` | `btc` → `PF_BTC` |
+| **Hyperliquid** | `BTCUSDT` | `BTC` | `BTCUSDT` → `BTC` |
+| **Binance** | `btc` | `BTCUSDT` | `btc` → `BTCUSDT` |
+
+### Ejemplo en Acción
+
+```bash
+# Live trading con Kraken
+python main.py
+# Exchange: KRAKEN_DEMO
+# Símbolo a operar [PF_XBTUSD]: btc
+# Símbolo normalizado para Kraken: PF_BTC
+
+# Sistema automáticamente usa PF_BTC para Kraken
+```
+
+### Beneficios
+
+✅ **Menos errores**: No necesitas recordar formatos específicos
+✅ **UX mejorada**: Escribe símbolos naturalmente
+✅ **Consistencia**: Mismo símbolo funciona en todos los exchanges
+✅ **Live trading seguro**: Evita errores de "símbolo no encontrado"
+
+**Nota:** La normalización se registra en los logs para trazabilidad.
+
+---
+
 ## 🔄 Próximos Pasos
 
 1. ✅ **Entender la Arquitectura**

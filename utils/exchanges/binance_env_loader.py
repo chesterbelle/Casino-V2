@@ -22,11 +22,8 @@ def load_binance_config() -> Dict[str, Any]:
     Load Binance configuration from environment variables.
 
     Expected environment variables:
-    - BINANCE_API_KEY: Your Binance API key
-    - BINANCE_API_SECRET: Your Binance API secret
-
-    Returns:
-        Dict with Binance configuration
+    - BINANCE_TESTNET_API_KEY: Your Binance Testnet API key
+    - BINANCE_TESTNET_SECRET: Your Binance Testnet API secret
     """
     # Load .env file if available
     if DOTENV_AVAILABLE:
@@ -51,20 +48,20 @@ def load_binance_config() -> Dict[str, Any]:
     config = {}
 
     # Load API credentials
-    api_key = os.getenv("BINANCE_API_KEY")
-    api_secret = os.getenv("BINANCE_API_SECRET")
+    api_key = os.getenv("BINANCE_TESTNET_API_KEY")
+    api_secret = os.getenv("BINANCE_TESTNET_SECRET")
 
     if api_key:
         config["api_key"] = api_key
         logger.info("✅ Binance API key loaded")
     else:
-        logger.warning("⚠️ BINANCE_API_KEY not found in environment variables")
+        logger.warning("⚠️ BINANCE_TESTNET_API_KEY not found")
 
     if api_secret:
         config["api_secret"] = api_secret
         logger.info("✅ Binance API secret loaded")
     else:
-        logger.warning("⚠️ BINANCE_API_SECRET not found in environment variables")
+        logger.warning("⚠️ BINANCE_TESTNET_SECRET not found")
 
     # Load additional configuration
     config.update(

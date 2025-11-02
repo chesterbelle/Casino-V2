@@ -5,6 +5,63 @@
 
 ---
 
+## 🔥 v1.7: TAREAS CRÍTICAS PENDIENTES
+
+### **⭐⭐⭐ CRÍTICO - Live Trading Funcional** 🔄 **EN PROGRESO**
+
+#### 🚀 **Modo Live con Exchanges Principales** (Máxima Prioridad)
+**Estado**: 🔄 PENDIENTE - BLOQUEANTE PARA v1.8
+**Descripción**: Hacer funcionar el modo live con los 3 exchanges principales
+**Objetivo**: Sistema de live trading completamente operacional
+
+**Exchanges a validar**:
+1. **Kraken Futures Demo**
+   - Testnet/Demo environment
+   - Credenciales demo funcionales
+   - Ejecución de órdenes real en demo
+
+2. **Binance Futures Testnet**
+   - Testnet environment
+   - Credenciales testnet funcionales
+   - Ejecución de órdenes en testnet
+
+3. **Hyperliquid**
+   - Testnet/Mainnet según disponibilidad
+   - Credenciales funcionales
+   - Ejecución de órdenes
+
+**Criterio de Éxito** (Aprobación Manual):
+- ✅ Sistema se conecta exitosamente al exchange
+- ✅ Recibe datos de mercado en tiempo real (WebSocket o REST)
+- ✅ Gemini genera señales correctamente
+- ✅ Player calcula size apropiadamente
+- ✅ Sistema ejecuta al menos 1 trade real en demo/testnet
+- ✅ Trade se registra correctamente en logs
+- ✅ Balance se actualiza después del trade
+- ✅ Sistema corre estable por al menos 10 velas sin crashes
+- ✅ **Revisión manual del desarrollador confirma funcionamiento**
+
+**Complejidad**: Alta
+**Tiempo estimado**: 2-3 días por exchange
+**Bloqueante**: SÍ - debe completarse antes de v1.8
+
+**Tareas específicas**:
+- [ ] Validar credenciales y conexión para cada exchange
+- [ ] Verificar formato de símbolos (BTC/USD vs BTCUSDT vs BTC)
+- [ ] Probar WebSocket streams en tiempo real
+- [ ] Validar ejecución de órdenes market
+- [ ] Confirmar actualización de balance post-trade
+- [ ] Documentar configuración específica por exchange
+- [ ] Crear guía de troubleshooting por exchange
+
+**Archivos involucrados**:
+- `tables/table_ccxt_pro.py` - Mesa principal
+- `core/config.py` - Configuración de exchanges
+- `utils/exchanges/*_env_loader.py` - Carga de credenciales
+- `core/live_session.py` - Loop principal de live trading
+
+---
+
 ## 🎯 v1.8: MULTI-ASSET EXPANSION
 
 ### **⭐⭐⭐ CRÍTICO - Multi-Asset Foundation** ✅ **COMPLETADO**
@@ -106,7 +163,46 @@
 
 ## 🎯 CÓMO EMPEZAR
 
-### **Próximo paso: Adaptive Player**
+### **🔥 PRIORIDAD INMEDIATA: Live Trading Funcional (v1.7)**
+
+**ANTES de continuar con v1.8, debemos completar:**
+
+```bash
+# 1. Configurar credenciales del exchange en .env
+# Ejemplo para Kraken:
+KRAKEN_FUTURES_API_KEY=your_demo_key
+KRAKEN_FUTURES_API_SECRET=your_demo_secret
+
+# 2. Configurar config.py para el exchange
+MODE = "live"
+EXCHANGE = "KRAKEN_DEMO"  # o BINANCE_FUTURES_TESTNET o HYPERLIQUID
+
+# 3. Ejecutar sesión live
+python main.py
+
+# 4. Validar manualmente:
+# - ✅ Conexión exitosa
+# - ✅ Datos en tiempo real
+# - ✅ Al menos 1 trade ejecutado
+# - ✅ Logs correctos
+# - ✅ Balance actualizado
+# - ✅ Estabilidad por 10+ velas
+```
+
+**Checklist de validación por exchange:**
+- [x] **Kraken Futures Demo** - ✅ Validado y funcionando
+- [ ] **Binance Futures Testnet** - Validado y funcionando
+- [x] **Hyperliquid** - ✅ Casi operativo (requiere ajustes menores)
+
+**Recursos para live trading:**
+- 📖 `tables/table_ccxt_pro.py` - Mesa principal con WebSocket/REST híbrido
+- 📖 `core/live_session.py` - Loop de live trading
+- 📖 `utils/exchanges/` - Loaders de credenciales por exchange
+- 📖 `docs/guides/hyperliquid_setup.md` - Guía específica de Hyperliquid
+
+---
+
+### **Después de completar v1.7: Adaptive Player (v1.8)**
 
 ```bash
 # Crear rama para desarrollo

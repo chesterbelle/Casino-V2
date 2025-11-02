@@ -18,14 +18,31 @@
 
 ## 📋 Checklist Obligatorio (Antes de Cualquier Cambio)
 
-### ✅ **1. Leer Documentación Base**
+### ✅ **1. Leer TODOS los 4 Documentos Pilares**
 ```bash
-# Orden de lectura OBLIGATORIO:
-1. DEVELOPER.md              ← Este archivo (tú lo acabas de leer)
-2. docs/workflow.md          ← Cómo desarrollamos
-3. docs/development/PENDIENTES.md  ← Qué implementar
-4. README.md                  ← Vista general
+# ⚠️ ORDEN DE LECTURA 100% OBLIGATORIO - NO SALTAR NINGUNO:
+1. DEVELOPER.md                    ← Este archivo (acabado de leer)
+2. docs/workflow.md               ← CÓMO desarrollamos (OBLIGATORIO)
+3. docs/development/PENDIENTES.md ← QUÉ implementar (OBLIGATORIO)
+4. README.md                       ← Vista general (OBLIGATORIO)
 ```
+
+**🚨 CONSECUENCIAS DE NO LEER LOS 4 PILARES:**
+- ❌ **Código rechazado** en code review por falta de contexto
+- ❌ **Features implementadas** que ya existen o van contra la arquitectura
+- ❌ **Bugs introducidos** por no entender el flujo correcto
+- ❌ **Tiempo perdido** refactorizando código mal diseñado
+- ❌ **Consistencia rota** entre documentación y código
+
+**💯 REGLA DE ORO:** Si no has leído los 4 documentos pilares completos, **NO CODEES**. Vuelve atrás y léelos TODOS.
+
+### ✅ **1.5 Verificación de Lectura Completada**
+Después de leer los 4 documentos, confirma que entiendes:
+- [ ] Arquitectura modular (Sensores → Gemini → Player → Croupier → Tables)
+- [ ] Estado actual v1.7 y bloqueantes para v1.8
+- [ ] Workflow Git con ramas 1.7 → 1.8
+- [ ] Testing strategy y reglas obligatorias
+- [ ] Regla de sincronización de los 4 pilares
 
 ### ✅ **2. Regla de Sincronización de Documentación**
 **⚠️ IMPORTANTE:** Si modificas cualquiera de los 4 archivos pilares, debes actualizar TODOS los archivos para mantener consistencia:
@@ -306,9 +323,9 @@ python -m pytest tests/test_gemini.py -v
 
 ### **9. 🏢 Pisos del Casino (Trading Modes)**
 - **Analogía**: Diferentes pisos con reglas y riesgos distintos
-- **Piso 1**: Ruleta Americana (Backtest) - `MODE = "backtest"`
-- **Piso 2**: Ruleta Francesa (Paper Trading) - `MODE = "live"` con testnet
-- **Piso 3**: Ruleta Europea (Live Trading) - `MODE = "live"` con mainnet
+- **Piso 1**: Ruleta Americana (Backtest) - `MODE = "backtest"` - simulación histórica sin riesgo
+- **Piso 2**: Ruleta Francesa (Paper Trading) - `MODE = "live"` con testnet - datos reales, balance simulado
+- **Piso 3**: Ruleta Europea (Live Trading) - `MODE = "live"` con mainnet - dinero real, máximo riesgo
 
 ### **10. 🎰 Casino (Sistema Completo)**
 - **Analogía**: El establecimiento completo de juegos

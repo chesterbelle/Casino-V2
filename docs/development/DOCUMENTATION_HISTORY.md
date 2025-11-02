@@ -7,24 +7,41 @@
 
 ## 📅 Por Versión (Más reciente primero)
 
-### **v1.6 - Reorganización Completa y Sincronización**
-**Fecha:** Octubre 2025
-**Archivos:** workflow.md, README.md, DEVELOPER.md, COMPLETED_FEATURES.md, DOCUMENTATION_HISTORY.md
-**Motivo:** Implementar sistema de trazabilidad completo y sincronización de archivos pilares
+### **v1.8 - Mejora en Cierre de Posiciones para Hyperliquid**
+**Fecha:** Noviembre 2025
+**Archivos:** tables/table_ccxt_pro.py, docs/guides/hyperliquid_setup.md
+**Motivo:** Mejorar la fiabilidad del cierre de posiciones en Hyperliquid
 
 #### **Cambios Realizados:**
-- Nueva regla de sincronización obligatoria entre los 4 archivos pilares
-- Reorganización completa de COMPLETED_FEATURES.md por versiones
-- Reorganización completa de DOCUMENTATION_HISTORY.md por versiones
-- Integración de historiales en workflow.md como proceso obligatorio
-- Renombrado de archivos para mayor claridad (DOCS_MEJORAS.md → DOCUMENTATION_HISTORY.md)
-- Archivado de PLAN_V0.2.0.md como obsoleto
+- Implementación de cierre de posiciones con órdenes limit +0.1% para Hyperliquid
+- Mejora en el manejo de errores durante el cierre
+- Documentación actualizada con consideraciones especiales
+- Sincronización del balance después del cierre
 
 #### **Impacto:**
-- Sistema de trazabilidad completo para features y documentación
-- Workflow estandarizado que incluye mantenimiento de historiales
-- Archivos más intuitivos y fáciles de mantener
-- Prevención de inconsistencias entre documentación
+- Mayor confiabilidad en el cierre de posiciones
+- Reducción de errores en operaciones de cierre
+- Mejor trazabilidad con logs detallados
+- Documentación actualizada para usuarios
+
+---
+
+### **v1.7 - Normalización Automática de Símbolos**
+**Fecha:** Octubre 2025
+**Archivos:** docs/guides/quickstart.md, core/live_session.py
+**Motivo:** Documentar nueva funcionalidad de normalización automática de símbolos por exchange
+
+#### **Cambios Realizados:**
+- Nueva sección "Normalización Automática de Símbolos" en quickstart.md
+- Tabla explicativa con ejemplos por exchange (Kraken, Hyperliquid, Binance)
+- Documentación de beneficios y funcionamiento
+- Ejemplo práctico de uso en live trading
+
+#### **Impacto:**
+- Mejora significativa en experiencia de usuario para live trading
+- Reducción de errores comunes por formato de símbolos
+- Documentación clara para nuevos usuarios
+- Prevención de frustración en primeros usos del sistema
 
 ---
 

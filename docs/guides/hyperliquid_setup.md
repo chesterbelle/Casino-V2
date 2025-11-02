@@ -31,6 +31,27 @@ HYPERLIQUID_WS_URL=wss://api.hyperliquid.xyz/ws
 HYPERLIQUID_TESTNET=false
 ```
 
+## ⚠️ Consideraciones Especiales para Hyperliquid
+
+### Cierre de Posiciones
+
+Hyperliquid maneja el cierre de posiciones de manera segura:
+
+1. **Órdenes de Cierre**
+   - Usamos órdenes de mercado (`market`) con `reduceOnly: true`
+   - Esto asegura que solo se cierren posiciones existentes
+   - Se ejecutan al mejor precio disponible en el mercado
+
+2. **Manejo de Errores**
+   - Se registran todos los intentos de cierre
+   - Se mantiene el rastreo de posiciones abiertas
+   - Se actualiza el balance después de cada cierre exitoso
+
+3. **Recomendaciones**
+   - Verifica el estado de las órdenes en el log
+   - Monitorea el balance después del cierre
+   - Reporta cualquier inconsistencia para su revisión
+
 ## ⚙️ Configuración del Sistema
 
 ### 1. Archivo `config.py`

@@ -78,8 +78,8 @@ python main.py --player=kelly
 # Tests pasan
 python -m pytest
 
-# Live trading posible
-python main.py  # Cambiar config a live si se quiere probar
+# Live trading posible (requiere credenciales válidas)
+python main.py  # Cambiar config a live + configurar credenciales en .env
 ```
 
 #### **3. Revisar Código Reciente**
