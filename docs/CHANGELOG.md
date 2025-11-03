@@ -1,5 +1,21 @@
 # Changelog
 
+# [1.8] - 2025-11-03
+
+### Added
+- **Arquitectura Mesa + Conectores**: nueva `TableCCXTPro` inyecta cualquier `BaseConnector`.
+- **Módulo de Conectores**: `tables/connectors/connector_base.py` y guías en `docs/connectors/`.
+- **KrakenConnector**: soporte completo demo/mainnet, validado con balance real y OHLCV.
+- **Tests y Validación**: `tests/test_kraken_connector.py` y `utils/validate_v18.py` para verificación end-to-end.
+
+### Changed
+- **BrokerInterface**: ahora crea mesas usando conectores modulares.
+- **BalanceManager**: añade `get_balance()` y `update_balance()` para sincronizar con el exchange.
+- **Documentación**: `docs/VISION.md`, `ROADMAP.md` y nuevas guías reflejan la arquitectura 1.8.
+
+### Removed
+- **Implementación Legacy**: se elimina `tables/table_ccxt_pro_legacy.py` y `docs/STATUS.md` obsoleto.
+
 ## [1.7] - 2025-10-15
 
 ### Added
