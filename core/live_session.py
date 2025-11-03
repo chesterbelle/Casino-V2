@@ -230,11 +230,6 @@ async def run_live_session(
     initial_balance = _safe_float(initial_state.get("balance"), default_balance)
     initial_equity = _safe_float(initial_state.get("equity"), initial_balance)
 
-    # Log additional info about balance source
-    balance_source_info = ""
-    if balance_source != "table.get_state() / BalanceManager":
-        balance_source_info = f" | source={balance_source}"
-
     # En modo LIVE, intentar obtener balance real del exchange
     real_balance = None
     if hasattr(table, "exchange") and table.exchange:
@@ -679,7 +674,6 @@ async def run_live_session(
             order.setdefault("symbol", candle.get("symbol", table.symbols[0] if table.symbols else symbol))
             order.setdefault("timestamp", candle.get("timestamp"))
             order.setdefault("timeframe", candle.get("timeframe", getattr(table, "timeframe", "UNKNOWN")))
-            trade_id = verdict.trade_id
 
             try:
                 # Llamar directamente a execute_order (async) en lugar de pasar por Croupier

@@ -39,18 +39,18 @@ import sys
 # Add current directory to path for config import
 sys.path.insert(0, os.getcwd())
 
-from core import (
+from core import (  # noqa: E402
     ask_initial_balance,
     config,
     print_session_summary,
     run_session_with_player,
 )
-from players import fixed_player, kelly_player, paroli_player
+from players import fixed_player, kelly_player, paroli_player  # noqa: E402
 
 try:
-    from live_session import run_live_session
+    from live_session import run_live_session  # noqa: E402
 except ImportError:
-    from core.live_session import run_live_session
+    from core.live_session import run_live_session  # noqa: E402
 
 
 # ============================================================

@@ -1,11 +1,8 @@
 [flake8]
 max-line-length = 120
 # Alineado con black y pyproject.toml
-# F541: f-strings sin placeholders (común en logging)
-# F401: imports no usados (común en __init__.py y módulos de utilidad)
-# F841: variables asignadas pero no usadas (común en unpacking)
-# E402: imports no al inicio (necesario para path manipulation)
-extend-ignore = E203, W503, E501, F541, E402
+# Solo ignorar incompatibilidades con black
+extend-ignore = E203, W503, E501
 exclude =
     .git,
     __pycache__,
@@ -18,9 +15,7 @@ exclude =
     venv,
     env
 per-file-ignores =
-    __init__.py:F401,D104
-    **/test_*.py:F841,E712
-    utils/**/*.py:F401
-    core/*.py:F401,F841
-    sensors/**/*.py:F401,F841
-    tables/*.py:F401,F841
+    __init__.py:F401
+    tests/*.py:F841,E712,F541,E402
+    utils/*.py:F401,F541,E402
+    utils/**/*.py:F401,F541,E402

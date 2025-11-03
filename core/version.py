@@ -127,12 +127,12 @@ def print_version_banner():
 # =====================================================
 if __name__ == "__main__":
     print_version_banner()
-    print(f"\n📊 Version Info:")
+    print("\n📊 Version Info:")
     info = get_version_info()
     for key, value in info.items():
         print(f"  {key}: {value}")
 
-    print(f"\n🔜 Next Version:")
+    print("\n🔜 Next Version:")
     next_info = get_next_version_info()
     for key, value in next_info.items():
         if key == "blockers":

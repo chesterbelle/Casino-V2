@@ -13,8 +13,6 @@ import json
 import os
 from typing import Dict, Optional
 
-import pandas as pd
-
 
 class BaseTable(abc.ABC):
     def __init__(self, exchange_profile="binance"):

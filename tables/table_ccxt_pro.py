@@ -23,11 +23,8 @@ Características:
 
 import asyncio
 import logging
-import traceback
-from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
-import ccxt
 import ccxt.async_support as ccxt_async
 
 from .balance_manager import BalanceManager

@@ -15,16 +15,10 @@ from tables.table_backtest import TableBacktest
 from tables.table_ccxt_pro import TableCCXTPro
 
 from . import config
-from .cache import data_cache
 from .exceptions import CasinoError, TradingError
 from .logger import logger, performance_monitor
 from .session_helpers import get_table_state, log_trade, set_table_balance
-from .validators import (
-    ValidationError,
-    validate_config_section,
-    validate_positive_number,
-    validate_string,
-)
+from .validators import ValidationError, validate_positive_number, validate_string
 
 
 @performance_monitor("run_session_with_player")

@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger("PositionTracker")
 
@@ -175,9 +175,7 @@ class PositionTracker:
 
         high = float(current_candle.get("high", 0))
         low = float(current_candle.get("low", 0))
-        close = float(current_candle.get("close", 0))
         timestamp = current_candle.get("timestamp", "")
-        timestamp_ms = current_candle.get("timestamp_ms")
 
         for position in self.open_positions:
             position.bars_held += 1

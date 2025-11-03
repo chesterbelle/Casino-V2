@@ -32,7 +32,7 @@ def _compute_adx(highs: List[float], lows: List[float], closes: List[float], per
     for idx in range(start, len(highs)):
         if idx == 0:
             continue
-        hi, lo, close = highs[idx], lows[idx], closes[idx]
+        hi, lo, _ = highs[idx], lows[idx], closes[idx]
         prev_hi, prev_lo, prev_close = highs[idx - 1], lows[idx - 1], closes[idx - 1]
 
         up_move = hi - prev_hi

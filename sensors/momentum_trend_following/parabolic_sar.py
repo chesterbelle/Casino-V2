@@ -18,8 +18,6 @@ from __future__ import annotations
 
 from collections import deque
 
-import numpy as np
-
 
 class ParabolicSAR:
     def __init__(self, af_start: float = 0.02, af_increment: float = 0.02, af_max: float = 0.20):
@@ -64,7 +62,6 @@ class ParabolicSAR:
             return None, None
 
         prev_sar = self.sar
-        prev_is_long = self.is_long
 
         # Calcular nuevo SAR
         self.sar = prev_sar + self.af * (self.ep - prev_sar)
@@ -109,7 +106,6 @@ class ParabolicSAR:
     def check_signal(self, candle: dict):
         high = float(candle["high"])
         low = float(candle["low"])
-        close = float(candle["close"])
 
         self.highs.append(high)
         self.lows.append(low)

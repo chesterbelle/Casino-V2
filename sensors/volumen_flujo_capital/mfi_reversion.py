@@ -19,8 +19,6 @@ from __future__ import annotations
 
 from collections import deque
 
-import numpy as np
-
 
 class MFIReversion:
     def __init__(self, period: int = 14, oversold: float = 20.0, overbought: float = 80.0):

@@ -7,7 +7,7 @@ used throughout the trading system.
 
 import re
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Union
 
 from .exceptions import ValidationError, create_validation_error
 
