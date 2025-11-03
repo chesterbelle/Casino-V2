@@ -275,7 +275,8 @@ Verdict(
 ## 🎯 VISIÓN A FUTURO
 
 ### **v1.8 - Estado Actual** ✅
-- optimizaar codigo  y modificar el enfoque de las mesas en vez de una mesa monolitica multi exchange implementar solo una mesa por exchange  para facilitar su implementacion empezando por kraken solo dejaremos una
+Refactorizar arquitectura de mesas para usar conectores modulares por exchange
+Mesa + Conectores
 
 ### **v1.9  Multi-Timeframe** 🎯
 - Operar multiples timeframe (1m, 5m, 1h, 4h) simultáneamente (ojo en una solo mesa)
