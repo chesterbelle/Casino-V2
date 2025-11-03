@@ -29,7 +29,7 @@ import sys
 from typing import List
 
 # Setup path
-import config
+from core import config
 
 from gemini.gemini_core import (
     Decision,

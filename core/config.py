@@ -27,7 +27,7 @@ EXCHANGE_PROFILE = "hyperliquid"
 
 # Exchange a utilizar en modo "live"
 # Opciones: "ASTER_PAPER", "KRAKEN_DEMO", "BINANCE_FUTURES_TESTNET", "HYPERLIQUID"
-EXCHANGE = "HYPERLIQUID"
+EXCHANGE = "BINANCE_FUTURES_TESTNET"
 
 # Ruta del dataset CSV (para modo backtest) — se utiliza tanto para Gemini
 # como para Oscar. Cambia este archivo para alternar rápidamente entre datasets.
@@ -69,7 +69,7 @@ LIVE_SLEEP_SECONDS = 1.0
 # Número máximo de velas a procesar antes de detener la sesión.
 # Usa None (o valores <= 0) para dejarlo en ejecución indefinida.
 # Para live trading inicial, limitar a sesiones cortas
-LIVE_MAX_CANDLES = 10  # Sesión muy corta para testing inicial
+LIVE_MAX_CANDLES = 60  # Test con 60 velas
 
 
 # =====================================================

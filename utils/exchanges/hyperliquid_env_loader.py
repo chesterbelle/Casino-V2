@@ -62,13 +62,31 @@ def load_hyperliquid_config() -> Dict[str, Any]:
     else:
         logger.info("ℹ️ No vault address configured (using main account)")
 
+    # Determine entorno (mainnet/testnet)
+    raw_testnet = os.getenv("HYPERLIQUID_TESTNET")
+    testnet_flag = None if raw_testnet is None else raw_testnet.lower() == "true"
+
+    # Defaults dependen del flag (si está definido) o mainnet por defecto
+    default_base_url = "https://api.hyperliquid-testnet.xyz" if testnet_flag is True else "https://api.hyperliquid.xyz"
+    default_ws_url = "wss://api.hyperliquid-testnet.xyz/ws" if testnet_flag is True else "wss://api.hyperliquid.xyz/ws"
+
+    env_base_url = os.getenv("HYPERLIQUID_BASE_URL")
+    env_ws_url = os.getenv("HYPERLIQUID_WS_URL")
+    test_base_url = os.getenv("HYPERLIQUID_TEST_BASE_URL", "https://api.hyperliquid-testnet.xyz")
+    test_ws_url = os.getenv("HYPERLIQUID_TEST_WS_URL", "wss://api.hyperliquid-testnet.xyz/ws")
+
     # Load additional configuration
     config.update(
         {
-            "base_url": os.getenv("HYPERLIQUID_BASE_URL", "https://api.hyperliquid.xyz"),
-            "ws_url": os.getenv("HYPERLIQUID_WS_URL", "wss://api.hyperliquid.xyz/ws"),
-            "testnet": os.getenv("HYPERLIQUID_TESTNET", "false").lower() == "true",
+            "base_url": env_base_url or default_base_url,
+            "ws_url": env_ws_url or default_ws_url,
+            "testnet": testnet_flag,
+            "test_base_url": test_base_url,
+            "test_ws_url": test_ws_url,
             "timeout": int(os.getenv("HYPERLIQUID_TIMEOUT", "30000")),  # 30 seconds
+            "_testnet_overridden": raw_testnet is not None,
+            "_base_url_overridden": env_base_url is not None,
+            "_ws_url_overridden": env_ws_url is not None,
         }
     )
 

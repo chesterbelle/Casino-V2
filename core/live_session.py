@@ -311,16 +311,20 @@ async def run_live_session(
         except Exception as e:
             error_msg = str(e)
             RESULT_LOGGER.error(f"❌ Error obteniendo balance del exchange: {error_msg}")
-
-            # Si el error es sobre "no account", significa que la cuenta demo no tiene fondos
-            if "no account for" in error_msg.lower():
-                RESULT_LOGGER.warning("⚠️ La cuenta demo de Kraken no tiene fondos o no está configurada")
-                RESULT_LOGGER.warning("⚠️ Para testing, usaremos balance simulado de 10,000 USD")
-                # Usar balance simulado para testing
-                real_balance = 10000.0
-                currency = "USD"
-            else:
-                RESULT_LOGGER.error("Detalles del error:", exc_info=True)
+            RESULT_LOGGER.error("Detalles del error:", exc_info=True)
+            
+            # CRÍTICO: En modo LIVE nunca usar balance simulado
+            # Si no se puede obtener balance real, DETENER el sistema
+            raise RuntimeError(
+                f"❌ MODO LIVE: No se pudo obtener balance real del exchange.\n"
+                f"Error: {error_msg}\n"
+                f"El sistema NO puede continuar sin balance real.\n"
+                f"Verifique:\n"
+                f"  1. Credenciales correctas en .env\n"
+                f"  2. Cuenta tiene fondos disponibles\n"
+                f"  3. API keys tienen permisos de lectura de balance\n"
+                f"  4. Exchange está accesible (no hay problemas de red/SSL)"
+            )
 
     # En modo LIVE, requerir balance real - incluso para Kraken Demo
     if real_balance is not None and real_balance > 0:

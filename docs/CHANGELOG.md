@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.7] - 2025-10-15
+
+### Added
+- **Arquitectura Core Refactorizada**: Módulos `core/` consolidados
+- **Jerarquía Table Unificada**: Todas las Tables heredan de `BaseTable`
+- **Type Safety Completo**: Type hints en todos los módulos core
+- **Sistema de Logging Centralizado**: `core/logger.py`
+- **Multi-Asset Foundation**: `TableBacktestMultiAsset` completado
+
+### Changed
+- **main.py**: Reducido de 644 a 180 líneas
+- **Organización de Código**: Mejor estructura en `utils/` y `core/`
+- **Imports**: Eliminados imports circulares
+
+### Fixed
+- **Performance**: Optimizaciones aplicadas, cuellos de botella eliminados
+- **Memory**: Mejor uso de recursos
+
 ## [0.1.2] - 2025-01-XX
 
 ### Added

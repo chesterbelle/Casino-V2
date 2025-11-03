@@ -50,6 +50,7 @@ def load_binance_config() -> Dict[str, Any]:
     # Load API credentials
     api_key = os.getenv("BINANCE_TESTNET_API_KEY")
     api_secret = os.getenv("BINANCE_TESTNET_SECRET")
+    testnet_mode = os.getenv("BINANCE_TESTNET_MODE", 'true').lower() in ('true', '1', 't')
 
     if api_key:
         config["api_key"] = api_key
@@ -68,7 +69,7 @@ def load_binance_config() -> Dict[str, Any]:
         {
             "base_url": os.getenv("BINANCE_BASE_URL", "https://testnet.binancefuture.com"),
             "timeout": int(os.getenv("BINANCE_TIMEOUT", "30000")),  # 30 seconds
-            "testnet": True,  # Always testnet for safety
+            "testnet": testnet_mode,  # Always testnet for safety
         }
     )
 
