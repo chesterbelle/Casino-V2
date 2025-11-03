@@ -113,7 +113,7 @@ LIVE_SLEEP_SECONDS = 1.0
 # Número máximo de velas a procesar antes de detener la sesión.
 # Usa None (o valores <= 0) para dejarlo en ejecución indefinida.
 # Para live trading inicial, limitar a sesiones cortas
-LIVE_MAX_CANDLES = 60  # Test con 60 velas
+LIVE_MAX_CANDLES = 30  # Prueba manual limitada a 30 velas
 
 
 # =====================================================
@@ -121,7 +121,7 @@ LIVE_MAX_CANDLES = 60  # Test con 60 velas
 # =====================================================
 KRAKEN_FUTURES_BASE_URL = "https://demo-futures.kraken.com/derivatives/api/"
 KRAKEN_FUTURES_CHARTS_URL = "https://demo-futures.kraken.com/api/charts/v1/"
-KRAKEN_FUTURES_SYMBOL = "BTC"
+KRAKEN_FUTURES_SYMBOL = "LTC"
 KRAKEN_FUTURES_INTERVAL = "1m"
 KRAKEN_POLL_INTERVAL = 2.0
 KRAKEN_FUTURES_API_KEY = None

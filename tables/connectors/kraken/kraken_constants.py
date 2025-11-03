@@ -53,6 +53,7 @@ SYMBOL_MAPPING = {
     "XRP/USD": "PF_XRPUSD",  # Ripple
     "ADA/USD": "PF_ADAUSD",  # Cardano
     "DOGE/USD": "PF_DOGEUSD",  # Dogecoin
+    "LTC/USD": "PF_LTCUSD",  # Litecoin
     "MATIC/USD": "PF_MATICUSD",  # Polygon
     "DOT/USD": "PF_DOTUSD",  # Polkadot
     "AVAX/USD": "PF_AVAXUSD",  # Avalanche

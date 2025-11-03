@@ -86,6 +86,22 @@ class PositionTracker:
         # Verificar capital disponible
         return available_equity >= required_margin
 
+    @staticmethod
+    def _normalize_side(side: str) -> Optional[str]:
+        """Normaliza side a LONG/SHORT respetando entradas buy/sell."""
+
+        if not side:
+            return None
+
+        side_upper = side.upper()
+
+        if side_upper in {"LONG", "BUY"}:
+            return "LONG"
+        if side_upper in {"SHORT", "SELL"}:
+            return "SHORT"
+
+        return None
+
     def open_position(
         self, order: Dict[str, Any], entry_price: float, entry_timestamp: str, available_equity: float
     ) -> Optional[OpenPosition]:
@@ -102,11 +118,24 @@ class PositionTracker:
             OpenPosition creada o None si falla
         """
         try:
-            side = order.get("side", "").upper()
+            side_raw = order.get("side", "")
+            side = self._normalize_side(side_raw)
             symbol = order.get("symbol", "")
             size_fraction = order.get("size", 0.0)
             leverage = order.get("leverage", 1.0)
             trade_id = order.get("trade_id", f"pos_{self.total_trades_opened}")
+
+            if not side:
+                logger.error(f"Side inválido para abrir posición: {side_raw}")
+                return None
+
+            if size_fraction is None or size_fraction <= 0:
+                logger.debug(
+                    "Ignorando open_position: size_fraction inválido (trade_id=%s, size=%s)",
+                    trade_id,
+                    size_fraction,
+                )
+                return None
 
             # Calcular notional y margen
             notional = available_equity * size_fraction * leverage
@@ -125,7 +154,6 @@ class PositionTracker:
                 sl_level = entry_price * (2.0 - sl_factor)
                 liquidation_level = entry_price * (1.0 + (1.0 / leverage) - 0.005)
             else:
-                logger.error(f"Side inválido para abrir posición: {side}")
                 return None
 
             # Crear posición

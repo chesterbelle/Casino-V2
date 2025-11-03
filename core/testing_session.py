@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import inspect
 import logging
 import time
 from typing import Any, Dict, Optional
@@ -92,7 +93,15 @@ def _get_table_state(table) -> Dict:
         try:
             return table.get_state() or {}
         except Exception:  # pragma: no cover - defensive
-            return {}
+            pass
+
+    # Fallback para TableCCXTPro: usar balance_manager
+    if hasattr(table, "balance_manager") and hasattr(table.balance_manager, "get_state"):
+        try:
+            return table.balance_manager.get_state() or {}
+        except Exception:  # pragma: no cover - defensive
+            pass
+
     return {}
 
 
@@ -212,6 +221,12 @@ async def run_testing_session(
     # Configurar la mesa testing
     table = broker.engine.table
 
+    table_connected = False
+    if hasattr(table, "connect"):
+        await table.connect()
+        table_connected = True
+        RESULT_LOGGER.info("✅ Mesa testing conectada")
+
     # Set margin type to ISOLATED for safety
     margin_type = getattr(config, "DEFAULT_MARGIN_TYPE", "ISOLATED").upper()
     if margin_type == "ISOLATED":
@@ -266,23 +281,42 @@ async def run_testing_session(
                     # No hay loop, crear uno nuevo
                     balance_data = asyncio.run(table.exchange.fetch_balance())
 
+            if not isinstance(balance_data, dict):
+                RESULT_LOGGER.error("❌ Respuesta de balance inválida: %s", balance_data)
+                balance_data = {}
+
             RESULT_LOGGER.info("📊 Balance data type: %s", type(balance_data))
             RESULT_LOGGER.debug("Balance data completa: %s", balance_data)
 
+            balance_payload = balance_data.get("raw", balance_data)
+
+            def _extract_currency_snapshot(data: Dict[str, Any], code: str) -> Optional[Dict[str, Any]]:
+                snapshot = data.get(code)
+                if isinstance(snapshot, dict):
+                    total_val = snapshot.get("total")
+                    free_val = snapshot.get("free")
+                    if total_val:
+                        return {"total": float(total_val), "free": float(free_val or total_val)}
+                    if free_val:
+                        return {"total": float(free_val), "free": float(free_val)}
+                # CCXT structure
+                if code in data.get("total", {}):
+                    total_val = data["total"].get(code)
+                    free_val = data.get("free", {}).get(code)
+                    if total_val:
+                        return {"total": float(total_val), "free": float(free_val or total_val or 0.0)}
+                    if free_val:
+                        return {"total": float(free_val), "free": float(free_val)}
+                return None
+
             # Para Kraken, buscar USD o USDT
             for curr in ["USD", "USDT", "USDC"]:
-                if curr in balance_data:
-                    curr_data = balance_data[curr]
-                    RESULT_LOGGER.debug(f"Datos de {curr}: {curr_data} (type: {type(curr_data)})")
-
-                    # Verificar si es un dict con 'total'
-                    if isinstance(curr_data, dict) and "total" in curr_data:
-                        total = curr_data["total"]
-                        if total and float(total) > 0:
-                            real_balance = float(total)
-                            currency = curr
-                            RESULT_LOGGER.info("✅ Balance encontrado en %s: %.4f", currency, real_balance)
-                            break
+                snapshot = _extract_currency_snapshot(balance_payload, curr)
+                if snapshot and snapshot["total"] > 0:
+                    real_balance = snapshot["total"]
+                    currency = curr
+                    RESULT_LOGGER.info("✅ Balance encontrado en %s: %.4f", currency, real_balance)
+                    break
 
             # Si no hay balance en monedas específicas, buscar cualquier balance positivo
             if real_balance is None:
@@ -293,13 +327,12 @@ async def run_testing_session(
 
                     RESULT_LOGGER.debug(f"Revisando {curr}: {data} (type: {type(data)})")
 
-                    if isinstance(data, dict):
-                        total = data.get("total", 0)
-                        if total and float(total) > 0:
-                            real_balance = float(total)
-                            currency = curr
-                            RESULT_LOGGER.info("✅ Balance encontrado en %s: %.4f", currency, real_balance)
-                            break
+                    snapshot = _extract_currency_snapshot(balance_payload, curr)
+                    if snapshot and snapshot["total"] > 0:
+                        real_balance = snapshot["total"]
+                        currency = curr
+                        RESULT_LOGGER.info("✅ Balance encontrado en %s: %.4f", currency, real_balance)
+                        break
 
         except Exception as e:
             error_msg = str(e)
@@ -490,7 +523,7 @@ async def run_testing_session(
     listener_task = None
 
     # Conectar la mesa (async)
-    if hasattr(table, "connect"):
+    if not table_connected and hasattr(table, "connect"):
         await table.connect()
         RESULT_LOGGER.info("✅ Mesa testing conectada")
 
@@ -514,6 +547,8 @@ async def run_testing_session(
             consume_completed_trades_from_table()
 
             candle = table.next_candle()
+            if inspect.isawaitable(candle):
+                candle = await candle
             if candle is None:
                 # Solo log cada 10 segundos para no spam
                 current_time = int(asyncio.get_event_loop().time())
@@ -597,22 +632,14 @@ async def run_testing_session(
                 RESULT_LOGGER.debug("Gemini rechazó las señales: %s", verdict.reason)
                 stats["skip_trades"] += 1
                 if verdict.trade_id and verdict.reason == "conflicto_de_lado":
-                    ghost_order = gemini.make_order_from_verdict(verdict, size_fraction=0.0, ghost=True)
-                    ghost_order.setdefault(
-                        "symbol", candle.get("symbol", table.symbols[0] if table.symbols else symbol)
+                    # Orden GHOST por conflicto: no se ejecuta realmente, solo se registra
+                    RESULT_LOGGER.info(
+                        "⚠️ Conflicto de lado detectado (LONG vs SHORT). Registrando GHOST trade. trade_id=%s",
+                        verdict.trade_id,
                     )
-                    ghost_order.setdefault("timestamp", candle.get("timestamp"))
-                    ghost_order.setdefault("timeframe", candle.get("timeframe", getattr(table, "timeframe", "UNKNOWN")))
-                    try:
-                        # Llamar directamente a execute_order (async) para órdenes GHOST
-                        if hasattr(table, "execute_order") and asyncio.iscoroutinefunction(table.execute_order):
-                            ghost_result = await table.execute_order(ghost_order)
-                        else:
-                            ghost_result = croupier.route_order(ghost_order)
-                        if verdict.trade_id:
-                            gemini.on_trade_result(verdict.trade_id, ghost_result)
-                    except Exception as exc:  # pragma: no cover - defensivo
-                        RESULT_LOGGER.exception("Fallo en orden GHOST por conflicto de lado: %s", exc)
+                    stats["ghost_trades"] += 1
+                    # No intentamos ejecutar en la mesa; solo notificamos a Gemini para aprendizaje
+                    # La mesa real no soporta órdenes sin side válido
                 if limit_reached():
                     register_limit_exit()
                     break
@@ -630,7 +657,7 @@ async def run_testing_session(
                 "min_qty": getattr(table, "min_qty", None),
                 "step_size": getattr(table, "step_size", None),
                 "price": candle.get("close"),
-                "symbol": candle.get("symbol", table.symbols[0] if table.symbols else symbol),
+                "symbol": candle.get("symbol", getattr(table, "symbol", symbol)),
                 "max_position_fraction": getattr(config, "MAX_POSITION_SIZE", 0.0),
             }
 
@@ -655,7 +682,67 @@ async def run_testing_session(
                 ghost_flag = True
                 size_fraction = 0.0
 
-            order = gemini.make_order_from_verdict(verdict, size_fraction, ghost=ghost_flag)
+            order = gemini.make_order_from_verdict(verdict, size_fraction or 0.0, ghost=ghost_flag)
+
+            # Validación defensiva antes de enviar a la mesa
+            order_side = (order.get("side") or "").lower()
+            order_size_fraction = order.get("size")
+            if order_side not in {"long", "short"}:
+                RESULT_LOGGER.error("Orden inválida generada por player/gemini (side=%s). Ignorando...", order_side)
+                stats["skip_trades"] += 1
+                continue
+            try:
+                order_size_fraction = float(order_size_fraction)
+            except (TypeError, ValueError):
+                order_size_fraction = 0.0
+
+            if order_size_fraction <= 0:
+                RESULT_LOGGER.info(
+                    "Orden con size=0 (probablemente GHOST). No se enviará a la mesa. trade_id=%s",
+                    order.get("trade_id"),
+                )
+                stats["ghost_trades"] += 1
+                continue
+
+            current_price = _safe_float(candle.get("close")) or _safe_float(candle.get("price"))
+            if not current_price or current_price <= 0:
+                RESULT_LOGGER.error(
+                    "Precio inválido para calcular tamaño de orden (%s). Skipping trade.", current_price
+                )
+                stats["skip_trades"] += 1
+                continue
+
+            equity_value = equity or _safe_float(_get_table_state(table).get("equity")) or 0.0
+            notional_amount = equity_value * order_size_fraction
+            if notional_amount <= 0:
+                RESULT_LOGGER.info(
+                    "Notional <= 0 (equity=%.4f, size_fraction=%.6f). Orden descartada.",
+                    equity_value,
+                    order_size_fraction,
+                )
+                stats["skip_trades"] += 1
+                continue
+
+            base_amount = notional_amount / current_price
+            if base_amount <= 0:
+                RESULT_LOGGER.error(
+                    "Cantidad base resultó <=0 (notional=%.4f, price=%.4f). Orden descartada.",
+                    notional_amount,
+                    current_price,
+                )
+                stats["skip_trades"] += 1
+                continue
+
+            # Normalizar campos esperados por TableCCXTPro
+            order_side_exchange = "buy" if order_side == "long" else "sell"
+            order["side"] = order_side_exchange
+            order["size_fraction"] = order_size_fraction
+            order["size"] = order_size_fraction
+            order["amount"] = float(base_amount)
+            order.setdefault("type", "market")
+            order.setdefault("symbol", getattr(table, "symbol", symbol))
+            order.setdefault("price", current_price)
+            order.setdefault("notional", notional_amount)
             if isinstance(meta, dict):
                 unit_amount = meta.get("paroli_unit_amount")
                 unit_multiplier = meta.get("paroli_multiplier")
@@ -669,7 +756,7 @@ async def run_testing_session(
                         order["unit_multiplier"] = float(unit_multiplier)
                     except (TypeError, ValueError):
                         pass
-            order.setdefault("symbol", candle.get("symbol", table.symbols[0] if table.symbols else symbol))
+            order.setdefault("symbol", candle.get("symbol", getattr(table, "symbol", symbol)))
             order.setdefault("timestamp", candle.get("timestamp"))
             order.setdefault("timeframe", candle.get("timeframe", getattr(table, "timeframe", "UNKNOWN")))
 

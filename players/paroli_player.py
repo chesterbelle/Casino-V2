@@ -117,8 +117,11 @@ def calculate_position_size(
     unit_amount = state.get("unit")
     step = int(state.get("step", 0))
 
+    # Paroli apuesta "a lo loco": si no hay unit, calcularla ahora
     if unit_amount is None or unit_amount <= 0:
-        return None
+        unit_amount = equity / BASE_DIVISOR
+        state["unit"] = unit_amount
+
     if step < 0 or step >= len(progression):
         step = 0
 

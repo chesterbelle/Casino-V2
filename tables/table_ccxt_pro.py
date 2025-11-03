@@ -46,7 +46,7 @@ Usage:
 from __future__ import annotations
 
 import logging
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 
 from .balance_manager import BalanceManager
 from .connectors.connector_base import BaseConnector
@@ -95,6 +95,9 @@ class TableCCXTPro(BaseTable):
         # State
         self._connected = False
         self._last_candle: Optional[Dict] = None
+        self._last_balance_snapshot: Optional[Dict[str, Any]] = None
+        self.exchange = None
+        self.base_currency = getattr(connector, "base_currency", "USD")
 
         self.logger.info(f"🪙 TableCCXTPro inicializada | Exchange: {connector.exchange_name} | Symbol: {symbol}")
 
@@ -120,6 +123,7 @@ class TableCCXTPro(BaseTable):
 
             # Connect via connector
             await self.connector.connect()
+            self.exchange = getattr(self.connector, "exchange", None)
 
             # Fetch initial balance (CRITICAL: fail-fast if this fails)
             try:
@@ -235,6 +239,13 @@ class TableCCXTPro(BaseTable):
                 params=order.get("params", {}),
             )
 
+            if not isinstance(result, dict):
+                self.logger.error(
+                    "❌ El conector devolvió un resultado inválido para la orden: %s",
+                    result,
+                )
+                raise ValueError("Connector returned invalid order result")
+
             # 3. Update internal state
             self._update_after_order(result)
 
@@ -300,6 +311,37 @@ class TableCCXTPro(BaseTable):
             self.logger.error(f"❌ Error fetching positions: {e}")
             raise
 
+    async def close_all_positions(self) -> list:
+        """Fuerza el cierre de posiciones abiertas usando el último precio conocido."""
+
+        if not hasattr(self, "position_tracker") or self.position_tracker is None:
+            return []
+
+        current_candle = self._last_candle or {}
+        if not current_candle:
+            # Fallback mínimo con el último balance conocido
+            snapshot = self.balance_manager.get_state() if hasattr(self.balance_manager, "get_state") else {}
+            current_price = snapshot.get("last_price") if isinstance(snapshot, dict) else None
+            current_candle = {
+                "close": current_price or 0.0,
+                "timestamp": snapshot.get("timestamp") if isinstance(snapshot, dict) else None,
+                "symbol": self.symbol,
+                "timeframe": self.timeframe,
+            }
+
+        results = self.position_tracker.force_close_all_positions(current_candle)
+
+        for result in results:
+            self.logger.info(
+                "🔒 FORCE CLOSE (mesa) | %s %s | Exit: %s | P&L: %.6f",
+                result.get("symbol"),
+                result.get("side"),
+                result.get("trigger_price"),
+                float(result.get("pnl", 0.0)),
+            )
+
+        return results
+
     # =========================================================
     # 🔐 PRIVATE METHODS
     # =========================================================
@@ -348,21 +390,50 @@ class TableCCXTPro(BaseTable):
         return True
 
     def _update_balance(self, balance_data: Dict) -> None:
-        """
-        Update internal balance from exchange data.
+        """Update internal balance from exchange data."""
 
-        Args:
-            balance_data: Balance dictionary from connector
-        """
-        # Get free balance in account currency
-        currency = balance_data.get("currency", "USD")
-        free_balance = balance_data.get("free", {}).get(currency, 0.0)
+        target_currency = balance_data.get("currency") or self.base_currency
+        free_section = balance_data.get("free", {}) or {}
 
-        if free_balance > 0:
-            self.balance_manager.set_balance(free_balance)
-            self.logger.info(f"💰 Balance actualizado: {free_balance} {currency}")
+        balance_value = 0.0
+        currency_used = target_currency
+
+        if isinstance(free_section, dict) and free_section:
+            if target_currency in free_section and free_section[target_currency]:
+                balance_value = float(free_section[target_currency])
+            else:
+                for candidate in ("USD", "USDT", "USDC", "EUR"):
+                    if candidate in free_section and free_section[candidate]:
+                        balance_value = float(free_section[candidate])
+                        currency_used = candidate
+                        break
+                else:
+                    try:
+                        candidate_currency, candidate_value = next(
+                            (curr, value) for curr, value in free_section.items() if value
+                        )
+                        balance_value = float(candidate_value)
+                        currency_used = candidate_currency
+                    except StopIteration:
+                        balance_value = 0.0
+
+        if balance_value > 0:
+            self.balance_manager.set_balance(balance_value)
+            self.logger.info("💰 Balance actualizado: %.4f %s", balance_value, currency_used)
         else:
-            self.logger.warning(f"⚠️ Balance en {currency} es 0 o no disponible. Datos: {balance_data}")
+            self.logger.warning("⚠️ Balance no disponible o cero. Datos: %s", balance_data)
+
+        self._last_balance_snapshot = {
+            "balance": balance_value,
+            "currency": currency_used,
+            "free": free_section,
+            "raw": balance_data,
+        }
+
+    def get_balance_sync(self) -> Optional[Dict[str, Any]]:
+        """Return último snapshot de balance sin operaciones async."""
+
+        return self._last_balance_snapshot
 
     def _update_after_order(self, order_result: Dict) -> None:
         """
@@ -372,18 +443,41 @@ class TableCCXTPro(BaseTable):
             order_result: Order result from connector
         """
         # Update balance based on order cost
-        if order_result.get("status") == "closed":
-            cost = order_result.get("cost", 0.0)
-            fee = order_result.get("fee", {}).get("cost", 0.0)
+        if not isinstance(order_result, dict):
+            self.logger.warning("⚠️ No se actualizó balance: resultado de orden inválido (%s)", order_result)
+            return
 
-            if order_result["side"] == "buy":
-                # Deduct cost + fee from balance
-                self.balance_manager.update_balance(-cost - fee)
+        if order_result.get("status") == "closed":
+            raw_cost = order_result.get("cost")
+            try:
+                cost = float(raw_cost) if raw_cost is not None else 0.0
+            except (TypeError, ValueError):
+                cost = 0.0
+
+            fee_info = order_result.get("fee") or {}
+            fee = 0.0
+            if isinstance(fee_info, dict):
+                try:
+                    fee = float(fee_info.get("cost") or 0.0)
+                except (TypeError, ValueError):
+                    fee = 0.0
             else:
+                try:
+                    fee = float(fee_info)
+                except (TypeError, ValueError):
+                    fee = 0.0
+
+            side = (order_result.get("side") or "").lower()
+            if side == "buy":
+                # Deduct cost + fee from balance
+                self.balance_manager.update_balance(-(cost + fee))
+            elif side == "sell":
                 # Add proceeds - fee to balance
                 self.balance_manager.update_balance(cost - fee)
+            else:
+                self.logger.debug("⚠️ Resultado de orden sin side reconocible: %s", order_result)
 
-            self.logger.info(f"💰 Balance actualizado después de orden | Costo: {cost}, Fee: {fee}")
+            self.logger.info("💰 Balance actualizado después de orden | Costo: %.6f | Fee: %.6f", cost, fee)
 
     # =========================================================
     # 📊 PROPERTIES

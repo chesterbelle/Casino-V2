@@ -45,6 +45,7 @@ from core import (  # noqa: E402
     print_session_summary,
     run_session_with_player,
 )
+from core.testing_session import run_testing_session  # noqa: E402
 from players import fixed_player, kelly_player, paroli_player  # noqa: E402
 
 try:
@@ -104,7 +105,8 @@ def _print_help():
     print("\nMODOS:")
     print("  El modo se configura en core/config.py:")
     print("  - MODE = 'backtest'  → Simulación con datos históricos")
-    print("  - MODE = 'live'      → Trading en vivo (testnet/demo)")
+    print("  - MODE = 'testing'  → Kraken Demo / modo paper trading")
+    print("  - MODE = 'live'     → Trading en vivo (placeholder v2.4+)")
     print("\nEXCHANGES SOPORTADOS (modo live):")
     print("  - Kraken Futures Demo")
     print("  - Binance Futures Testnet")
@@ -124,7 +126,7 @@ def _print_help():
     print("\nCONFIGURACIÓN:")
     print("  Editar core/config.py para cambiar:")
     print("  - MODE (backtest/live)")
-    print("  - EXCHANGE (KRAKEN_DEMO, BINANCE_FUTURES_TESTNET, HYPERLIQUID)")
+    print("  - EXCHANGE (KRAKEN, BINANCE, HYPERLIQUID)")
     print("  - DATASET_PATH (para backtest)")
     print("  - Otros parámetros del sistema")
     print("\nCREDENCIALES:")
@@ -287,6 +289,32 @@ def main() -> None:
         except Exception as e:
             logger.error(f"❌ Error en sesión live: {e}", exc_info=True)
             print(f"\n❌ Error en sesión live: {e}")
+            print("Revisa los logs para más detalles")
+        return
+
+    if mode == "testing":
+        print("\n🎰 Casino V2 — Testing Mode (Kraken Demo)\n")
+        print(f"🎮 Player seleccionado: {player_name.upper()}")
+        print(f"🏦 Exchange: {getattr(config, 'EXCHANGE', 'KRAKEN')}")
+
+        try:
+            import asyncio
+
+            asyncio.run(
+                run_testing_session(
+                    symbol=symbol,
+                    interval=interval,
+                    max_candles=max_candles,
+                    player_module=player_module,
+                    player_name=player_name,
+                )
+            )
+        except KeyboardInterrupt:
+            logger.info("\n⚠️ Sesión testing interrumpida por usuario (Ctrl+C)")
+            print("\n⚠️ Sesión testing interrumpida por usuario")
+        except Exception as e:
+            logger.error(f"❌ Error en sesión testing: {e}", exc_info=True)
+            print(f"\n❌ Error en sesión testing: {e}")
             print("Revisa los logs para más detalles")
         return
 

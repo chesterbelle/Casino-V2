@@ -225,17 +225,31 @@ class KrakenConnector(BaseConnector):
             raise RuntimeError("Not connected to Kraken. Call connect() first.")
 
         try:
-            # Fetch balance from Kraken
             balance = await self.exchange.fetch_balance()
 
-            # Normalize format
-            normalized = {
-                "total": balance.get("total", {}),
-                "free": balance.get("free", {}),
-                "used": balance.get("used", {}),
+            total = balance.get("total", {}) or {}
+            free = balance.get("free", {}) or {}
+            used = balance.get("used", {}) or {}
+
+            normalized: Dict[str, Any] = {
+                "total": total,
+                "free": free,
+                "used": used,
                 "timestamp": balance.get("timestamp"),
                 "currency": BASE_CURRENCY,
             }
+
+            for currency_code in set(list(total.keys()) + list(free.keys()) + list(used.keys())):
+                normalized[currency_code] = {
+                    "total": float(total.get(currency_code, 0) or 0.0),
+                    "free": float(free.get(currency_code, 0) or 0.0),
+                    "used": float(used.get(currency_code, 0) or 0.0),
+                }
+
+            primary_currency = BASE_CURRENCY
+            if primary_currency in normalized and normalized[primary_currency]["total"] <= 0:
+                if normalized[primary_currency]["free"] > 0:
+                    normalized[primary_currency]["total"] = normalized[primary_currency]["free"]
 
             return normalized
 
@@ -378,6 +392,10 @@ class KrakenConnector(BaseConnector):
         Returns:
             Kraken format (e.g., "PF_XBTUSD")
         """
+        if ":" in symbol:
+            symbol = symbol.split(":")[0]
+        if symbol.endswith("/USD") and symbol.count("/") >= 1:
+            symbol = symbol.upper()
         return normalize_kraken_symbol(symbol)
 
     def denormalize_symbol(self, kraken_symbol: str) -> str:
