@@ -22,24 +22,30 @@ from typing import Dict, Literal
 # =====================================================
 # 🎯 VERSIÓN ACTUAL
 # =====================================================
-__version__ = "1.7"
-__version_name__ = "Code Cleanup & Organization"
-__release_date__ = "2025-10-15"
-__status__: Literal["stable", "beta", "alpha", "dev"] = "stable"
+__version__ = "1.8"
+__version_name__ = "TBD"  # Pending definition
+__release_date__ = "2025-11-02"
+__status__: Literal["stable", "beta", "alpha", "dev"] = "dev"
 
 # =====================================================
 # 📝 CHANGELOG RESUMIDO
 # =====================================================
 CHANGELOG = {
+    "1.8": {
+        "name": "TBD",
+        "date": "2025-11-02",
+        "highlights": [
+            "TBD - Pending definition",
+        ],
+    },
     "1.7": {
         "name": "Code Cleanup & Organization",
         "date": "2025-10-15",
         "highlights": [
-            "Arquitectura core refactorizada",
-            "Jerarquía Table unificada",
-            "Type safety completo",
-            "Tests fortalecidos",
-            "Multi-Asset Foundation",
+            "Pre-commit hooks configurados",
+            "Código limpio y formateado",
+            "Errores de linting corregidos",
+            "Table multiasset eliminada",
         ],
     },
     "1.6": {
