@@ -23,8 +23,8 @@ from typing import Dict, Literal
 # 🎯 VERSIÓN ACTUAL
 # =====================================================
 __version__ = "1.8"
-__version_name__ = "TBD"  # Pending definition
-__release_date__ = "2025-11-02"
+__version_name__ = "Mesa + Conectores"
+__release_date__ = "2025-11-03"
 __status__: Literal["stable", "beta", "alpha", "dev"] = "dev"
 
 # =====================================================
@@ -32,10 +32,14 @@ __status__: Literal["stable", "beta", "alpha", "dev"] = "dev"
 # =====================================================
 CHANGELOG = {
     "1.8": {
-        "name": "TBD",
-        "date": "2025-11-02",
+        "name": "Mesa + Conectores",
+        "date": "2025-11-03",
         "highlights": [
-            "TBD - Pending definition",
+            "Arquitectura modular Mesa + Conectores",
+            "KrakenConnector implementado",
+            "Separación clara de responsabilidades",
+            "Código más limpio y mantenible",
+            "Inspirado en Hummingbot",
         ],
     },
     "1.7": {
