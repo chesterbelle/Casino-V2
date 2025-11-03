@@ -42,20 +42,26 @@ async def test_exchange(exchange_id: str, symbols: List[str]):
         if exchange_id == 'hyperliquid':
             logger.info("4.2. Obteniendo precio de ticker para Hyperliquid...")
             ticker = await table.exchange.fetch_ticker(test_symbol)
-            price = ticker['last']
-            logger.info(f"4.3. ✅ Precio de referencia para Hyperliquid: {price}")
+            if ticker and 'last' in ticker and ticker['last'] is not None:
+                price = ticker['last']
+                logger.info(f"4.3. ✅ Precio de referencia para Hyperliquid: {price}")
+            else:
+                raise RuntimeError("No se pudo obtener el precio del ticker para Hyperliquid.")
 
         order_params = {
             'symbol': test_symbol,
             'type': 'market',
             'side': 'buy',
             'amount': 0.001,
-            'price': price,
+            'price': price, # Necesario para Hyperliquid
             'params': {'test': True}
         }
         
-        logger.info("4.4. Enviando orden...")
-        order_result = await table.exchange.create_order(**order_params)
+        logger.info("4.4. Enviando orden a través de la lógica de la mesa...")
+        # Llamar al método de la mesa, no directamente a ccxt
+        # Este método es síncrono, pero lo llamamos desde un contexto async
+        # lo que es aceptable para esta prueba de diagnóstico.
+        order_result = await table.async_execute_order(order_params)
         logger.info(f"✅ Orden de prueba ejecutada: {order_result['id']}")
 
         logger.info(f"\n{'='*25} 🎉 ÉXITO: {exchange_id.upper()} funciona correctamente {'='*25}")

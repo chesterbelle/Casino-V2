@@ -123,9 +123,10 @@ class TableCCXTPro(BaseTable):
         """
         try:
             ccxt_exchange_id = self.exchange_id.lower()
-            if ccxt_exchange_id == "kraken":
+            if self.exchange_id.lower() == "kraken":
                 ccxt_exchange_id = "krakenfutures"
-            
+            elif self.exchange_id.lower() == "binance":
+                ccxt_exchange_id = "binanceusdm"
             exchange_class = getattr(ccxt_async, ccxt_exchange_id)
             exchange_config = {}
 
@@ -162,24 +163,28 @@ class TableCCXTPro(BaseTable):
                 self.logger.info(f"🔧 Configuración Hyperliquid {'TESTNET' if testnet_flag else 'MAINNET'} aplicada")
 
             elif "binance" in self.exchange_id.lower():
+                ccxt_exchange_id = 'binanceusdm' # Usar ID correcto para futuros
                 exchange_config = {
-                    "apiKey": api_key,
-                    "secret": api_secret,
-                    "enableRateLimit": True,
-                    "options": {"defaultType": "future", "defaultSubType": "linear"},
-                    "urls": {
-                        "api": {
-                            "fapiPublic": "https://demo-fapi.binance.com/fapi/v1",
-                            "fapiPrivate": "https://demo-fapi.binance.com/fapi/v1",
-                            "public": "https://demo-fapi.binance.com/fapi/v1",
-                            "private": "https://demo-fapi.binance.com/fapi/v1",
-                        }
+                    'apiKey': api_key,
+                    'secret': api_secret,
+                    'enableRateLimit': True,
+                    'options': {
+                        'defaultType': 'future',
                     },
-                    "hostname": "demo-fapi.binance.com",
                 }
+                if self.testnet:
+                    import aiohttp
+                    import ssl
+                    ssl_context = ssl.create_default_context()
+                    ssl_context.check_hostname = False
+                    ssl_context.verify_mode = ssl.CERT_NONE
+                    connector = aiohttp.TCPConnector(ssl=ssl_context)
+                    exchange_config['session'] = aiohttp.ClientSession(connector=connector)
+                    exchange_config['options']['testnet'] = True
+                    exchange_config['urls'] = {'api': 'https://testnet.binancefuture.com'}
                 self.base_currency = "USDT"
                 self.market_type = "linear"
-                self.logger.info("🔧 Configuración Binance Futures TESTNET aplicada")
+                self.logger.info("🔧 Configuración Binance Futures (binanceusdm) TESTNET con bypass SSL aplicada.")
 
             else:
                 exchange_config = {
