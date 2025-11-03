@@ -22,9 +22,9 @@ from typing import Dict, Literal
 # =====================================================
 # 🎯 VERSIÓN ACTUAL
 # =====================================================
-__version__ = "1.9"
-__version_name__ = "Tres Modos + Conectores Híbridos"
-__release_date__ = "2025-11-04"
+__version__ = "1.9.1"
+__version_name__ = "Clean Up Logic"
+__release_date__ = "2025-11-03"
 __status__: Literal["stable", "beta", "alpha", "dev"] = "dev"
 
 # =====================================================

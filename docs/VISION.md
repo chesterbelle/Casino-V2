@@ -287,14 +287,11 @@ Verdict(
 
 ## 🎯 VISIÓN A FUTURO
 
-### *versión actual* **v1.9 — Tres modos explícitos**
-- Elimina la ambigüedad del antiguo `MODE="live"` creando **tres modos declarativos**: `backtest`, `testing` y `live`.
-- `MODE="testing"` ejecuta el ciclo completo contra **Kraken Futures Demo** (dinero ficticio) usando `KrakenConnector(mode="testing")`.
-- `MODE="live"` queda como **placeholder seguro** para trading real (v2.4+); requiere confirmaciones múltiples y aún no está implementado.
-- `MODE="backtest"` mantiene el flujo histórico con datasets CSV, sin cambios funcionales.
-- Se refuerza la arquitectura de **conectores híbridos**: un único `KrakenConnector` configurable por modo, más placeholders tipados para Binance e Hyperliquid.
-- Se crean `core/testing_session.py` y `core/live_session.py` (placeholder) para respetar la separación de responsabilidades entre pruebas y producción.
-
+### *versión actual* **v1.9.1 —
+-esta version no agregara funcionalidad nueva pero esta pensada para debugear errores de logica  y limpieza de codigo
+-verificacion de logica de los jugadores kelly y paroli y actualizacion de sus docstrings
+-verificacion de la logica de GEMiNI
+- dejar el modo backtesting lo mas blindando posible para que nos de el rendimiento mas cercano a la realidad(esta es la prioridad de la version)
 
 
 ### **v2.0 Multi-Timeframe** 🔮
