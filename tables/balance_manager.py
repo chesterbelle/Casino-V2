@@ -26,6 +26,15 @@ class BalanceManager:
         """Verifica si el jugador puede arriesgar ese monto."""
         return risk_amount <= self.balance
 
+    def get_balance(self) -> float:
+        """
+        Obtiene el balance actual.
+
+        Returns:
+            Balance actual disponible
+        """
+        return self.balance
+
     def set_balance(self, new_balance: float):
         """
         Actualiza el balance con un valor del exchange.
@@ -35,6 +44,16 @@ class BalanceManager:
         """
         self.balance = new_balance
         self.equity = new_balance
+
+    def update_balance(self, delta: float):
+        """
+        Actualiza el balance con un delta (positivo o negativo).
+
+        Args:
+            delta: Cambio en el balance (puede ser negativo)
+        """
+        self.balance += delta
+        self.equity = self.balance
 
     def get_state(self):
         """Snapshot actual del capital."""
