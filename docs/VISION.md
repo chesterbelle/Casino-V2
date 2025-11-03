@@ -274,20 +274,58 @@ Verdict(
 
 ## 🎯 VISIÓN A FUTURO
 
-### **v1.8 - Estado Actual** ✅
-Refactorizar arquitectura de mesas para usar conectores modulares por exchange
-Mesa + Conectores
+### **v1.8 - Mesa + Conectores** ✅ COMPLETADA
+**Arquitectura modular para exchanges**
 
-### **v1.9  Multi-Timeframe** 🎯
-- Operar multiples timeframe (1m, 5m, 1h, 4h) simultáneamente (ojo en una solo mesa)
+La versión 1.8 introduce una separación clara entre la lógica de negocio (Mesa) y la comunicación con exchanges (Conectores):
 
-### **v2 - Multi-assets** 🔮
-- agregar la capacidad de rotar entre diferentes assest y multiples timeframe (ojo en una solo mesa)
-- Decisiones más robustas
-- Mejor detección de tendencias
+```
+TableCCXTPro (Mesa)              BaseConnector (Interface)
+├── Balance management           ├── connect()
+├── Position tracking            ├── fetch_ohlcv()
+├── Order validation             ├── fetch_balance()
+├── TP/SL logic                  ├── create_order()
+└── Logging                      └── close()
+         ↓                                ↓
+    Usa conector                  Implementado por
+         ↓                                ↓
+    KrakenConnector ──────────────────────┘
+```
 
-### **v2.1 - Adaptive** 🚀
+**Beneficios:**
+- ✅ Separación de responsabilidades clara
+- ✅ Fácil agregar nuevos exchanges (solo crear nuevo conector)
+- ✅ Código más limpio y mantenible
+- ✅ Tests específicos por componente
+- ✅ Inspirado en arquitectura de Hummingbot
+
+**Implementado:**
+- `KrakenConnector` - Kraken Futures (testnet + mainnet)
+- Validado con exchange real: $4,997.92 USD, BTC @ $107,501
+
+**Documentación:**
+- `ROADMAP.md` - Plan de implementación
+- `FASE5_COMPLETADA.md` - Resumen ejecutivo
+- `tables/connectors/connector_base.py` - Interface documentada
+
+### **v1.9 - Binance Connector** 🎯
+- Implementar `BinanceConnector` siguiendo el mismo patrón
+- Soporte para Binance Futures testnet
+- Validación multi-exchange
+
+### **v2.0 - Hyperliquid + Multi-Timeframe** 🔮
+- Implementar `HyperliquidConnector`
+- Soporte para múltiples timeframes simultáneos (1m, 5m, 1h, 4h)
+- Decisiones más robustas con múltiples perspectivas temporales
+
+### **v2.1 - Multi-Assets** 🚀
+- Capacidad de rotar entre diferentes assets
+- Portfolio management
+- Correlación entre assets
+
+### **v2.2 - Adaptive Gemini** 🧠
 - Gemini mejorado que aprende patrones nuevos
+- Adaptación dinámica a condiciones de mercado
 
 ---
 
