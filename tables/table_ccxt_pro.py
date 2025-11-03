@@ -1,0 +1,400 @@
+"""
+TableCCXTPro - Mesa con Arquitectura de Conectores.
+
+Esta es la nueva implementación de TableCCXTPro que usa conectores modulares
+para comunicarse con diferentes exchanges.
+
+Arquitectura:
+    TableCCXTPro (Mesa) → BaseConnector (Interface) → KrakenConnector (Implementation)
+
+Responsabilidades de la Mesa:
+    - Gestión de balance (BalanceManager)
+    - Tracking de posiciones (PositionTracker)
+    - Validación de órdenes
+    - Lógica de TP/SL
+    - Logging y auditoría
+
+Responsabilidades del Conector:
+    - Comunicación con el exchange (REST + WebSocket)
+    - Normalización de datos
+    - Manejo de errores específicos del exchange
+    - Rate limiting
+
+Usage:
+    ```python
+    from tables.connectors import KrakenConnector
+    from tables.table_ccxt_pro import TableCCXTPro
+
+    # Create connector
+    connector = KrakenConnector(testnet=True)
+
+    # Create table with connector
+    table = TableCCXTPro(
+        connector=connector,
+        symbol="BTC/USD",
+        timeframe="1m"
+    )
+
+    # Connect and use
+    await table.connect()
+    candle = await table.next_candle()
+    result = await table.execute_order(order)
+    await table.close()
+    ```
+"""
+
+from __future__ import annotations
+
+import logging
+from typing import Dict, Optional
+
+from .balance_manager import BalanceManager
+from .connectors.connector_base import BaseConnector
+from .position_tracker import PositionTracker
+from .table_base import BaseTable
+
+
+class TableCCXTPro(BaseTable):
+    """
+    Mesa que usa conectores intercambiables para comunicarse con exchanges.
+
+    Esta implementación separa la lógica de negocio (balance, positions, TP/SL)
+    de la comunicación con el exchange (delegada al conector).
+    """
+
+    def __init__(
+        self,
+        connector: BaseConnector,
+        symbol: str,
+        timeframe: str = "1m",
+        starting_balance: float = 10000.0,
+    ):
+        """
+        Initialize TableCCXTPro with a connector.
+
+        Args:
+            connector: Exchange connector (e.g., KrakenConnector)
+            symbol: Trading pair symbol (e.g., "BTC/USD")
+            timeframe: Candle timeframe (e.g., "1m", "5m", "1h")
+            starting_balance: Initial balance for simulation (only used if real balance fails)
+        """
+        super().__init__()
+        self.logger = logging.getLogger("TableCCXTPro")
+
+        # Connector (dependency injection)
+        self.connector = connector
+
+        # Configuration
+        self.symbol = symbol
+        self.timeframe = timeframe
+
+        # Components (business logic)
+        self.balance_manager = BalanceManager(starting_balance=starting_balance)
+        self.position_tracker = PositionTracker()
+
+        # State
+        self._connected = False
+        self._last_candle: Optional[Dict] = None
+
+        self.logger.info(f"🪙 TableCCXTPro inicializada | Exchange: {connector.exchange_name} | Symbol: {symbol}")
+
+    # =========================================================
+    # 🔌 CONNECTION MANAGEMENT
+    # =========================================================
+
+    async def connect(self) -> None:
+        """
+        Connect to the exchange via the connector.
+
+        This method:
+            1. Connects the connector to the exchange
+            2. Fetches initial balance
+            3. Validates connection
+
+        Raises:
+            ConnectionError: If connection fails
+            RuntimeError: If balance cannot be fetched (CRITICAL SECURITY RULE)
+        """
+        try:
+            self.logger.info("🔌 Conectando a exchange...")
+
+            # Connect via connector
+            await self.connector.connect()
+
+            # Fetch initial balance (CRITICAL: fail-fast if this fails)
+            try:
+                balance_data = await self.connector.fetch_balance()
+                self._update_balance(balance_data)
+                self.logger.info("✅ Balance inicial obtenido del exchange")
+            except Exception as e:
+                # CRITICAL SECURITY RULE: Never use default balance in LIVE mode
+                self.logger.error(f"❌ CRÍTICO: No se pudo obtener balance real: {e}")
+                raise RuntimeError(
+                    "CRITICAL: Cannot obtain real balance from exchange. "
+                    "System MUST stop. Never use default/simulated balance in LIVE mode."
+                )
+
+            self._connected = True
+            self.logger.info(f"✅ Conectado a {self.connector.exchange_name} | Symbol: {self.symbol}")
+
+        except Exception as e:
+            self.logger.error(f"❌ Error conectando: {e}")
+            raise
+
+    async def close(self) -> None:
+        """
+        Close connection to the exchange.
+
+        Closes the connector and cleans up resources.
+        """
+        try:
+            await self.connector.close()
+            self._connected = False
+            self.logger.info("🔌 Conexión cerrada")
+        except Exception as e:
+            self.logger.warning(f"⚠️ Error cerrando conexión: {e}")
+
+    # =========================================================
+    # 📊 MARKET DATA
+    # =========================================================
+
+    async def next_candle(self) -> Optional[Dict]:
+        """
+        Get the next candle from the exchange.
+
+        Returns:
+            Normalized candle dictionary or None if no data available
+
+        Raises:
+            RuntimeError: If not connected
+        """
+        if not self._connected:
+            raise RuntimeError("Not connected. Call connect() first.")
+
+        try:
+            # Fetch latest candle via connector
+            candles = await self.connector.fetch_ohlcv(self.symbol, self.timeframe, limit=1)
+
+            if candles:
+                self._last_candle = candles[0]
+                return self._last_candle
+
+            return None
+
+        except Exception as e:
+            self.logger.error(f"❌ Error fetching candle: {e}")
+            raise
+
+    # =========================================================
+    # 📝 ORDER EXECUTION
+    # =========================================================
+
+    async def execute_order(self, order: Dict) -> Dict:
+        """
+        Execute an order on the exchange.
+
+        This method:
+            1. Validates the order (balance, limits, etc.)
+            2. Executes via connector
+            3. Updates internal state (balance, positions)
+
+        Args:
+            order: Order dictionary with keys:
+                - symbol: Trading pair
+                - side: 'buy' or 'sell'
+                - amount: Order size
+                - type: 'market' or 'limit' (optional)
+                - price: Limit price (optional)
+
+        Returns:
+            Order result dictionary
+
+        Raises:
+            RuntimeError: If not connected
+            ValueError: If order validation fails
+        """
+        if not self._connected:
+            raise RuntimeError("Not connected. Call connect() first.")
+
+        try:
+            # 1. Validate order
+            if not self._validate_order(order):
+                return {
+                    "status": "rejected",
+                    "reason": "validation_failed",
+                    "order": order,
+                }
+
+            # 2. Execute via connector
+            result = await self.connector.create_order(
+                symbol=order.get("symbol", self.symbol),
+                side=order["side"],
+                amount=order["amount"],
+                price=order.get("price"),
+                order_type=order.get("type", "market"),
+                params=order.get("params", {}),
+            )
+
+            # 3. Update internal state
+            self._update_after_order(result)
+
+            self.logger.info(f"✅ Orden ejecutada | {result['symbol']} {result['side'].upper()} {result['amount']}")
+
+            return result
+
+        except Exception as e:
+            self.logger.error(f"❌ Error ejecutando orden: {e}")
+            raise
+
+    # =========================================================
+    # 💰 BALANCE & POSITIONS
+    # =========================================================
+
+    def get_balance(self) -> float:
+        """
+        Get current balance.
+
+        Returns:
+            Current balance in account currency
+        """
+        return self.balance_manager.get_balance()
+
+    async def refresh_balance(self) -> float:
+        """
+        Refresh balance from exchange.
+
+        Returns:
+            Updated balance
+
+        Raises:
+            RuntimeError: If not connected
+        """
+        if not self._connected:
+            raise RuntimeError("Not connected. Call connect() first.")
+
+        try:
+            balance_data = await self.connector.fetch_balance()
+            self._update_balance(balance_data)
+            return self.get_balance()
+        except Exception as e:
+            self.logger.error(f"❌ Error refreshing balance: {e}")
+            raise
+
+    async def get_positions(self) -> list:
+        """
+        Get open positions from exchange.
+
+        Returns:
+            List of position dictionaries
+
+        Raises:
+            RuntimeError: If not connected
+        """
+        if not self._connected:
+            raise RuntimeError("Not connected. Call connect() first.")
+
+        try:
+            positions = await self.connector.fetch_positions()
+            return positions
+        except Exception as e:
+            self.logger.error(f"❌ Error fetching positions: {e}")
+            raise
+
+    # =========================================================
+    # 🔐 PRIVATE METHODS
+    # =========================================================
+
+    def _validate_order(self, order: Dict) -> bool:
+        """
+        Validate order before execution.
+
+        Args:
+            order: Order dictionary
+
+        Returns:
+            True if valid, False otherwise
+        """
+        # Basic validation
+        if "side" not in order or "amount" not in order:
+            self.logger.error("❌ Orden inválida: falta 'side' o 'amount'")
+            return False
+
+        # Validate side
+        if order["side"] not in ["buy", "sell"]:
+            self.logger.error(f"❌ Orden inválida: side '{order['side']}' no válido")
+            return False
+
+        # Validate amount
+        if order["amount"] <= 0:
+            self.logger.error(f"❌ Orden inválida: amount {order['amount']} <= 0")
+            return False
+
+        # Validate balance (for buy orders)
+        if order["side"] == "buy":
+            # Estimate cost (for market orders, use last price as estimate)
+            estimated_cost = order["amount"]
+            if order.get("price"):
+                estimated_cost = order["amount"] * order["price"]
+            elif self._last_candle:
+                estimated_cost = order["amount"] * self._last_candle["close"]
+
+            if estimated_cost > self.get_balance():
+                self.logger.error(
+                    f"❌ Orden inválida: balance insuficiente "
+                    f"(necesario: {estimated_cost}, disponible: {self.get_balance()})"
+                )
+                return False
+
+        return True
+
+    def _update_balance(self, balance_data: Dict) -> None:
+        """
+        Update internal balance from exchange data.
+
+        Args:
+            balance_data: Balance dictionary from connector
+        """
+        # Get free balance in account currency
+        currency = balance_data.get("currency", "USD")
+        free_balance = balance_data.get("free", {}).get(currency, 0.0)
+
+        if free_balance > 0:
+            self.balance_manager.set_balance(free_balance)
+            self.logger.info(f"💰 Balance actualizado: {free_balance} {currency}")
+        else:
+            self.logger.warning(f"⚠️ Balance en {currency} es 0 o no disponible. Datos: {balance_data}")
+
+    def _update_after_order(self, order_result: Dict) -> None:
+        """
+        Update internal state after order execution.
+
+        Args:
+            order_result: Order result from connector
+        """
+        # Update balance based on order cost
+        if order_result.get("status") == "closed":
+            cost = order_result.get("cost", 0.0)
+            fee = order_result.get("fee", {}).get("cost", 0.0)
+
+            if order_result["side"] == "buy":
+                # Deduct cost + fee from balance
+                self.balance_manager.update_balance(-cost - fee)
+            else:
+                # Add proceeds - fee to balance
+                self.balance_manager.update_balance(cost - fee)
+
+            self.logger.info(f"💰 Balance actualizado después de orden | Costo: {cost}, Fee: {fee}")
+
+    # =========================================================
+    # 📊 PROPERTIES
+    # =========================================================
+
+    @property
+    def is_connected(self) -> bool:
+        """Check if connected to exchange."""
+        return self._connected
+
+    @property
+    def exchange_name(self) -> str:
+        """Get exchange name."""
+        return self.connector.exchange_name

@@ -132,31 +132,39 @@ class BrokerInterface:
     def _create_live_engine(self, symbol: str | None, interval: str | None, exchange: str):
         """
         Construye la mesa CCXT Pro según el exchange configurado.
-        Nueva arquitectura unificada con CCXT Pro.
+        Nueva arquitectura: Mesa + Conectores modulares.
         """
+        from tables.connectors import KrakenConnector
+
         exchange = getattr(config, "EXCHANGE", "SIMULATION").upper()
 
-        # Mapear exchanges a configuración CCXT
+        # Determinar connector y configuración según exchange
         if "KRAKEN" in exchange:
-            exchange_id = "krakenfutures"
-            testnet = False  # Kraken Futures usa cuenta demo real
+            # Kraken Futures con testnet (demo)
+            testnet = "DEMO" in exchange or "TEST" in exchange
+            connector = KrakenConnector(testnet=testnet)
+            default_symbol = "BTC/USD"
         elif "BINANCE" in exchange:
-            exchange_id = "binance"
-            testnet = True
+            # TODO: Implementar BinanceConnector en v1.9
+            raise NotImplementedError(
+                "BinanceConnector no implementado aún. Disponible en v1.9. "
+                "Usa KRAKEN_DEMO o KRAKEN_FUTURES por ahora."
+            )
         elif "HYPERLIQUID" in exchange:
-            exchange_id = "hyperliquid"  # Placeholder - ajustar según implementación real
-            testnet = True
+            # TODO: Implementar HyperliquidConnector en v2.0
+            raise NotImplementedError(
+                "HyperliquidConnector no implementado aún. Disponible en v2.0. "
+                "Usa KRAKEN_DEMO o KRAKEN_FUTURES por ahora."
+            )
         else:
             raise NotImplementedError(
-                f"Exchange LIVE no soportado: {exchange}. Exchanges soportados: Kraken, Binance, Hyperliquid"
+                f"Exchange LIVE no soportado: {exchange}. " f"Exchanges soportados: KRAKEN_DEMO, KRAKEN_FUTURES"
             )
 
         class Engine:
-            def __init__(self, symbol, interval, exchange_id, testnet):
-                # Nueva arquitectura: TableCCXTPro para exchanges soportados
-                symbols = [symbol] if symbol else ["BTC/USDT"]  # Default si no hay símbolo
-                self.table = TableCCXTPro(
-                    exchange_id=exchange_id, symbols=symbols, timeframe=interval or "1m", testnet=testnet
-                )
+            def __init__(self, symbol, interval, connector, default_symbol):
+                # Nueva arquitectura: TableCCXTPro + Connector
+                final_symbol = symbol if symbol else default_symbol
+                self.table = TableCCXTPro(connector=connector, symbol=final_symbol, timeframe=interval or "1m")
 
-        return Engine(symbol, interval, exchange_id, testnet)
+        return Engine(symbol, interval, connector, default_symbol)
