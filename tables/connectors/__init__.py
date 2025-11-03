@@ -39,14 +39,6 @@ Architecture:
 """
 
 from .connector_base import BaseConnector
+from .kraken import KrakenConnector
 
-__all__ = ["BaseConnector"]
-
-# Import specific connectors when they're implemented
-try:
-    from .kraken.kraken_connector import KrakenConnector
-
-    __all__.append("KrakenConnector")
-except ImportError:
-    # KrakenConnector not yet implemented
-    pass
+__all__ = ["BaseConnector", "KrakenConnector"]

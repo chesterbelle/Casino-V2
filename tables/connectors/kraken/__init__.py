@@ -19,6 +19,6 @@ Usage:
     ```
 """
 
-# Import will be available once kraken_connector.py is implemented
-# from .kraken_connector import KrakenConnector
-# __all__ = ["KrakenConnector"]
+from .kraken_connector import KrakenConnector
+
+__all__ = ["KrakenConnector"]
