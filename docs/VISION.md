@@ -274,20 +274,18 @@ Verdict(
 
 ## 🎯 VISIÓN A FUTURO
 
-### **v1.7 - Estado Actual** ✅
-- Backtest y live  se estan probando con un solo activo aun falta aprobar
-- Kraken y Hyperliquid validados
-- **Bloqueante**: Binance Testnet pendiente
+### **v1.8 - Estado Actual** ✅
+- optimizaar codigo  y modificar el enfoque de las mesas en vez de una mesa monolitica multi exchange implementar solo una mesa por exchange  para facilitar su implementacion empezando por kraken solo dejaremos una
 
-### **v1.8  Multi-Timeframe** 🎯
+### **v1.9  Multi-Timeframe** 🎯
 - Operar multiples timeframe (1m, 5m, 1h, 4h) simultáneamente (ojo en una solo mesa)
 
-### **v1.9 - Multi-assets** 🔮
+### **v2 - Multi-assets** 🔮
 - agregar la capacidad de rotar entre diferentes assest y multiples timeframe (ojo en una solo mesa)
 - Decisiones más robustas
 - Mejor detección de tendencias
 
-### **v2.0 - Adaptive** 🚀
+### **v2.1 - Adaptive** 🚀
 - Gemini mejorado que aprende patrones nuevos
 
 ---
