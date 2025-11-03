@@ -1,6 +1,6 @@
 """
 ====================================================
-⚙️ CONFIGURACIÓN GENERAL — CASINO V2
+⚙️ CONFIGURACIÓN GENERAL — CASINO BINANCE V2
 ====================================================
 
 Este archivo define los parámetros globales de todo el sistema.
@@ -11,67 +11,23 @@ Gemini, el Croupier y las Mesas leerán de aquí directamente.
 ====================================================
 """
 
-from __future__ import annotations
-
-import os
-import sys
 from typing import Literal
-
-_MODE_ENV_VAR = "CASINO_MODE"
-_EXCHANGE_ENV_VAR = "CASINO_EXCHANGE"
-_LIVE_CONFIG_ENV = "CASINO_LIVE_TRADING_ENABLED_CONFIG"
-
-_ALLOWED_MODES = {"backtest", "testing", "live"}
-_ALLOWED_EXCHANGES = {"KRAKEN", "BINANCE", "HYPERLIQUID"}
-
-
-def _get_mode(default: Literal["backtest", "testing", "live"]) -> Literal["backtest", "testing", "live"]:
-    value = os.getenv(_MODE_ENV_VAR)
-    if value:
-        normalized = value.strip().lower()
-        if normalized not in _ALLOWED_MODES:
-            raise ValueError(f"Modo inválido '{value}'. Usa uno de {_ALLOWED_MODES}.")
-        return normalized  # type: ignore[return-value]
-    return default
-
-
-def _get_exchange(default: Literal["KRAKEN", "BINANCE", "HYPERLIQUID"]) -> Literal["KRAKEN", "BINANCE", "HYPERLIQUID"]:
-    value = os.getenv(_EXCHANGE_ENV_VAR)
-    if value:
-        normalized = value.strip().upper()
-        if normalized not in _ALLOWED_EXCHANGES:
-            raise ValueError(f"Exchange inválido '{value}'. Usa uno de {_ALLOWED_EXCHANGES}.")
-        return normalized  # type: ignore[return-value]
-    return default
-
 
 # =====================================================
 # 🎯 MODO DEL CASINO
 # =====================================================
 # Puede ser:
-#  - "backtest" → usa dataset CSV y simula operaciones históricas
-#  - "testing"  → conecta a exchanges demo/testnet (Kraken Demo)
-#  - "live"     → trading real con dinero real (placeholder v2.4+)
-MODE: Literal["backtest", "testing", "live"] = _get_mode("testing")
-
-# Exchange activo (se usa en modos testing/live)
-# Opciones actuales:
-#  - "KRAKEN"     → Kraken Futures (demo en testing, real en live)
-#  - "BINANCE"    → Binance Futures (placeholder)
-#  - "HYPERLIQUID"→ Hyperliquid (placeholder)
-EXCHANGE: Literal["KRAKEN", "BINANCE", "HYPERLIQUID"] = _get_exchange("KRAKEN")
+#  - "backtest"  → usa dataset CSV y simula operaciones
+#  - "live"      → se conecta a un exchange real o de paper trading
+MODE: Literal["backtest", "live"] = "live"  # Para simulación usar 'live' + TESTNET=True
 
 # Perfil del exchange (usa el JSON de tables/data/exchange_profiles)
 # Opciones: "asterdex_paper", "kraken_futures_demo", "binance_futures_testnet", "hyperliquid"
-EXCHANGE_PROFILE = "kraken_futures_demo"
+EXCHANGE_PROFILE = "hyperliquid"
 
-# Confirmación manual para live trading (dinero real)
-LIVE_TRADING_ENABLED_DEFAULT = False
-LIVE_TRADING_ENABLED = bool(
-    LIVE_TRADING_ENABLED_DEFAULT or os.getenv(_LIVE_CONFIG_ENV, "false").strip().lower() == "true"
-)
-LIVE_CONFIRMATION_KEYWORD = "YES"
-LIVE_ENV_FLAG = "CASINO_LIVE_TRADING_ENABLED"
+# Exchange a utilizar en modo "live"
+# Opciones: "ASTER_PAPER", "KRAKEN_DEMO", "BINANCE_FUTURES_TESTNET", "HYPERLIQUID"
+EXCHANGE = "BINANCE_FUTURES_TESTNET"
 
 # Ruta del dataset CSV (para modo backtest) — se utiliza tanto para Gemini
 # como para Oscar. Cambia este archivo para alternar rápidamente entre datasets.
@@ -244,57 +200,7 @@ TRADE_RESULTS_LOG_PATH = "gemini/data/gemini_trade_results.csv"
 # =====================================================
 SEED = 42
 
-# 🚨 Configuración Live (placeholder) ---------------------------------------------------------
-SYMBOL = "BTC/USD"
+# Configuración definitiva para Kraken Demo
+TESTNET = True
+SYMBOL = "BTC/USD"  # Kraken usa este formato
 TIMEFRAME = "15m"
-
-
-# =====================================================
-# 🚨 VALIDACIONES DE SEGURIDAD PARA LIVE TRADING
-# =====================================================
-if MODE == "live":  # pragma: no cover - interacción manual requerida
-    if os.getenv(LIVE_ENV_FLAG, "").lower() != "true":
-        msg = (
-            "\n" + "=" * 70 + "\n"
-            "🚨 LIVE TRADING DESHABILITADO 🚨\n" + "=" * 70 + "\n\n"
-            "Live trading requiere confirmación explícita.\n"
-            "Para habilitarlo ejecuta:\n"
-            "    export CASINO_LIVE_TRADING_ENABLED=true\n"
-            "(y asegúrate de ejecutar en un entorno seguro).\n"
-        )
-        print(msg)
-        sys.exit(1)
-
-    if not LIVE_TRADING_ENABLED:
-        msg = (
-            "\n" + "=" * 70 + "\n"
-            "❌ LIVE_TRADING_ENABLED=False en core/config.py\n" + "=" * 70 + "\n\n"
-            "Para activar live trading debes establecer:\n"
-            "  - core/config.py → LIVE_TRADING_ENABLED_DEFAULT = True\n"
-            "    o bien\n"
-            "  - export CASINO_LIVE_TRADING_ENABLED_CONFIG=true\n"
-            "Solo hazlo si estás listo para operar con dinero real.\n"
-        )
-        print(msg)
-        sys.exit(1)
-
-    print("\n" + "=" * 70)
-    print("⚠️  CONFIRMACIÓN DE LIVE TRADING (DINERO REAL) ⚠️")
-    print("=" * 70)
-    print(f"Modo: {MODE}")
-    print(f"Exchange: {EXCHANGE}")
-    print(f"Símbolo: {SYMBOL}")
-    print()
-    print("⚠️  ESTO USARÁ DINERO REAL")
-    print(f"Escribe '{LIVE_CONFIRMATION_KEYWORD}' para continuar.")
-
-    try:
-        confirmation = input("Confirmación: ").strip()
-    except EOFError:
-        confirmation = ""
-
-    if confirmation != LIVE_CONFIRMATION_KEYWORD:
-        print("\n❌ Live trading cancelado por el usuario\n")
-        sys.exit(0)
-
-    print("\n✅ Live trading confirmado. Procediendo bajo tu responsabilidad.\n")

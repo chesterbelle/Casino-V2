@@ -6,9 +6,9 @@ Each connector implements the BaseConnector interface and handles exchange-speci
 communication, authentication, and data normalization.
 
 Available Connectors:
-    - KrakenConnector: Kraken Futures (testnet + mainnet)
-    - BinanceConnector: Binance Futures (coming in v1.9)
-    - HyperliquidConnector: Hyperliquid (coming in v2.0)
+    - KrakenConnector: Kraken Futures (testing + live mode)
+    - BinanceConnector: Placeholder (v2.0) — raises NotImplementedError
+    - HyperliquidConnector: Placeholder (v2.1) — raises NotImplementedError
 
 Usage:
     ```python
@@ -38,7 +38,14 @@ Architecture:
     → Exchange API (REST + WebSocket)
 """
 
+from .binance import BinanceConnector
 from .connector_base import BaseConnector
+from .hyperliquid import HyperliquidConnector
 from .kraken import KrakenConnector
 
-__all__ = ["BaseConnector", "KrakenConnector"]
+__all__ = [
+    "BaseConnector",
+    "KrakenConnector",
+    "BinanceConnector",
+    "HyperliquidConnector",
+]

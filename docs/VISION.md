@@ -91,6 +91,19 @@ Porque es el **espacio donde todo sucede**. Sin mesa, no hay juego. Es donde las
 - Reportar balance disponible
 
 **Archivos**: `tables/table_backtest.py` (simulación), `tables/table_ccxt_pro.py` (live)
+La versión 1.8 introduce una separación clara entre la lógica de negocio (Mesa) y la comunicación con exchanges (Conectores):
+
+```
+TableCCXTPro (Mesa)              BaseConnector (Interface)
+├── Balance management           ├── connect()
+├── Position tracking            ├── fetch_ohlcv()
+├── Order validation             ├── fetch_balance()
+├── TP/SL logic                  ├── create_order()
+└── Logging                      └── close()
+         ↓                                ↓
+    Usa conector                  Implementado por
+         ↓                                ↓
+    KrakenConnector ──────────────────────┘
 
 ---
 
@@ -274,46 +287,17 @@ Verdict(
 
 ## 🎯 VISIÓN A FUTURO
 
-### **v1.8 - Mesa + Conectores** ✅ COMPLETADA
-**Arquitectura modular para exchanges**
+### *versión actual* **v1.9 — Tres modos explícitos**
+- Elimina la ambigüedad del antiguo `MODE="live"` creando **tres modos declarativos**: `backtest`, `testing` y `live`.
+- `MODE="testing"` ejecuta el ciclo completo contra **Kraken Futures Demo** (dinero ficticio) usando `KrakenConnector(mode="testing")`.
+- `MODE="live"` queda como **placeholder seguro** para trading real (v2.4+); requiere confirmaciones múltiples y aún no está implementado.
+- `MODE="backtest"` mantiene el flujo histórico con datasets CSV, sin cambios funcionales.
+- Se refuerza la arquitectura de **conectores híbridos**: un único `KrakenConnector` configurable por modo, más placeholders tipados para Binance e Hyperliquid.
+- Se crean `core/testing_session.py` y `core/live_session.py` (placeholder) para respetar la separación de responsabilidades entre pruebas y producción.
 
-La versión 1.8 introduce una separación clara entre la lógica de negocio (Mesa) y la comunicación con exchanges (Conectores):
 
-```
-TableCCXTPro (Mesa)              BaseConnector (Interface)
-├── Balance management           ├── connect()
-├── Position tracking            ├── fetch_ohlcv()
-├── Order validation             ├── fetch_balance()
-├── TP/SL logic                  ├── create_order()
-└── Logging                      └── close()
-         ↓                                ↓
-    Usa conector                  Implementado por
-         ↓                                ↓
-    KrakenConnector ──────────────────────┘
-```
 
-**Beneficios:**
-- ✅ Separación de responsabilidades clara
-- ✅ Fácil agregar nuevos exchanges (solo crear nuevo conector)
-- ✅ Código más limpio y mantenible
-- ✅ Tests específicos por componente
-- ✅ Inspirado en arquitectura de Hummingbot
-
-**Implementado:**
-- `KrakenConnector` - Kraken Futures (testnet + mainnet)
-- Validado con exchange real: $4,997.92 USD, BTC @ $107,501
-
-**Documentación:**
-- `ROADMAP.md` - Plan de implementación
-- `FASE5_COMPLETADA.md` - Resumen ejecutivo
-- `tables/connectors/connector_base.py` - Interface documentada
-
-### **v1.9 - Binance Connector** 🎯
-- Implementar `BinanceConnector` siguiendo el mismo patrón
-- Soporte para Binance Futures testnet
-- Validación multi-exchange
-
-### **v2.0 - Hyperliquid + Multi-Timeframe** 🔮
+### **v2.0 Multi-Timeframe** 🔮
 - Implementar `HyperliquidConnector`
 - Soporte para múltiples timeframes simultáneos (1m, 5m, 1h, 4h)
 - Decisiones más robustas con múltiples perspectivas temporales

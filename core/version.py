@@ -22,15 +22,25 @@ from typing import Dict, Literal
 # =====================================================
 # 🎯 VERSIÓN ACTUAL
 # =====================================================
-__version__ = "1.8"
-__version_name__ = "Mesa + Conectores"
-__release_date__ = "2025-11-03"
+__version__ = "1.9"
+__version_name__ = "Tres Modos + Conectores Híbridos"
+__release_date__ = "2025-11-04"
 __status__: Literal["stable", "beta", "alpha", "dev"] = "dev"
 
 # =====================================================
 # 📝 CHANGELOG RESUMIDO
 # =====================================================
 CHANGELOG = {
+    "1.9": {
+        "name": "Tres Modos + Conectores Híbridos",
+        "date": "2025-11-04",
+        "highlights": [
+            "Config con modos backtest/testing/live",
+            "KrakenConnector híbrido (testing/live) con validaciones",
+            "Placeholders de Binance/Hyperliquid y sesiones testing/live",
+            "BrokerInterface y tests actualizados para nuevos modos",
+        ],
+    },
     "1.8": {
         "name": "Mesa + Conectores",
         "date": "2025-11-03",
@@ -62,15 +72,15 @@ CHANGELOG = {
 # =====================================================
 # 🎯 PRÓXIMA VERSIÓN
 # =====================================================
-NEXT_VERSION = "1.8"
+NEXT_VERSION = "2.0"
 NEXT_VERSION_NAME = "Multi-Asset Expansion"
-NEXT_VERSION_ETA = "2025-12-31"
+NEXT_VERSION_ETA = "2026-01-31"
 
 # =====================================================
 # 🔥 BLOQUEANTES ACTUALES
 # =====================================================
 BLOCKERS = [
-    "Validar Binance Futures Testnet (v1.7 - CRÍTICO)",
+    "Implementar BinanceConnector completo (v2.0 - CRÍTICO)",
 ]
 
 

@@ -91,13 +91,15 @@ class BrokerInterface:
             self.logger.info(f"🎬 Iniciando mesa BACKTEST con dataset: {csv_path}")
             self.engine = self._create_backtest_engine(csv_path, symbol)
 
-        elif self.mode == "live":
-            self.logger.info("🚀 Iniciando mesa LIVE (config.EXCHANGE=%s)", exchange)
-            self.engine = self._create_live_engine(symbol, self.interval, exchange)
+        elif self.mode == "testing":
+            self.logger.info("🧪 Iniciando mesa TESTING (exchange=%s)", exchange)
+            self.engine = self._create_testing_engine(symbol, self.interval, exchange)
+            self.logger.info("✅ Mesa testing preparada (conexión pendiente)")
 
-            # Para live trading, la conexión se maneja en live_session.py
-            # para evitar problemas con asyncio.run() y tareas async
-            self.logger.info("✅ Mesa live preparada (conexión pendiente)")
+        elif self.mode == "live":
+            raise NotImplementedError(
+                "Modo 'live' aún no está disponible en v1.9.\n" "Consulta core/live_session.py para instrucciones."
+            )
 
         else:
             raise ValueError(f"Modo desconocido en config.MODE: {self.mode}")
@@ -129,41 +131,24 @@ class BrokerInterface:
 
         return Engine(csv_path, symbol)
 
-    def _create_live_engine(self, symbol: str | None, interval: str | None, exchange: str):
-        """
-        Construye la mesa CCXT Pro según el exchange configurado.
-        Nueva arquitectura: Mesa + Conectores modulares.
-        """
+    def _create_testing_engine(self, symbol: str | None, interval: str | None, exchange: str):
+        """Construye la mesa CCXT Pro para modo testing."""
         from tables.connectors import KrakenConnector
 
         exchange = getattr(config, "EXCHANGE", "SIMULATION").upper()
 
-        # Determinar connector y configuración según exchange
         if "KRAKEN" in exchange:
-            # Kraken Futures con testnet (demo)
-            testnet = "DEMO" in exchange or "TEST" in exchange
-            connector = KrakenConnector(testnet=testnet)
+            connector = KrakenConnector(mode="testing")
             default_symbol = "BTC/USD"
         elif "BINANCE" in exchange:
-            # TODO: Implementar BinanceConnector en v1.9
-            raise NotImplementedError(
-                "BinanceConnector no implementado aún. Disponible en v1.9. "
-                "Usa KRAKEN_DEMO o KRAKEN_FUTURES por ahora."
-            )
+            raise NotImplementedError("BinanceConnector (testing) aún no está disponible en v1.9.")
         elif "HYPERLIQUID" in exchange:
-            # TODO: Implementar HyperliquidConnector en v2.0
-            raise NotImplementedError(
-                "HyperliquidConnector no implementado aún. Disponible en v2.0. "
-                "Usa KRAKEN_DEMO o KRAKEN_FUTURES por ahora."
-            )
+            raise NotImplementedError("HyperliquidConnector (testing) aún no está disponible en v1.9.")
         else:
-            raise NotImplementedError(
-                f"Exchange LIVE no soportado: {exchange}. " f"Exchanges soportados: KRAKEN_DEMO, KRAKEN_FUTURES"
-            )
+            raise NotImplementedError(f"Exchange TESTING no soportado: {exchange}. Solo KRAKEN disponible en v1.9.")
 
         class Engine:
             def __init__(self, symbol, interval, connector, default_symbol):
-                # Nueva arquitectura: TableCCXTPro + Connector
                 final_symbol = symbol if symbol else default_symbol
                 self.table = TableCCXTPro(connector=connector, symbol=final_symbol, timeframe=interval or "1m")
 

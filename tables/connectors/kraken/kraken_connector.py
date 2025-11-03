@@ -1,43 +1,9 @@
-"""
-Kraken Futures Connector Implementation.
-
-This connector provides integration with Kraken Futures exchange (testnet + mainnet).
-Extracted and refactored from table_ccxt_pro_legacy.py.
-
-Features:
-    - REST API integration via CCXT
-    - WebSocket support (optional)
-    - Testnet and mainnet support
-    - Automatic credential loading
-    - Symbol normalization
-    - Error handling and retry logic
-
-Usage:
-    ```python
-    from tables.connectors.kraken import KrakenConnector
-
-    # With explicit credentials
-    connector = KrakenConnector(
-        api_key="your_key",
-        secret="your_secret",
-        testnet=True
-    )
-
-    # Or auto-load from environment
-    connector = KrakenConnector(testnet=True)
-
-    # Connect and use
-    await connector.connect()
-    candles = await connector.fetch_ohlcv("BTC/USD", "1m", limit=100)
-    balance = await connector.fetch_balance()
-    await connector.close()
-    ```
-"""
+"""Kraken Futures connector (testing + live)."""
 
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 import ccxt.async_support as ccxt_async
 
@@ -60,25 +26,36 @@ class KrakenConnector(BaseConnector):
         self,
         api_key: Optional[str] = None,
         secret: Optional[str] = None,
-        testnet: bool = True,
+        mode: Literal["testing", "live"] = "testing",
         enable_websocket: bool = False,
+        testnet: Optional[bool] = None,
     ):
         """
-        Initialize Kraken connector.
+        Hybrid Kraken connector.
 
         Args:
-            api_key: Kraken API key (if None, will try to load from environment)
-            secret: Kraken API secret (if None, will try to load from environment)
-            testnet: If True, use demo environment; if False, use mainnet
-            enable_websocket: If True, enable WebSocket connections (experimental)
+            api_key: Kraken API key (optional, loaded from env si no se provee)
+            secret: Kraken API secret (optional, loaded from env si no se provee)
+            mode: "testing" (Kraken Demo) o "live" (Kraken producción)
+            enable_websocket: Habilitar WebSocket (experimental)
+            testnet: Parámetro legacy; si se provee, sobrescribe `mode`
         """
         self.logger = logging.getLogger("KrakenConnector")
+        if testnet is not None:
+            mode = "testing" if testnet else "live"
 
-        # Configuration
-        self.testnet = testnet
+        if mode not in {"testing", "live"}:
+            raise ValueError(f"Modo inválido para KrakenConnector: {mode}")
+
+        self._mode = mode
+        self._testnet = mode == "testing"
         self.enable_websocket = enable_websocket
 
-        # Load credentials if not provided
+        if mode == "live":
+            self.logger.warning("=" * 60)
+            self.logger.warning("🚨 KRAKEN LIVE MODE ACTIVADO — DINERO REAL 🚨")
+            self.logger.warning("=" * 60)
+
         if api_key is None or secret is None:
             self.logger.info("📝 Cargando credenciales de Kraken desde environment...")
             loaded_creds = self._load_credentials()
@@ -88,19 +65,21 @@ class KrakenConnector(BaseConnector):
         if not api_key or not secret:
             raise ValueError(
                 "Kraken API credentials not provided and not found in environment. "
-                "Set KRAKEN_API_KEY and KRAKEN_API_SECRET environment variables."
+                "Set KRAKEN_API_KEY y KRAKEN_API_SECRET en tu entorno."
             )
+
+        if mode == "live":
+            self._validate_live_credentials(api_key)
 
         self.api_key = api_key
         self.secret = secret
 
-        # State
         self.exchange: Optional[ccxt_async.Exchange] = None
         self._connected = False
         self._markets: Dict[str, Any] = {}
 
-        env_name = "DEMO" if testnet else "MAINNET"
-        self.logger.info(f"🔧 KrakenConnector inicializado | Env: {env_name}")
+        env = "DEMO" if self._testnet else "MAINNET"
+        self.logger.info("🔧 KrakenConnector inicializado | modo=%s", env)
 
     # =========================================================
     # 🔌 CONNECTION MANAGEMENT
@@ -121,10 +100,12 @@ class KrakenConnector(BaseConnector):
             AuthenticationError: If API keys are invalid
         """
         try:
-            self.logger.info("🔌 Conectando a Kraken Futures...")
+            self.logger.info("🔌 Conectando a Kraken Futures (%s)...", self._mode)
+
+            use_testnet = self._testnet
 
             # Get URLs based on environment
-            urls = get_urls(self.testnet)
+            urls = get_urls(use_testnet)
 
             # Create CCXT exchange instance
             exchange_config = {
@@ -144,7 +125,7 @@ class KrakenConnector(BaseConnector):
 
             self._connected = True
 
-            env_name = "DEMO" if self.testnet else "MAINNET"
+            env_name = "DEMO" if use_testnet else "MAINNET"
             market_count = len(self._markets)
             self.logger.info(f"✅ Conectado a Kraken Futures {env_name} | {market_count} mercados cargados")
 
@@ -445,3 +426,23 @@ class KrakenConnector(BaseConnector):
         except ImportError:
             self.logger.warning("⚠️ No se pudo importar kraken_env_loader, credenciales no cargadas")
             return {}
+
+    def _validate_live_credentials(self, api_key: str) -> None:
+        """Basic validation for live credentials."""
+        if "demo" in api_key.lower():
+            raise ValueError("🚨 API key de Kraken Demo detectada. No puede usarse en modo live.")
+        self.logger.info("✅ Credenciales validadas para modo live")
+
+    # =========================================================
+    # 🧾 PROPERTIES
+    # =========================================================
+
+    @property
+    def mode(self) -> Literal["testing", "live"]:
+        """Return connector mode."""
+        return "testing" if self._testnet else "live"
+
+    @property
+    def testnet(self) -> bool:
+        """Legacy compatibility flag (True si usa entorno demo)."""
+        return self._testnet
