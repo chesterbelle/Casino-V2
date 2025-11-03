@@ -30,7 +30,6 @@ from typing import List
 
 # Setup path
 from core import config
-
 from gemini.gemini_core import (
     Decision,
     Gemini,

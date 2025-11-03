@@ -11,7 +11,7 @@ import argparse
 import csv
 import math
 import os
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
 import requests
@@ -40,7 +40,7 @@ def interval_to_ms(interval: str) -> int:
         value = int(interval[:-2])
         return value * 30 * 24 * 60 * 60 * 1000
     value_part = "".join(ch for ch in interval if ch.isdigit())
-    unit_part = interval[len(value_part):]
+    unit_part = interval[len(value_part) :]
     if not value_part or unit_part not in unit_multipliers:
         raise ValueError(f"Intervalo inválido: {interval}")
     value = int(value_part)
@@ -84,14 +84,16 @@ def save_csv(symbol: str, interval: str, rows: List[List[Any]], tag: str | None 
             # [openTime, open, high, low, close, volume, closeTime, ...]
             open_time = int(row[0])
             open_time_iso = datetime.fromtimestamp(open_time / 1000, tz=timezone.utc).isoformat()
-            writer.writerow([
-                open_time_iso,
-                row[1],
-                row[2],
-                row[3],
-                row[4],
-                row[5],
-            ])
+            writer.writerow(
+                [
+                    open_time_iso,
+                    row[1],
+                    row[2],
+                    row[3],
+                    row[4],
+                    row[5],
+                ]
+            )
 
     return out_path
 

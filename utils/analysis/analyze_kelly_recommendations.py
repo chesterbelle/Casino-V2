@@ -15,6 +15,7 @@ from collections import Counter, defaultdict
 LIMIT_TO_CHECK = 0.02
 # ---
 
+
 def analyze_decisions():
     """
     Lee el archivo gemini_decisions.csv y calcula estadísticas sobre los
@@ -34,7 +35,11 @@ def analyze_decisions():
     try:
         with open(decisions_path, "r", encoding="utf-8") as f:
             reader = csv.DictReader(f)
-            if "action" not in reader.fieldnames or "kelly" not in reader.fieldnames or "trade_id" not in reader.fieldnames:
+            if (
+                "action" not in reader.fieldnames
+                or "kelly" not in reader.fieldnames
+                or "trade_id" not in reader.fieldnames
+            ):
                 print("❌ El archivo CSV no contiene las columnas 'action', 'kelly' y 'trade_id' requeridas.")
                 return
 
@@ -67,17 +72,17 @@ def analyze_decisions():
     # --- Calculations ---
     avg_kelly = sum(min_kelly_values) / len(min_kelly_values)
     max_kelly = max(min_kelly_values)
-    
+
     times_capped = sum(1 for k in min_kelly_values if k > LIMIT_TO_CHECK)
     percent_capped = (times_capped / len(min_kelly_values)) * 100 if min_kelly_values else 0
 
     # Distribution
     bins = {
-        "0-1%":   lambda k: 0 < k <= 0.01,
-        "1-2%":   lambda k: 0.01 < k <= 0.02,
-        "2-3%":   lambda k: 0.02 < k <= 0.03,
-        "3-5%":   lambda k: 0.03 < k <= 0.05,
-        ">5%":    lambda k: k > 0.05,
+        "0-1%": lambda k: 0 < k <= 0.01,
+        "1-2%": lambda k: 0.01 < k <= 0.02,
+        "2-3%": lambda k: 0.02 < k <= 0.03,
+        "3-5%": lambda k: 0.03 < k <= 0.05,
+        ">5%": lambda k: k > 0.05,
     }
     distribution = Counter()
     for k in min_kelly_values:
@@ -87,15 +92,15 @@ def analyze_decisions():
                 break
 
     # --- Print Results ---
-    print("="*60)
+    print("=" * 60)
     print("Análisis de Recomendaciones de Apuesta de Kelly (Fraccional)")
-    print("="*60)
+    print("=" * 60)
     print(f"Analizando {len(min_kelly_values)} decisiones de apuesta ('BET') únicas.")
     print(f"Límite MAX_POSITION_SIZE actual para la comparación: {LIMIT_TO_CHECK:.2%}\n")
-    
+
     print(f"  - Apuesta Promedio Recomendada: {avg_kelly:.4%}")
     print(f"  - Apuesta Máxima Recomendada:   {max_kelly:.4%}\n")
-    
+
     print(f"El límite de {LIMIT_TO_CHECK:.2%} fue superado en {times_capped} de {len(min_kelly_values)} ocasiones.")
     print(f"➡️  El {percent_capped:.2f}% de las veces, MAX_POSITION_SIZE está limitando la apuesta.\n")
 
@@ -104,7 +109,7 @@ def analyze_decisions():
     for label, count in sorted_dist:
         percentage = (count / len(min_kelly_values)) * 100
         print(f"  - {label:<5}: {count:>5} veces ({percentage:.2f}%)")
-    print("="*60)
+    print("=" * 60)
 
 
 if __name__ == "__main__":

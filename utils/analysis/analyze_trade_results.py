@@ -34,14 +34,14 @@ def analyze_results_in_single_pass(reader):
     for row in reader:
         if row.get("action") != "BET":
             continue
-        
+
         metrics["total"] += 1
         outcome = row.get("result", "").upper()
         if outcome == "WIN":
             metrics["wins"] += 1
         elif outcome == "LOSS":
             metrics["losses"] += 1
-        
+
         reason = row.get("exit_reason", "UNKNOWN")
         entry = exit_breakdown[reason]
         entry["total"] += 1
@@ -49,7 +49,7 @@ def analyze_results_in_single_pass(reader):
             entry["wins"] += 1
         elif outcome == "LOSS":
             entry["losses"] += 1
-            
+
         try:
             bars_sum += int(row.get("bars_held", 0) or 0)
         except (ValueError, TypeError):
@@ -61,7 +61,7 @@ def analyze_results_in_single_pass(reader):
 
     avg_bars = (bars_sum / metrics["total"]) if metrics["total"] else 0.0
     avg_pnl_pct = (pnl_sum / metrics["total"]) if metrics["total"] else 0.0
-    
+
     metrics["avg_bars"] = avg_bars
     metrics["avg_pnl_pct"] = avg_pnl_pct
 
@@ -81,13 +81,13 @@ def main() -> None:
         return
 
     print("Resumen general (solo BET):")
-    if metrics['total'] == 0:
+    if metrics["total"] == 0:
         print("  No se encontraron trades de tipo 'BET' en el archivo.")
         return
-        
+
     print(f"  Trades totales : {metrics['total']}")
     print(f"  Wins / Losses  : {metrics['wins']} / {metrics['losses']}")
-    winrate = (metrics['wins'] / metrics['total'] * 100) if metrics['total'] else 0.0
+    winrate = (metrics["wins"] / metrics["total"] * 100) if metrics["total"] else 0.0
     print(f"  Winrate        : {winrate:.2f}%")
     print(f"  Avg. velas     : {metrics['avg_bars']:.2f}")
     print(f"  Avg. pnl_pct   : {metrics['avg_pnl_pct']:.4f}")

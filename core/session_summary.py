@@ -25,7 +25,7 @@ def print_session_summary(stats: dict) -> None:
     print(f"   Funding total         : {stats.get('funding', 0.0):.2f}")
     print(f"   Liquidaciones         : {stats.get('liquidations', 0)}")
     print(f"   Balance final         : {stats['final_balance']:.2f}")
-    pnl = stats['final_balance'] - stats['initial_balance']
-    pnl_pct = (pnl / stats['initial_balance'] * 100) if stats['initial_balance'] > 0 else 0.0
+    pnl = stats["final_balance"] - stats["initial_balance"]
+    pnl_pct = (pnl / stats["initial_balance"] * 100) if stats["initial_balance"] > 0 else 0.0
     print(f"   PnL Total             : {pnl:+.2f} ({pnl_pct:+.2f}%)")
     print("=" * 60 + "\n")

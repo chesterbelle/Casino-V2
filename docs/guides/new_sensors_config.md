@@ -15,7 +15,7 @@ ACTIVE_SENSORS = {
 
 SENSOR_PARAMS = {
     # ... parámetros existentes ...
-    
+
     "StochasticReversion": {
         "k_period": 14,           # Periodo para %K
         "d_period": 3,            # Suavizado (%D)
@@ -42,7 +42,7 @@ ACTIVE_SENSORS = {
 
 SENSOR_PARAMS = {
     # ... parámetros existentes ...
-    
+
     "Supertrend": {
         "atr_period": 10,      # Periodo ATR
         "multiplier": 3.0,     # Multiplicador (2-4 típico)
@@ -69,7 +69,7 @@ ACTIVE_SENSORS = {
 
 SENSOR_PARAMS = {
     # ... parámetros existentes ...
-    
+
     "ADXFilter": {
         "period": 14,              # Periodo DI/ADX
         "adx_threshold": 25.0,     # Mínimo para considerar tendencia
@@ -103,7 +103,7 @@ ACTIVE_SENSORS = {
 
 SENSOR_PARAMS = {
     # ... parámetros existentes ...
-    
+
     "BollingerSqueeze": {
         "period": 20,                # Periodo Bollinger
         "std_dev": 2.0,              # Desviaciones estándar
@@ -139,13 +139,13 @@ ACTIVE_SENSORS = {
     "KeltnerReversion": True,
     "StochasticReversion": True,      # ← NUEVO
     "BollingerSqueeze": True,         # ← NUEVO
-    
+
     # Momentum / Trend (4)
     "EMACrossover": True,
     "MACDCrossover": True,
     "Supertrend": True,               # ← NUEVO
     "ADXFilter": True,                # ← NUEVO
-    
+
     # Volume (1)
     "OBVBreakout": True,
 }
@@ -156,64 +156,64 @@ ACTIVE_SENSORS = {
 
 SENSOR_PARAMS = {
     # --- MEAN REVERSION ---
-    
+
     "RSIReversion": {
         "period": 2,
         "low": 10.0,
         "high": 90.0,
     },
-    
+
     "BollingerTouch": {
         "period": 20,
         "std_dev": 2.0,
     },
-    
+
     "KeltnerReversion": {
         "ema_period": 20,
         "atr_period": 10,
         "atr_multiplier": 1.5,
     },
-    
+
     "StochasticReversion": {  # ← NUEVO
         "k_period": 14,
         "d_period": 3,
         "low_threshold": 20.0,
         "high_threshold": 80.0,
     },
-    
+
     "BollingerSqueeze": {     # ← NUEVO
         "period": 20,
         "std_dev": 2.0,
         "squeeze_threshold": 0.02,
         "volume_factor": 1.2,
     },
-    
+
     # --- MOMENTUM / TREND ---
-    
+
     "EMACrossover": {
         "fast_period": 9,
         "slow_period": 21,
     },
-    
+
     "MACDCrossover": {
         "fast_period": 12,
         "slow_period": 26,
         "signal_period": 9,
     },
-    
+
     "Supertrend": {           # ← NUEVO
         "atr_period": 10,
         "multiplier": 3.0,
     },
-    
+
     "ADXFilter": {            # ← NUEVO
         "period": 14,
         "adx_threshold": 25.0,
         "use_directional": True,
     },
-    
+
     # --- VOLUME ---
-    
+
     "OBVBreakout": {
         "period": 20,
         "threshold": 1.5,
@@ -237,7 +237,7 @@ ACTIVE_SENSORS = {
     "EMACrossover": False,
     "MACDCrossover": False,
     "OBVBreakout": False,
-    
+
     # Solo nuevos (testing)
     "StochasticReversion": True,
     "Supertrend": True,
@@ -293,11 +293,11 @@ ACTIVE_SENSORS = {
     "RSIReversion": True,
     "StochasticReversion": True,      # Complementa RSI
     "BollingerSqueeze": True,         # Breakouts fuertes
-    
+
     # Momentum: robustos
     "Supertrend": True,               # Tendencia clara
     "ADXFilter": True,                # Filtra sideways
-    
+
     # Desactivados (menos útiles)
     "BollingerTouch": False,
     "KeltnerReversion": False,

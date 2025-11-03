@@ -79,12 +79,12 @@ sequenceDiagram
 
 ```python
 def evaluate_signals_v2(
-    signals: List[dict], 
+    signals: List[dict],
     equity: float
 ) -> Verdict:
     """
     Valida señales y retorna Verdict.
-    
+
     Returns:
         Verdict con:
         - side: "LONG" | "SHORT" | None
@@ -160,12 +160,12 @@ def calculate_position_size(
 ) -> Optional[float]:
     """
     Calcula tamaño de posición óptimo.
-    
+
     Args:
         verdict: Veredicto de Gemini
         equity: Capital disponible
         meta: Metadata adicional (opcional)
-    
+
     Returns:
         float: Fracción [0.0, 1.0] o None si no apostar
     """
@@ -185,17 +185,17 @@ def calculate_position_size(
 def calculate_position_size(verdict, equity, meta=None):
     if not verdict or not verdict.side:
         return None
-    
+
     # Filtrar aprobados
     approved = [m for m in verdict.metrics if m.approved]
     if not approved:
         return None
-    
+
     # Tomar Kelly mínimo (conservador)
     positive_kelly = [m.kelly for m in approved if m.kelly > 0]
     if not positive_kelly:
         return None
-    
+
     min_kelly = min(positive_kelly)
     return min(min_kelly * KELLY_FRACTION, MAX_POSITION_SIZE)
 ```
@@ -221,17 +221,17 @@ def calculate_position_size(verdict, equity, meta=None):
 def calculate_position_size(verdict, equity, meta=None):
     if not verdict or not verdict.side:
         return None
-    
+
     # Verificar que hay estrategias aprobadas
     approved = [m for m in verdict.metrics if m.approved]
     if not approved:
         return None
-    
+
     # Verificar que hay edge positivo
     positive_edge = any(m.kelly > 0 for m in approved)
     if not positive_edge:
         return None
-    
+
     return FIXED_POSITION_SIZE  # 1% por defecto
 ```
 
@@ -268,28 +268,28 @@ def calculate_position_size(verdict, equity, meta=None):
 def calculate_position_size(verdict, equity, meta=None):
     """
     Tu estrategia personalizada.
-    
+
     Args:
         verdict: Verdict de Gemini
         equity: Capital disponible
         meta: Dict con info adicional (opcional)
-    
+
     Returns:
         float [0, 1] o None
     """
     # 1. Validar entrada
     if not verdict or not verdict.side:
         return None
-    
+
     # 2. Filtrar métricas aprobadas
     approved = [m for m in verdict.metrics if m.approved]
     if not approved:
         return None
-    
+
     # 3. Tu lógica aquí
     # Ejemplo: usar p_hat promedio
     avg_p_hat = sum(m.p_hat for m in approved) / len(approved)
-    
+
     if avg_p_hat > 0.55:
         return 0.02  # 2%
     elif avg_p_hat > 0.53:
@@ -310,21 +310,21 @@ def calculate_position_size(verdict, equity, meta=None):
     """
     if not verdict or not verdict.side:
         return None
-    
+
     approved = [m for m in verdict.metrics if m.approved]
     if not approved:
         return None
-    
+
     # Kelly base (como Kelly Player)
     positive_kelly = [m.kelly for m in approved if m.kelly > 0]
     if not positive_kelly:
         return None
-    
+
     min_kelly = min(positive_kelly)
-    
+
     # Ajustar por volatilidad (ejemplo)
     volatility = meta.get("volatility", 0.02) if meta else 0.02
-    
+
     # Si volatilidad alta → reducir size
     if volatility > 0.03:
         adjustment = 0.5
@@ -332,7 +332,7 @@ def calculate_position_size(verdict, equity, meta=None):
         adjustment = 0.75
     else:
         adjustment = 1.0
-    
+
     adjusted_kelly = min_kelly * config.KELLY_FRACTION * adjustment
     return min(adjusted_kelly, config.MAX_POSITION_SIZE)
 ```
@@ -417,7 +417,7 @@ def calculate_position_size(verdict, equity, meta):
 class MyPlayer:
     def __init__(self):
         self.last_size = 0.0  # Estado mutable
-    
+
     def calculate(self, verdict, equity):
         self.last_size = 0.01  # Modifica estado
         return self.last_size
@@ -430,10 +430,10 @@ def calculate_position_size(verdict, equity, meta=None):
     # Validar
     if not verdict or not verdict.side:
         return None
-    
+
     if equity <= 0:
         return None
-    
+
     # Tu lógica aquí
     ...
 ```
@@ -452,12 +452,12 @@ return min(size, config.MAX_POSITION_SIZE)
 def calculate_position_size(verdict, equity, meta=None):
     """
     Estrategia: Kelly conservador con ajuste por volatilidad.
-    
+
     Lógica:
     - Toma Kelly mínimo entre aprobados
     - Reduce 50% si volatilidad > 3%
     - Máximo 2% siempre
-    
+
     Returns:
         float o None
     """

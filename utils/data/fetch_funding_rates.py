@@ -10,7 +10,7 @@ import argparse
 import csv
 import os
 from datetime import datetime, timezone
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
 import requests
 
@@ -24,7 +24,9 @@ OUTPUT_DIR = os.path.join(
 API_URL = "https://fapi.binance.com/fapi/v1/fundingRate"
 
 
-def fetch_funding(symbol: str, limit: int = 1000, start_time: int | None = None, end_time: int | None = None) -> List[Dict[str, Any]]:
+def fetch_funding(
+    symbol: str, limit: int = 1000, start_time: int | None = None, end_time: int | None = None
+) -> List[Dict[str, Any]]:
     params: Dict[str, Any] = {"symbol": symbol.upper(), "limit": limit}
     if start_time is not None:
         params["startTime"] = start_time
@@ -59,7 +61,9 @@ def save_csv(symbol: str, rows: List[Dict[str, Any]]) -> str:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Descarga datos de funding de Binance Futures")
     parser.add_argument("--symbol", default="LTCUSDT", help="Símbolo Futures (ej. BTCUSDT, LTCUSDT)")
-    parser.add_argument("--limit", type=int, default=1000, help="Cantidad de registros a descargar (máximo 1000 por llamada)")
+    parser.add_argument(
+        "--limit", type=int, default=1000, help="Cantidad de registros a descargar (máximo 1000 por llamada)"
+    )
     parser.add_argument("--start", type=int, default=None, help="Timestamp inicial en ms (opcional)")
     parser.add_argument("--end", type=int, default=None, help="Timestamp final en ms (opcional)")
     args = parser.parse_args()

@@ -8,10 +8,9 @@ Usage (CLI):
 
 from __future__ import annotations
 
-from typing import Dict, Iterable, List, Tuple
-
 import sys
 from pathlib import Path
+from typing import Dict, Iterable, List, Tuple
 
 
 def _ensure_project_root() -> None:
@@ -23,8 +22,8 @@ def _ensure_project_root() -> None:
 _ensure_project_root()
 
 import config
-from sensors.sensor_manager import SENSOR_REGISTRY
 
+from sensors.sensor_manager import SENSOR_REGISTRY
 
 DEFAULT_MEAN_REVERSION = [
     "RSIReversion",

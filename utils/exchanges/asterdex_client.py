@@ -58,7 +58,9 @@ class AsterDexClient:
         self.logger = logging.getLogger("AsterDexClient")
         self.api_key = api_key or os.getenv("ASTER_API_KEY") or getattr(config, "ASTER_API_KEY", None)
         self.api_secret = api_secret or os.getenv("ASTER_API_SECRET") or getattr(config, "ASTER_API_SECRET", None)
-        self.base_url = (base_url or os.getenv("ASTER_BASE_URL") or getattr(config, "ASTER_BASE_URL", DEFAULT_BASE_URL)).rstrip("/")
+        self.base_url = (
+            base_url or os.getenv("ASTER_BASE_URL") or getattr(config, "ASTER_BASE_URL", DEFAULT_BASE_URL)
+        ).rstrip("/")
         self.recv_window = recv_window or getattr(config, "ASTER_RECV_WINDOW", 5000)
         self.session = session or requests.Session()
         self._time_offset_ms = 0

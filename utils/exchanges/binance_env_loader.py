@@ -50,7 +50,7 @@ def load_binance_config() -> Dict[str, Any]:
     # Load API credentials
     api_key = os.getenv("BINANCE_TESTNET_API_KEY")
     api_secret = os.getenv("BINANCE_TESTNET_SECRET")
-    testnet_mode = os.getenv("BINANCE_TESTNET_MODE", 'true').lower() in ('true', '1', 't')
+    testnet_mode = os.getenv("BINANCE_TESTNET_MODE", "true").lower() in ("true", "1", "t")
 
     if api_key:
         config["api_key"] = api_key

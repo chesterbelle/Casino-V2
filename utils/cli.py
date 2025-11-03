@@ -212,9 +212,7 @@ def run_train_memory(pattern: str) -> bool:
 
     env = os.environ.copy()
     python_path = env.get("PYTHONPATH")
-    env["PYTHONPATH"] = (
-        str(ROOT) if not python_path else f"{str(ROOT)}{os.pathsep}{python_path}"
-    )
+    env["PYTHONPATH"] = str(ROOT) if not python_path else f"{str(ROOT)}{os.pathsep}{python_path}"
 
     total = len(datasets)
     failed = 0
@@ -304,20 +302,13 @@ def run_validate_strategies(pattern: str, limit: int, starting_balance: float) -
     state = analyze_memory.load_memory(memory_path)
     if state:
         strategies = state.get("strategies", {})
-        approved = [
-            name
-            for name, data in strategies.items()
-            if data.get("wins", 0) + data.get("losses", 0) >= 500
-        ]
+        approved = [name for name, data in strategies.items() if data.get("wins", 0) + data.get("losses", 0) >= 500]
         print("🧠 Memoria encontrada:")
         print(f"  Total estrategias: {len(strategies)}")
         print(f"  Estrategias aprobadas (>=500 trades): {len(approved)}\n")
 
         sorted_strats = sorted(
-            [
-                (name, strategies[name].get("winrate", 0))
-                for name in approved
-            ],
+            [(name, strategies[name].get("winrate", 0)) for name in approved],
             key=lambda item: item[1],
             reverse=True,
         )[:5]
@@ -332,9 +323,7 @@ def run_validate_strategies(pattern: str, limit: int, starting_balance: float) -
 
     env = os.environ.copy()
     python_path = env.get("PYTHONPATH")
-    env["PYTHONPATH"] = (
-        str(ROOT) if not python_path else f"{str(ROOT)}{os.pathsep}{python_path}"
-    )
+    env["PYTHONPATH"] = str(ROOT) if not python_path else f"{str(ROOT)}{os.pathsep}{python_path}"
 
     total = len(datasets)
     failed = 0
@@ -466,29 +455,45 @@ def build_parser() -> argparse.ArgumentParser:
     download_cmd.add_argument("--symbols", nargs="*", default=None, help="Símbolos a descargar (ej. BTCUSDT ETHUSDT).")
     download_cmd.add_argument("--interval", default="1m", help="Intervalo de velas (default: 1m).")
     download_cmd.add_argument("--days", type=int, default=1000, help="Días hacia atrás a descargar (default: 1000).")
-    download_cmd.add_argument("--tag", default="training", help="Etiqueta para los archivos generados (default: training).")
+    download_cmd.add_argument(
+        "--tag", default="training", help="Etiqueta para los archivos generados (default: training)."
+    )
 
     train_cmd = subparsers.add_parser("train-memory", help="Ejecuta el entrenamiento GHOST de la memoria.")
-    train_cmd.add_argument("--pattern", default="*_training.csv", help="Patrón de datasets a usar (default: *_training.csv).")
+    train_cmd.add_argument(
+        "--pattern", default="*_training.csv", help="Patrón de datasets a usar (default: *_training.csv)."
+    )
 
     validate_cmd = subparsers.add_parser("validate-strategies", help="Valida estrategias entrenadas.")
     validate_cmd.add_argument("--pattern", default="*_15m_*.csv", help="Patrón de búsqueda de datasets.")
     validate_cmd.add_argument("--limit", type=int, default=3, help="Número máximo de datasets a validar (default: 3).")
-    validate_cmd.add_argument("--starting-balance", type=float, default=10000.0, help="Balance inicial para la validación.")
+    validate_cmd.add_argument(
+        "--starting-balance", type=float, default=10000.0, help="Balance inicial para la validación."
+    )
 
     subparsers.add_parser("analyze-memory", help="Analiza el estado de la memoria Gemini.")
     subparsers.add_parser("check-sensors", help="Verifica sensores registrados y activos.")
 
-    pipeline_cmd = subparsers.add_parser("full-pipeline", help="Ejecuta todo el pipeline de datos → entrenamiento → validación.")
-    pipeline_cmd.add_argument("--symbols", nargs="*", default=None, help="Sobrescribe la lista de símbolos para la descarga.")
+    pipeline_cmd = subparsers.add_parser(
+        "full-pipeline", help="Ejecuta todo el pipeline de datos → entrenamiento → validación."
+    )
+    pipeline_cmd.add_argument(
+        "--symbols", nargs="*", default=None, help="Sobrescribe la lista de símbolos para la descarga."
+    )
     pipeline_cmd.add_argument("--interval", default="1m", help="Intervalo de velas (default: 1m).")
     pipeline_cmd.add_argument("--days", type=int, default=1000, help="Días hacia atrás a descargar (default: 1000).")
-    pipeline_cmd.add_argument("--tag", default="training", help="Etiqueta para los archivos generados (default: training).")
+    pipeline_cmd.add_argument(
+        "--tag", default="training", help="Etiqueta para los archivos generados (default: training)."
+    )
     pipeline_cmd.add_argument("--pattern", default="*_training.csv", help="Patrón de datasets para entrenamiento.")
     pipeline_cmd.add_argument("--validation-pattern", default="*_15m_*.csv", help="Patrón de datasets para validación.")
     pipeline_cmd.add_argument("--limit", type=int, default=3, help="Número máximo de datasets de validación.")
-    pipeline_cmd.add_argument("--starting-balance", type=float, default=10000.0, help="Balance inicial usado en validación.")
-    pipeline_cmd.add_argument("--non-interactive", action="store_true", help="Desactiva las pausas interactivas entre fases.")
+    pipeline_cmd.add_argument(
+        "--starting-balance", type=float, default=10000.0, help="Balance inicial usado en validación."
+    )
+    pipeline_cmd.add_argument(
+        "--non-interactive", action="store_true", help="Desactiva las pausas interactivas entre fases."
+    )
 
     return parser
 

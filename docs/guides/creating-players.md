@@ -27,7 +27,7 @@ def calculate_position_size(
         verdict: Veredicto de Gemini (probabilidades, métricas)
         equity: Capital disponible en USDT
         meta: Metadata adicional (opcional)
-    
+
     Returns:
         float: Fracción de equity [0.0, 1.0]
         None: No apostar
@@ -72,15 +72,15 @@ def calculate_position_size(verdict, equity, meta=None):
     # 1. Validación básica
     if not verdict or not verdict.side:
         return None
-    
+
     # 2. Filtrar estrategias aprobadas
     approved = [m for m in verdict.metrics if m.approved]
     if not approved:
         return None
-    
+
     # 3. Tu lógica aquí
     # TODO: Implementar tu estrategia
-    
+
     return 0.01  # Placeholder: 1% fijo
 ```
 
@@ -90,21 +90,21 @@ def calculate_position_size(verdict, equity, meta=None):
 def calculate_position_size(verdict, equity, meta=None):
     """
     Estrategia: Size basado en credibilidad promedio.
-    
+
     - Credibilidad > 0.8 → 2%
     - Credibilidad > 0.6 → 1%
     - Credibilidad <= 0.6 → No apostar
     """
     if not verdict or not verdict.side:
         return None
-    
+
     approved = [m for m in verdict.metrics if m.approved]
     if not approved:
         return None
-    
+
     # Calcular credibilidad promedio
     avg_credibility = sum(m.credibility for m in approved) / len(approved)
-    
+
     # Decidir size según credibilidad
     if avg_credibility > 0.8:
         size = 0.02
@@ -112,7 +112,7 @@ def calculate_position_size(verdict, equity, meta=None):
         size = 0.01
     else:
         return None
-    
+
     # Respetar límite máximo
     return min(size, config.MAX_POSITION_SIZE)
 ```
@@ -156,14 +156,14 @@ def calculate_position_size(verdict, equity, meta=None):
     """
     if not verdict or not verdict.side:
         return None
-    
+
     approved = [m for m in verdict.metrics if m.approved]
     if not approved:
         return None
-    
+
     # Calcular p̂ promedio
     avg_p_hat = sum(m.p_hat for m in approved) / len(approved)
-    
+
     # Threshold: 55%
     if avg_p_hat > 0.55:
         return 0.01
@@ -188,13 +188,13 @@ def calculate_position_size(verdict, equity, meta=None):
     """
     if not verdict or not verdict.side:
         return None
-    
+
     approved = [m for m in verdict.metrics if m.approved]
     if not approved:
         return None
-    
+
     avg_p_hat = sum(m.p_hat for m in approved) / len(approved)
-    
+
     if avg_p_hat > 0.60:
         size = 0.03
     elif avg_p_hat > 0.57:
@@ -203,7 +203,7 @@ def calculate_position_size(verdict, equity, meta=None):
         size = 0.01
     else:
         return None
-    
+
     return min(size, config.MAX_POSITION_SIZE)
 ```
 
@@ -220,28 +220,28 @@ def calculate_position_size(verdict, equity, meta=None):
     """
     if not verdict or not verdict.side:
         return None
-    
+
     approved = [m for m in verdict.metrics if m.approved]
     if not approved:
         return None
-    
+
     # Kelly base
     positive_kelly = [m.kelly for m in approved if m.kelly > 0]
     if not positive_kelly:
         return None
-    
+
     base_size = min(positive_kelly) * config.KELLY_FRACTION
-    
+
     # Ajustar por volatilidad
     volatility = meta.get("volatility", 0.02) if meta else 0.02
-    
+
     if volatility > 0.04:
         multiplier = 0.5
     elif volatility > 0.03:
         multiplier = 0.75
     else:
         multiplier = 1.0
-    
+
     adjusted_size = base_size * multiplier
     return min(adjusted_size, config.MAX_POSITION_SIZE)
 ```
@@ -259,23 +259,23 @@ def calculate_position_size(verdict, equity, meta=None):
     """
     if not verdict or not verdict.side:
         return None
-    
+
     # Filtrar aprobadas con alta credibilidad
     confident = [
-        m for m in verdict.metrics 
+        m for m in verdict.metrics
         if m.approved and m.credibility > 0.7 and m.kelly > 0
     ]
-    
+
     if not confident:
         return None
-    
+
     # Promedio ponderado por credibilidad
     total_cred = sum(m.credibility for m in confident)
     weighted_kelly = sum(
-        m.kelly * (m.credibility / total_cred) 
+        m.kelly * (m.credibility / total_cred)
         for m in confident
     )
-    
+
     size = weighted_kelly * config.KELLY_FRACTION
     return min(size, config.MAX_POSITION_SIZE)
 ```
@@ -293,29 +293,29 @@ def calculate_position_size(verdict, equity, meta=None):
     """
     if not verdict or not verdict.side:
         return None
-    
+
     approved = [m for m in verdict.metrics if m.approved]
     if not approved:
         return None
-    
+
     # Kelly base
     positive_kelly = [m.kelly for m in approved if m.kelly > 0]
     if not positive_kelly:
         return None
-    
+
     base_size = min(positive_kelly) * config.KELLY_FRACTION
-    
+
     # Ajustar por drawdown
     peak = meta.get("peak_equity", equity) if meta else equity
     drawdown_pct = (peak - equity) / peak if peak > 0 else 0.0
-    
+
     if drawdown_pct > 0.15:
         multiplier = 0.5  # Reducir 50% si DD > 15%
     elif drawdown_pct > 0.10:
         multiplier = 0.75  # Reducir 25% si DD > 10%
     else:
         multiplier = 1.0
-    
+
     adjusted_size = base_size * multiplier
     return min(adjusted_size, config.MAX_POSITION_SIZE)
 ```
@@ -360,9 +360,9 @@ def test_basic_sizing():
         participants=[],
         meta={}
     )
-    
+
     size = player.calculate_position_size(verdict, 10000.0)
-    
+
     assert size is not None, "Size no debe ser None con estrategia aprobada"
     assert 0.0 <= size <= 0.02, f"Size debe estar en [0, 0.02], got {size}"
     print(f"✅ Test pasado: size = {size}")
@@ -458,12 +458,12 @@ return calculated_size
 def calculate_position_size(verdict, equity, meta=None):
     """
     Estrategia: Kelly ajustado por volatilidad.
-    
+
     Lógica:
     1. Calcula Kelly base
     2. Reduce si volatilidad > 3%
     3. Límite máximo 2%
-    
+
     Returns:
         float [0, 1] o None
     """

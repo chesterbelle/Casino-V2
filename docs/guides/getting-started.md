@@ -287,15 +287,15 @@ def calculate_position_size(verdict, equity, meta=None):
     """
     if not verdict or not verdict.side:
         return None
-    
+
     # Buscar métricas aprobadas
     approved = [m for m in verdict.metrics if m.approved]
     if not approved:
         return None
-    
+
     # Calcular winrate promedio
     avg_winrate = sum(m.p_hat for m in approved) / len(approved)
-    
+
     # Mi lógica simple
     if avg_winrate > 0.7:  # 70% winrate mínimo
         position_size = equity * 0.01  # 1% del equity
@@ -324,15 +324,15 @@ def calculate_position_size(verdict, equity, meta=None):
     """
     if not verdict or not verdict.side:
         return None
-    
+
     approved = [m for m in verdict.metrics if m.approved]
     if not approved:
         return None
-    
+
     # Calcular métricas
     avg_winrate = sum(m.p_hat for m in approved) / len(approved)
     total_trades = sum(m.total_trades for m in approved)
-    
+
     # Lógica más sofisticada
     if avg_winrate > 0.75 and total_trades > 100:
         # Alto confidence: 2%

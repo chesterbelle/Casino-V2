@@ -117,9 +117,9 @@ def print_analysis(analysis: Dict) -> None:
         print("-" * 85)
 
         for idx, strat in enumerate(approved[:20], 1):
-            name = strat['name'][:60]
-            total = strat['total']
-            winrate = strat.get('winrate')
+            name = strat["name"][:60]
+            total = strat["total"]
+            winrate = strat.get("winrate")
             winrate_str = f"{winrate:.2%}" if winrate is not None else "N/A"
 
             if winrate and winrate > 0.55:
@@ -139,9 +139,9 @@ def print_analysis(analysis: Dict) -> None:
         print(f"{'#':<3} {'Estrategia':<60} {'Trades':<8} {'Faltan':<8}")
         print("-" * 85)
         for idx, strat in enumerate(pending[:10], 1):
-            name = strat['name'][:60]
-            total = strat['total']
-            needed = strat['needed']
+            name = strat["name"][:60]
+            total = strat["total"]
+            needed = strat["needed"]
             print(f"{idx:<3} {name:<60} {total:<8} {needed:<8}")
 
         if len(pending) > 10:
@@ -163,7 +163,7 @@ def print_analysis(analysis: Dict) -> None:
         print("  ✅ Suficientes estrategias aprobadas para operar")
         print("     → Próximo paso: python3 -m utils.cli validate-strategies")
 
-    winrates = [s['winrate'] for s in approved if s.get('winrate') is not None]
+    winrates = [s["winrate"] for s in approved if s.get("winrate") is not None]
     if winrates:
         avg_winrate = sum(winrates) / len(winrates)
         if avg_winrate > 0.55:

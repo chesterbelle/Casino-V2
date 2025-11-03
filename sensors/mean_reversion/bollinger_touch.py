@@ -23,7 +23,7 @@ class BollingerTouch:
         if len(self.data) < self.window:
             return None
 
-        series = pd.Series(self.data[-self.window:])
+        series = pd.Series(self.data[-self.window :])
         ma = series.mean()
         std = series.std(ddof=0)
         upper = ma + self.std_dev * std

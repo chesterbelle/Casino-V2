@@ -1,15 +1,16 @@
+"""Decision logger for Gemini trades."""
+
 from __future__ import annotations
 
 import csv
 import os
+import sys
 from typing import Any, Dict, Iterable
 
 try:
     import config
 except ImportError:
     # Fallback for when config is in core/
-    import os
-    import sys
 
     # Add project root to path
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

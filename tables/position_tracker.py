@@ -22,8 +22,8 @@ Solución:
 from __future__ import annotations
 
 import logging
-from typing import Dict, List, Optional, Tuple, Any
 from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger("PositionTracker")
 
@@ -31,6 +31,7 @@ logger = logging.getLogger("PositionTracker")
 @dataclass
 class OpenPosition:
     """Representa una posición abierta con TP/SL pendientes."""
+
     trade_id: str
     symbol: str
     side: str
@@ -85,7 +86,9 @@ class PositionTracker:
         # Verificar capital disponible
         return available_equity >= required_margin
 
-    def open_position(self, order: Dict[str, Any], entry_price: float, entry_timestamp: str, available_equity: float) -> Optional[OpenPosition]:
+    def open_position(
+        self, order: Dict[str, Any], entry_price: float, entry_timestamp: str, available_equity: float
+    ) -> Optional[OpenPosition]:
         """
         Abre una nueva posición y la registra.
 
@@ -111,7 +114,7 @@ class PositionTracker:
 
             # Calcular niveles de TP/SL
             tp_factor = order.get("take_profit", 1.01)  # 1% default
-            sl_factor = order.get("stop_loss", 0.99)    # -1% default
+            sl_factor = order.get("stop_loss", 0.99)  # -1% default
 
             if side == "LONG":
                 tp_level = entry_price * tp_factor
@@ -138,7 +141,7 @@ class PositionTracker:
                 tp_level=tp_level,
                 sl_level=sl_level,
                 liquidation_level=liquidation_level,
-                order=order.copy()
+                order=order.copy(),
             )
 
             # Registrar posición
@@ -281,7 +284,7 @@ class PositionTracker:
             "blocked_capital": self.blocked_capital,
             "total_opened": self.total_trades_opened,
             "total_closed": self.total_trades_closed,
-            "max_concurrent": self.max_concurrent_positions
+            "max_concurrent": self.max_concurrent_positions,
         }
 
     def force_close_all_positions(self, current_candle: Dict[str, Any]) -> List[Dict[str, Any]]:

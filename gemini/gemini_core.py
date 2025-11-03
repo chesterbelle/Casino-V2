@@ -365,21 +365,21 @@ class Gemini:
     def _collect_votes_by_side(self, signals: List[dict]) -> Tuple[List[Participant], List[Participant], dict]:
         """
         Separa votantes por lado y recoge metadatos base.
-        
+
         Procesa señales de sensores y las clasifica en LONG o SHORT.
         Cada señal debe contener timestamp, symbol, side, y origin (estrategia).
-        
+
         Args:
             signals: Lista de señales de sensores. Cada señal es un dict con:
                     {"timestamp": str, "symbol": str, "side": "LONG"|"SHORT",
                      "origin": str (opcional), "features": dict (opcional)}
-        
+
         Returns:
             Tuple de (long_voters, short_voters, base_meta):
             - long_voters: Lista de Participant que votaron LONG
             - short_voters: Lista de Participant que votaron SHORT
             - base_meta: Dict con timestamp, symbol, timeframe de la primera señal
-        
+
         Nota:
             Si origin no está presente, se infiere de features/_origin o sensor,
             o se asigna "UnknownSensor" como fallback.
@@ -418,16 +418,16 @@ class Gemini:
     def _infer_origin(self, signal: dict) -> str:
         """
         Infiere el nombre de la estrategia/sensor que generó la señal.
-        
+
         Busca en múltiples campos posibles (origin, sensor, strategy, source)
         y en features/_origin como fallback.
-        
+
         Args:
             signal: Dict con la señal del sensor
-        
+
         Returns:
             str: Nombre de la estrategia/sensor, o "UnknownSensor" si no se encuentra
-        
+
         Nota:
             🔧 PUNTO DE EXTENSIÓN: Si tus señales usan otro campo para el nombre,
             agrégalo a la lista de campos buscados.
@@ -445,17 +445,17 @@ class Gemini:
     def _participant_metrics(self, voters: List[Participant]) -> List[ParticipantMetrics]:
         """
         Calcula métricas probabilísticas para cada participante (estrategia).
-        
+
         Para cada participante:
         1. Obtiene p_hat (winrate) y support (tamaño de ventana) de la memoria
         2. Calcula credibilidad bayesiana: Pr(p > p_star | datos)
         3. Si credibilidad >= threshold, calcula p_conservative (percentil inferior)
         4. Calcula Kelly: f = p_conservative - (1-p_conservative)/B
         5. Aprueba si: support >= MIN_SAMPLES y kelly > 0
-        
+
         Args:
             voters: Lista de Participant que votaron por el mismo lado
-        
+
         Returns:
             Lista de ParticipantMetrics con todas las métricas calculadas:
             - support: número de observaciones en la ventana
@@ -465,7 +465,7 @@ class Gemini:
             - kelly: fracción de Kelly calculada
             - approved: True si cumple criterios de aprobación
             - reason: razón de aprobación/rechazo
-        
+
         Nota:
             Usa inferencia bayesiana con prior Beta(α, β) y posterior actualizado
             con wins y losses observados.
@@ -548,17 +548,17 @@ class Gemini:
     def _make_trade_id(self, meta: dict, side: str) -> str:
         """
         Genera un ID único para el trade.
-        
+
         Formato: {market}-{side}-{timestamp}
         Ejemplo: "BTC/USD@1m-LONG-2025-11-02T14:30:00"
-        
+
         Args:
             meta: Dict con timestamp, symbol, timeframe
             side: "LONG" | "SHORT" | "CONFLICT"
-        
+
         Returns:
             str: ID único del trade
-        
+
         Nota:
             Si timestamp no está presente, usa datetime.utcnow()
         """
@@ -573,17 +573,17 @@ class Gemini:
     def _make_order(self, meta: dict, side: str, size_fraction: float) -> dict:
         """
         Construye la orden estandarizada para el Croupier/Mesa.
-        
+
         La orden contiene toda la información necesaria para ejecutar el trade:
         symbol, side, size (fracción), take_profit, stop_loss.
-        
+
         Args:
             meta: Dict con symbol, timeframe, timestamp
             side: "LONG" | "SHORT"
             size_fraction: Fracción del equity a arriesgar [0.0, 1.0]
                           0.0 = orden fantasma (GHOST)
                           >0.0 = orden real (BET)
-        
+
         Returns:
             dict: Orden estandarizada con campos:
                 - symbol: símbolo del activo
@@ -594,7 +594,7 @@ class Gemini:
                 - take_profit: multiplicador de TP (ej: 1.01 = +1%)
                 - stop_loss: multiplicador de SL (ej: 0.99 = -1%)
                 - market: {symbol}@{timeframe} (si timeframe disponible)
-        
+
         Nota:
             El Croupier/Mesa convierte size_fraction a monto real basado en equity.
         """
@@ -616,18 +616,18 @@ class Gemini:
     def _extract_participants(self, signal: dict) -> List[Participant]:
         """
         Extrae participantes (estrategias) de una señal.
-        
+
         Una señal puede tener múltiples contribuyentes (sensores/estrategias).
         Esta función crea un Participant por cada contribuyente.
-        
+
         Args:
             signal: Dict con la señal. Puede contener:
                    - contributors: lista de nombres de estrategias
                    - origin/sensor/strategy: nombre único de estrategia
-        
+
         Returns:
             Lista de Participant, uno por cada estrategia que contribuyó
-        
+
         Nota:
             Si contributors está presente, crea un Participant por cada uno.
             Si no, crea un solo Participant inferido de la señal.
@@ -650,18 +650,18 @@ class Gemini:
     def _make_participant(self, signal: dict, origin_override: Optional[str] = None) -> Optional[Participant]:
         """
         Construye un Participant desde una señal.
-        
+
         Un Participant representa una estrategia específica operando en un
         contexto específico (bucket) para un símbolo/timeframe.
-        
+
         Args:
             signal: Dict con la señal (debe tener symbol, timeframe, features)
             origin_override: Nombre de estrategia (opcional, si no se infiere)
-        
+
         Returns:
             Participant con strategy, bucket, symbol, timeframe
             None si hay error al identificar el bucket
-        
+
         Nota:
             El bucket se identifica usando BucketManager.identify_bucket()
             Si falla, se asigna "UNKNOWN" como bucket.
@@ -679,12 +679,12 @@ class Gemini:
     def _serialize_participants(self, participants: List[Participant]) -> List[Dict[str, str]]:
         """
         Serializa participantes para GeminiMemory.
-        
+
         Convierte objetos Participant en dicts para almacenar en memoria.
-        
+
         Args:
             participants: Lista de Participant
-        
+
         Returns:
             Lista de dicts con campos:
             - strategy: nombre de la estrategia
@@ -904,17 +904,17 @@ class Gemini:
     def _beta_prob_greater(self, threshold: float, alpha: float, beta: float) -> float:
         """
         Calcula Pr(p > threshold | α, β) para distribución Beta.
-        
+
         Usa scipy.stats.beta si está disponible, sino aproximación normal.
-        
+
         Args:
             threshold: Valor umbral (ej: p_star)
             alpha: Parámetro α de la distribución Beta posterior
             beta: Parámetro β de la distribución Beta posterior
-        
+
         Returns:
             float: Probabilidad de que p > threshold [0.0, 1.0]
-        
+
         Nota:
             Esto representa la "credibilidad" de que el winrate verdadero
             es mayor que el break-even (p_star).
@@ -939,17 +939,17 @@ class Gemini:
     def _beta_quantile(self, alpha: float, beta: float, percentile: float) -> float:
         """
         Calcula el cuantil de la distribución Beta.
-        
+
         Usa scipy.stats.beta.ppf si está disponible, sino aproximación normal.
-        
+
         Args:
             alpha: Parámetro α de la distribución Beta posterior
             beta: Parámetro β de la distribución Beta posterior
             percentile: Percentil deseado [0.0, 1.0] (ej: 0.1 = percentil 10)
-        
+
         Returns:
             float: Valor del percentil [0.0, 1.0]
-        
+
         Nota:
             Se usa para obtener p_conservative (estimación conservadora del winrate)
             usando el percentil inferior de la distribución posterior.

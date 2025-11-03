@@ -33,17 +33,16 @@ from __future__ import annotations
 import csv
 import json
 import logging
-import math
 import os
 import re
+import sys
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 try:
     import config
 except ImportError:
-    import os
-    import sys
+    # Fallback for when config is in core/
 
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     if project_root not in sys.path:

@@ -66,7 +66,9 @@ class KrakenFuturesClient:
     def get_orderbook(self, symbol: str) -> Dict[str, Any]:
         return self._request_public("orderbook", params={"symbol": symbol})
 
-    def get_candles(self, symbol: str, interval: str = "1m", price_type: str = "trade", **params: Any) -> Dict[str, Any]:
+    def get_candles(
+        self, symbol: str, interval: str = "1m", price_type: str = "trade", **params: Any
+    ) -> Dict[str, Any]:
         """
         Recupera velas desde la API de charts.
         Intervalos válidos: 1m, 5m, 15m, 1h, etc (según doc oficial).
@@ -74,7 +76,9 @@ class KrakenFuturesClient:
         query = {"symbol": symbol, "interval": interval}
         query.update(params)
         url = f"{self.charts_url}{price_type}/{symbol}/{interval}"
-        response = self.session.get(url, params={k: v for k, v in query.items() if k not in {"symbol", "interval"}}, timeout=10)
+        response = self.session.get(
+            url, params={k: v for k, v in query.items() if k not in {"symbol", "interval"}}, timeout=10
+        )
         return self._parse_response(response)
 
     # ---------------------------------------------------------------------
@@ -104,13 +108,17 @@ class KrakenFuturesClient:
     # ---------------------------------------------------------------------
     # Internal request machinery
     # ---------------------------------------------------------------------
-    def _request_public(self, path: str, params: Optional[Dict[str, Any]] = None, method: str = "GET") -> Dict[str, Any]:
+    def _request_public(
+        self, path: str, params: Optional[Dict[str, Any]] = None, method: str = "GET"
+    ) -> Dict[str, Any]:
         endpoint = f"{API_VERSION}/{path}"
         url = self.base_url + endpoint
         response = self.session.request(method.upper(), url, params=params, timeout=10)
         return self._parse_response(response)
 
-    def _request_private(self, path: str, *, method: str = "POST", params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def _request_private(
+        self, path: str, *, method: str = "POST", params: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
         if not self.api_key or not self.api_secret:
             raise KrakenFuturesAPIError("No API key/secret configured for private request.")
 

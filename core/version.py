@@ -39,18 +39,14 @@ CHANGELOG = {
             "Jerarquía Table unificada",
             "Type safety completo",
             "Tests fortalecidos",
-            "Multi-Asset Foundation"
-        ]
+            "Multi-Asset Foundation",
+        ],
     },
     "1.6": {
         "name": "WebSocket Integration",
         "date": "2025-09-30",
-        "highlights": [
-            "WebSocket para datos en tiempo real",
-            "TableCCXTPro implementado",
-            "Mejoras en live trading"
-        ]
-    }
+        "highlights": ["WebSocket para datos en tiempo real", "TableCCXTPro implementado", "Mejoras en live trading"],
+    },
 }
 
 # =====================================================
@@ -66,6 +62,7 @@ NEXT_VERSION_ETA = "2025-12-31"
 BLOCKERS = [
     "Validar Binance Futures Testnet (v1.7 - CRÍTICO)",
 ]
+
 
 # =====================================================
 # 📊 FUNCIONES DE UTILIDAD
@@ -93,10 +90,10 @@ def get_full_version_string() -> str:
 def get_changelog(version: str = None) -> Dict:
     """
     Retorna el changelog de una versión específica o todas.
-    
+
     Args:
         version: Versión específica (ej: "1.7.1") o None para todas
-        
+
     Returns:
         Dict con información del changelog
     """
@@ -134,7 +131,7 @@ if __name__ == "__main__":
     info = get_version_info()
     for key, value in info.items():
         print(f"  {key}: {value}")
-    
+
     print(f"\n🔜 Next Version:")
     next_info = get_next_version_info()
     for key, value in next_info.items():

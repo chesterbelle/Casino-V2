@@ -7,6 +7,7 @@ Cada bucket mantiene su propia estadística de winrate (p̂).
 
 import pandas as pd
 
+
 class BucketManager:
     def __init__(self, window=120, min_support=20):
         self.window = window

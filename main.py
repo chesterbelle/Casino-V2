@@ -35,10 +35,10 @@ from __future__ import annotations
 import logging
 import os
 import sys
-from typing import Dict, Optional
 
 # Add current directory to path for config import
 sys.path.insert(0, os.getcwd())
+
 from core import (
     ask_initial_balance,
     config,
@@ -217,7 +217,6 @@ def main() -> None:
         mode = "backtest"
 
     player_name = DEFAULT_PLAYER
-    multi_asset_config = None
     symbol = None
     interval = None
     max_candles = None

@@ -27,6 +27,7 @@ from typing import Any, Dict, Optional
 @dataclass
 class Position:
     """Representa una única posición de trading abierta."""
+
     symbol: str
     side: str  # "LONG" o "SHORT"
     size_contracts: float

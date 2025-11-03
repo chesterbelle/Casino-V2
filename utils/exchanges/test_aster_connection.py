@@ -13,7 +13,7 @@ import logging
 from typing import Any, Dict
 
 from utils.aster_env_loader import load_aster_credentials
-from utils.asterdex_client import AsterDexClient, AsterDexAPIError
+from utils.asterdex_client import AsterDexAPIError, AsterDexClient
 
 
 def pretty(data: Any) -> str:
@@ -45,7 +45,10 @@ def main() -> None:
     parser.add_argument("--limit", type=int, default=5, help="Cantidad de velas a consultar")
     args = parser.parse_args()
 
-    from config import ASTER_DEFAULT_SYMBOL, ASTER_DEFAULT_INTERVAL  # evita importar arriba
+    from config import (  # evita importar arriba
+        ASTER_DEFAULT_INTERVAL,
+        ASTER_DEFAULT_SYMBOL,
+    )
 
     symbol = (args.symbol or ASTER_DEFAULT_SYMBOL).upper()
     interval = args.interval or ASTER_DEFAULT_INTERVAL

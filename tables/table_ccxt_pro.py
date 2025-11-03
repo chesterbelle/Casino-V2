@@ -21,10 +21,9 @@ Características:
 - Modo híbrido inteligente: WebSocket-first con REST fallback dinámico
 """
 
-import traceback
-
 import asyncio
 import logging
+import traceback
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -64,23 +63,29 @@ class TableCCXTPro(BaseTable):
         if api_key is None or api_secret is None:
             if "kraken" in exchange_id.lower():
                 from utils.exchanges.kraken_env_loader import get_kraken_credentials
+
                 creds = get_kraken_credentials()
                 if creds:
-                    api_key = api_key or creds.get('apiKey')
-                    api_secret = api_secret or creds.get('secret')
+                    api_key = api_key or creds.get("apiKey")
+                    api_secret = api_secret or creds.get("secret")
             elif "hyperliquid" in exchange_id.lower():
-                from utils.exchanges.hyperliquid_env_loader import load_hyperliquid_config, get_hyperliquid_credentials
+                from utils.exchanges.hyperliquid_env_loader import (
+                    get_hyperliquid_credentials,
+                    load_hyperliquid_config,
+                )
+
                 self.hyperliquid_config = load_hyperliquid_config()
                 creds = get_hyperliquid_credentials()
                 if creds:
-                    api_key = api_key or creds.get('walletAddress')
-                    api_secret = api_secret or creds.get('privateKey')
+                    api_key = api_key or creds.get("walletAddress")
+                    api_secret = api_secret or creds.get("privateKey")
             elif "binance" in exchange_id.lower():
                 from utils.exchanges.binance_env_loader import get_binance_credentials
+
                 creds = get_binance_credentials()
                 if creds:
-                    api_key = api_key or creds.get('apiKey')
-                    api_secret = api_secret or creds.get('secret')
+                    api_key = api_key or creds.get("apiKey")
+                    api_secret = api_secret or creds.get("secret")
 
         # Componentes
         self.balance_manager = BalanceManager(starting_balance=10_000.0)
@@ -101,6 +106,7 @@ class TableCCXTPro(BaseTable):
         self._init_exchange(api_key, api_secret)
 
         self.logger.info(f"🪙 TableCCXTPro inicializada | Exchange: {exchange_id} | Symbols: {symbols}")
+
     def _are_demo_credentials(self, api_key: str, api_secret: str) -> bool:
         """
         Detecta si las credenciales son para demo basado en su formato/patrón.
@@ -135,8 +141,13 @@ class TableCCXTPro(BaseTable):
                     "apiKey": api_key,
                     "secret": api_secret,
                     "enableRateLimit": True,
-                    "urls": {"api": {"public": "https://demo-futures.kraken.com/derivatives/api/", "private": "https://demo-futures.kraken.com/derivatives/api/"}},
-                    "options": {"defaultType": "future", "watchBalance": True}
+                    "urls": {
+                        "api": {
+                            "public": "https://demo-futures.kraken.com/derivatives/api/",
+                            "private": "https://demo-futures.kraken.com/derivatives/api/",
+                        }
+                    },
+                    "options": {"defaultType": "future", "watchBalance": True},
                 }
                 self.base_currency = "USD"
                 self.market_type = "future"
@@ -144,44 +155,49 @@ class TableCCXTPro(BaseTable):
 
             elif "hyperliquid" in self.exchange_id.lower():
                 if not hasattr(self, "hyperliquid_config"):
-                    from utils.exchanges.hyperliquid_env_loader import load_hyperliquid_config
+                    from utils.exchanges.hyperliquid_env_loader import (
+                        load_hyperliquid_config,
+                    )
+
                     self.hyperliquid_config = load_hyperliquid_config()
-                
+
                 testnet_flag = self.hyperliquid_config.get("testnet", self.testnet)
                 base_url = self.hyperliquid_config.get("test_base_url" if testnet_flag else "base_url")
-                
+
                 exchange_config = {
                     "walletAddress": api_key,
                     "privateKey": api_secret,
                     "enableRateLimit": True,
                     "options": {"defaultType": "swap", "watchBalance": True, "defaultSlippage": 0.01},
                     "urls": {"api": {"public": base_url, "private": base_url}},
-                    "hostname": "hyperliquid-testnet.xyz" if testnet_flag else "hyperliquid.xyz"
+                    "hostname": "hyperliquid-testnet.xyz" if testnet_flag else "hyperliquid.xyz",
                 }
                 self.base_currency = "USDC"
                 self.market_type = "swap"
                 self.logger.info(f"🔧 Configuración Hyperliquid {'TESTNET' if testnet_flag else 'MAINNET'} aplicada")
 
             elif "binance" in self.exchange_id.lower():
-                ccxt_exchange_id = 'binanceusdm' # Usar ID correcto para futuros
+                ccxt_exchange_id = "binanceusdm"  # Usar ID correcto para futuros
                 exchange_config = {
-                    'apiKey': api_key,
-                    'secret': api_secret,
-                    'enableRateLimit': True,
-                    'options': {
-                        'defaultType': 'future',
+                    "apiKey": api_key,
+                    "secret": api_secret,
+                    "enableRateLimit": True,
+                    "options": {
+                        "defaultType": "future",
                     },
                 }
                 if self.testnet:
-                    import aiohttp
                     import ssl
+
+                    import aiohttp
+
                     ssl_context = ssl.create_default_context()
                     ssl_context.check_hostname = False
                     ssl_context.verify_mode = ssl.CERT_NONE
                     connector = aiohttp.TCPConnector(ssl=ssl_context)
-                    exchange_config['session'] = aiohttp.ClientSession(connector=connector)
-                    exchange_config['options']['testnet'] = True
-                    exchange_config['urls'] = {'api': 'https://testnet.binancefuture.com'}
+                    exchange_config["session"] = aiohttp.ClientSession(connector=connector)
+                    exchange_config["options"]["testnet"] = True
+                    exchange_config["urls"] = {"api": "https://testnet.binancefuture.com"}
                 self.base_currency = "USDT"
                 self.market_type = "linear"
                 self.logger.info("🔧 Configuración Binance Futures (binanceusdm) TESTNET con bypass SSL aplicada.")
@@ -191,7 +207,7 @@ class TableCCXTPro(BaseTable):
                     "apiKey": api_key,
                     "secret": api_secret,
                     "enableRateLimit": True,
-                    "options": {"defaultType": "future"}
+                    "options": {"defaultType": "future"},
                 }
                 self.market_type = "future"
 
@@ -206,10 +222,11 @@ class TableCCXTPro(BaseTable):
         except Exception as e:
             self.logger.error(f"❌ Error inicializando exchange {self.exchange_id}: {e}", exc_info=True)
             raise
+
     async def close(self):
         """Cierra la conexión y libera recursos."""
         try:
-            if self.exchange and hasattr(self.exchange, 'close'):
+            if self.exchange and hasattr(self.exchange, "close"):
                 await self.exchange.close()
                 self.logger.info(f"✅ Conexión {self.exchange_id} cerrada correctamente")
         except Exception as e:
@@ -229,7 +246,7 @@ class TableCCXTPro(BaseTable):
                 # Esto evita conflictos con el loop principal de asyncio
                 temp_exchange_class = getattr(ccxt_async, self.exchange.id)
                 temp_exchange = temp_exchange_class(self.exchange.safe_string_dictionary(self.exchange.options))
-                
+
                 result = loop.run_until_complete(temp_exchange.fetch_balance())
                 loop.run_until_complete(temp_exchange.close())
                 return result
@@ -246,7 +263,7 @@ class TableCCXTPro(BaseTable):
             raise RuntimeError("Exchange no inicializado")
         try:
             await self.exchange.loadMarkets()
-            self.websocket_supported = self.exchange.has.get('watchOHLCV', False)
+            self.websocket_supported = self.exchange.has.get("watchOHLCV", False)
             self.data_mode = "websocket" if self.websocket_supported else "rest"
             self.is_connected = True
             self.logger.info(f"✅ Conectado a {self.exchange_id} en modo {self.data_mode}")
@@ -258,7 +275,7 @@ class TableCCXTPro(BaseTable):
         """Inicia el loop de escucha de datos."""
         if not self.is_connected:
             raise RuntimeError("No conectado. Llama a connect() primero.")
-        
+
         if self.data_mode == "websocket":
             await self._websocket_listening_loop()
         else:
@@ -275,7 +292,7 @@ class TableCCXTPro(BaseTable):
                         self.logger.info(f"Received {len(trades)} trades for {symbol}")
             except Exception as e:
                 self.logger.error(f"Error en el loop de WebSocket: {e}")
-                await asyncio.sleep(5) # Esperar antes de reintentar
+                await asyncio.sleep(5)  # Esperar antes de reintentar
 
     async def _rest_polling_loop(self):
         """Loop de escucha para datos de mercado vía REST polling."""
@@ -284,9 +301,9 @@ class TableCCXTPro(BaseTable):
                 for symbol in self.symbols:
                     ohlcv = await self.exchange.fetch_ohlcv(symbol, self.timeframe, limit=5)
                     if ohlcv:
-                        self.last_candles[symbol] = ohlcv[-1] # Guardar la última vela
+                        self.last_candles[symbol] = ohlcv[-1]  # Guardar la última vela
                         self.logger.info(f"Poll {symbol}: {ohlcv[-1]}")
-                await asyncio.sleep(self.exchange.rateLimit / 1000) # Respetar rate limit
+                await asyncio.sleep(self.exchange.rateLimit / 1000)  # Respetar rate limit
             except Exception as e:
                 self.logger.error(f"Error en el loop de REST polling: {e}")
                 await asyncio.sleep(5)
@@ -306,11 +323,11 @@ class TableCCXTPro(BaseTable):
             raise RuntimeError("No conectado al exchange.")
         try:
             return await self.exchange.create_order(
-                symbol=order['symbol'],
-                type=order['type'],
-                side=order['side'],
-                amount=order['amount'],
-                price=order.get('price') # Opcional para órdenes limit
+                symbol=order["symbol"],
+                type=order["type"],
+                side=order["side"],
+                amount=order["amount"],
+                price=order.get("price"),  # Opcional para órdenes limit
             )
         except Exception as e:
             self.logger.error(f"Error ejecutando orden: {e}", exc_info=True)
@@ -324,5 +341,3 @@ class TableCCXTPro(BaseTable):
             "last_candles": self.last_candles,
             "is_connected": self.is_connected,
         }
-
-

@@ -23,8 +23,8 @@ class RSIReversion:
         delta = np.diff(self.prices)
         gains = np.maximum(delta, 0)
         losses = np.abs(np.minimum(delta, 0))
-        avg_gain = np.mean(gains[-self.period:])
-        avg_loss = np.mean(losses[-self.period:])
+        avg_gain = np.mean(gains[-self.period :])
+        avg_loss = np.mean(losses[-self.period :])
         if avg_loss == 0:
             return 100.0
         rs = avg_gain / avg_loss

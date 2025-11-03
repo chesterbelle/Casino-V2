@@ -27,17 +27,21 @@ class KeltnerReversion:
         if len(self.closes) < self.window:
             return None
 
-        df = pd.DataFrame({
-            "high": self.highs[-self.window:],
-            "low": self.lows[-self.window:],
-            "close": self.closes[-self.window:],
-        })
+        df = pd.DataFrame(
+            {
+                "high": self.highs[-self.window :],
+                "low": self.lows[-self.window :],
+                "close": self.closes[-self.window :],
+            }
+        )
 
         typical = (df["high"] + df["low"] + df["close"]) / 3
         ema = typical.ewm(span=self.window, adjust=False).mean().iloc[-1]
 
         prev_close = df["close"].shift(1)
-        tr = np.maximum(df["high"] - df["low"], np.maximum((df["high"] - prev_close).abs(), (df["low"] - prev_close).abs()))
+        tr = np.maximum(
+            df["high"] - df["low"], np.maximum((df["high"] - prev_close).abs(), (df["low"] - prev_close).abs())
+        )
         atr = tr.mean()
 
         upper = ema + self.multiplier * atr

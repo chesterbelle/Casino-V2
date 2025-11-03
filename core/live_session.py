@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 
 from croupier.broker_interface import BrokerInterface
 from croupier.croupier import Croupier
@@ -312,7 +312,7 @@ async def run_live_session(
             error_msg = str(e)
             RESULT_LOGGER.error(f"❌ Error obteniendo balance del exchange: {error_msg}")
             RESULT_LOGGER.error("Detalles del error:", exc_info=True)
-            
+
             # CRÍTICO: En modo LIVE nunca usar balance simulado
             # Si no se puede obtener balance real, DETENER el sistema
             raise RuntimeError(
@@ -492,7 +492,6 @@ async def run_live_session(
 
     # Crear event loop persistente para el listener
     import asyncio
-    import threading
 
     # Variable para almacenar el listener task
     listener_task = None
@@ -714,7 +713,7 @@ async def run_live_session(
                 except (TypeError, ValueError):
                     notional_amount = 0.0
             else:
-                equity_reference = equity if equity else _safe_float(updated_state.get("equity"), 0.0)
+                equity_reference = equity if equity else 0.0
                 notional_amount = float(order.get("size", 0.0)) * equity_reference
 
             unit_multiplier_value = order.get("unit_multiplier")
@@ -813,10 +812,7 @@ async def run_live_session(
             listener_task.cancel()
             RESULT_LOGGER.info("Listener task cancelado")
 
-        # Esperar a que el thread termine
-        if "listener_thread" in locals():
-            listener_thread.join(timeout=5)
-            RESULT_LOGGER.info("Listener thread terminado")
+        # Listener task ya fue cancelado arriba si existía
 
         consume_completed_trades_from_table()
 

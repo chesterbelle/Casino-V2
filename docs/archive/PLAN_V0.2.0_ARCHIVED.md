@@ -1,7 +1,7 @@
 # 🗺️ Plan para v0.2.0
 
-> **Versión Actual**: v0.1.2  
-> **Próxima Versión**: v0.2.0  
+> **Versión Actual**: v0.1.2
+> **Próxima Versión**: v0.2.0
 > **Fecha Estimada**: TBD
 
 ---

@@ -1,9 +1,9 @@
 # 🎰 VISIÓN - Casino V2
 
 > **La Biblia del Proyecto**
-> 
+>
 
-MANUAL DE INGENIERÍA PARA LLMs (IA) - CASINO V2 
+MANUAL DE INGENIERÍA PARA LLMs (IA) - CASINO V2
 
 Este documento establece el marco de referencia y los principios arquitectónicos esenciales de Casino V2. Cualquier sugerencia o modificación de código debe respetar la Filosofía de Probabilidad y la Separación de Responsabilidades Modular.
 
@@ -275,7 +275,7 @@ Verdict(
 ## 🎯 VISIÓN A FUTURO
 
 ### **v1.7 - Estado Actual** ✅
-- Backtest y live  se estan probando con un solo activo aun falta aprobar 
+- Backtest y live  se estan probando con un solo activo aun falta aprobar
 - Kraken y Hyperliquid validados
 - **Bloqueante**: Binance Testnet pendiente
 
@@ -433,6 +433,6 @@ TIMEFRAME = "1m" | "5m" | "15m" | "1h"
 **Este documento es la BIBLIA del proyecto.**
 **Sin entender esto, no se puede trabajar en Casino V2.**
 
-**Última actualización**: 2025-11-02  
-**Autor**: Pedro  
+**Última actualización**: 2025-11-02
+**Autor**: Pedro
 **Para**: Cascade y cualquier IA que trabaje en el proyecto

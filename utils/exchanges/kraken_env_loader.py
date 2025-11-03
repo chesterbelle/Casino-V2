@@ -104,7 +104,7 @@ def get_kraken_credentials() -> Dict[str, str] | None:
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    creds = load_kraken_credentials(test_connection=True)
+    creds = load_kraken_config()
     print("\nResultado Kraken Futures:")
     for key, value in creds.items():
         print(f"  {key}: {value}")

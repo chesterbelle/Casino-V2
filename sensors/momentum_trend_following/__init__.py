@@ -1,10 +1,10 @@
 """Colección de sensores Momentum / Trend-Following."""
 
+from .adx_filter import ADXFilter
 from .ema_crossover import EMACrossover
 from .macd_crossover import MACDCrossover
-from .supertrend import Supertrend
-from .adx_filter import ADXFilter
 from .parabolic_sar import ParabolicSAR
+from .supertrend import Supertrend
 
 __all__ = [
     "EMACrossover",

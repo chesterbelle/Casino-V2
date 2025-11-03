@@ -30,7 +30,7 @@ from typing import Dict
 
 from dotenv import load_dotenv
 
-from utils.asterdex_client import AsterDexClient, DEFAULT_BASE_URL
+from utils.asterdex_client import DEFAULT_BASE_URL, AsterDexClient
 
 
 def load_aster_credentials(test_connection: bool = False) -> Dict[str, str]:

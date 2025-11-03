@@ -32,9 +32,9 @@ from __future__ import annotations
 import csv
 import json
 import logging
-import math
 import os
 import re
+import sys
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 
@@ -42,8 +42,6 @@ try:
     import config
 except ImportError:
     # Fallback for when config is in core/
-    import os
-    import sys
 
     # Add project root to path
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

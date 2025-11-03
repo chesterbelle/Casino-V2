@@ -46,10 +46,10 @@ Notas:
 
 from __future__ import annotations
 
-import os
-import json
 import csv
-from collections import deque, defaultdict
+import json
+import os
+from collections import defaultdict, deque
 from datetime import datetime
 from typing import Dict, List, Optional
 
@@ -125,7 +125,7 @@ class GeminiMemory:
 
         # Asegurar rutas/archivos
         self._ensure_dirs()
-        self._load_state()   # carga JSON si existe (rápido)
+        self._load_state()  # carga JSON si existe (rápido)
         self._warm_from_csv()  # opcional: sincroniza con CSV si hace falta
 
     # ----------------------------------------------------
@@ -170,8 +170,9 @@ class GeminiMemory:
                         wr = wins / (wins + losses)
                         wins_in_window = int(round(wr * window_len))
                         losses_in_window = window_len - wins_in_window
-                        self._windows[name] = deque([1]*wins_in_window + [0]*losses_in_window,
-                                                    maxlen=self.memory_window)
+                        self._windows[name] = deque(
+                            [1] * wins_in_window + [0] * losses_in_window, maxlen=self.memory_window
+                        )
                     self._counts[name] = {"wins": wins, "losses": losses}
         except Exception as e:
             # Si algo falla, continuamos con memoria vacía
@@ -233,18 +234,14 @@ class GeminiMemory:
             payload = {
                 "last_update": datetime.utcnow().isoformat(),
                 "memory_window": self.memory_window,
-                "strategies": {}
+                "strategies": {},
             }
             for name, cnt in self._counts.items():
                 wins = int(cnt.get("wins", 0))
                 losses = int(cnt.get("losses", 0))
                 total = wins + losses
                 wr = (wins / total) if total > 0 else None
-                payload["strategies"][name] = {
-                    "wins": wins,
-                    "losses": losses,
-                    "winrate": wr
-                }
+                payload["strategies"][name] = {"wins": wins, "losses": losses, "winrate": wr}
 
             with open(self.state_path, "w", encoding="utf-8") as f:
                 json.dump(payload, f, ensure_ascii=False, indent=2)
@@ -326,16 +323,18 @@ class GeminiMemory:
             with open(self.csv_path, "a", newline="", encoding="utf-8") as f:
                 writer = csv.writer(f)
                 for vote in votes:
-                    writer.writerow([
-                        ts,
-                        trade_id,
-                        vote["strategy"],
-                        vote["bucket"],
-                        vote.get("symbol", "UNKNOWN"),
-                        vote.get("timeframe", "UNKNOWN"),
-                        vote.get("market", "UNKNOWN"),
-                        result_int,
-                    ])
+                    writer.writerow(
+                        [
+                            ts,
+                            trade_id,
+                            vote["strategy"],
+                            vote["bucket"],
+                            vote.get("symbol", "UNKNOWN"),
+                            vote.get("timeframe", "UNKNOWN"),
+                            vote.get("market", "UNKNOWN"),
+                            result_int,
+                        ]
+                    )
         except Exception as e:
             print(f"[GeminiMemory] Error al escribir CSV: {e}")
 
@@ -414,7 +413,7 @@ class GeminiMemory:
         """
         for name, q in self._windows.items():
             if q.maxlen != self.memory_window:
-                self._windows[name] = deque(list(q)[-self.memory_window:], maxlen=self.memory_window)
+                self._windows[name] = deque(list(q)[-self.memory_window :], maxlen=self.memory_window)
 
     def save(self) -> None:
         """Guardado explícito del JSON (por ejemplo, al cierre de la app)."""

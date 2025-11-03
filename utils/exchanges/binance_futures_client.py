@@ -76,7 +76,9 @@ class BinanceFuturesClient:
         params = {"symbol": symbol} if symbol else {}
         return self._request_private("/fapi/v1/openOrders", method="GET", params=params)
 
-    def get_order(self, symbol: str, order_id: Optional[int] = None, orig_client_order_id: Optional[str] = None) -> Dict[str, Any]:
+    def get_order(
+        self, symbol: str, order_id: Optional[int] = None, orig_client_order_id: Optional[str] = None
+    ) -> Dict[str, Any]:
         """Retrieves a specific order's status and fill information."""
         params = {"symbol": symbol}
         if order_id:
@@ -89,7 +91,9 @@ class BinanceFuturesClient:
         """Creates a new order."""
         return self._request_private("/fapi/v1/order", method="POST", params=payload)
 
-    def cancel_order(self, symbol: str, order_id: Optional[int] = None, orig_client_order_id: Optional[str] = None) -> Dict[str, Any]:
+    def cancel_order(
+        self, symbol: str, order_id: Optional[int] = None, orig_client_order_id: Optional[str] = None
+    ) -> Dict[str, Any]:
         """Cancels an existing order."""
         params = {"symbol": symbol}
         if order_id:
@@ -122,7 +126,9 @@ class BinanceFuturesClient:
         response = self.session.get(url, params=params, timeout=10)
         return self._parse_response(response)
 
-    def _request_private(self, path: str, method: str = "POST", params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def _request_private(
+        self, path: str, method: str = "POST", params: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
         if not self.api_key or not self.api_secret:
             raise BinanceFuturesAPIError("API key/secret not configured for private request.")
 
