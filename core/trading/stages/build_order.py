@@ -121,11 +121,15 @@ class BuildOrderStage(Stage):
 
         current_price = context.candle.close
 
-        # Calculate notional amount
+        # Calculate notional amount (margin to use)
         notional_amount = context.equity * size_fraction
 
+        # Apply leverage (default 10x for futures)
+        leverage = 10
+        position_size_usd = notional_amount * leverage
+
         # Calculate base amount (in base currency)
-        base_amount = notional_amount / current_price
+        base_amount = position_size_usd / current_price
 
         # Normalize side (Gemini uses LONG/SHORT, exchanges use buy/sell)
         side = order["side"].lower()
@@ -143,13 +147,17 @@ class BuildOrderStage(Stage):
             "take_profit": order["take_profit"],
             "stop_loss": order["stop_loss"],
             "trade_id": verdict.get("trade_id"),
+            "params": {
+                "leverage": leverage,
+            },
         }
 
         logger.info(
             f"📝 Order built | "
             f"{executable_order['side'].upper()} "
             f"{executable_order['amount']:.4f} @ {current_price:.2f} | "
-            f"Notional: {notional_amount:.2f}"
+            f"Margin: ${notional_amount:.2f} | "
+            f"Position: ${position_size_usd:.2f} ({leverage}x)"
         )
 
         return context.with_order(executable_order)
