@@ -429,6 +429,19 @@ class KrakenConnector(BaseConnector):
             # Normalize symbol to Kraken format
             kraken_symbol = self.normalize_symbol(symbol)
 
+            # Log order details for debugging
+            self.logger.info(
+                f"📋 Creating order: symbol={kraken_symbol}, side={side}, "
+                f"amount={amount}, price={price}, type={order_type}, params={params}"
+            )
+
+            # For Kraken Futures, leverage is set at account level, not per order
+            # Remove leverage from params if present
+            clean_params = (params or {}).copy()
+            if "leverage" in clean_params:
+                self.logger.debug("Removing leverage from params (set at account level)")
+                clean_params.pop("leverage")
+
             # Create order on Kraken
             order = await self.exchange.create_order(
                 symbol=kraken_symbol,
@@ -436,7 +449,7 @@ class KrakenConnector(BaseConnector):
                 side=side.lower(),
                 amount=amount,
                 price=price,
-                params=params or {},
+                params=clean_params,
             )
 
             # Normalize response
