@@ -73,37 +73,106 @@ Porque:
 
 ---
 
-## 🎲 LA MESA (Table)
+## 🎲 LA MESA (DataSource)
 
 ### **En un Casino Real**
 La mesa es el espacio físico donde se juega, donde están las fichas (el dinero), donde el croupier trabaja, donde sucede toda la acción.
 
 ### **En Casino V2**
-**La Mesa es la interfaz con el exchange.** Es el "mundo físico" donde se ejecutan las órdenes, está el dinero, se obtienen datos del mercado.
+**La Mesa es la fuente de datos y ejecución de órdenes.** Es el "mundo" donde se obtienen velas, se ejecutan órdenes, está el balance y las posiciones.
+
+### **Arquitectura v2.0: DataSource**
+
+A partir de v2.0, la Mesa se implementa como una **clase abstracta `DataSource`** con 3 tipos de mesa intercambiables:
+
+```
+DataSource (Plantilla abstracta)
+├── next_candle() → Obtiene siguiente vela
+├── execute_order() → Ejecuta orden
+├── get_balance() → Balance disponible
+├── get_equity() → Equity total
+├── connect() → Conecta a la fuente
+└── disconnect() → Desconecta
+
+         ↓ Implementado por ↓
+
+┌────────────────────┬────────────────────┬────────────────────┐
+│  BacktestDataSource│ TestingDataSource  │  LiveDataSource    │
+├────────────────────┼────────────────────┼────────────────────┤
+│ Mesa de Práctica   │ Mesa Demo          │ Mesa Real          │
+│ - Lee CSV/Parquet  │ - Exchange demo    │ - Exchange real    │
+│ - Simula TP/SL     │ - Dinero virtual   │ - Dinero real      │
+│ - Sin riesgo       │ - Pruebas seguras  │ - Producción       │
+│ - Instant replay   │ - WebSocket real   │ - WebSocket real   │
+└────────────────────┴────────────────────┴────────────────────┘
+```
 
 ### **Por Qué se Llama Así**
 Porque es el **espacio donde todo sucede**. Sin mesa, no hay juego. Es donde las decisiones se vuelven realidad.
 
-### **Qué Hace**
-- Conectar con el exchange (Kraken, Binance, Hyperliquid)
-- Obtener datos de mercado (velas OHLCV)
-- Ejecutar órdenes (compra/venta)
-- Reportar balance disponible
+### **Qué Hace Cada Tipo de Mesa**
 
-**Archivos**: `tables/table_backtest.py` (simulación), `tables/table_ccxt_pro.py` (live)
-La versión 1.8 introduce una separación clara entre la lógica de negocio (Mesa) y la comunicación con exchanges (Conectores):
+#### **BacktestDataSource** (Mesa de Práctica)
+- Carga datos históricos (CSV, Parquet)
+- Simula ejecución de órdenes con slippage/fees
+- Simula TP/SL usando high/low de velas
+- Tracking de balance y posiciones en memoria
+- Ejecución instantánea (sin delays)
+
+**Archivo**: `core/data_sources/backtest.py`
+
+#### **TestingDataSource** (Mesa Demo)
+- Conecta a exchange en modo demo (Kraken Demo)
+- Usa `TableCCXTPro` + `KrakenConnector` internamente
+- Dinero virtual, riesgo cero
+- WebSocket real para datos en vivo
+- Ejecución real en testnet
+
+**Archivo**: `core/data_sources/testing.py`
+
+#### **LiveDataSource** (Mesa Real)
+- Conecta a exchange en modo producción
+- Usa `TableCCXTPro` + `KrakenConnector` internamente
+- Dinero real, riesgo real
+- WebSocket real para datos en vivo
+- Ejecución real en mainnet
+
+**Archivo**: `core/data_sources/live.py`
+
+### **Conectores y Adaptadores**
+
+Las mesas `TestingDataSource` y `LiveDataSource` usan internamente:
 
 ```
-TableCCXTPro (Mesa)              BaseConnector (Interface)
-├── Balance management           ├── connect()
-├── Position tracking            ├── fetch_ohlcv()
-├── Order validation             ├── fetch_balance()
-├── TP/SL logic                  ├── create_order()
-└── Logging                      └── close()
-         ↓                                ↓
-    Usa conector                  Implementado por
-         ↓                                ↓
-    KrakenConnector ──────────────────────┘
+TestingDataSource / LiveDataSource
+         ↓
+    TableCCXTPro (Wrapper CCXT)
+    ├── Balance management
+    ├── Position tracking
+    ├── Order validation
+    ├── TP/SL logic
+    └── Logging
+         ↓
+    KrakenConnector (Adaptador específico)
+    ├── connect()
+    ├── fetch_ohlcv()
+    ├── fetch_balance()
+    ├── create_order()
+    └── close()
+         ↓
+    CCXT Library → Exchange API
+```
+
+**Archivos**:
+- `tables/table_ccxt_pro.py` - Wrapper CCXT (lógica de negocio)
+- `tables/connectors/kraken_connector.py` - Adaptador Kraken (driver específico)
+
+### **Ventajas de la Arquitectura DataSource**
+
+1. **Mismo código, diferentes mesas** - `TradingSession` funciona con cualquier tipo
+2. **Testeo seguro** - Backtest → Testing → Live (progresión segura)
+3. **Modularidad** - Fácil agregar nuevos exchanges o fuentes
+4. **Inmutabilidad** - Interfaz consistente garantiza comportamiento predecible
 
 ---
 
@@ -233,32 +302,41 @@ Verdict(
 
 ---
 
-## 🔄 EL FLUJO COMPLETO: La Partida
+## 🔄 EL FLUJO COMPLETO: La Partida (v2.0)
 
 ```
-1. LA MESA recibe datos del exchange
-   → Velas OHLCV actualizadas
+1. LA MESA (DataSource) entrega vela
+   → BacktestDataSource: Lee del CSV
+   → TestingDataSource: Fetch de Kraken Demo
+   → LiveDataSource: Fetch de Kraken Real
    ↓
-2. LOS SENSORES analizan las velas
-   → RSI=30, MACD=cruce alcista, etc.
+2. PIPELINE procesa vela (4 stages)
    ↓
-3. GEMINI evalúa las señales
-   → Decide: Verdict(BUY, confidence=0.75)
-   → Clasifica en bucket, consulta memoria
+   2.1 ProcessSignalsStage
+       → Sensores analizan vela
+       → RSI=30, MACD=cruce alcista, etc.
+       → Genera señales
    ↓
-4. EL PLAYER calcula el size
-   → Recibe Verdict + equity
-   → Retorna: 0.015 (1.5% del equity)
+   2.2 EvaluateStage (Gemini)
+       → Evalúa señales
+       → Decide: Verdict(BUY, confidence=0.75)
+       → Clasifica en bucket, consulta memoria
    ↓
-5. EL CROUPIER gestiona la ejecución
-   → Valida balance y límites
-   → Crea orden: {symbol: "BTC/USD", side: "buy", amount: 150}
-   → Envía a la Mesa
+   2.3 BuildOrderStage (Player)
+       → Recibe Verdict + equity
+       → Calcula size: 0.015 (1.5% del equity)
+       → Construye orden: {symbol, side, amount, tp, sl}
    ↓
-6. LA MESA ejecuta en el exchange
-   → Orden ejecutada, balance actualizado
+   2.4 ExecuteStage
+       → Valida balance y límites (Croupier)
+       → Ejecuta en la Mesa (DataSource)
    ↓
-7. TODO SE REGISTRA
+3. LA MESA ejecuta orden
+   → BacktestDataSource: Simula ejecución
+   → TestingDataSource: Envía a Kraken Demo
+   → LiveDataSource: Envía a Kraken Real
+   ↓
+4. TODO SE REGISTRA
    → Logs para auditoría
    → Memoria para aprendizaje
 ```
@@ -270,18 +348,24 @@ Verdict(
 | Pedro dice | Cascade entiende |
 |------------|------------------|
 | "Mejora el Croupier" | Modificar `croupier/croupier.py` |
-| "La Mesa no conecta" | Problema en `tables/table_*.py` |
+| "La Mesa no conecta" | Problema en `core/data_sources/*.py` o `tables/table_*.py` |
+| "Mesa de Backtest" | `BacktestDataSource` en `core/data_sources/backtest.py` |
+| "Mesa Demo/Testing" | `TestingDataSource` en `core/data_sources/testing.py` |
+| "Mesa Real/Live" | `LiveDataSource` en `core/data_sources/live.py` |
 | "Gemini no decide bien" | Revisar `gemini/gemini_core.py` |
 | "El Player apuesta mucho" | Ajustar `players/*_player.py` |
 | "Los Sensores fallan" | Revisar `sensors/*/sensor_*.py` |
-| "Backtest" | Modo simulación (table_backtest.py) |
-| "Live" | Modo real (table_ccxt_pro.py) |
-| "Valida Binance" | Probar live trading con Binance Testnet |
+| "Backtest" | Modo simulación (`BacktestDataSource`) |
+| "Testing" | Modo demo (`TestingDataSource`) |
+| "Live" | Modo real (`LiveDataSource`) |
 | "Kelly" | Kelly Player (agresivo) |
 | "Paroli" | Paroli Player (conservador) |
 | "El Verdict" | Decisión de Gemini |
 | "El Bucket" | Clasificación de contexto |
 | "La Memoria" | Sistema bayesiano de aprendizaje |
+| "DataSource" | La Mesa (plantilla abstracta) |
+| "TableCCXTPro" | Wrapper CCXT (usado por Testing/Live) |
+| "KrakenConnector" | Adaptador específico de Kraken |
 
 ---
 
@@ -330,8 +414,20 @@ Casino-V2/
 ├── core/                      # Configuración y núcleo del sistema
 │   ├── config.py             # Configuración global (parámetros)
 │   ├── version.py            # Versión única del proyecto
-│   ├── live_session.py       # Loop principal para live trading
-│   └── backtest_session.py   # Loop principal para backtesting
+│   ├── data_sources/         # 🎲 LAS MESAS (DataSource)
+│   │   ├── base.py          # Plantilla abstracta DataSource
+│   │   ├── backtest.py      # BacktestDataSource (mesa práctica)
+│   │   ├── testing.py       # TestingDataSource (mesa demo)
+│   │   └── live.py          # LiveDataSource (mesa real)
+│   └── trading/              # 🎯 PIPELINE Y SESIÓN
+│       ├── context.py        # TradingContext (estado inmutable)
+│       ├── pipeline.py       # Pipeline (orquestador)
+│       ├── session.py        # TradingSession (sesión unificada)
+│       └── stages/           # Etapas del pipeline
+│           ├── process_signals.py  # 1️⃣ Detecta señales
+│           ├── evaluate.py         # 2️⃣ Gemini evalúa
+│           ├── build_order.py      # 3️⃣ Player construye
+│           └── execute.py          # 4️⃣ Ejecuta en mesa
 │
 ├── gemini/                    # Motor de decisión (Gemini)
 │   ├── gemini_core.py        # Lógica principal de decisión
@@ -348,11 +444,14 @@ Casino-V2/
 ├── croupier/                  # Gestor de órdenes y riesgo
 │   └── croupier.py           # Validación y ejecución de órdenes
 │
-├── tables/                    # Interfaz con exchanges (Mesa)
-│   ├── table_ccxt_pro.py     # Live trading con CCXT Pro
-│   ├── table_backtest.py     # Backtesting con datos históricos
+├── tables/                    # Conectores y adaptadores CCXT
+│   ├── table_ccxt_pro.py     # Wrapper CCXT (usado por Testing/Live)
+│   ├── connectors/           # Adaptadores específicos de exchanges
+│   │   ├── kraken_connector.py    # Driver Kraken
+│   │   └── resilient_connector.py # Wrapper con resiliencia
 │   ├── balance_manager.py    # Gestión de balance
 │   ├── position_tracker.py   # Seguimiento de posiciones
+│   ├── exchange_state_sync.py # Sincronización con exchange
 │   └── data/                 # Datos históricos para backtest
 │
 ├── sensors/                   # Detectores de señales técnicas
@@ -373,12 +472,13 @@ Casino-V2/
 │   ├── analysis/             # Herramientas de análisis
 │   ├── data/                 # Utilidades de datos
 │   ├── training/             # Herramientas de entrenamiento
-│   └── check_docs_sync.py    # Scripts de mantenimiento
+│   └── diagnose_sync.py      # Diagnóstico de sincronización
 │
 ├── tests/                     # Tests unitarios (NO van a producción)
 │   ├── test_phase1.py        # Tests básicos del sistema
 │   ├── test_gemini.py        # Tests de Gemini
-│   └── test_players.py       # Tests de Players
+│   ├── test_players.py       # Tests de Players
+│   └── test_exchange_sync.py # Tests de sincronización
 │
 ├── logs/                      # Logs de ejecución
 │   ├── decisions/            # Logs de decisiones de Gemini
@@ -388,9 +488,8 @@ Casino-V2/
 └── docs/                      # Documentación
     ├── VISION.md             # 🔥 LA BIBLIA (este archivo)
     ├── CHANGELOG.md          # Historial de cambios
-    ├── STATUS.md             # Dashboard del proyecto
-    └── development/
-        └── ROADMAP.md        # Planificación
+    ├── NUEVA_ARQUITECTURA_v2.0.md  # Arquitectura v2.0
+    └── reports/              # Reportes de implementación
 ```
 
 ### **Dónde poner cada tipo de archivo**
@@ -398,14 +497,18 @@ Casino-V2/
 | Tipo de archivo | Carpeta | Ejemplo |
 |-----------------|---------|---------|
 | **Configuración global** | `core/` | `config.py`, `version.py` |
+| **Mesas (DataSource)** | `core/data_sources/` | `backtest.py`, `testing.py`, `live.py` |
+| **Pipeline y sesión** | `core/trading/` | `session.py`, `pipeline.py`, `context.py` |
+| **Stages del pipeline** | `core/trading/stages/` | `evaluate.py`, `build_order.py` |
 | **Lógica de decisión** | `gemini/` | `gemini_core.py`, `memory.py` |
 | **Estrategias de sizing** | `players/` | `kelly_player.py` |
 | **Gestión de órdenes** | `croupier/` | `croupier.py` |
-| **Interfaz con exchanges** | `tables/` | `table_ccxt_pro.py` |
+| **Conectores CCXT** | `tables/` | `table_ccxt_pro.py` |
+| **Adaptadores exchanges** | `tables/connectors/` | `kraken_connector.py` |
 | **Detectores técnicos** | `sensors/` | `sensor_rsi.py` |
 | **Credenciales de exchanges** | `utils/exchanges/` | `kraken_env_loader.py` |
 | **Herramientas de análisis** | `utils/analysis/` | Análisis de resultados |
-| **Scripts de mantenimiento** | `utils/` | `check_docs_sync.py` |
+| **Scripts de mantenimiento** | `utils/` | `diagnose_sync.py` |
 | **Tests** | `tests/` | `test_gemini.py` |
 | **Documentación** | `docs/` | `VISION.md`, `ROADMAP.md` |
 
@@ -432,8 +535,11 @@ Casino-V2/
 ### **Archivos Críticos**
 - `core/config.py` - Configuración global
 - `core/version.py` - Versión única
+- `core/data_sources/base.py` - Plantilla DataSource (La Mesa)
+- `core/trading/session.py` - TradingSession unificada
+- `core/trading/pipeline.py` - Pipeline modular
 - `gemini/gemini_core.py` - Motor de decisión
-- `tables/table_ccxt_pro.py` - Live trading (dinero real)
+- `tables/table_ccxt_pro.py` - Wrapper CCXT (usado por Testing/Live)
 - `croupier/croupier.py` - Gestión de órdenes
 - `gemini/memory.py` - Aprendizaje bayesiano
 
