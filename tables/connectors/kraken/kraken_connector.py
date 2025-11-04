@@ -447,6 +447,11 @@ class KrakenConnector(BaseConnector):
             # The 'leverage' param is informational and used for position sizing calculation
             # but the actual leverage is configured in the account settings
 
+            # Clean params - remove leverage as it causes decimal.ConversionSyntax error
+            clean_params = (params or {}).copy()
+            if "leverage" in clean_params:
+                self.logger.debug(f"Removing leverage from params: {clean_params.pop('leverage')}")
+
             # Create order on Kraken
             order = await self.exchange.create_order(
                 symbol=kraken_symbol,
@@ -454,7 +459,7 @@ class KrakenConnector(BaseConnector):
                 side=side.lower(),
                 amount=amount,
                 price=price,
-                params=params or {},
+                params=clean_params,
             )
 
             # Normalize response
