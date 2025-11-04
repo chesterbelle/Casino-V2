@@ -179,8 +179,16 @@ class KrakenConnector(BaseConnector):
             # Normalize symbol to Kraken format
             kraken_symbol = self.normalize_symbol(symbol)
 
-            # Fetch OHLCV from Kraken
-            ohlcv = await self.exchange.fetch_ohlcv(kraken_symbol, timeframe, limit=limit)
+            # Fetch OHLCV from Kraken with timeout
+            import asyncio
+
+            try:
+                ohlcv = await asyncio.wait_for(
+                    self.exchange.fetch_ohlcv(kraken_symbol, timeframe, limit=limit), timeout=30.0  # 30 second timeout
+                )
+            except asyncio.TimeoutError:
+                self.logger.error(f"❌ Timeout fetching OHLCV for {kraken_symbol}")
+                raise RuntimeError(f"Timeout fetching OHLCV for {symbol}")
 
             # Normalize to standard format
             normalized = []
