@@ -332,8 +332,18 @@ class CCXTAdapter(BaseTable):
 
             # Convert TP/SL multipliers to absolute prices for Kraken Futures
             if "take_profit" in order and order["take_profit"]:
-                # Get current price (will be entry price for market orders)
-                current_price = self._last_candle.get("close") if self._last_candle else None
+                # Get current price from last candle or fetch latest
+                current_price = None
+                if self._last_candle and "close" in self._last_candle:
+                    current_price = self._last_candle.get("close")
+                else:
+                    # Fetch latest candle to get current price
+                    try:
+                        candles = await self.connector.fetch_ohlcv(self.symbol, self.timeframe, limit=1)
+                        if candles:
+                            current_price = candles[0].get("close")
+                    except Exception as e:
+                        self.logger.warning(f"⚠️ Could not fetch current price: {e}")
 
                 if current_price:
                     tp_multiplier = float(order["take_profit"])  # e.g., 1.005 (0.5% profit)
