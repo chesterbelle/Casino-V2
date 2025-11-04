@@ -1,20 +1,24 @@
 """
-TableCCXTPro - Mesa con Arquitectura de Conectores.
+CCXTAdapter - Adaptador CCXT para Mesas (DataSource).
 
-Esta es la nueva implementación de TableCCXTPro que usa conectores modulares
-para comunicarse con diferentes exchanges.
+Este adaptador envuelve la lógica de negocio del trading y delega
+la comunicación con exchanges a conectores modulares específicos.
 
-Arquitectura:
-    TableCCXTPro (Mesa) → BaseConnector (Interface) → KrakenConnector (Implementation)
+Arquitectura (v1.9.2):
+    Mesa (DataSource) → CCXTAdapter (Adaptador) → Conector (Driver) → CCXT → Exchange
 
-Responsabilidades de la Mesa:
+    Ejemplo:
+    LiveDataSource → CCXTAdapter → KrakenConnector → CCXT → Kraken API
+
+Responsabilidades del Adaptador (CCXTAdapter):
     - Gestión de balance (BalanceManager)
     - Tracking de posiciones (PositionTracker)
     - Validación de órdenes
     - Lógica de TP/SL
     - Logging y auditoría
+    - Sincronización de estado real (ExchangeStateSync)
 
-Responsabilidades del Conector:
+Responsabilidades del Conector (KrakenConnector, etc.):
     - Comunicación con el exchange (REST + WebSocket)
     - Normalización de datos
     - Manejo de errores específicos del exchange
@@ -23,23 +27,23 @@ Responsabilidades del Conector:
 Usage:
     ```python
     from tables.connectors import KrakenConnector
-    from tables.table_ccxt_pro import TableCCXTPro
+    from tables.ccxt_adapter import CCXTAdapter
 
-    # Create connector
+    # Create connector (driver específico)
     connector = KrakenConnector(testnet=True)
 
-    # Create table with connector
-    table = TableCCXTPro(
+    # Create adapter (lógica de negocio)
+    adapter = CCXTAdapter(
         connector=connector,
         symbol="BTC/USD",
         timeframe="1m"
     )
 
     # Connect and use
-    await table.connect()
-    candle = await table.next_candle()
-    result = await table.execute_order(order)
-    await table.close()
+    await adapter.connect()
+    candle = await adapter.next_candle()
+    result = await adapter.execute_order(order)
+    await adapter.close()
     ```
 """
 
@@ -56,12 +60,24 @@ from .position_tracker import PositionTracker
 from .table_base import BaseTable
 
 
-class TableCCXTPro(BaseTable):
+class CCXTAdapter(BaseTable):
     """
-    Mesa que usa conectores intercambiables para comunicarse con exchanges.
+    Adaptador CCXT que envuelve lógica de negocio y delega comunicación a conectores.
 
-    Esta implementación separa la lógica de negocio (balance, positions, TP/SL)
-    de la comunicación con el exchange (delegada al conector).
+    Este adaptador es usado internamente por TestingDataSource y LiveDataSource
+    para manejar la lógica de trading (balance, posiciones, TP/SL) mientras
+    delega la comunicación con el exchange a conectores específicos (KrakenConnector, etc.).
+
+    Arquitectura:
+        DataSource (Mesa) usa → CCXTAdapter (este) usa → Conector (KrakenConnector)
+
+    Responsabilidades:
+        - Balance management (BalanceManager)
+        - Position tracking (PositionTracker)
+        - Order validation
+        - TP/SL logic
+        - Exchange state sync (ExchangeStateSync)
+        - Logging
     """
 
     def __init__(
@@ -72,16 +88,17 @@ class TableCCXTPro(BaseTable):
         starting_balance: float = 10000.0,
     ):
         """
-        Initialize TableCCXTPro with a connector.
+        Initialize CCXTAdapter with a connector.
 
         Args:
-            connector: Exchange connector (e.g., KrakenConnector)
+            connector: Exchange connector (e.g., KrakenConnector, BinanceConnector)
+                      This is the driver that handles exchange-specific communication.
             symbol: Trading pair symbol (e.g., "BTC/USD")
             timeframe: Candle timeframe (e.g., "1m", "5m", "1h")
             starting_balance: Initial balance for simulation (only used if real balance fails)
         """
         super().__init__()
-        self.logger = logging.getLogger("TableCCXTPro")
+        self.logger = logging.getLogger("CCXTAdapter")
 
         # Connector (dependency injection)
         self.connector = connector
@@ -105,7 +122,7 @@ class TableCCXTPro(BaseTable):
         self.exchange = None
         self.base_currency = getattr(connector, "base_currency", "USD")
 
-        self.logger.info(f"🪙 TableCCXTPro inicializada | Exchange: {connector.exchange_name} | Symbol: {symbol}")
+        self.logger.info(f"🪙 CCXTAdapter inicializada | Exchange: {connector.exchange_name} | Symbol: {symbol}")
 
     # =========================================================
     # 🔌 CONNECTION MANAGEMENT

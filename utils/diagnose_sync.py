@@ -32,8 +32,8 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from core import config
+from tables.ccxt_adapter import CCXTAdapter
 from tables.connectors.kraken.kraken_connector import KrakenConnector
-from tables.table_ccxt_pro import TableCCXTPro
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
@@ -43,7 +43,7 @@ logger = logging.getLogger("DiagnoseSync")
 class SyncDiagnostics:
     """Diagnóstico de sincronización entre estado interno y exchange."""
 
-    def __init__(self, table: TableCCXTPro):
+    def __init__(self, table: CCXTAdapter):
         self.table = table
         self.results: Dict[str, Any] = {}
 
@@ -306,7 +306,7 @@ async def main():
     connector = KrakenConnector(mode="testing")
 
     # Crear mesa
-    table = TableCCXTPro(connector=connector, symbol=symbol, timeframe=timeframe)
+    table = CCXTAdapter(connector=connector, symbol=symbol, timeframe=timeframe)
 
     try:
         # Conectar

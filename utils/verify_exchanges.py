@@ -2,7 +2,7 @@ import asyncio
 import logging
 from typing import List
 
-from tables.table_ccxt_pro import TableCCXTPro
+from tables.ccxt_adapter import CCXTAdapter
 
 # Configuración de logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(name)s | %(levelname)s | %(message)s")
@@ -16,9 +16,9 @@ async def test_exchange(exchange_id: str, symbols: List[str]):
     try:
         # 1. Inicializar la mesa en modo Testnet
         # 1. Inicialización
-        logger.info("1.1. Iniciando inicialización de TableCCXTPro...")
-        table = TableCCXTPro(exchange_id=exchange_id, symbols=symbols, timeframe="1m", testnet=True)
-        logger.info("1.2. ✅ TableCCXTPro inicializada.")
+        logger.info("1.1. Iniciando inicialización de CCXTAdapter...")
+        table = CCXTAdapter(exchange_id=exchange_id, symbols=symbols, timeframe="1m", testnet=True)
+        logger.info("1.2. ✅ CCXTAdapter inicializada.")
 
         # 2. Conexión
         logger.info("2.1. Iniciando table.connect()...")

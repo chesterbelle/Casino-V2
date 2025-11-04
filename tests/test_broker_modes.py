@@ -30,7 +30,7 @@ def test_broker_testing_mode_uses_table(monkeypatch):
             self.timeframe = timeframe
 
     monkeypatch.setattr("tables.connectors.KrakenConnector", DummyConnector)
-    monkeypatch.setattr(broker_module, "TableCCXTPro", DummyTable)
+    monkeypatch.setattr(broker_module, "CCXTAdapter", DummyTable)
 
     broker = broker_module.BrokerInterface(symbol="BTC/USD", interval="1m")
 

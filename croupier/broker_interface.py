@@ -46,8 +46,8 @@ except ImportError:
         from core import config
 
 # Importaciones condicionales (según modo)
-from tables.table_backtest import TableBacktest
-from tables.table_ccxt_pro import TableCCXTPro
+
+from tables.ccxt_adapter import CCXTAdapter
 
 
 class BrokerInterface:
@@ -127,7 +127,9 @@ class BrokerInterface:
 
         class Engine:
             def __init__(self, csv_path, symbol):
-                self.table = TableBacktest(csv_path=csv_path, symbol=symbol)
+                # LEGACY: TableBacktest obsoleto, usar BacktestDataSource
+                raise NotImplementedError("Use BacktestDataSource instead")
+                # self.table = TableBacktest(csv_path=csv_path, symbol=symbol)
 
         return Engine(csv_path, symbol)
 
@@ -163,6 +165,6 @@ class BrokerInterface:
         class Engine:
             def __init__(self, symbol, interval, connector, default_symbol):
                 final_symbol = symbol if symbol else default_symbol
-                self.table = TableCCXTPro(connector=connector, symbol=final_symbol, timeframe=interval or "1m")
+                self.table = CCXTAdapter(connector=connector, symbol=final_symbol, timeframe=interval or "1m")
 
         return Engine(symbol, interval, connector, default_symbol)

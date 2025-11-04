@@ -5,7 +5,7 @@ This module defines the abstract base class that all exchange connectors must im
 Inspired by Hummingbot's connector architecture.
 
 Architecture:
-    TableCCXTPro (Mesa) → BaseConnector (Interface) → KrakenConnector (Implementation)
+    CCXTAdapter (Mesa) → BaseConnector (Interface) → KrakenConnector (Implementation)
 
 Key Principles:
     - Separation of concerns: Mesa handles business logic, Connector handles exchange communication

@@ -40,7 +40,7 @@ Usage:
     ```
 
 Architecture:
-    TableCCXTPro (Mesa) uses BaseConnector interface
+    CCXTAdapter (Mesa) uses BaseConnector interface
     → Specific connector implementation (KrakenConnector, etc.)
     → Exchange API (REST + WebSocket)
 """

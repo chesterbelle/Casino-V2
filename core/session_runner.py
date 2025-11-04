@@ -10,14 +10,13 @@ from typing import Any, Dict, Optional, Union
 from croupier.croupier import Croupier
 from gemini.gemini_core import Gemini
 from sensors.sensor_manager import SensorManager
+from tables.ccxt_adapter import CCXTAdapter
 from tables.position_tracker import PositionTracker
-from tables.table_backtest import TableBacktest
-from tables.table_ccxt_pro import TableCCXTPro
 
 from . import config
 from .exceptions import CasinoError, TradingError
 from .logger import logger, performance_monitor
-from .session_helpers import get_table_state, log_trade, set_table_balance
+from .session_helpers import get_table_state, log_trade  # noqa: F401
 from .validators import ValidationError, validate_positive_number, validate_string
 
 
@@ -74,8 +73,8 @@ def run_session_with_player(
     # Validación de parámetros de entrada
     try:
         validated_dataset = validate_string(dataset_path, "dataset_path", 1, 500)
-        validated_balance = validate_positive_number(initial_balance, "initial_balance")
-        validated_player_name = validate_string(player_name, "player_name", 1, 50)
+        validated_balance = validate_positive_number(initial_balance, "initial_balance")  # noqa: F841
+        validated_player_name = validate_string(player_name, "player_name", 1, 50)  # noqa: F841
         validated_mode = validate_string(mode, "mode", 1, 20)
 
         if validated_mode not in ["backtest", "live", "live_ccxt"]:
@@ -99,24 +98,26 @@ def run_session_with_player(
             # Placeholder - será implementado en v1.8
             raise NotImplementedError("Multi-asset backtest not yet implemented in v1.7")
         elif validated_mode == "live_ccxt":
-            logger.info("🔄 Usando TableCCXTPro")
+            logger.info("🔄 Usando CCXTAdapter")
             # Configuración para live trading
             exchange_id = getattr(config, "EXCHANGE", "binance").lower()
             symbols = getattr(config, "MULTI_ASSET_SYMBOLS", ["BTC/USDT"])
-            table = TableCCXTPro(
+            table = CCXTAdapter(
                 exchange_id=exchange_id,
                 symbols=symbols,
                 timeframe=getattr(config, "TIMEFRAME", "1m"),
                 testnet=getattr(config, "TESTNET", True),
             )
-            # Balance ya inicializado en TableCCXTPro
+            # Balance ya inicializado en CCXTAdapter
         else:
             logger.info("🔄 Usando TableBacktest (single-asset)")
             if not os.path.exists(validated_dataset):
                 raise FileNotFoundError(f"Dataset no encontrado: {validated_dataset}")
 
-            table = TableBacktest(validated_dataset)
-            set_table_balance(table, validated_balance)
+            # LEGACY: TableBacktest obsoleto, usar BacktestDataSource
+            raise NotImplementedError("Use BacktestDataSource instead")
+            # table = TableBacktest(validated_dataset)
+            # set_table_balance(table, validated_balance)
     except Exception as e:
         logger.error(f"Error inicializando tabla: {e}")
         raise TradingError(f"No se pudo inicializar la tabla: {e}")

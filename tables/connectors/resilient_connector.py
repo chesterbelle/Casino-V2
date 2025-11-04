@@ -5,7 +5,7 @@ Este módulo implementa el Wrapper Pattern para agregar resiliencia (ConnectionM
 StateRecovery) a cualquier conector de exchange de forma transparente y agnóstica.
 
 Arquitectura:
-    TableCCXTPro → ResilientConnector → BaseConnector → Exchange
+    CCXTAdapter → ResilientConnector → BaseConnector → Exchange
 
 Inspiración:
     - Hummingbot's connector architecture
@@ -40,7 +40,7 @@ class ResilientConnector(BaseConnector):
     """
     Wrapper que agrega resiliencia a cualquier BaseConnector.
 
-    Este wrapper es completamente transparente para TableCCXTPro y agnóstico
+    Este wrapper es completamente transparente para CCXTAdapter y agnóstico
     del exchange subyacente. Simplemente envuelve un conector existente y
     agrega capacidades de resiliencia.
 
@@ -66,12 +66,12 @@ class ResilientConnector(BaseConnector):
         )
 
         # Usar como cualquier conector
-        table = TableCCXTPro(connector=resilient_kraken, symbol="BTC/USD")
+        table = CCXTAdapter(connector=resilient_kraken, symbol="BTC/USD")
         await table.connect()
         ```
 
     Features:
-        - Transparente: TableCCXTPro no sabe que está usando ResilientConnector
+        - Transparente: CCXTAdapter no sabe que está usando ResilientConnector
         - Agnóstico: Funciona con cualquier BaseConnector (Kraken, Binance, etc.)
         - No invasivo: No modifica el conector subyacente
         - Testeable: Fácil de probar independientemente

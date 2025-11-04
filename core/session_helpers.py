@@ -56,7 +56,7 @@ def set_table_balance(table: Any, amount: float) -> None:
     Compatible con diferentes implementaciones de balance managers.
 
     Args:
-        table: Instancia de mesa (TableBacktest, TableCCXTPro, etc.).
+        table: Instancia de mesa (TableBacktest, CCXTAdapter, etc.).
         amount: Monto del balance inicial (debe ser positivo).
 
     Raises:

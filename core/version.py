@@ -65,7 +65,7 @@ CHANGELOG = {
     "1.6": {
         "name": "WebSocket Integration",
         "date": "2025-09-30",
-        "highlights": ["WebSocket para datos en tiempo real", "TableCCXTPro implementado", "Mejoras en live trading"],
+        "highlights": ["WebSocket para datos en tiempo real", "CCXTAdapter implementado", "Mejoras en live trading"],
     },
 }
 

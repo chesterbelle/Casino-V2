@@ -13,7 +13,7 @@ import argparse
 import asyncio
 import logging
 
-from tables.table_ccxt_pro import TableCCXTPro
+from tables.ccxt_adapter import CCXTAdapter
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("ConnectionTester")
@@ -25,7 +25,7 @@ async def test_exchange_connection(exchange: str, testnet: bool = True):
         logger.info(f"🔄 Probando conexión con {exchange.upper()} (testnet={testnet})")
 
         # 1. Conexión básica
-        table = TableCCXTPro(exchange_id=exchange, symbols=["BTC/USDT"], timeframe="1m", testnet=testnet)
+        table = CCXTAdapter(exchange_id=exchange, symbols=["BTC/USDT"], timeframe="1m", testnet=testnet)
 
         # 2. WebSocket
         logger.info("🌐 Probando WebSocket...")

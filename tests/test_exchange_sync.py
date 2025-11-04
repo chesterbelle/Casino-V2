@@ -3,7 +3,7 @@ Tests para ExchangeStateSync y sincronización de estado real.
 
 Estos tests validan que:
 1. ExchangeStateSync obtiene datos reales del exchange
-2. TableCCXTPro retorna velas enriquecidas
+2. CCXTAdapter retorna velas enriquecidas
 3. PositionTracker modo híbrido funciona correctamente
 4. Integración end-to-end con Kraken Demo
 """
@@ -12,10 +12,10 @@ from unittest.mock import AsyncMock, Mock
 
 import pytest
 
+from tables.ccxt_adapter import CCXTAdapter
 from tables.connectors.kraken.kraken_connector import KrakenConnector
 from tables.exchange_state_sync import ExchangeStateSync
 from tables.position_tracker import PositionTracker
-from tables.table_ccxt_pro import TableCCXTPro
 
 
 class TestExchangeStateSync:
@@ -262,8 +262,8 @@ class TestPositionTrackerHybrid:
         assert len(tracker.open_positions) == 0
 
 
-class TestTableCCXTProEnriched:
-    """Tests para TableCCXTPro con velas enriquecidas."""
+class TestCCXTAdapterEnriched:
+    """Tests para CCXTAdapter con velas enriquecidas."""
 
     @pytest.mark.asyncio
     async def test_next_candle_enriched_structure(self):
@@ -287,7 +287,7 @@ class TestTableCCXTProEnriched:
         connector.fetch_positions = AsyncMock(return_value=[])
         connector.fetch_my_trades = AsyncMock(return_value=[])
 
-        table = TableCCXTPro(connector, "BTC/USD:USD", "1m")
+        table = CCXTAdapter(connector, "BTC/USD:USD", "1m")
         table._connected = True
 
         candle = await table.next_candle()
@@ -325,8 +325,8 @@ async def test_integration_kraken_demo():
         assert equity.balance > 0
         assert equity.currency in ["USD", "USDT", "USDC"]
 
-        # Test TableCCXTPro
-        table = TableCCXTPro(connector, "BTC/USD:USD", "1m")
+        # Test CCXTAdapter
+        table = CCXTAdapter(connector, "BTC/USD:USD", "1m")
         table._connected = True
 
         candle = await table.next_candle()

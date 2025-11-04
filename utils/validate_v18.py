@@ -4,7 +4,7 @@ Validation Script for v1.8 - Mesa + Conectores Architecture.
 
 This script validates that the new architecture works correctly:
 1. KrakenConnector connects to testnet
-2. TableCCXTPro uses the connector
+2. CCXTAdapter uses the connector
 3. Balance is fetched correctly
 4. Candles are fetched correctly
 5. Integration with BrokerInterface works
@@ -71,18 +71,18 @@ async def test_connector():
 
 
 async def test_table():
-    """Test TableCCXTPro with KrakenConnector."""
+    """Test CCXTAdapter with KrakenConnector."""
     logger.info("\n" + "=" * 60)
-    logger.info("TEST 2: TableCCXTPro + KrakenConnector")
+    logger.info("TEST 2: CCXTAdapter + KrakenConnector")
     logger.info("=" * 60)
 
     try:
+        from tables.ccxt_adapter import CCXTAdapter
         from tables.connectors import KrakenConnector
-        from tables.table_ccxt_pro import TableCCXTPro
 
         # Create connector and table
         connector = KrakenConnector(testnet=True)
-        table = TableCCXTPro(connector=connector, symbol="BTC/USD", timeframe="1m")
+        table = CCXTAdapter(connector=connector, symbol="BTC/USD", timeframe="1m")
         logger.info("✅ Table created with connector")
 
         # Connect
@@ -174,7 +174,7 @@ async def main():
 
     # Test 2: Table
     result2 = await test_table()
-    results.append(("TableCCXTPro", result2))
+    results.append(("CCXTAdapter", result2))
 
     # Test 3: BrokerInterface
     result3 = test_broker_interface()
