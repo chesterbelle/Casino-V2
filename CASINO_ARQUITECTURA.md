@@ -11,7 +11,7 @@
 ### **ANTES (v1.9.1)**:
 ```
 Casino Real (Live)
-├── Mesa Real (TableCCXTPro) ← Única mesa, acoplada al código
+├── Mesa Real (CCXTAdapter) ← Única mesa, acoplada al código
 ├── Croupier
 ├── Gemini
 └── Player (Paroli)
@@ -242,8 +242,8 @@ $ python main.py --mode=backtest --player=paroli --data=BTCUSDT_5m.csv
 **¿Qué es?** La fuente de datos y ejecución de órdenes.
 
 ```python
-# ANTES: TableCCXTPro (solo una mesa)
-table = TableCCXTPro(connector, symbol, timeframe)
+# ANTES: CCXTAdapter (solo una mesa)
+table = CCXTAdapter(connector, symbol, timeframe)
 candle = await table.next_candle()
 result = table.execute_order(order)
 
@@ -312,7 +312,7 @@ class TradingContext:
 ## 🔑 Conceptos Clave
 
 ### **1. La Mesa NO desapareció**
-- **Antes**: `TableCCXTPro` era la única mesa
+- **Antes**: `CCXTAdapter` era la única mesa
 - **Ahora**: `DataSource` es la interfaz, con 3 implementaciones:
   - `BacktestDataSource` (mesa de práctica)
   - `TestingDataSource` (mesa demo)
@@ -465,7 +465,7 @@ python main.py \
 La nueva arquitectura **NO eliminó la mesa**, la **generalizó**:
 
 ```
-ANTES: Una mesa específica (TableCCXTPro)
+ANTES: Una mesa específica (CCXTAdapter)
 AHORA: Una interfaz (DataSource) con 3 implementaciones
 
 ┌─────────────────────────────────────────┐

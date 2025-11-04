@@ -123,7 +123,7 @@ Porque es el **espacio donde todo sucede**. Sin mesa, no hay juego. Es donde las
 
 #### **TestingDataSource** (Mesa Demo)
 - Conecta a exchange en modo demo (Kraken Demo)
-- Usa `TableCCXTPro` + `KrakenConnector` internamente
+- Usa `CCXTAdapter` + `KrakenConnector` internamente
 - Dinero virtual, riesgo cero
 - WebSocket real para datos en vivo
 - Ejecución real en testnet
@@ -132,7 +132,7 @@ Porque es el **espacio donde todo sucede**. Sin mesa, no hay juego. Es donde las
 
 #### **LiveDataSource** (Mesa Real)
 - Conecta a exchange en modo producción
-- Usa `TableCCXTPro` + `KrakenConnector` internamente
+- Usa `CCXTAdapter` + `KrakenConnector` internamente
 - Dinero real, riesgo real
 - WebSocket real para datos en vivo
 - Ejecución real en mainnet
@@ -146,7 +146,7 @@ Las mesas `TestingDataSource` y `LiveDataSource` usan internamente:
 ```
 TestingDataSource / LiveDataSource
          ↓
-    TableCCXTPro (Wrapper CCXT)
+    CCXTAdapter (Wrapper CCXT)
     ├── Balance management
     ├── Position tracking
     ├── Order validation
@@ -164,7 +164,7 @@ TestingDataSource / LiveDataSource
 ```
 
 **Archivos**:
-- `tables/table_ccxt_pro.py` - Wrapper CCXT (lógica de negocio)
+- `tables/ccxt_adapter.py` - Wrapper CCXT (lógica de negocio)
 - `tables/connectors/kraken_connector.py` - Adaptador Kraken (driver específico)
 
 ### **Ventajas de la Arquitectura DataSource**
@@ -364,7 +364,7 @@ Verdict(
 | "El Bucket" | Clasificación de contexto |
 | "La Memoria" | Sistema bayesiano de aprendizaje |
 | "DataSource" | La Mesa (plantilla abstracta) |
-| "TableCCXTPro" | Wrapper CCXT (usado por Testing/Live) |
+| "CCXTAdapter" | Wrapper CCXT (usado por Testing/Live) |
 | "KrakenConnector" | Adaptador específico de Kraken |
 
 ---
@@ -448,7 +448,7 @@ Casino-V2/
 │   └── croupier.py           # Validación y ejecución de órdenes
 │
 ├── tables/                    # Conectores y adaptadores CCXT
-│   ├── table_ccxt_pro.py     # Wrapper CCXT (usado por Testing/Live)
+│   ├── ccxt_adapter.py     # Wrapper CCXT (usado por Testing/Live)
 │   ├── connectors/           # Adaptadores específicos de exchanges
 │   │   ├── kraken_connector.py    # Driver Kraken
 │   │   └── resilient_connector.py # Wrapper con resiliencia
@@ -506,7 +506,7 @@ Casino-V2/
 | **Lógica de decisión** | `gemini/` | `gemini_core.py`, `memory.py` |
 | **Estrategias de sizing** | `players/` | `kelly_player.py` |
 | **Gestión de órdenes** | `croupier/` | `croupier.py` |
-| **Conectores CCXT** | `tables/` | `table_ccxt_pro.py` |
+| **Conectores CCXT** | `tables/` | `ccxt_adapter.py` |
 | **Adaptadores exchanges** | `tables/connectors/` | `kraken_connector.py` |
 | **Detectores técnicos** | `sensors/` | `sensor_rsi.py` |
 | **Credenciales de exchanges** | `utils/exchanges/` | `kraken_env_loader.py` |
@@ -542,7 +542,7 @@ Casino-V2/
 - `core/trading/session.py` - TradingSession unificada
 - `core/trading/pipeline.py` - Pipeline modular
 - `gemini/gemini_core.py` - Motor de decisión
-- `tables/table_ccxt_pro.py` - Wrapper CCXT (usado por Testing/Live)
+- `tables/ccxt_adapter.py` - Wrapper CCXT (usado por Testing/Live)
 - `croupier/croupier.py` - Gestión de órdenes
 - `gemini/memory.py` - Aprendizaje bayesiano
 
@@ -580,7 +580,7 @@ Exchange (Fuente de Verdad)
     ↓ REST API / WebSocket
 ExchangeStateSync (Sincronizador)
     ↓ Estado real confirmado
-TableCCXTPro (Mesa enriquecida)
+CCXTAdapter (Mesa enriquecida)
     ↓ Vela + equity real + fills confirmados
 Gemini + Players (Decisiones informadas)
 ```
@@ -600,7 +600,7 @@ Sistema de confirmación de cierres en 3 modos:
 - **hybrid**: Detecta TP/SL + espera confirmación (recomendado)
 
 #### **Vela Enriquecida**
-`TableCCXTPro.next_candle()` ahora retorna:
+`CCXTAdapter.next_candle()` ahora retorna:
 ```python
 {
     # OHLCV (como antes)
