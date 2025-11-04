@@ -81,9 +81,9 @@ La mesa es el espacio físico donde se juega, donde están las fichas (el dinero
 ### **En Casino V2**
 **La Mesa es la fuente de datos y ejecución de órdenes.** Es el "mundo" donde se obtienen velas, se ejecutan órdenes, está el balance y las posiciones.
 
-### **Arquitectura v2.0: DataSource**
+### **Arquitectura v1.9.2: DataSource**
 
-A partir de v2.0, la Mesa se implementa como una **clase abstracta `DataSource`** con 3 tipos de mesa intercambiables:
+A partir de v1.9.2, la Mesa se implementa como una **clase abstracta `DataSource`** con 3 tipos de mesa intercambiables:
 
 ```
 DataSource (Plantilla abstracta)
@@ -302,7 +302,7 @@ Verdict(
 
 ---
 
-## 🔄 EL FLUJO COMPLETO: La Partida (v2.0)
+## 🔄 EL FLUJO COMPLETO: La Partida (v1.9.2)
 
 ```
 1. LA MESA (DataSource) entrega vela
@@ -371,12 +371,15 @@ Verdict(
 
 ## 🎯 VISIÓN A FUTURO
 
-### *versión actual* **v1.9.1 —
--esta version no agregara funcionalidad nueva pero esta pensada para debugear errores de logica  y limpieza de codigo
--verificacion de logica de los jugadores kelly y paroli y actualizacion de sus docstrings
--verificacion de la logica de GEMiNI
-- dejar el modo backtesting lo mas blindando posible para que nos de el rendimiento mas cercano a la realidad(esta es la prioridad de la version)
-
+### *versión actual* **v1.9.2** —
+- Nueva arquitectura unificada con DataSource abstraction
+- TradingSession unificada con Pipeline modular (4 stages)
+- TradingContext inmutable para estado explícito
+- Balance persistente en backtest con margin tracking
+- WIN/LOSS basado en PnL real, no en exit reason
+- Paroli como aggressive player (ignora Gemini)
+- Normalización de símbolos/timeframes para Gemini memory
+- Documentación actualizada (VISION.md, CASINO_ARQUITECTURA.md)
 
 ### **v2.0 Multi-Timeframe** 🔮
 - Implementar `HyperliquidConnector`
@@ -488,7 +491,7 @@ Casino-V2/
 └── docs/                      # Documentación
     ├── VISION.md             # 🔥 LA BIBLIA (este archivo)
     ├── CHANGELOG.md          # Historial de cambios
-    ├── NUEVA_ARQUITECTURA_v2.0.md  # Arquitectura v2.0
+    ├── NUEVA_ARQUITECTURA_v2.0.md  # Arquitectura v1.9.2
     └── reports/              # Reportes de implementación
 ```
 
@@ -532,7 +535,7 @@ Casino-V2/
 
 ## 🔧 REFERENCIA TÉCNICA
 
-### **Archivos Críticos**
+### **Archivos Críticos (v1.9.2)**
 - `core/config.py` - Configuración global
 - `core/version.py` - Versión única
 - `core/data_sources/base.py` - Plantilla DataSource (La Mesa)
