@@ -437,6 +437,10 @@ class KrakenConnector(BaseConnector):
             # Normalize symbol to Kraken format
             kraken_symbol = self.normalize_symbol(symbol)
 
+            # Round amount to avoid decimal.ConversionSyntax error
+            # Kraken Futures requires specific precision
+            amount = round(float(amount), 8)  # 8 decimals should be enough
+
             # Log order details for debugging
             self.logger.info(
                 f"📋 Creating order: symbol={kraken_symbol}, side={side}, "
