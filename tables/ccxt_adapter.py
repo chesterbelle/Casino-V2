@@ -354,9 +354,10 @@ class CCXTAdapter(BaseTable):
                     sl_price = current_price * sl_multiplier
 
                     # Format for Kraken Futures
-                    # Note: Kraken uses 'stopLoss' and 'takeProfit' with triggerPrice
-                    params["stopLoss"] = {"triggerPrice": sl_price}
-                    params["takeProfit"] = {"triggerPrice": tp_price}
+                    # Note: Kraken Futures may not support TP/SL in create_order params
+                    # For now, we'll skip them and handle via separate orders later
+                    # params["stopLoss"] = {"triggerPrice": sl_price}
+                    # params["takeProfit"] = {"triggerPrice": tp_price}
 
                     self.logger.info(
                         f"📊 TP/SL configured | "
