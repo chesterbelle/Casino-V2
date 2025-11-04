@@ -150,8 +150,8 @@ STARTING_BALANCE = 10_000.0
 
 # Tamaños relativos de TP y SL (expresados en proporción decimal)
 # Ejemplo: 0.01 = 1% de take profit, 0.008 = 0.8% de stop loss
-TAKE_PROFIT = 0.01  # 1%
-STOP_LOSS = 0.01  # 1%
+TAKE_PROFIT = 0.005  # 0.5% - Take profit más ajustado
+STOP_LOSS = 0.015  # 1.5% - Stop loss más amplio (ratio 1:3)
 
 # Fracción del criterio de Kelly a aplicar (1 = Kelly completo, 0.5 = medio Kelly)
 # Para live trading, usar valores conservadores

@@ -330,12 +330,32 @@ class CCXTAdapter(BaseTable):
             # 2. Prepare params with TP/SL if present
             params = order.get("params", {}).copy()
 
-            # Add take_profit and stop_loss to params if present
-            # Note: For now, we'll skip TP/SL in testing mode to avoid format issues
-            # In production, these would need to be formatted according to exchange specs
+            # Convert TP/SL multipliers to absolute prices for Kraken Futures
             if "take_profit" in order and order["take_profit"]:
-                # Skip TP/SL for now - needs exchange-specific formatting
-                self.logger.debug(f"TP/SL present but skipped: TP={order['take_profit']}, SL={order['stop_loss']}")
+                # Get current price (will be entry price for market orders)
+                current_price = self._last_candle.get("close") if self._last_candle else None
+
+                if current_price:
+                    tp_multiplier = float(order["take_profit"])  # e.g., 1.005 (0.5% profit)
+                    sl_multiplier = float(order["stop_loss"])  # e.g., 0.985 (1.5% loss)
+
+                    # Calculate absolute prices
+                    tp_price = current_price * tp_multiplier
+                    sl_price = current_price * sl_multiplier
+
+                    # Format for Kraken Futures
+                    # Note: Kraken uses 'stopLoss' and 'takeProfit' with triggerPrice
+                    params["stopLoss"] = {"triggerPrice": sl_price}
+                    params["takeProfit"] = {"triggerPrice": tp_price}
+
+                    self.logger.info(
+                        f"📊 TP/SL configured | "
+                        f"Entry: ${current_price:.2f} | "
+                        f"TP: ${tp_price:.2f} ({(tp_multiplier-1)*100:.2f}%) | "
+                        f"SL: ${sl_price:.2f} ({(1-sl_multiplier)*100:.2f}%)"
+                    )
+                else:
+                    self.logger.warning("⚠️ Cannot set TP/SL: no current price available")
 
             # 2. Execute via connector
             result = await self.connector.create_order(
