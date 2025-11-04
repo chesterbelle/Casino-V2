@@ -77,6 +77,8 @@ class KrakenConnector(BaseConnector):
         self.exchange: Optional[ccxt_async.Exchange] = None
         self._connected = False
         self._markets: Dict[str, Any] = {}
+        self._balance_updated = False
+        self._last_balance_update: float = 0.0
 
         env = "DEMO" if self._testnet else "MAINNET"
         self.logger.info("🔧 KrakenConnector inicializado | modo=%s", env)
@@ -251,6 +253,12 @@ class KrakenConnector(BaseConnector):
                 if normalized[primary_currency]["free"] > 0:
                     normalized[primary_currency]["total"] = normalized[primary_currency]["free"]
 
+            # Mark balance as updated
+            import time
+
+            self._balance_updated = True
+            self._last_balance_update = time.time()
+
             return normalized
 
         except Exception as e:
@@ -274,21 +282,20 @@ class KrakenConnector(BaseConnector):
             # Fetch positions from Kraken
             positions = await self.exchange.fetch_positions()
 
-            # Normalize format
+            # Normalize to standard format
             normalized = []
             for pos in positions:
                 normalized.append(
                     {
                         "symbol": self.denormalize_symbol(pos.get("symbol", "")),
                         "side": pos.get("side", "").upper(),  # 'LONG' or 'SHORT'
-                        "size": float(pos.get("contracts", 0)),
-                        "entry_price": float(pos.get("entryPrice", 0)),
-                        "mark_price": float(pos.get("markPrice", 0)),
-                        "liquidation_price": float(pos.get("liquidationPrice", 0)),
-                        "unrealized_pnl": float(pos.get("unrealizedPnl", 0)),
-                        "margin": float(pos.get("initialMargin", 0)),
-                        "leverage": float(pos.get("leverage", 1)),
-                        "timestamp": pos.get("timestamp"),
+                        "size": float(pos.get("contracts") or 0),
+                        "entry_price": float(pos.get("entryPrice") or 0),
+                        "mark_price": float(pos.get("markPrice") or 0),
+                        "unrealized_pnl": float(pos.get("unrealizedPnl") or 0),
+                        "initial_margin": float(pos.get("initialMargin") or 0),
+                        "leverage": float(pos.get("leverage") or 1),
+                        "timestamp": pos.get("timestamp") or 0,
                     }
                 )
 
@@ -296,6 +303,91 @@ class KrakenConnector(BaseConnector):
 
         except Exception as e:
             self.logger.error(f"❌ Error fetching positions: {e}")
+            raise
+
+    # =========================================================
+    # 📊 TRADE HISTORY
+    # =========================================================
+
+    async def fetch_my_trades(
+        self,
+        symbol: Optional[str] = None,
+        since: Optional[int] = None,
+        limit: int = 100,
+    ) -> List[Dict[str, Any]]:
+        """
+        Fetch user's trade history (fills confirmados).
+
+        Args:
+            symbol: Filter by symbol (optional, standard format e.g., "BTC/USD")
+            since: Timestamp in ms (optional, fetch trades since this time)
+            limit: Max number of trades to fetch (default: 100)
+
+        Returns:
+            List of normalized trade dictionaries with:
+                - id: Trade ID
+                - order_id: Order ID that generated this trade
+                - symbol: Standard symbol format
+                - side: "buy" or "sell"
+                - price: Execution price (REAL)
+                - amount: Trade amount
+                - cost: Total cost (price * amount)
+                - fee: Fee information
+                - timestamp: Execution timestamp
+                - datetime: ISO datetime string
+
+        Raises:
+            RuntimeError: If not connected
+            ExchangeError: If Kraken returns an error
+        """
+        if not self._connected:
+            raise RuntimeError("Not connected to Kraken. Call connect() first.")
+
+        try:
+            # Normalize symbol if provided
+            kraken_symbol = None
+            if symbol:
+                kraken_symbol = self.normalize_symbol(symbol)
+
+            # Fetch trades from Kraken
+            trades = await self.exchange.fetch_my_trades(symbol=kraken_symbol, since=since, limit=limit)
+
+            # Normalize to standard format
+            normalized = []
+            for trade in trades:
+                normalized.append(
+                    {
+                        "id": trade.get("id", ""),
+                        "order_id": trade.get("order"),
+                        "symbol": self.denormalize_symbol(trade.get("symbol", "")),
+                        "side": trade.get("side", ""),
+                        "price": float(trade.get("price") or 0),
+                        "amount": float(trade.get("amount") or 0),
+                        "cost": float(trade.get("cost") or 0),
+                        "fee": (
+                            {
+                                "cost": float(trade.get("fee", {}).get("cost") or 0),
+                                "currency": trade.get("fee", {}).get("currency", "USD"),
+                            }
+                            if isinstance(trade.get("fee"), dict)
+                            else {"cost": 0.0, "currency": "USD"}
+                        ),
+                        "timestamp": trade.get("timestamp", 0),
+                        "datetime": trade.get("datetime", ""),
+                        "info": trade.get("info", {}),  # Raw data del exchange
+                    }
+                )
+
+            self.logger.debug(
+                f"📊 Fetched {len(normalized)} trades"
+                f"{f' for {symbol}' if symbol else ''}"
+                f"{f' since {since}' if since else ''}"
+            )
+
+            return normalized
+
+        except Exception as e:
+            self.logger.error(f"❌ Error fetching my trades: {e}")
             raise
 
     # =========================================================
@@ -403,11 +495,19 @@ class KrakenConnector(BaseConnector):
         Convert Kraken symbol back to standard format.
 
         Args:
-            kraken_symbol: Kraken format (e.g., "PF_XBTUSD")
+            kraken_symbol: Kraken format (e.g., "PF_XBTUSD" or "LTC/USD:USD")
 
         Returns:
             Standard format (e.g., "BTC/USD")
         """
+        # CCXT a veces devuelve símbolos con :USD, removerlo
+        if ":" in kraken_symbol:
+            kraken_symbol = kraken_symbol.split(":")[0]
+
+        # Si ya está en formato estándar, retornarlo
+        if "/" in kraken_symbol and not kraken_symbol.startswith("PF_"):
+            return kraken_symbol
+
         return denormalize_kraken_symbol(kraken_symbol)
 
     @property
@@ -464,3 +564,78 @@ class KrakenConnector(BaseConnector):
     def testnet(self) -> bool:
         """Legacy compatibility flag (True si usa entorno demo)."""
         return self._testnet
+
+    # =========================================================
+    # 📊 STATUS & HEALTH (Hummingbot-inspired)
+    # =========================================================
+
+    @property
+    def ready(self) -> bool:
+        """
+        Indica si el conector está listo para operar.
+
+        Un conector de Kraken está "ready" cuando:
+        - Está conectado al exchange
+        - Ha cargado los mercados
+        - Tiene balance actualizado (opcional)
+
+        Returns:
+            True si el conector está listo, False en caso contrario
+        """
+        if not self._connected:
+            return False
+
+        if not self._markets:
+            return False
+
+        # Balance update is optional for ready status
+        # (puede operar sin balance actualizado)
+
+        return True
+
+    @property
+    def status_dict(self) -> Dict[str, bool]:
+        """
+        Estado de componentes del conector.
+
+        Returns:
+            Diccionario con estado de cada componente
+        """
+        return {
+            "connected": self._connected,
+            "markets_loaded": bool(self._markets),
+            "balance_updated": self._balance_updated,
+            "websocket_active": False,  # TODO: Implementar cuando WebSocket esté listo
+            "ready": self.ready,
+        }
+
+    @property
+    def tracking_states(self) -> Dict[str, Any]:
+        """
+        Estado para persistencia.
+
+        Returns:
+            Diccionario con estado persistente del conector
+        """
+        return {
+            "mode": self._mode,
+            "connected": self._connected,
+            "markets_count": len(self._markets),
+            "balance_updated": self._balance_updated,
+            "last_balance_update": self._last_balance_update,
+        }
+
+    def restore_tracking_states(self, saved_states: Dict[str, Any]):
+        """
+        Restaura estado guardado.
+
+        Args:
+            saved_states: Estado guardado previamente
+        """
+        if "balance_updated" in saved_states:
+            self._balance_updated = saved_states["balance_updated"]
+
+        if "last_balance_update" in saved_states:
+            self._last_balance_update = saved_states["last_balance_update"]
+
+        self.logger.info("📂 Estado restaurado desde guardado anterior")

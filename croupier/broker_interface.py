@@ -132,14 +132,27 @@ class BrokerInterface:
         return Engine(csv_path, symbol)
 
     def _create_testing_engine(self, symbol: str | None, interval: str | None, exchange: str):
-        """Construye la mesa CCXT Pro para modo testing."""
-        from tables.connectors import KrakenConnector
+        """Construye la mesa CCXT Pro para modo testing CON RESILIENCIA."""
+        from tables.connectors import KrakenConnector, ResilientConnector
 
         exchange = getattr(config, "EXCHANGE", "SIMULATION").upper()
 
         if "KRAKEN" in exchange:
-            connector = KrakenConnector(mode="testing")
+            # Crear conector base
+            kraken = KrakenConnector(mode="testing")
+
+            # Envolver con resiliencia (v1.9.1)
+            connector = ResilientConnector(
+                connector=kraken,
+                enable_state_recovery=True,
+                state_recovery_config={
+                    "state_dir": "./state/testing",
+                    "auto_save_interval": 60.0,  # Auto-guardado cada 60s
+                },
+            )
             default_symbol = "BTC/USD"
+            self.logger.info("✅ ResilientConnector activado para modo testing")
+
         elif "BINANCE" in exchange:
             raise NotImplementedError("BinanceConnector (testing) aún no está disponible en v1.9.")
         elif "HYPERLIQUID" in exchange:

@@ -448,9 +448,130 @@ TIMEFRAME = "1m" | "5m" | "15m" | "1h"
 
 ---
 
+## 🔄 PRINCIPIO DE SINCRONIZACIÓN (v1.9.1+)
+
+### **Regla de Oro: El Sistema NUNCA Debe Operar con Supuestos**
+
+A partir de v1.9.1, Casino V2 implementa sincronización de estado real del exchange para garantizar que todas las decisiones se basen en datos confirmados, no aproximados.
+
+### **Estado Rico del Exchange**
+
+El sistema ahora obtiene y utiliza:
+
+1. **Balance Real**: Obtenido directamente del exchange, no estimado
+2. **Equity Real**: `balance + unrealized_pnl` de posiciones abiertas
+3. **Fills Confirmados**: Solo aprender de trades ejecutados realmente
+4. **Precios Reales**: Usar precios de fill, no precios de vela
+5. **Posiciones Verificadas**: Sincronizadas con el exchange
+
+### **Arquitectura de Sincronización**
+
+```
+Exchange (Fuente de Verdad)
+    ↓ REST API / WebSocket
+ExchangeStateSync (Sincronizador)
+    ↓ Estado real confirmado
+TableCCXTPro (Mesa enriquecida)
+    ↓ Vela + equity real + fills confirmados
+Gemini + Players (Decisiones informadas)
+```
+
+### **Componentes de Sincronización**
+
+#### **ExchangeStateSync**
+Componente que sincroniza estado real del exchange:
+- `sync_equity()` → Balance + unrealized PnL = Equity real
+- `sync_positions()` → Posiciones abiertas/cerradas verificadas
+- `sync_fills(since)` → Fills confirmados desde timestamp
+
+#### **PositionTracker Modo Híbrido**
+Sistema de confirmación de cierres en 3 modos:
+- **simulation**: Simula cierres con OHLC (backtest)
+- **confirmed**: Solo cierra con confirmación del exchange (live estricto)
+- **hybrid**: Detecta TP/SL + espera confirmación (recomendado)
+
+#### **Vela Enriquecida**
+`TableCCXTPro.next_candle()` ahora retorna:
+```python
+{
+    # OHLCV (como antes)
+    "timestamp": ...,
+    "open": ..., "high": ..., "low": ..., "close": ...,
+
+    # NUEVO: Estado real del exchange
+    "equity": float,  # balance + unrealized_pnl (REAL)
+    "balance": float,  # balance libre (REAL)
+    "unrealized_pnl": float,  # PnL no realizado (REAL)
+    "positions": List[Position],  # Posiciones reales
+    "recent_fills": List[Fill],  # Fills confirmados
+    "state_source": "exchange_confirmed"  # FLAG
+}
+```
+
+### **Impacto en Componentes**
+
+#### **Gemini**
+- Recibe equity REAL para calcular métricas
+- Aprende de cierres CONFIRMADOS por el exchange
+- `Verdict` basado en datos verificados
+
+#### **Players**
+- Calculan sizing con equity REAL (no aproximado)
+- Kelly Criterion usa equity confirmado
+- Paroli opera sobre balance real
+
+#### **PositionTracker**
+- Detecta TP/SL tocados (simulación rápida)
+- Marca como "PENDING_CONFIRMATION"
+- Confirma con `confirm_close()` usando datos reales del exchange
+
+### **Ejemplo de Flujo**
+
+**Antes (v1.9)**:
+```
+Vela: high=50200
+TP level: 50100
+Sistema: "TP tocado @ 50100" (teórico)
+Cierra inmediatamente
+PnL: +100 USD (calculado)
+Gemini aprende: "WIN @ 50100"
+```
+
+**Después (v1.9.1)**:
+```
+Vela: high=50200
+TP level: 50100
+Sistema: "TP detectado @ 50100" (teórico)
+Marca como PENDING
+Espera fill del exchange...
+Fill confirmado: precio=50150, fee=2.5, pnl=+147.5
+Confirma cierre con datos REALES
+PnL: +147.5 USD (confirmado)
+Gemini aprende: "WIN @ 50150" (REAL)
+```
+
+### **Métricas de Sincronización**
+
+El sistema mantiene métricas de sincronización:
+- Balance diff: < 1% (target)
+- Equity diff: < 1% (target)
+- Fills confirmados: 100%
+- Precios reales: 100%
+
+### **Herramientas de Diagnóstico**
+
+`utils/diagnose_sync.py` - Script para medir desincronización:
+```bash
+python utils/diagnose_sync.py
+```
+
+Compara estado interno vs exchange y genera reporte con recomendaciones.
+
+---
+
 **Este documento es la BIBLIA del proyecto.**
 **Sin entender esto, no se puede trabajar en Casino V2.**
 
-**Última actualización**: 2025-11-02
-**Autor**: Pedro
+**Última actualización**: 2025-11-03 (v1.9.1)
+**Autor**: Pedro + Cascade
 **Para**: Cascade y cualquier IA que trabaje en el proyecto

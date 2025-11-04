@@ -380,6 +380,128 @@ class BaseConnector(ABC):
         pass
 
     # =========================================================
+    # 📊 STATUS & HEALTH (Inspirado en Hummingbot)
+    # =========================================================
+
+    @property
+    def ready(self) -> bool:
+        """
+        Indica si el conector está listo para operar.
+
+        Inspirado en Hummingbot's ready property.
+
+        Un conector está "ready" cuando:
+        - Está conectado al exchange
+        - Ha cargado los mercados
+        - Tiene balance actualizado
+        - WebSocket está funcionando (si aplica)
+
+        Returns:
+            True si el conector está listo, False en caso contrario
+
+        Example:
+            ```python
+            connector = KrakenConnector(...)
+            await connector.connect()
+
+            if connector.ready:
+                # Safe to trade
+                await connector.create_order(...)
+            ```
+        """
+        # Default implementation: override in subclasses
+        return False
+
+    @property
+    def status_dict(self) -> Dict[str, bool]:
+        """
+        Estado de componentes del conector.
+
+        Inspirado en Hummingbot's status_dict property.
+
+        Retorna un diccionario con el estado de cada componente:
+        - connected: Conectado al exchange
+        - markets_loaded: Mercados cargados
+        - balance_updated: Balance actualizado
+        - websocket_active: WebSocket funcionando (si aplica)
+
+        Returns:
+            Diccionario con estado de componentes
+
+        Example:
+            ```python
+            status = connector.status_dict
+            # {
+            #     'connected': True,
+            #     'markets_loaded': True,
+            #     'balance_updated': True,
+            #     'websocket_active': False
+            # }
+            ```
+        """
+        # Default implementation: override in subclasses
+        return {
+            "connected": False,
+            "ready": self.ready,
+        }
+
+    @property
+    def tracking_states(self) -> Dict[str, Any]:
+        """
+        Estado para persistencia.
+
+        Inspirado en Hummingbot's tracking_states property.
+
+        Retorna el estado interno del conector que debe ser guardado
+        para recuperación después de crashes. Incluye:
+        - Órdenes en tracking
+        - Posiciones abiertas
+        - Balance cache
+        - Último timestamp procesado
+
+        Returns:
+            Diccionario con estado persistente
+
+        Example:
+            ```python
+            # Guardar estado
+            states = connector.tracking_states
+            save_to_disk(states)
+
+            # Recuperar estado
+            states = load_from_disk()
+            connector.restore_tracking_states(states)
+            ```
+        """
+        # Default implementation: override in subclasses
+        return {}
+
+    def restore_tracking_states(self, saved_states: Dict[str, Any]):
+        """
+        Restaura estado guardado.
+
+        Inspirado en Hummingbot's restore_tracking_states.
+
+        Este método restaura el estado interno del conector desde
+        un estado guardado previamente. Útil para recuperación
+        después de crashes.
+
+        Args:
+            saved_states: Estado guardado previamente
+
+        Example:
+            ```python
+            # Recuperar después de crash
+            states = load_from_disk()
+            connector.restore_tracking_states(states)
+            await connector.connect()
+            # Conector restaurado con estado anterior
+            ```
+        """
+        # Default implementation: override in subclasses
+        pass
+
+    # =========================================================
     # 📈 OPTIONAL: ADVANCED FEATURES
     # =========================================================
 

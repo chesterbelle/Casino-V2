@@ -45,11 +45,13 @@ Usage:
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Any, Dict, Optional
 
 from .balance_manager import BalanceManager
 from .connectors.connector_base import BaseConnector
+from .exchange_state_sync import ExchangeStateSync
 from .position_tracker import PositionTracker
 from .table_base import BaseTable
 
@@ -92,10 +94,14 @@ class TableCCXTPro(BaseTable):
         self.balance_manager = BalanceManager(starting_balance=starting_balance)
         self.position_tracker = PositionTracker()
 
+        # NUEVO: Sincronizador de estado real
+        self.state_sync = ExchangeStateSync(connector)
+
         # State
         self._connected = False
         self._last_candle: Optional[Dict] = None
         self._last_balance_snapshot: Optional[Dict[str, Any]] = None
+        self._last_sync_time = 0
         self.exchange = None
         self.base_currency = getattr(connector, "base_currency", "USD")
 
@@ -111,8 +117,9 @@ class TableCCXTPro(BaseTable):
 
         This method:
             1. Connects the connector to the exchange
-            2. Fetches initial balance
-            3. Validates connection
+            2. Waits for connector to be ready
+            3. Fetches initial balance
+            4. Validates connection
 
         Raises:
             ConnectionError: If connection fails
@@ -124,6 +131,19 @@ class TableCCXTPro(BaseTable):
             # Connect via connector
             await self.connector.connect()
             self.exchange = getattr(self.connector, "exchange", None)
+
+            # Wait for connector to be ready (Hummingbot-inspired)
+            max_wait = 10  # seconds
+            waited = 0
+            while not self.connector.ready and waited < max_wait:
+                self.logger.info(f"⏳ Esperando que conector esté listo... ({waited}s)")
+                await asyncio.sleep(1)
+                waited += 1
+
+            if not self.connector.ready:
+                raise RuntimeError(f"Connector not ready after {max_wait}s. " f"Status: {self.connector.status_dict}")
+
+            self.logger.info(f"✅ Connector ready | Status: {self.connector.status_dict}")
 
             # Fetch initial balance (CRITICAL: fail-fast if this fails)
             try:
@@ -164,10 +184,19 @@ class TableCCXTPro(BaseTable):
 
     async def next_candle(self) -> Optional[Dict]:
         """
-        Get the next candle from the exchange.
+        Get the next candle from the exchange + sincroniza estado real.
+
+        REFACTORIZADO v1.9.1: Ahora retorna vela enriquecida con estado real del exchange:
+        - equity: balance + unrealized_pnl (REAL)
+        - balance: balance libre (REAL)
+        - unrealized_pnl: PnL no realizado (REAL)
+        - open_positions: número de posiciones abiertas
+        - positions: lista de posiciones reales
+        - recent_fills: fills confirmados desde última sync
+        - state_source: "exchange_confirmed" (FLAG IMPORTANTE)
 
         Returns:
-            Normalized candle dictionary or None if no data available
+            Vela enriquecida con estado real o None si no hay datos
 
         Raises:
             RuntimeError: If not connected
@@ -176,14 +205,66 @@ class TableCCXTPro(BaseTable):
             raise RuntimeError("Not connected. Call connect() first.")
 
         try:
-            # Fetch latest candle via connector
+            # 1. Obtener vela (como antes)
             candles = await self.connector.fetch_ohlcv(self.symbol, self.timeframe, limit=1)
 
-            if candles:
-                self._last_candle = candles[0]
-                return self._last_candle
+            if not candles:
+                return None
 
-            return None
+            candle = candles[0]
+
+            # 2. NUEVO: Sincronizar estado real del exchange
+            try:
+                equity_snapshot = await self.state_sync.sync_equity()
+                positions = await self.state_sync.sync_positions()
+                recent_fills = await self.state_sync.sync_fills(since=self._last_sync_time)
+
+                # 3. NUEVO: Procesar fills confirmados
+                for fill in recent_fills:
+                    # TODO: Implementar lógica para detectar si fill es cierre
+                    # Por ahora, solo loggeamos
+                    self.logger.debug(
+                        f"📊 Fill confirmado: {fill.symbol} {fill.side} "
+                        f"@ {fill.price:.2f} | Amount: {fill.amount:.4f}"
+                    )
+
+                # 4. Actualizar balance interno con equity real
+                self.balance_manager.set_balance(equity_snapshot.balance)
+
+                # 5. Retornar vela enriquecida con estado REAL
+                enriched_candle = {
+                    **candle,
+                    # Estado real del exchange
+                    "equity": equity_snapshot.equity,  # ← REAL
+                    "balance": equity_snapshot.balance,  # ← REAL
+                    "unrealized_pnl": equity_snapshot.unrealized_pnl,  # ← REAL
+                    "margin_used": equity_snapshot.margin_used,
+                    "margin_available": equity_snapshot.margin_available,
+                    # Posiciones y fills
+                    "open_positions": len(positions),
+                    "positions": positions,
+                    "recent_fills": recent_fills,
+                    # Metadata
+                    "sync_timestamp": equity_snapshot.timestamp,
+                    "state_source": "exchange_confirmed",  # ← FLAG IMPORTANTE
+                }
+
+                self._last_candle = enriched_candle
+                self._last_sync_time = equity_snapshot.timestamp
+
+                self.logger.debug(
+                    f"✅ Vela enriquecida | Equity: {equity_snapshot.equity:.2f} | "
+                    f"Positions: {len(positions)} | Fills: {len(recent_fills)}"
+                )
+
+                return enriched_candle
+
+            except Exception as sync_error:
+                # Si falla la sincronización, retornar vela básica con warning
+                self.logger.warning(
+                    f"⚠️ Error sincronizando estado: {sync_error}. " f"Retornando vela sin estado enriquecido."
+                )
+                return candle
 
         except Exception as e:
             self.logger.error(f"❌ Error fetching candle: {e}")

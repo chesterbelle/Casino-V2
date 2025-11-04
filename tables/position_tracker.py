@@ -2,28 +2,37 @@
 Position Tracker for Casino V2 - Gestión de Posiciones Abiertas
 ===============================================================
 
-Este módulo implementa el tracking de posiciones abiertas para simular
-correctamente el comportamiento de live trading en backtests.
+Este módulo implementa el tracking de posiciones abiertas con soporte para
+confirmación de cierres con datos reales del exchange.
+
+VERSIÓN v1.9.1: Modo Híbrido
+-----------------------------
+- **simulation**: Simula cierres con OHLC (para backtest)
+- **confirmed**: Solo cierra con confirmación del exchange (para live)
+- **hybrid**: Detecta TP/SL + espera confirmación (mejor de ambos mundos)
 
 Problema que resuelve:
 ----------------------
 - Backtest actual permite múltiples posiciones simultáneas sin límite
 - No bloquea capital durante la duración del trade
 - Simula cierres inmediatos en lugar de esperar TP/SL naturales
+- NO confirma cierres con datos reales del exchange (v1.9)
 
-Solución:
----------
+Solución v1.9.1:
+----------------
 - Track de posiciones abiertas con TP/SL pendientes
 - Bloqueo de capital proporcional al margen usado
 - Validación de capital disponible antes de abrir posiciones
 - Monitoreo vela-por-vela de TP/SL hits
+- **NUEVO**: Confirmación de cierres con datos reales del exchange
+- **NUEVO**: Modo híbrido (detecta + confirma)
 """
 
 from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 logger = logging.getLogger("PositionTracker")
 
@@ -50,19 +59,58 @@ class OpenPosition:
 
 class PositionTracker:
     """
-    Gestiona posiciones abiertas y capital bloqueado para simulación realista.
+    Gestiona posiciones abiertas y capital bloqueado con soporte para confirmación.
+
+    VERSIÓN v1.9.1: Modo Híbrido
+    -----------------------------
+    - **simulation**: Simula cierres con OHLC (para backtest)
+    - **confirmed**: Solo cierra con confirmación del exchange (para live)
+    - **hybrid**: Detecta TP/SL + espera confirmación (recomendado)
+
+    Ejemplo:
+        # Modo simulation (backtest)
+        tracker = PositionTracker(mode="simulation")
+
+        # Modo hybrid (testing/live)
+        tracker = PositionTracker(mode="hybrid")
+
+        # Detectar cierres
+        closes = tracker.check_and_close_positions(candle)
+
+        # Confirmar cierre con datos reales
+        result = tracker.confirm_close(
+            trade_id="trade_123",
+            exit_price=50000.0,  # Precio REAL del fill
+            exit_reason="TP",
+            pnl=150.0,  # PnL REAL
+            fee=2.5
+        )
     """
 
-    def __init__(self, max_concurrent_positions: int = 1):
+    def __init__(
+        self, max_concurrent_positions: int = 1, mode: Literal["simulation", "confirmed", "hybrid"] = "hybrid"
+    ):
         """
         Args:
             max_concurrent_positions: Máximo número de posiciones simultáneas permitidas
+            mode: Modo de operación:
+                - "simulation": Simula cierres con OHLC (backtest)
+                - "confirmed": Solo cierra con confirmación del exchange (live)
+                - "hybrid": Detecta + espera confirmación (recomendado)
         """
         self.open_positions: List[OpenPosition] = []
         self.blocked_capital: float = 0.0
         self.max_concurrent_positions = max_concurrent_positions
         self.total_trades_opened = 0
         self.total_trades_closed = 0
+
+        # NUEVO v1.9.1: Modo de operación
+        self.mode = mode
+
+        # NUEVO v1.9.1: Tracking de confirmaciones pendientes
+        self.pending_confirmations: Dict[str, Dict[str, Any]] = {}
+
+        logger.info(f"PositionTracker inicializado | Modo: {mode} | Max positions: {max_concurrent_positions}")
 
     def get_available_equity(self, total_equity: float) -> float:
         """Calcula capital disponible (total - bloqueado)."""
@@ -190,13 +238,33 @@ class PositionTracker:
 
     def check_and_close_positions(self, current_candle: Dict[str, Any]) -> List[Dict[str, Any]]:
         """
-        Revisa todas las posiciones abiertas y cierra las que tocaron TP/SL.
+        Revisa todas las posiciones abiertas según el modo configurado.
+
+        VERSIÓN v1.9.1: Soporte para 3 modos
+        -------------------------------------
+        - **simulation**: Cierra inmediatamente si TP/SL tocado
+        - **confirmed**: No cierra, solo espera confirmación del exchange
+        - **hybrid**: Detecta TP/SL, marca como pending, espera confirmación
 
         Args:
             current_candle: Vela actual con OHLC
 
         Returns:
-            Lista de resultados de posiciones cerradas
+            Lista de resultados de posiciones cerradas (o pending en modo hybrid)
+        """
+        if self.mode == "simulation":
+            return self._simulate_closes(current_candle)
+        elif self.mode == "confirmed":
+            # Solo actualiza bars_held, no cierra nada
+            for position in self.open_positions:
+                position.bars_held += 1
+            return []
+        else:  # hybrid
+            return self._hybrid_check(current_candle)
+
+    def _simulate_closes(self, current_candle: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """
+        Modo simulation: Cierra inmediatamente si TP/SL tocado (backtest).
         """
         closed_results = []
         positions_to_remove = []
@@ -274,9 +342,9 @@ class PositionTracker:
                     "side": position.side,
                     "action": "CLOSE",
                     "ghost": False,
+                    "confirmed": True,  # En simulation, se considera confirmado
                 }
 
-                # 🔴 DEBUG: Log detallado del cálculo de P&L
                 logger.debug(
                     f"🔍 P&L Calc | {position.symbol} {position.side} | "
                     f"Entry: {position.entry_price:.2f} | Exit: {exit_price:.2f} | "
@@ -292,7 +360,7 @@ class PositionTracker:
                 self.total_trades_closed += 1
 
                 logger.info(
-                    f"🔒 CLOSE | {position.symbol} {position.side} | "
+                    f"🔒 CLOSE (simulation) | {position.symbol} {position.side} | "
                     f"Exit: {exit_price:.2f} ({exit_reason}) | "
                     f"P&L: {pnl_value:+.2f} ({pnl_pct:.2%}) | Bars: {position.bars_held}"
                 )
@@ -302,6 +370,177 @@ class PositionTracker:
             self.open_positions.remove(pos)
 
         return closed_results
+
+    def _hybrid_check(self, current_candle: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """
+        Modo hybrid: Detecta TP/SL tocados, marca como pending, espera confirmación.
+
+        NO cierra la posición ni cuenta como WIN/LOSS hasta que exchange confirme.
+        """
+        potential_closes = []
+        high = float(current_candle.get("high", 0))
+        low = float(current_candle.get("low", 0))
+        timestamp = current_candle.get("timestamp", "")
+
+        for position in self.open_positions:
+            position.bars_held += 1
+
+            # Skip si ya está pending
+            if position.trade_id in self.pending_confirmations:
+                continue
+
+            # Detectar si TP/SL fue tocado
+            exit_reason = None
+            exit_price = None
+
+            if position.side == "LONG":
+                if position.liquidation_level and low <= position.liquidation_level:
+                    exit_reason = "LIQUIDATION"
+                    exit_price = position.liquidation_level
+                elif low <= position.sl_level:
+                    exit_reason = "SL"
+                    exit_price = position.sl_level
+                elif high >= position.tp_level:
+                    exit_reason = "TP"
+                    exit_price = position.tp_level
+
+            elif position.side == "SHORT":
+                if position.liquidation_level and high >= position.liquidation_level:
+                    exit_reason = "LIQUIDATION"
+                    exit_price = position.liquidation_level
+                elif high >= position.sl_level:
+                    exit_reason = "SL"
+                    exit_price = position.sl_level
+                elif low <= position.tp_level:
+                    exit_reason = "TP"
+                    exit_price = position.tp_level
+
+            if exit_reason:
+                # Calcular PnL teórico (para referencia)
+                if position.side == "LONG":
+                    pnl_pct = (exit_price - position.entry_price) / position.entry_price
+                else:
+                    pnl_pct = (position.entry_price - exit_price) / position.entry_price
+
+                pnl_value = position.notional * pnl_pct
+
+                # Marcar como pending (NO confirmar aún)
+                pending_result = {
+                    "trade_id": position.trade_id,
+                    "symbol": position.symbol,
+                    "side": position.side,
+                    "entry_price": position.entry_price,
+                    "exit_price_detected": exit_price,  # Teórico
+                    "exit_reason_detected": exit_reason,
+                    "pnl_estimated": pnl_value,  # Estimado
+                    "bars_held": position.bars_held,
+                    "timestamp": timestamp,
+                    "confirmed": False,  # ← FLAG CRÍTICO
+                    "pending_confirmation": True,
+                    "status": "PENDING_CONFIRMATION",
+                }
+
+                # Guardar en pending
+                self.pending_confirmations[position.trade_id] = pending_result
+
+                logger.info(
+                    f"⏳ PENDING | {position.symbol} {position.side} | "
+                    f"Detected: {exit_reason} @ {exit_price:.2f} | "
+                    f"PnL estimado: {pnl_value:+.2f} | "
+                    f"Esperando confirmación del exchange..."
+                )
+
+                potential_closes.append(pending_result)
+
+        return potential_closes
+
+    def confirm_close(
+        self, trade_id: str, exit_price: float, exit_reason: str, pnl: float, fee: float = 0.0
+    ) -> Optional[Dict[str, Any]]:
+        """
+        NUEVO v1.9.1: Confirma cierre con datos REALES del exchange.
+
+        Este método debe ser llamado cuando se recibe un fill confirmado del exchange
+        que cierra una posición.
+
+        Args:
+            trade_id: ID del trade
+            exit_price: Precio de salida REAL (del fill)
+            exit_reason: Razón CONFIRMADA ("TP" | "SL" | "MANUAL" | "LIQUIDATION")
+            pnl: PnL REAL (incluye fees, slippage)
+            fee: Fee REAL
+
+        Returns:
+            Resultado confirmado o None si no existe la posición
+
+        Ejemplo:
+            # Cuando llega fill del exchange
+            result = tracker.confirm_close(
+                trade_id="trade_123",
+                exit_price=50150.0,  # Precio REAL del fill
+                exit_reason="TP",
+                pnl=150.0,  # PnL REAL
+                fee=2.5
+            )
+
+            if result:
+                print(f"Cierre confirmado: {result['result']}")
+                gemini.on_trade_result(trade_id, result)
+        """
+        # Buscar posición
+        position = None
+        for pos in self.open_positions:
+            if pos.trade_id == trade_id:
+                position = pos
+                break
+
+        if not position:
+            logger.warning(f"⚠️ No se encontró posición para confirmar: {trade_id}")
+            return None
+
+        # Crear resultado CONFIRMADO con datos REALES
+        result = {
+            "trade_id": trade_id,
+            "result": "WIN" if pnl > 0 else "LOSS",
+            "pnl": pnl,  # ← PNL REAL
+            "pnl_pct": pnl / position.notional if position.notional > 0 else 0.0,
+            "fee": fee,  # ← FEE REAL
+            "funding": position.funding_accrued,
+            "liquidated": exit_reason == "LIQUIDATION",
+            "margin_used": position.margin_used,
+            "notional": position.notional,
+            "leverage": position.leverage,
+            "symbol": position.symbol,
+            "entry_price": position.entry_price,
+            "exit_price": exit_price,  # ← PRECIO REAL
+            "trigger_price": exit_price,
+            "bars_held": position.bars_held,
+            "exit_reason": exit_reason,  # ← CONFIRMADO
+            "side": position.side,
+            "action": "CLOSE",
+            "ghost": False,
+            "confirmed": True,  # ← FLAG CRÍTICO
+            "state_source": "exchange_confirmed",
+        }
+
+        # Remover de pending si estaba
+        if trade_id in self.pending_confirmations:
+            del self.pending_confirmations[trade_id]
+
+        # Remover posición
+        self.open_positions.remove(position)
+
+        # Liberar capital bloqueado
+        self.blocked_capital -= position.margin_used
+        self.total_trades_closed += 1
+
+        logger.info(
+            f"✅ CONFIRMED CLOSE | {position.symbol} {position.side} | "
+            f"Exit: {exit_price:.2f} ({exit_reason}) | "
+            f"PnL REAL: {pnl:+.2f} | Fee: {fee:.2f} | Bars: {position.bars_held}"
+        )
+
+        return result
 
     def get_stats(self) -> Dict[str, Any]:
         """Retorna estadísticas del tracker."""
