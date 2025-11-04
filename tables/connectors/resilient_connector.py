@@ -268,10 +268,10 @@ class ResilientConnector(BaseConnector):
     async def create_order(
         self,
         symbol: str,
-        order_type: str,
         side: str,
         amount: float,
         price: Optional[float] = None,
+        order_type: str = "market",
         params: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
@@ -284,7 +284,7 @@ class ResilientConnector(BaseConnector):
         # (similar a Hummingbot's start_tracking_order)
 
         try:
-            order = await self._connector.create_order(symbol, order_type, side, amount, price, params)
+            order = await self._connector.create_order(symbol, side, amount, price, order_type, params)
 
             # Update session state
             if self._session_state:
