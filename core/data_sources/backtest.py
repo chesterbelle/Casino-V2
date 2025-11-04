@@ -270,6 +270,18 @@ class BacktestDataSource(DataSource):
         if not self._connected:
             raise RuntimeError("Not connected. Call connect() first.")
 
+        # Check if there's already an open position
+        if self.open_positions:
+            logger.warning(
+                f"❌ Order rejected | " f"Already have {len(self.open_positions)} open position(s) | " f"Max allowed: 1"
+            )
+            return {
+                "status": "rejected",
+                "reason": "max_positions_reached",
+                "open_positions": len(self.open_positions),
+                "balance": self.balance,
+            }
+
         side = order["side"].lower()  # "buy" or "sell"
         amount = float(order["amount"])
 
