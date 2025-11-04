@@ -169,7 +169,7 @@ async def run_testing(player_module, symbol, interval, max_candles):
     logger.info(f"📊 Symbol: {symbol} | Interval: {interval}")
 
     # Create connector with resilience
-    kraken = KrakenConnector(mode="demo")
+    kraken = KrakenConnector(mode="testing")
     connector = ResilientConnector(
         connector=kraken,
         enable_state_recovery=True,

@@ -476,3 +476,25 @@ class ResilientConnector(BaseConnector):
                 await self.save_state()
             except Exception as e:
                 self.logger.error(f"❌ Error en auto-guardado: {e}")
+
+    # ========================================
+    # Abstract methods delegation
+    # ========================================
+
+    @property
+    def exchange_name(self) -> str:
+        """Delegate to underlying connector."""
+        return self.connector.exchange_name
+
+    def normalize_symbol(self, symbol: str) -> str:
+        """Delegate to underlying connector."""
+        return self.connector.normalize_symbol(symbol)
+
+    def denormalize_symbol(self, symbol: str) -> str:
+        """Delegate to underlying connector."""
+        return self.connector.denormalize_symbol(symbol)
+
+    @property
+    def is_connected(self) -> bool:
+        """Check if connector is connected."""
+        return self._connected and self.connector.is_connected
