@@ -227,14 +227,14 @@ class BacktestDataSource(DataSource):
                 exit_fee = position["amount"] * current_price * self.fee_rate
                 net_pnl = pnl - exit_fee
 
-                # Return margin
-                self.balance += position["margin"]
+                # Return margin (notional)
+                self.balance += position["notional"]
 
                 # Apply PnL
                 self.balance += net_pnl
 
                 # Record trade
-                total_fee = position["entry_fee"] + exit_fee
+                total_fee = position["fee"] + exit_fee
                 self.closed_trades.append(
                     {
                         "entry_price": position["entry_price"],
