@@ -127,10 +127,17 @@ class BuildOrderStage(Stage):
         # Calculate base amount (in base currency)
         base_amount = notional_amount / current_price
 
+        # Normalize side (Gemini uses LONG/SHORT, exchanges use buy/sell)
+        side = order["side"].lower()
+        if side == "long":
+            side = "buy"
+        elif side == "short":
+            side = "sell"
+
         # Build executable order
         executable_order = {
             "symbol": order["symbol"],
-            "side": order["side"].lower(),  # "buy" or "sell"
+            "side": side,  # "buy" or "sell"
             "amount": base_amount,
             "type": "market",
             "take_profit": order["take_profit"],

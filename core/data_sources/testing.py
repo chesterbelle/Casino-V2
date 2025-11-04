@@ -2,11 +2,14 @@
 Testing Data Source - Casino V2
 
 Provides real-time data from exchange demo/testnet.
+Uses CCXTAdapter internally for balance/position management.
 """
 
 import asyncio
 import logging
 from typing import Dict, Optional
+
+from tables.ccxt_adapter import CCXTAdapter
 
 from .base import Candle, DataSource
 
@@ -36,6 +39,7 @@ class TestingDataSource(DataSource):
         symbol: str,
         timeframe: str,
         poll_interval: float = 5.0,
+        starting_balance: float = 10000.0,
     ):
         """
         Initialize testing data source.
@@ -45,8 +49,15 @@ class TestingDataSource(DataSource):
             symbol: Trading pair (e.g., "BTC/USD")
             timeframe: Candle interval (e.g., "5m", "1h")
             poll_interval: Seconds to wait between candle checks
+            starting_balance: Initial balance for testing
         """
-        self.connector = connector
+        # Use CCXTAdapter internally for balance/position management
+        self.adapter = CCXTAdapter(
+            connector=connector,
+            symbol=symbol,
+            timeframe=timeframe,
+            starting_balance=starting_balance,
+        )
         self.symbol = symbol
         self.timeframe = timeframe
         self.poll_interval = poll_interval
@@ -67,21 +78,8 @@ class TestingDataSource(DataSource):
             return
 
         try:
-            # Connect connector
-            if hasattr(self.connector, "connect"):
-                await self.connector.connect()
-
-            # Wait for connector to be ready
-            if hasattr(self.connector, "ready"):
-                timeout = 30
-                elapsed = 0
-                while not self.connector.ready and elapsed < timeout:
-                    await asyncio.sleep(1)
-                    elapsed += 1
-
-                if not self.connector.ready:
-                    raise RuntimeError("Connector not ready after 30s")
-
+            # Connect through adapter
+            await self.adapter.connect()
             self._connected = True
             logger.info("✅ Testing data source connected")
 
@@ -95,9 +93,7 @@ class TestingDataSource(DataSource):
             return
 
         try:
-            if hasattr(self.connector, "close"):
-                await self.connector.close()
-
+            await self.adapter.close()
             self._connected = False
             logger.info("🔌 Testing data source disconnected")
 
@@ -118,15 +114,15 @@ class TestingDataSource(DataSource):
 
         while True:
             try:
-                # Fetch latest candle
-                candles = await self.connector.fetch_ohlcv(self.symbol, self.timeframe, limit=1)
+                # Fetch latest candle through adapter
+                candle_data = await self.adapter.next_candle()
 
-                if not candles:
-                    logger.warning("⚠️ No candles received, retrying...")
+                if not candle_data:
+                    logger.warning("⚠️ No candle received, retrying...")
                     await asyncio.sleep(self.poll_interval)
                     continue
 
-                candle_data = candles[0]
+                # Extract timestamp
                 timestamp = int(candle_data["timestamp"])
 
                 # Check if it's a new candle
@@ -138,11 +134,7 @@ class TestingDataSource(DataSource):
                 # New candle!
                 self._last_candle_timestamp = timestamp
 
-                # Get enriched state
-                equity = self.get_equity()
-                balance = self.get_balance()
-                unrealized_pnl = equity - balance
-
+                # Adapter already enriches with equity/balance
                 return Candle(
                     timestamp=timestamp,
                     open=float(candle_data["open"]),
@@ -152,9 +144,9 @@ class TestingDataSource(DataSource):
                     volume=float(candle_data["volume"]),
                     symbol=self.symbol,
                     timeframe=self.timeframe,
-                    equity=equity,
-                    balance=balance,
-                    unrealized_pnl=unrealized_pnl,
+                    equity=float(candle_data.get("equity", 0)),
+                    balance=float(candle_data.get("balance", 0)),
+                    unrealized_pnl=float(candle_data.get("unrealized_pnl", 0)),
                 )
 
             except Exception as e:
@@ -177,14 +169,8 @@ class TestingDataSource(DataSource):
             raise RuntimeError("Not connected. Call connect() first.")
 
         try:
-            # Execute through connector
-            result = await self.connector.create_order(
-                symbol=order.get("symbol", self.symbol),
-                side=order["side"],
-                amount=order["amount"],
-                order_type=order.get("type", "market"),
-                price=order.get("price"),
-            )
+            # Execute through adapter
+            result = await self.adapter.execute_order(order)
 
             logger.info(
                 f"✅ Order executed | "
@@ -213,49 +199,17 @@ class TestingDataSource(DataSource):
             }
 
     def get_balance(self) -> float:
-        """Get current balance from exchange demo."""
+        """Get current balance from adapter."""
         try:
-            # This is a simplified version
-            # In reality, you'd fetch balance from connector
-            if hasattr(self.connector, "fetch_balance"):
-                # Sync call (wrap in asyncio if needed)
-                import asyncio
-
-                loop = asyncio.get_event_loop()
-                if loop.is_running():
-                    # Can't use asyncio.run in running loop
-                    # Return cached value or 0
-                    return 0.0
-                else:
-                    balance_data = asyncio.run(self.connector.fetch_balance())
-                    return float(balance_data.get("free", {}).get("USD", 0))
-
-            return 0.0
-
+            return self.adapter.balance_manager.balance
         except Exception as e:
             logger.warning(f"⚠️ Error fetching balance: {e}")
             return 0.0
 
     def get_equity(self) -> float:
-        """Get current equity from exchange demo."""
+        """Get current equity from adapter."""
         try:
-            # Equity = balance + unrealized PnL
-            balance = self.get_balance()
-
-            # Get unrealized PnL from open positions
-            if hasattr(self.connector, "fetch_positions"):
-                import asyncio
-
-                loop = asyncio.get_event_loop()
-                if loop.is_running():
-                    return balance
-                else:
-                    positions = asyncio.run(self.connector.fetch_positions())
-                    unrealized_pnl = sum(float(pos.get("unrealizedPnl", 0)) for pos in positions)
-                    return balance + unrealized_pnl
-
-            return balance
-
+            return self.adapter.balance_manager.equity
         except Exception as e:
             logger.warning(f"⚠️ Error fetching equity: {e}")
             return 0.0

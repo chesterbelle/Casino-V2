@@ -484,17 +484,17 @@ class ResilientConnector(BaseConnector):
     @property
     def exchange_name(self) -> str:
         """Delegate to underlying connector."""
-        return self.connector.exchange_name
+        return self._connector.exchange_name
 
     def normalize_symbol(self, symbol: str) -> str:
         """Delegate to underlying connector."""
-        return self.connector.normalize_symbol(symbol)
+        return self._connector.normalize_symbol(symbol)
 
     def denormalize_symbol(self, symbol: str) -> str:
         """Delegate to underlying connector."""
-        return self.connector.denormalize_symbol(symbol)
+        return self._connector.denormalize_symbol(symbol)
 
     @property
     def is_connected(self) -> bool:
         """Check if connector is connected."""
-        return self._connected and self.connector.is_connected
+        return self._connected and self._connector.is_connected
