@@ -88,11 +88,31 @@ class TestingDataSource(DataSource):
             raise
 
     async def disconnect(self) -> None:
-        """Disconnect from exchange demo."""
+        """Disconnect from exchange demo and force-close any open positions."""
         if not self._connected:
             return
 
         try:
+            # Force close all open positions before disconnecting
+            if hasattr(self.adapter, "position_tracker") and self.adapter.position_tracker:
+                open_positions = self.adapter.position_tracker.get_all_positions()
+                if open_positions:
+                    logger.info(f"🔄 Force-closing {len(open_positions)} open position(s) at session end...")
+
+                    for position in open_positions:
+                        try:
+                            # Close position at market price
+                            side = "sell" if position["side"] == "buy" else "buy"
+                            await self.adapter.connector.create_order(
+                                symbol=position["symbol"],
+                                side=side,
+                                amount=abs(position["amount"]),
+                                order_type="market",
+                            )
+                            logger.info(f"✅ Force-closed position: {position['symbol']} {position['side'].upper()}")
+                        except Exception as e:
+                            logger.error(f"❌ Failed to force-close position: {e}")
+
             await self.adapter.close()
             self._connected = False
             logger.info("🔌 Testing data source disconnected")

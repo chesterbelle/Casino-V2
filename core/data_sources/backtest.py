@@ -208,7 +208,57 @@ class BacktestDataSource(DataSource):
         logger.info("✅ Backtest data source connected")
 
     async def disconnect(self) -> None:
-        """Close backtest (no-op, nothing to disconnect)."""
+        """Close backtest and force-close any open positions."""
+        # Force close all open positions at current market price
+        if self.open_positions:
+            logger.info(f"🔄 Force-closing {len(self.open_positions)} open position(s) at session end...")
+
+            for position in self.open_positions[:]:  # Copy list to avoid modification during iteration
+                # Close at current price (last candle close)
+                current_price = (
+                    self.candles[self.current_index - 1]["close"] if self.current_index > 0 else position["entry_price"]
+                )
+
+                # Calculate PnL
+                if position["side"] == "buy":
+                    pnl = (current_price - position["entry_price"]) * position["amount"]
+                else:  # sell
+                    pnl = (position["entry_price"] - current_price) * position["amount"]
+
+                # Subtract fees
+                exit_fee = position["amount"] * current_price * self.fee_rate
+                net_pnl = pnl - exit_fee
+
+                # Return margin
+                self.balance += position["margin"]
+
+                # Apply PnL
+                self.balance += net_pnl
+
+                # Record trade
+                total_fee = position["entry_fee"] + exit_fee
+                self.closed_trades.append(
+                    {
+                        "entry_price": position["entry_price"],
+                        "exit_price": current_price,
+                        "side": position["side"],
+                        "amount": position["amount"],
+                        "pnl": net_pnl,
+                        "total_fee": total_fee,
+                        "result": "WIN" if net_pnl > 0 else "LOSS",
+                        "exit_reason": "FORCE_CLOSE_END_SESSION",
+                    }
+                )
+
+                logger.info(
+                    f"{'🟢' if net_pnl > 0 else '🔴'} Position force-closed | "
+                    f"END_SESSION @ {current_price:.2f} | "
+                    f"PnL: {net_pnl:+.2f} | Balance: {self.balance:.2f}"
+                )
+
+                # Remove from open positions
+                self.open_positions.remove(position)
+
         self._connected = False
         logger.info("🔌 Backtest data source disconnected")
 
