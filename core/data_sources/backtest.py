@@ -215,9 +215,7 @@ class BacktestDataSource(DataSource):
 
             for position in self.open_positions[:]:  # Copy list to avoid modification during iteration
                 # Close at current price (last candle close)
-                current_price = (
-                    self.candles[self.current_index - 1]["close"] if self.current_index > 0 else position["entry_price"]
-                )
+                current_price = self.data.iloc[self.index - 1]["close"] if self.index > 0 else position["entry_price"]
 
                 # Calculate PnL
                 if position["side"] == "buy":
