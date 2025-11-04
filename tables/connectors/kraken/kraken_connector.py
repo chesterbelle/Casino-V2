@@ -435,12 +435,9 @@ class KrakenConnector(BaseConnector):
                 f"amount={amount}, price={price}, type={order_type}, params={params}"
             )
 
-            # For Kraken Futures, leverage is set at account level, not per order
-            # Remove leverage from params if present
-            clean_params = (params or {}).copy()
-            if "leverage" in clean_params:
-                self.logger.debug("Removing leverage from params (set at account level)")
-                clean_params.pop("leverage")
+            # Note: Kraken Futures handles leverage at account level
+            # The 'leverage' param is informational and used for position sizing calculation
+            # but the actual leverage is configured in the account settings
 
             # Create order on Kraken
             order = await self.exchange.create_order(
@@ -449,7 +446,7 @@ class KrakenConnector(BaseConnector):
                 side=side.lower(),
                 amount=amount,
                 price=price,
-                params=clean_params,
+                params=params or {},
             )
 
             # Normalize response

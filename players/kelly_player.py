@@ -13,12 +13,14 @@ Estrategia:
 3. Calcula Kelly usando: f = p - q/b
 4. Aplica fracción de Kelly (ej: 0.2 = 20% de Kelly completo)
 5. Limita por MAX_POSITION_SIZE
+6. Usa leverage 10x (consistente con sistema para validación de TP/SL)
 
 Configuración (config.py):
 --------------------------
 KELLY_FRACTION: fracción de Kelly a usar (default: 0.2 = muy conservador)
 MAX_POSITION_SIZE: límite máximo de posición (default: 0.02 = 2%)
 TAKE_PROFIT, STOP_LOSS, COMMISSION_RATE: para calcular R_NET, L_NET
+LEVERAGE: apalancamiento 10x (consistente, máx 50x según config)
 
 Referencia:
 -----------
@@ -78,6 +80,12 @@ else:
 # Configuración de Kelly
 KELLY_FRACTION = getattr(config, "KELLY_FRACTION", 0.2)
 MAX_POSITION_SIZE = getattr(config, "MAX_POSITION_SIZE", 0.02)
+LEVERAGE = 10  # Consistente con sistema para validación de TP/SL (máx: config.MAX_LEVERAGE)
+
+# Validar leverage contra config
+MAX_LEVERAGE = int(getattr(config, "MAX_LEVERAGE", 50))
+if LEVERAGE > MAX_LEVERAGE:
+    raise ValueError(f"Kelly player: LEVERAGE={LEVERAGE} excede MAX_LEVERAGE={MAX_LEVERAGE} del config")
 
 
 def calculate_position_size(verdict: Verdict, equity: float, meta: dict = None) -> Optional[float]:

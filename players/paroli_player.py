@@ -9,6 +9,7 @@ Estrategia:
 - Mantiene esa unidad fija durante toda la progresión Paroli (1x, 4x, 8x).
 - Tras cada victoria avanza al siguiente escalón; al perder o completar el ciclo reinicia.
 - Respeta `config.MAX_POSITION_SIZE` para no exceder el riesgo máximo.
+- Usa leverage 10x para amplificar posiciones en futures.
 
 Integración:
 ------------
@@ -16,6 +17,7 @@ Integración:
 - `prepare_state()`→ asegura que exista unidad al empezar ciclo y entrega metadata para el player.
 - `calculate_position_size()` → decide fracción de equity a apostar según el escalón actual.
 - `handle_trade_outcome()` → actualiza el estado tras conocer el resultado del trade.
+- `LEVERAGE` → apalancamiento usado en órdenes (10x por defecto, máx 50x según config).
 
 ⚠️ Particularidad: este player no comprueba si Gemini encontró edge.
 Mientras exista `verdict.side`, apostará aplicando la progresión 1-4-8,
@@ -54,6 +56,12 @@ if TYPE_CHECKING:  # pragma: no cover - solo para hints
 BASE_DIVISOR = 250  # Unidad inicial = equity / 250
 PROGRESSION = (1, 4, 8)  # Multiplicadores Paroli
 MAX_POSITION_SIZE = float(getattr(config, "MAX_POSITION_SIZE", 0.02))
+LEVERAGE = 10  # Apalancamiento para futures (máx permitido: config.MAX_LEVERAGE)
+
+# Validar leverage contra config
+MAX_LEVERAGE = int(getattr(config, "MAX_LEVERAGE", 50))
+if LEVERAGE > MAX_LEVERAGE:
+    raise ValueError(f"Paroli player: LEVERAGE={LEVERAGE} excede MAX_LEVERAGE={MAX_LEVERAGE} del config")
 
 
 def init_state() -> Dict[str, Optional[float]]:

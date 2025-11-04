@@ -124,8 +124,8 @@ class BuildOrderStage(Stage):
         # Calculate notional amount (margin to use)
         notional_amount = context.equity * size_fraction
 
-        # Apply leverage (default 10x for futures)
-        leverage = 10
+        # Get leverage from player (default to 1 if not specified)
+        leverage = getattr(self.player, "LEVERAGE", 1)
         position_size_usd = notional_amount * leverage
 
         # Calculate base amount (in base currency)
