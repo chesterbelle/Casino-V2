@@ -450,7 +450,10 @@ class KrakenConnector(BaseConnector):
             # Clean params - remove leverage as it causes decimal.ConversionSyntax error
             clean_params = (params or {}).copy()
             if "leverage" in clean_params:
-                self.logger.debug(f"Removing leverage from params: {clean_params.pop('leverage')}")
+                removed_leverage = clean_params.pop("leverage")
+                self.logger.info(f"🔧 Removed leverage={removed_leverage} from params")
+
+            self.logger.info(f"📋 Clean params being sent: {clean_params}")
 
             # Create order on Kraken
             order = await self.exchange.create_order(
