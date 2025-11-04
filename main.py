@@ -14,7 +14,7 @@ import sys
 from core import config
 from core.data_sources import BacktestDataSource, LiveDataSource, TestingDataSource
 from core.trading import TradingSession
-from players import fixed_player, kelly_player, paroli_player
+from players import kelly_player, paroli_player
 from tables.connectors import KrakenConnector, ResilientConnector
 
 # Setup logging
@@ -29,7 +29,6 @@ logger = logging.getLogger("Casino-V2")
 PLAYERS = {
     "paroli": paroli_player,
     "kelly": kelly_player,
-    "fixed": fixed_player,
 }
 
 

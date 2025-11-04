@@ -11,9 +11,10 @@ del dimensionamiento de posiciones (Players).
 
 Módulos disponibles:
 --------------------
-- kelly_player: Criterio de Kelly fraccional (conservador)
-- fixed_player: Porcentaje fijo del equity
-- adaptive_player: Ajusta según volatilidad/régimen
+- kelly_player: Criterio de Kelly fraccional (conservador, respeta edge)
+- paroli_player: Progresión positiva 1-4-8 (agresivo, ignora edge)
+
+Ambos usan LEVERAGE=10x para consistencia en TP/SL.
 
 Uso típico:
 -----------
@@ -26,10 +27,8 @@ Uso típico:
         order = gemini.make_order_from_verdict(verdict, size_fraction)
 """
 
-from .fixed_player import calculate_position_size as fixed_position_size
 from .kelly_player import calculate_position_size as kelly_position_size
 
 __all__ = [
     "kelly_position_size",
-    "fixed_position_size",
 ]
