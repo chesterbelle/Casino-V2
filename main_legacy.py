@@ -46,7 +46,7 @@ from core import (  # noqa: E402
     run_session_with_player,
 )
 from core.testing_session import run_testing_session  # noqa: E402
-from players import fixed_player, kelly_player, paroli_player  # noqa: E402
+from players import kelly_player, paroli_player  # noqa: E402
 
 try:
     from live_session import run_live_session  # noqa: E402
@@ -70,7 +70,6 @@ logger = logging.getLogger("MainV2")
 # ============================================================
 AVAILABLE_PLAYERS = {
     "kelly": kelly_player,
-    "fixed": fixed_player,
     "paroli": paroli_player,
 }
 

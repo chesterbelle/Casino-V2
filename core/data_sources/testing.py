@@ -114,27 +114,36 @@ class TestingDataSource(DataSource):
 
         while True:
             try:
-                # Fetch latest candle through adapter
-                candle_data = await self.adapter.next_candle()
+                # Fetch latest candle directly from connector (bypass adapter for now)
+                logger.debug("🔄 Fetching candle from connector...")
+                candles = await self.adapter.connector.fetch_ohlcv(self.symbol, self.timeframe, limit=1)
 
-                if not candle_data:
-                    logger.warning("⚠️ No candle received, retrying...")
+                if not candles:
+                    logger.warning("⚠️ No candles received, retrying...")
                     await asyncio.sleep(self.poll_interval)
                     continue
 
+                candle_data = candles[0]
+
                 # Extract timestamp
                 timestamp = int(candle_data["timestamp"])
+                logger.debug(f"📊 Received candle with timestamp: {timestamp}")
 
                 # Check if it's a new candle
                 if timestamp <= self._last_candle_timestamp:
                     # Same candle, wait for next
+                    logger.debug(f"⏳ Same candle (ts={timestamp}), waiting for new one...")
                     await asyncio.sleep(self.poll_interval)
                     continue
 
                 # New candle!
                 self._last_candle_timestamp = timestamp
+                logger.info(f"✅ New candle received | ts={timestamp}")
 
-                # Adapter already enriches with equity/balance
+                # Get balance/equity from adapter
+                balance = self.adapter.balance_manager.balance
+                equity = self.adapter.balance_manager.equity
+
                 return Candle(
                     timestamp=timestamp,
                     open=float(candle_data["open"]),
@@ -144,9 +153,9 @@ class TestingDataSource(DataSource):
                     volume=float(candle_data["volume"]),
                     symbol=self.symbol,
                     timeframe=self.timeframe,
-                    equity=float(candle_data.get("equity", 0)),
-                    balance=float(candle_data.get("balance", 0)),
-                    unrealized_pnl=float(candle_data.get("unrealized_pnl", 0)),
+                    equity=equity,
+                    balance=balance,
+                    unrealized_pnl=equity - balance,
                 )
 
             except Exception as e:

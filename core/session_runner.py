@@ -44,7 +44,7 @@ def run_session_with_player(
         initial_balance: Capital inicial en USD para la sesión.
         gemini: Instancia de Gemini que valida señales y toma decisiones.
         player_module: Módulo del player que calcula tamaños de posición
-            (ej: kelly_player, fixed_player, paroli_player).
+            (ej: kelly_player, paroli_player).
         player_name: Nombre identificador del player para logging.
         mode: Modo de ejecución ('backtest', 'live_ccxt', 'multi_asset_backtest').
         multi_asset_config: Configuración opcional para modo multi-asset.
