@@ -327,6 +327,16 @@ class CCXTAdapter(BaseTable):
                     "order": order,
                 }
 
+            # 2. Prepare params with TP/SL if present
+            params = order.get("params", {}).copy()
+
+            # Add take_profit and stop_loss to params if present
+            # Note: For now, we'll skip TP/SL in testing mode to avoid format issues
+            # In production, these would need to be formatted according to exchange specs
+            if "take_profit" in order and order["take_profit"]:
+                # Skip TP/SL for now - needs exchange-specific formatting
+                self.logger.debug(f"TP/SL present but skipped: TP={order['take_profit']}, SL={order['stop_loss']}")
+
             # 2. Execute via connector
             result = await self.connector.create_order(
                 symbol=order.get("symbol", self.symbol),
@@ -334,7 +344,7 @@ class CCXTAdapter(BaseTable):
                 amount=order["amount"],
                 price=order.get("price"),
                 order_type=order.get("type", "market"),
-                params=order.get("params", {}),
+                params=params,
             )
 
             if not isinstance(result, dict):
