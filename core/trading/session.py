@@ -5,6 +5,7 @@ Unified trading session that works with any data source.
 This is the main entry point for running the trading bot.
 """
 
+import inspect
 import logging
 from typing import Optional
 
@@ -196,6 +197,9 @@ class TradingSession:
             # Get data source stats (if available)
             if hasattr(self.data_source, "get_stats"):
                 ds_stats = self.data_source.get_stats()
+                # Check if it's a coroutine (async method)
+                if inspect.iscoroutine(ds_stats):
+                    ds_stats = await ds_stats
                 logger.info(
                     f"💰 Final balance: {ds_stats.get('final_balance', 0):.2f} | "
                     f"PnL: {ds_stats.get('net_pnl', 0):+.2f} | "

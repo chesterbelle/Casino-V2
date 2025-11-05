@@ -1,9 +1,19 @@
-#!/bin/bash
-# Monitor testing mode progress
-
-echo "🔍 Monitoreando testing mode..."
-echo "================================"
-echo ""
-
-# Show last 20 lines with key events
-tail -f testing_30_candles.log | grep -E "(New candle|signal|Order built|Order executed|TP/SL configured|Creating order|Error|Session completed)" --line-buffered
+#\!/bin/bash
+while true; do
+    clear
+    echo "=== TESTING MODE MONITOR ==="
+    echo ""
+    echo "Candles procesadas:"
+    grep "New candle received" testing_60_v2.log | wc -l
+    echo ""
+    echo "Órdenes ejecutadas:"
+    grep "Orden creada" testing_60_v2.log | wc -l
+    echo ""
+    echo "Último progreso:"
+    grep "Progress" testing_60_v2.log | tail -1
+    echo ""
+    echo "Última orden:"
+    grep "Orden ejecutada" testing_60_v2.log | tail -1
+    echo ""
+    sleep 30
+done
