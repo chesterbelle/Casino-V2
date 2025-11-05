@@ -187,6 +187,19 @@ async def run_testing(player_module, symbol, interval, max_candles):
     # Run
     await session.run()
 
+    # Show final stats
+    stats = await source.get_stats()
+    print("\n" + "=" * 60)
+    print("📊 TESTING RESULTS")
+    print("=" * 60)
+    print(f"Initial Balance:  ${stats['initial_balance']:,.2f}")
+    print(f"Final Balance:    ${stats['final_balance']:,.2f}")
+    print(f"Final Equity:     ${stats['final_equity']:,.2f}")
+    print(f"Net PnL:          ${stats['total_pnl']:+,.2f}")
+    print(f"Total Trades:     {stats['total_trades']}")
+    print(f"Open Positions:   {stats['open_positions']}")
+    print("=" * 60)
+
 
 async def run_live(player_module, symbol, interval, max_candles):
     """Run live mode (REAL MONEY)."""

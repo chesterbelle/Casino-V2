@@ -81,6 +81,10 @@ class TestingDataSource(DataSource):
             # Connect through adapter
             await self.adapter.connect()
             self._connected = True
+
+            # Save initial balance for stats
+            self.initial_balance = self.get_balance()
+
             logger.info("✅ Testing data source connected")
 
         except Exception as e:
@@ -94,24 +98,30 @@ class TestingDataSource(DataSource):
 
         try:
             # Force close all open positions before disconnecting
-            if hasattr(self.adapter, "position_tracker") and self.adapter.position_tracker:
-                open_positions = self.adapter.position_tracker.get_all_positions()
+            try:
+                open_positions = await self.adapter.connector.fetch_positions()
                 if open_positions:
                     logger.info(f"🔄 Force-closing {len(open_positions)} open position(s) at session end...")
 
                     for position in open_positions:
                         try:
-                            # Close position at market price
-                            side = "sell" if position["side"] == "buy" else "buy"
-                            await self.adapter.connector.create_order(
-                                symbol=position["symbol"],
-                                side=side,
-                                amount=abs(position["amount"]),
-                                order_type="market",
-                            )
-                            logger.info(f"✅ Force-closed position: {position['symbol']} {position['side'].upper()}")
+                            # Only close positions with non-zero amount
+                            if abs(float(position.get("contracts", 0))) > 0:
+                                side = "sell" if position["side"] == "long" else "buy"
+                                await self.adapter.connector.create_order(
+                                    symbol=position["symbol"],
+                                    side=side,
+                                    amount=abs(float(position["contracts"])),
+                                    order_type="market",
+                                )
+                                logger.info(
+                                    f"✅ Force-closed position: {position['symbol']} "
+                                    f"{position['side'].upper()} {position['contracts']}"
+                                )
                         except Exception as e:
                             logger.error(f"❌ Failed to force-close position: {e}")
+            except Exception as e:
+                logger.debug(f"No positions to close or error fetching: {e}")
 
             await self.adapter.close()
             self._connected = False
@@ -201,6 +211,15 @@ class TestingDataSource(DataSource):
             # Execute through adapter
             result = await self.adapter.execute_order(order)
 
+            # Check if result is valid
+            if result is None:
+                logger.error("❌ Order execution failed: adapter returned None")
+                return {
+                    "status": "rejected",
+                    "reason": "Adapter returned None",
+                    "order": order,
+                }
+
             logger.info(
                 f"✅ Order executed | "
                 f"{result.get('side', '?').upper()} "
@@ -215,7 +234,7 @@ class TestingDataSource(DataSource):
                 "side": result.get("side"),
                 "amount": result.get("amount"),
                 "entry_price": result.get("price"),
-                "fee": result.get("fee", {}).get("cost", 0),
+                "fee": result.get("fee", {}).get("cost", 0) if isinstance(result.get("fee"), dict) else 0,
                 "balance": self.get_balance(),
             }
 
@@ -242,3 +261,49 @@ class TestingDataSource(DataSource):
         except Exception as e:
             logger.warning(f"⚠️ Error fetching equity: {e}")
             return 0.0
+
+    async def get_stats(self) -> dict:
+        """
+        Get trading statistics from exchange.
+
+        Returns:
+            Dict with trading stats (balance, equity, positions, etc.)
+        """
+        try:
+            # Get current balance and equity
+            balance = self.get_balance()
+            equity = self.get_equity()
+
+            # Try to get closed trades from exchange
+            try:
+                trades = await self.adapter.connector.fetch_my_trades(self.symbol, limit=1000)
+                closed_trades = len(trades) if trades else 0
+            except Exception:
+                closed_trades = 0
+
+            # Try to get open positions
+            try:
+                positions = await self.adapter.connector.fetch_positions()
+                open_positions = len([p for p in positions if abs(float(p.get("contracts", 0))) > 0])
+            except Exception:
+                open_positions = 0
+
+            return {
+                "initial_balance": getattr(self, "initial_balance", balance),
+                "final_balance": balance,
+                "final_equity": equity,
+                "total_pnl": equity - getattr(self, "initial_balance", balance),
+                "total_trades": closed_trades,
+                "open_positions": open_positions,
+            }
+
+        except Exception as e:
+            logger.error(f"❌ Error getting stats: {e}")
+            return {
+                "initial_balance": 0,
+                "final_balance": 0,
+                "final_equity": 0,
+                "total_pnl": 0,
+                "total_trades": 0,
+                "open_positions": 0,
+            }
