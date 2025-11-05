@@ -327,46 +327,8 @@ class CCXTAdapter(BaseTable):
                     "order": order,
                 }
 
-            # 2. Prepare params with TP/SL if present
+            # 2. Prepare params (TP/SL will be created as separate orders after execution)
             params = order.get("params", {}).copy()
-
-            # Convert TP/SL multipliers to absolute prices for Kraken Futures
-            if "take_profit" in order and order["take_profit"]:
-                # Get current price from last candle or fetch latest
-                current_price = None
-                if self._last_candle and "close" in self._last_candle:
-                    current_price = self._last_candle.get("close")
-                else:
-                    # Fetch latest candle to get current price
-                    try:
-                        candles = await self.connector.fetch_ohlcv(self.symbol, self.timeframe, limit=1)
-                        if candles:
-                            current_price = candles[0].get("close")
-                    except Exception as e:
-                        self.logger.warning(f"⚠️ Could not fetch current price: {e}")
-
-                if current_price:
-                    tp_multiplier = float(order["take_profit"])  # e.g., 1.005 (0.5% profit)
-                    sl_multiplier = float(order["stop_loss"])  # e.g., 0.985 (1.5% loss)
-
-                    # Calculate absolute prices
-                    tp_price = current_price * tp_multiplier
-                    sl_price = current_price * sl_multiplier
-
-                    # Format for Kraken Futures
-                    # Note: Kraken Futures may not support TP/SL in create_order params
-                    # For now, we'll skip them and handle via separate orders later
-                    # params["stopLoss"] = {"triggerPrice": sl_price}
-                    # params["takeProfit"] = {"triggerPrice": tp_price}
-
-                    self.logger.info(
-                        f"📊 TP/SL configured | "
-                        f"Entry: ${current_price:.2f} | "
-                        f"TP: ${tp_price:.2f} ({(tp_multiplier-1)*100:.2f}%) | "
-                        f"SL: ${sl_price:.2f} ({(1-sl_multiplier)*100:.2f}%)"
-                    )
-                else:
-                    self.logger.warning("⚠️ Cannot set TP/SL: no current price available")
 
             # 2. Execute via connector
             result = await self.connector.create_order(
@@ -385,7 +347,22 @@ class CCXTAdapter(BaseTable):
                 )
                 raise ValueError("Connector returned invalid order result")
 
-            # 3. Update internal state
+            # 3. Create TP/SL orders if configured (Kraken Futures requires separate orders)
+            if "take_profit" in order and order["take_profit"]:
+                try:
+                    await self._create_tpsl_orders(
+                        symbol=order.get("symbol", self.symbol),
+                        side=order["side"],
+                        amount=order["amount"],
+                        entry_price=result.get("price", result.get("average")),
+                        tp_multiplier=float(order["take_profit"]),
+                        sl_multiplier=float(order["stop_loss"]),
+                    )
+                except Exception as tpsl_error:
+                    self.logger.error(f"⚠️ Error creating TP/SL orders: {tpsl_error}")
+                    # Don't fail the main order if TP/SL creation fails
+
+            # 4. Update internal state
             self._update_after_order(result)
 
             self.logger.info(f"✅ Orden ejecutada | {result['symbol']} {result['side'].upper()} {result['amount']}")
@@ -527,6 +504,81 @@ class CCXTAdapter(BaseTable):
                 return False
 
         return True
+
+    async def _create_tpsl_orders(
+        self,
+        symbol: str,
+        side: str,
+        amount: float,
+        entry_price: float,
+        tp_multiplier: float,
+        sl_multiplier: float,
+    ) -> None:
+        """
+        Create separate Take Profit and Stop Loss orders for Kraken Futures.
+
+        Kraken Futures requires TP/SL as separate conditional orders,
+        not as params in the main order.
+
+        Args:
+            symbol: Trading pair
+            side: Original order side ('buy' or 'sell')
+            amount: Position size
+            entry_price: Entry price of the position
+            tp_multiplier: Take profit multiplier (e.g., 1.005 for 0.5% profit)
+            sl_multiplier: Stop loss multiplier (e.g., 0.985 for 1.5% loss)
+        """
+        if not entry_price:
+            self.logger.warning("⚠️ Cannot create TP/SL: no entry price available")
+            return
+
+        # Calculate absolute TP/SL prices
+        tp_price = entry_price * tp_multiplier
+        sl_price = entry_price * sl_multiplier
+
+        # Determine close side (opposite of entry)
+        close_side = "sell" if side == "buy" else "buy"
+
+        try:
+            # Create Take Profit order (limit order triggered when price reaches TP)
+            await self.connector.create_order(
+                symbol=symbol,
+                side=close_side,
+                amount=amount,
+                price=tp_price,
+                order_type="take_profit",  # Kraken Futures conditional order type
+                params={
+                    "triggerPrice": tp_price,
+                    "reduceOnly": True,  # Only close position, don't open new one
+                },
+            )
+            self.logger.info(
+                f"✅ Take Profit order created | "
+                f"{symbol} {close_side.upper()} @ ${tp_price:.2f} "
+                f"(+{(tp_multiplier-1)*100:.2f}%)"
+            )
+
+            # Create Stop Loss order (stop order triggered when price reaches SL)
+            await self.connector.create_order(
+                symbol=symbol,
+                side=close_side,
+                amount=amount,
+                price=sl_price,
+                order_type="stop",  # Kraken Futures stop order type
+                params={
+                    "triggerPrice": sl_price,
+                    "reduceOnly": True,  # Only close position, don't open new one
+                },
+            )
+            self.logger.info(
+                f"✅ Stop Loss order created | "
+                f"{symbol} {close_side.upper()} @ ${sl_price:.2f} "
+                f"(-{(1-sl_multiplier)*100:.2f}%)"
+            )
+
+        except Exception as e:
+            self.logger.error(f"❌ Error creating TP/SL orders: {e}")
+            raise
 
     def _update_balance(self, balance_data: Dict) -> None:
         """Update internal balance from exchange data."""
