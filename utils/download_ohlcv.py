@@ -56,7 +56,7 @@ async def download_ohlcv(
     print("=" * 60)
 
     # Crear connector
-    connector = KrakenConnector(mode="demo")
+    connector = KrakenConnector(mode="testing")
 
     try:
         # Conectar
@@ -69,14 +69,12 @@ async def download_ohlcv(
             # Calcular timestamps basado en last_n_candles
             print(f"\n📊 Descargando últimas {last_n_candles} velas...")
             limit = last_n_candles
-            since = None
         elif start_ts and end_ts:
             # Usar timestamps específicos
             print(f"\n📊 Descargando período específico...")
             print(f"   Inicio: {datetime.fromtimestamp(start_ts/1000)}")
             print(f"   Fin:    {datetime.fromtimestamp(end_ts/1000)}")
             limit = None
-            since = start_ts
         else:
             raise ValueError("Debes especificar --last-n-candles o --start y --end")
 
@@ -84,7 +82,7 @@ async def download_ohlcv(
         print(f"   Symbol: {symbol}")
         print(f"   Interval: {interval}")
 
-        ohlcv = await connector.fetch_ohlcv(symbol=symbol, timeframe=interval, since=since, limit=limit)
+        ohlcv = await connector.fetch_ohlcv(symbol=symbol, timeframe=interval, limit=limit)
 
         if not ohlcv:
             print("❌ No se obtuvieron datos")
@@ -133,7 +131,7 @@ async def download_ohlcv(
 
     finally:
         # Desconectar
-        await connector.disconnect()
+        await connector.close()
         print("\n🔌 Desconectado")
 
     print("\n" + "=" * 60)

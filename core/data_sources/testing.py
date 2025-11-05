@@ -98,30 +98,10 @@ class TestingDataSource(DataSource):
 
         try:
             # Force close all open positions before disconnecting
-            try:
-                open_positions = await self.adapter.connector.fetch_positions()
-                if open_positions:
-                    logger.info(f"🔄 Force-closing {len(open_positions)} open position(s) at session end...")
-
-                    for position in open_positions:
-                        try:
-                            # Only close positions with non-zero amount
-                            if abs(float(position.get("contracts", 0))) > 0:
-                                side = "sell" if position["side"] == "long" else "buy"
-                                await self.adapter.connector.create_order(
-                                    symbol=position["symbol"],
-                                    side=side,
-                                    amount=abs(float(position["contracts"])),
-                                    order_type="market",
-                                )
-                                logger.info(
-                                    f"✅ Force-closed position: {position['symbol']} "
-                                    f"{position['side'].upper()} {position['contracts']}"
-                                )
-                        except Exception as e:
-                            logger.error(f"❌ Failed to force-close position: {e}")
-            except Exception as e:
-                logger.debug(f"No positions to close or error fetching: {e}")
+            # Use adapter's method to properly update position_tracker and stats
+            closed_positions = await self.adapter.close_all_positions()
+            if closed_positions:
+                logger.info(f"✅ Force-closed {len(closed_positions)} position(s) at session end")
 
             await self.adapter.close()
             self._connected = False
