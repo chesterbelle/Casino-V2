@@ -22,8 +22,8 @@ from typing import Dict, Literal
 # =====================================================
 # 🎯 VERSIÓN ACTUAL
 # =====================================================
-__version__ = "1.9.2"
-__version_name__ = "Paroli Progression Fix"
+__version__ = "1.9.3"
+__version_name__ = "Testing & Validation"
 __release_date__ = "2025-11-05"
 __status__: Literal["stable", "beta", "alpha", "dev"] = "dev"
 
