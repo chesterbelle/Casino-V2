@@ -75,9 +75,41 @@ class CCXTAdapter(BaseTable):
         - Balance management (BalanceManager)
         - Position tracking (PositionTracker)
         - Order validation
-        - TP/SL logic
+        - TP/SL logic (GENÉRICA, no específica de exchange)
         - Exchange state sync (ExchangeStateSync)
         - Logging
+
+    ⚠️ PRINCIPIO DE AGNOSTICIDAD:
+        Este adaptador DEBE mantenerse agnóstico del exchange.
+        - NO implementar lógica específica de Kraken, Binance, etc.
+        - NO usar parámetros específicos de un exchange (takeProfitPrice, etc.)
+        - SÍ usar conceptos genéricos (take_profit_multiplier, stop_loss_multiplier)
+        - Delegar traducción de parámetros al conector específico
+
+    TP/SL Implementation:
+        El adaptador pasa multiplicadores genéricos en params:
+        - take_profit_multiplier: float (e.g., 1.02 para +2%)
+        - stop_loss_multiplier: float (e.g., 0.98 para -2%)
+
+        Cada conector traduce estos a su formato específico:
+        - Kraken: takeProfitPrice, stopLossPrice (embebidos en orden)
+        - Binance: stopPrice, stopLimitPrice (órdenes separadas)
+        - Bybit: takeProfit, stopLoss (en params de orden)
+
+    Ejemplo:
+        ```python
+        # ✅ CORRECTO - Agnóstico
+        params = {
+            "take_profit_multiplier": 1.02,  # +2%
+            "stop_loss_multiplier": 0.98,    # -2%
+        }
+
+        # ❌ INCORRECTO - Específico de Kraken
+        params = {
+            "takeProfitPrice": 105000.0,
+            "stopLossPrice": 101000.0,
+        }
+        ```
     """
 
     def __init__(

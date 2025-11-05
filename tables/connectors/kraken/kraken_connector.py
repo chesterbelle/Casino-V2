@@ -20,6 +20,46 @@ class KrakenConnector(BaseConnector):
 
     This connector handles all communication with Kraken Futures API,
     including REST and WebSocket connections.
+
+    ⚠️ RESPONSABILIDAD DEL CONECTOR:
+        Este conector es responsable de traducir parámetros genéricos
+        a formato específico de Kraken Futures.
+
+        - Recibe: Parámetros genéricos del CCXTAdapter
+        - Traduce: A formato específico de Kraken
+        - Envía: Llamadas a la API de Kraken vía CCXT
+
+    TP/SL Implementation (Kraken-specific):
+        Kraken Futures requiere TP/SL embebidos en la orden principal:
+        - takeProfitPrice: Precio absoluto de take profit
+        - stopLossPrice: Precio absoluto de stop loss
+
+        El conector detecta multiplicadores genéricos y los traduce:
+        1. Detecta take_profit_multiplier y stop_loss_multiplier en params
+        2. Calcula precios absolutos basados en precio de entrada
+        3. Traduce a takeProfitPrice y stopLossPrice
+        4. Remueve multiplicadores genéricos de params
+        5. Envía orden con parámetros específicos de Kraken
+
+    Ejemplo de traducción:
+        ```python
+        # Input (genérico del adaptador):
+        params = {
+            "take_profit_multiplier": 1.02,  # +2%
+            "stop_loss_multiplier": 0.98,    # -2%
+        }
+
+        # Output (específico de Kraken):
+        params = {
+            "takeProfitPrice": 105000.0,  # Precio absoluto
+            "stopLossPrice": 101000.0,    # Precio absoluto
+        }
+        ```
+
+    ⚠️ IMPORTANTE:
+        - NO modificar el CCXTAdapter para agregar lógica de Kraken
+        - SÍ implementar toda la lógica específica de Kraken aquí
+        - Mantener la separación de responsabilidades
     """
 
     def __init__(
@@ -414,13 +454,33 @@ class KrakenConnector(BaseConnector):
         """
         Create an order on Kraken Futures.
 
+        ⚠️ TRADUCCIÓN DE PARÁMETROS GENÉRICOS A KRAKEN-SPECIFIC:
+            Este método detecta parámetros genéricos del adaptador y los traduce
+            al formato específico que Kraken Futures requiere.
+
+            Parámetros genéricos detectados:
+            - take_profit_multiplier (float): Multiplicador de TP (e.g., 1.02 = +2%)
+            - stop_loss_multiplier (float): Multiplicador de SL (e.g., 0.98 = -2%)
+
+            Traducción a Kraken Futures:
+            - takeProfitPrice (float): Precio absoluto de take profit
+            - stopLossPrice (float): Precio absoluto de stop loss
+
+            El conector:
+            1. Detecta multiplicadores en params
+            2. Obtiene precio de entrada (limit price o market price)
+            3. Calcula precios absolutos: entry_price * multiplier
+            4. Remueve multiplicadores genéricos
+            5. Agrega takeProfitPrice y stopLossPrice
+            6. Envía orden a Kraken con parámetros traducidos
+
         Args:
             symbol: Standard symbol format (e.g., "BTC/USD")
             side: Order side - 'buy' or 'sell'
             amount: Order amount in base currency
             price: Limit price (required for limit orders)
             order_type: Order type - 'market' or 'limit'
-            params: Additional Kraken-specific parameters
+            params: Additional parameters (may include generic TP/SL multipliers)
 
         Returns:
             Normalized order result
@@ -429,6 +489,27 @@ class KrakenConnector(BaseConnector):
             InsufficientFunds: If account balance is insufficient
             InvalidOrder: If order parameters are invalid
             ExchangeError: If Kraken returns an error
+
+        Example:
+            ```python
+            # El adaptador envía parámetros genéricos:
+            await connector.create_order(
+                symbol="BTC/USD",
+                side="buy",
+                amount=0.001,
+                order_type="market",
+                params={
+                    "take_profit_multiplier": 1.02,  # +2%
+                    "stop_loss_multiplier": 0.98,    # -2%
+                }
+            )
+
+            # El conector traduce y envía a Kraken:
+            # params = {
+            #     "takeProfitPrice": 105000.0,
+            #     "stopLossPrice": 101000.0,
+            # }
+            ```
         """
         if not self._connected:
             raise RuntimeError("Not connected to Kraken. Call connect() first.")
