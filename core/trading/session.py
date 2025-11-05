@@ -163,6 +163,10 @@ class TradingSession:
                 open_positions = self._get_open_positions()
                 player_meta["open_positions"] = open_positions
 
+                # STEP 2.6: Add symbol and timeframe for player filtering
+                player_meta["symbol"] = getattr(self.data_source, "symbol", None)
+                player_meta["timeframe"] = getattr(self.data_source, "timeframe", None)
+
                 # Get next candle
                 candle = await self.data_source.next_candle()
 

@@ -55,6 +55,10 @@ class OpenPosition:
     order: Dict[str, Any]
     bars_held: int = 0
     funding_accrued: float = 0.0
+    # Metadata para players
+    player: Optional[str] = None  # "paroli", "kelly", etc.
+    timeframe: Optional[str] = None  # "1m", "5m", etc.
+    cycle_step: int = 0  # Paso en la progresión (para Paroli)
 
 
 class PositionTracker:
@@ -204,6 +208,11 @@ class PositionTracker:
             else:
                 return None
 
+            # Extraer metadata del player (si existe en la orden)
+            player = order.get("player")
+            timeframe = order.get("timeframe")
+            cycle_step = order.get("cycle_step", 0)
+
             # Crear posición
             position = OpenPosition(
                 trade_id=trade_id,
@@ -218,6 +227,9 @@ class PositionTracker:
                 sl_level=sl_level,
                 liquidation_level=liquidation_level,
                 order=order.copy(),
+                player=player,
+                timeframe=timeframe,
+                cycle_step=cycle_step,
             )
 
             # Registrar posición

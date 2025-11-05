@@ -123,10 +123,23 @@ def calculate_position_size(
 
     meta = meta or {}
 
-    # VERIFICAR POSICIONES ABIERTAS (responsabilidad del player)
+    # VERIFICAR CICLO ACTIVO en este (symbol, timeframe)
+    # Paroli no debe apostar si ya tiene un ciclo activo aquí
     open_positions = meta.get("open_positions", [])
-    if len(open_positions) >= MAX_CONCURRENT_POSITIONS:
-        # Ya tenemos el máximo de posiciones, no apostar
+    current_symbol = meta.get("symbol")  # Debe venir del contexto
+    current_timeframe = meta.get("timeframe")  # Debe venir del contexto
+
+    # Filtrar posiciones de ESTE player en ESTE symbol/timeframe
+    my_active_cycles = [
+        p
+        for p in open_positions
+        if getattr(p, "player", None) == "paroli"
+        and getattr(p, "symbol", None) == current_symbol
+        and getattr(p, "timeframe", None) == current_timeframe
+    ]
+
+    if len(my_active_cycles) > 0:
+        # Ya tengo un ciclo activo en este symbol/timeframe, no apostar
         return 0.0
 
     state = meta.get("paroli_state") or {}

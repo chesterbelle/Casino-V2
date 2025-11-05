@@ -139,6 +139,10 @@ class BuildOrderStage(Stage):
         elif side == "short":
             side = "sell"
 
+        # Get player metadata from context
+        player_meta = context.metadata or {}
+        player_name = getattr(self.player, "__name__", "unknown").split(".")[-1].replace("_player", "")
+
         # Build executable order
         executable_order = {
             "symbol": order["symbol"],
@@ -151,6 +155,10 @@ class BuildOrderStage(Stage):
             "params": {
                 "leverage": leverage,
             },
+            # Metadata para position tracking
+            "player": player_name,
+            "timeframe": player_meta.get("timeframe"),
+            "cycle_step": player_meta.get("paroli_state", {}).get("step", 0),
         }
 
         logger.info(

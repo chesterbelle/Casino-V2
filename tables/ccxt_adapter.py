@@ -319,21 +319,7 @@ class CCXTAdapter(BaseTable):
             raise RuntimeError("Not connected. Call connect() first.")
 
         try:
-            # 1. Check max positions (safety layer - player should already check this)
-            if len(self.position_tracker.open_positions) >= self.position_tracker.max_concurrent_positions:
-                self.logger.warning(
-                    f"❌ Order rejected | "
-                    f"Already have {len(self.position_tracker.open_positions)} open position(s) | "
-                    f"Max allowed: {self.position_tracker.max_concurrent_positions}"
-                )
-                return {
-                    "status": "rejected",
-                    "reason": "max_positions_reached",
-                    "open_positions": len(self.position_tracker.open_positions),
-                    "order": order,
-                }
-
-            # 2. Validate order
+            # 1. Validate order
             if not self._validate_order(order):
                 return {
                     "status": "rejected",
