@@ -457,6 +457,32 @@ class KrakenConnector(BaseConnector):
                 removed_leverage = clean_params.pop("leverage")
                 self.logger.info(f"🔧 Removed leverage={removed_leverage} from params")
 
+            # Translate generic TP/SL multipliers to Kraken-specific format
+            # Kraken Futures requires takeProfitPrice and stopLossPrice in params
+            if "take_profit_multiplier" in clean_params or "stop_loss_multiplier" in clean_params:
+                # Get entry price (use limit price or fetch current market price)
+                entry_price = price
+                if not entry_price or order_type == "market":
+                    # For market orders, fetch current price
+                    ticker = await self.exchange.fetch_ticker(kraken_symbol)
+                    entry_price = ticker.get("last", ticker.get("close", 0))
+                    self.logger.info(f"📊 Using market price for TP/SL calculation: ${entry_price:.2f}")
+
+                # Calculate absolute TP/SL prices from multipliers
+                if "take_profit_multiplier" in clean_params:
+                    tp_multiplier = clean_params.pop("take_profit_multiplier")
+                    if tp_multiplier and entry_price:
+                        tp_price = entry_price * float(tp_multiplier)
+                        clean_params["takeProfitPrice"] = round(tp_price, 2)
+                        self.logger.info(f"✅ TP: ${tp_price:.2f} (+{(float(tp_multiplier)-1)*100:.2f}%)")
+
+                if "stop_loss_multiplier" in clean_params:
+                    sl_multiplier = clean_params.pop("stop_loss_multiplier")
+                    if sl_multiplier and entry_price:
+                        sl_price = entry_price * float(sl_multiplier)
+                        clean_params["stopLossPrice"] = round(sl_price, 2)
+                        self.logger.info(f"✅ SL: ${sl_price:.2f} ({(float(sl_multiplier)-1)*100:.2f}%)")
+
             self.logger.info(f"📋 Clean params being sent: {clean_params}")
 
             # Create order on Kraken
@@ -477,10 +503,10 @@ class KrakenConnector(BaseConnector):
                 "type": order_type,
                 "status": order.get("status"),
                 "price": float(order.get("price", 0)) if order.get("price") else None,
-                "amount": float(order.get("amount", 0)),
-                "filled": float(order.get("filled", 0)),
-                "remaining": float(order.get("remaining", 0)),
-                "cost": float(order.get("cost", 0)),
+                "amount": float(order.get("amount") or 0),
+                "filled": float(order.get("filled") or 0),
+                "remaining": float(order.get("remaining") or 0),
+                "cost": float(order.get("cost") or 0),
                 "fee": order.get("fee", {}),
                 "timestamp": order.get("timestamp"),
                 "trades": order.get("trades", []),
@@ -498,89 +524,6 @@ class KrakenConnector(BaseConnector):
             raise
         except Exception as e:
             self.logger.error(f"❌ Error creando orden: {e}")
-            raise
-
-    async def create_tp_sl_order(
-        self,
-        symbol: str,
-        side: str,
-        amount: float,
-        trigger_price: float,
-        order_type: Literal["take_profit", "stop"] = "take_profit",
-    ) -> Dict[str, Any]:
-        """
-        Create a Take Profit or Stop Loss order for Kraken Futures.
-
-        This is a Kraken-specific method that handles the peculiarities of
-        Kraken Futures TP/SL orders, including:
-        - Using 'stopPrice' instead of 'triggerPrice'
-        - Setting 'triggerSignal' to 'mark' (mark price)
-        - Ensuring 'reduceOnly' is set correctly
-
-        Args:
-            symbol: Standard symbol format (e.g., "BTC/USD")
-            side: Order side - 'buy' or 'sell' (opposite of position)
-            amount: Order amount in base currency
-            trigger_price: Price at which the order should trigger
-            order_type: 'take_profit' or 'stop'
-
-        Returns:
-            Normalized order result
-        """
-        if not self._connected:
-            raise RuntimeError("Not connected to Kraken. Call connect() first.")
-
-        try:
-            # Normalize symbol to Kraken format
-            kraken_symbol = self.normalize_symbol(symbol)
-
-            # Round amount and price
-            amount = round(float(amount), 8)
-            trigger_price = round(float(trigger_price), 2)
-
-            # Kraken Futures specific params for TP/SL
-            # Kraken requires both triggerPrice (when to activate) and limitPrice (execution price)
-            params = {
-                "triggerPrice": trigger_price,  # When to trigger the order
-                "limitPrice": trigger_price,  # Execution price once triggered
-                "reduceOnly": True,  # Only close position, don't open new
-            }
-
-            self.logger.info(
-                f"📋 Creating {order_type.upper()} order: symbol={kraken_symbol}, "
-                f"side={side}, amount={amount}, triggerPrice={trigger_price}, params={params}"
-            )
-
-            # Create the conditional order
-            order = await self.exchange.create_order(
-                symbol=kraken_symbol,
-                type=order_type,  # 'take_profit' or 'stop'
-                side=side.lower(),
-                amount=amount,
-                price=None,  # Price goes in params for Kraken
-                params=params,
-            )
-
-            # Normalize response
-            normalized = {
-                "id": order.get("id"),
-                "symbol": symbol,
-                "side": side.lower(),
-                "type": order_type,
-                "status": order.get("status"),
-                "trigger_price": trigger_price,
-                "amount": float(order.get("amount", 0)),
-                "timestamp": order.get("timestamp"),
-            }
-
-            self.logger.info(
-                f"✅ {order_type.upper()} order created | " f"{symbol} {side.upper()} @ ${trigger_price:.2f}"
-            )
-
-            return normalized
-
-        except Exception as e:
-            self.logger.error(f"❌ Error creating {order_type} order: {e}")
             raise
 
     # =========================================================

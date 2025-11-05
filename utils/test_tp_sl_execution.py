@@ -51,13 +51,13 @@ async def main():
     print(f"💰 Precio actual: ${current_price:.2f}")
     print()
 
-    # 3. CREAR ORDEN CON TP/SL MUY CERCANOS
+    # 3. CREAR ORDEN CON TP/SL MÁS AMPLIOS
     print("📝 Creando orden de prueba...")
     print("   - Side: BUY (LONG)")
     print("   - Amount: 0.001 BTC (~$100)")
     print("   - Leverage: 50x")
-    print("   - TP: +0.1% (muy cercano)")
-    print("   - SL: -0.1% (muy cercano)")
+    print("   - TP: +2% (más amplio para evitar invalidPrice)")
+    print("   - SL: -2% (más amplio para evitar invalidPrice)")
     print()
 
     order = {
@@ -65,8 +65,8 @@ async def main():
         "side": "buy",
         "amount": 0.001,
         "type": "market",
-        "take_profit": 1.001,  # +0.1%
-        "stop_loss": 0.999,  # -0.1%
+        "take_profit": 1.02,  # +2%
+        "stop_loss": 0.98,  # -2%
         "trade_id": "test_tp_sl_001",
         "params": {"leverage": 50},
         "player": "test",

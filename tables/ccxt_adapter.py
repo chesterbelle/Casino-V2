@@ -327,10 +327,17 @@ class CCXTAdapter(BaseTable):
                     "order": order,
                 }
 
-            # 2. Prepare params (TP/SL will be created as separate orders after execution)
+            # 2. Prepare params with TP/SL multipliers (connector-agnostic)
             params = order.get("params", {}).copy()
 
-            # 2. Execute via connector
+            # Add TP/SL multipliers to params if present
+            # Each connector will translate these to exchange-specific format
+            if "take_profit" in order and order["take_profit"]:
+                params["take_profit_multiplier"] = float(order["take_profit"])
+            if "stop_loss" in order and order["stop_loss"]:
+                params["stop_loss_multiplier"] = float(order["stop_loss"])
+
+            # 3. Execute via connector
             result = await self.connector.create_order(
                 symbol=order.get("symbol", self.symbol),
                 side=order["side"],
@@ -346,21 +353,6 @@ class CCXTAdapter(BaseTable):
                     result,
                 )
                 raise ValueError("Connector returned invalid order result")
-
-            # 3. Create TP/SL orders if configured (Kraken Futures requires separate orders)
-            if "take_profit" in order and order["take_profit"]:
-                try:
-                    await self._create_tpsl_orders(
-                        symbol=order.get("symbol", self.symbol),
-                        side=order["side"],
-                        amount=order["amount"],
-                        entry_price=result.get("price", result.get("average")),
-                        tp_multiplier=float(order["take_profit"]),
-                        sl_multiplier=float(order["stop_loss"]),
-                    )
-                except Exception as tpsl_error:
-                    self.logger.error(f"⚠️ Error creating TP/SL orders: {tpsl_error}")
-                    # Don't fail the main order if TP/SL creation fails
 
             # 4. Update internal state
             self._update_after_order(result)
@@ -504,109 +496,6 @@ class CCXTAdapter(BaseTable):
                 return False
 
         return True
-
-    async def _create_tpsl_orders(
-        self,
-        symbol: str,
-        side: str,
-        amount: float,
-        entry_price: float,
-        tp_multiplier: float,
-        sl_multiplier: float,
-    ) -> None:
-        """
-        Create separate Take Profit and Stop Loss orders for Kraken Futures.
-
-        Kraken Futures requires TP/SL as separate conditional orders,
-        not as params in the main order.
-
-        Args:
-            symbol: Trading pair
-            side: Original order side ('buy' or 'sell')
-            amount: Position size
-            entry_price: Entry price of the position
-            tp_multiplier: Take profit multiplier (e.g., 1.005 for 0.5% profit)
-            sl_multiplier: Stop loss multiplier (e.g., 0.985 for 1.5% loss)
-        """
-        if not entry_price:
-            self.logger.warning("⚠️ Cannot create TP/SL: no entry price available")
-            return
-
-        # Calculate absolute TP/SL prices
-        tp_price = entry_price * tp_multiplier
-        sl_price = entry_price * sl_multiplier
-
-        # Determine close side (opposite of entry)
-        close_side = "sell" if side == "buy" else "buy"
-
-        try:
-            # Check if connector has Kraken-specific TP/SL method
-            if hasattr(self.connector, "create_tp_sl_order"):
-                # Use Kraken-specific method (handles stopPrice, triggerSignal, etc.)
-                await self.connector.create_tp_sl_order(
-                    symbol=symbol,
-                    side=close_side,
-                    amount=amount,
-                    trigger_price=tp_price,
-                    order_type="take_profit",
-                )
-                self.logger.info(
-                    f"✅ Take Profit order created | "
-                    f"{symbol} {close_side.upper()} @ ${tp_price:.2f} "
-                    f"(+{(tp_multiplier-1)*100:.2f}%)"
-                )
-
-                await self.connector.create_tp_sl_order(
-                    symbol=symbol,
-                    side=close_side,
-                    amount=amount,
-                    trigger_price=sl_price,
-                    order_type="stop",
-                )
-                self.logger.info(
-                    f"✅ Stop Loss order created | "
-                    f"{symbol} {close_side.upper()} @ ${sl_price:.2f} "
-                    f"(-{(1-sl_multiplier)*100:.2f}%)"
-                )
-            else:
-                # Generic method for other exchanges
-                await self.connector.create_order(
-                    symbol=symbol,
-                    side=close_side,
-                    amount=amount,
-                    price=tp_price,
-                    order_type="take_profit",
-                    params={
-                        "triggerPrice": tp_price,
-                        "reduceOnly": True,
-                    },
-                )
-                self.logger.info(
-                    f"✅ Take Profit order created | "
-                    f"{symbol} {close_side.upper()} @ ${tp_price:.2f} "
-                    f"(+{(tp_multiplier-1)*100:.2f}%)"
-                )
-
-                await self.connector.create_order(
-                    symbol=symbol,
-                    side=close_side,
-                    amount=amount,
-                    price=sl_price,
-                    order_type="stop",
-                    params={
-                        "triggerPrice": sl_price,
-                        "reduceOnly": True,
-                    },
-                )
-                self.logger.info(
-                    f"✅ Stop Loss order created | "
-                    f"{symbol} {close_side.upper()} @ ${sl_price:.2f} "
-                    f"(-{(1-sl_multiplier)*100:.2f}%)"
-                )
-
-        except Exception as e:
-            self.logger.error(f"❌ Error creating TP/SL orders: {e}")
-            raise
 
     def _update_balance(self, balance_data: Dict) -> None:
         """Update internal balance from exchange data."""
