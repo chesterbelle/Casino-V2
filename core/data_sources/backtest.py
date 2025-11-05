@@ -361,6 +361,10 @@ class BacktestDataSource(DataSource):
             "take_profit": order.get("take_profit"),  # Multiplier (e.g., 1.01)
             "stop_loss": order.get("stop_loss"),  # Multiplier (e.g., 0.99)
             "timestamp": self.data.iloc[self.index - 1]["timestamp"] if self.index > 0 else 0,
+            # Metadata para player filtering
+            "player": order.get("player"),
+            "timeframe": order.get("timeframe"),
+            "cycle_step": order.get("cycle_step", 0),
         }
 
         self.open_positions.append(position)

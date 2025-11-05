@@ -130,13 +130,24 @@ def calculate_position_size(
     current_timeframe = meta.get("timeframe")  # Debe venir del contexto
 
     # Filtrar posiciones de ESTE player en ESTE symbol/timeframe
-    my_active_cycles = [
-        p
-        for p in open_positions
-        if getattr(p, "player", None) == "paroli"
-        and getattr(p, "symbol", None) == current_symbol
-        and getattr(p, "timeframe", None) == current_timeframe
-    ]
+    # Soporta tanto objetos OpenPosition como dicts (backtest)
+    my_active_cycles = []
+    for p in open_positions:
+        # Obtener valores (funciona con objetos y dicts)
+        p_player = (
+            getattr(p, "player", None) if hasattr(p, "player") else p.get("player") if isinstance(p, dict) else None
+        )
+        p_symbol = (
+            getattr(p, "symbol", None) if hasattr(p, "symbol") else p.get("symbol") if isinstance(p, dict) else None
+        )
+        p_timeframe = (
+            getattr(p, "timeframe", None)
+            if hasattr(p, "timeframe")
+            else p.get("timeframe") if isinstance(p, dict) else None
+        )
+
+        if p_player == "paroli" and p_symbol == current_symbol and p_timeframe == current_timeframe:
+            my_active_cycles.append(p)
 
     if len(my_active_cycles) > 0:
         # Ya tengo un ciclo activo en este symbol/timeframe, no apostar
