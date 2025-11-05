@@ -56,6 +56,7 @@ if TYPE_CHECKING:  # pragma: no cover - solo para hints
 BASE_DIVISOR = 250  # Unidad inicial = equity / 250
 PROGRESSION = (1, 4, 8)  # Multiplicadores Paroli
 MAX_POSITION_SIZE = float(getattr(config, "MAX_POSITION_SIZE", 0.02))
+MAX_CONCURRENT_POSITIONS = 1  # Máximo de posiciones abiertas simultáneas
 LEVERAGE = 10  # Apalancamiento para futures (máx permitido: config.MAX_LEVERAGE)
 
 # Validar leverage contra config
@@ -111,6 +112,9 @@ def calculate_position_size(
 ) -> Optional[float]:
     """
     Retorna la fracción de equity a apostar según el escalón Paroli.
+
+    IMPORTANTE: Paroli gestiona su propio límite de posiciones concurrentes.
+    Si ya tiene posiciones abiertas, retorna 0.0 (no apostar).
     """
     if not verdict or not verdict.side:
         return None
@@ -118,6 +122,13 @@ def calculate_position_size(
         return None
 
     meta = meta or {}
+
+    # VERIFICAR POSICIONES ABIERTAS (responsabilidad del player)
+    open_positions = meta.get("open_positions", [])
+    if len(open_positions) >= MAX_CONCURRENT_POSITIONS:
+        # Ya tenemos el máximo de posiciones, no apostar
+        return 0.0
+
     state = meta.get("paroli_state") or {}
     progression = meta.get("paroli_progression", PROGRESSION)
     table_meta = meta.get("table", {}) if isinstance(meta.get("table"), dict) else {}

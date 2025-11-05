@@ -159,6 +159,10 @@ class TradingSession:
                 current_equity = self.data_source.get_equity()
                 self.player_state, player_meta = self._prepare_player_state(current_equity)
 
+                # STEP 2.5: Get open positions for player decision-making
+                open_positions = self._get_open_positions()
+                player_meta["open_positions"] = open_positions
+
                 # Get next candle
                 candle = await self.data_source.next_candle()
 
@@ -166,7 +170,7 @@ class TradingSession:
                     logger.info("🏁 No more candles available")
                     break
 
-                # Create context with player metadata
+                # Create context with player metadata (includes open_positions)
                 context = TradingContext(
                     candle=candle,
                     equity=current_equity,
@@ -240,6 +244,25 @@ class TradingSession:
         if hasattr(self.player, "prepare_state"):
             return self.player.prepare_state(self.player_state, equity)
         return self.player_state, {}
+
+    def _get_open_positions(self) -> list:
+        """
+        Get list of currently open positions.
+
+        Returns:
+            List of open positions (empty list if none or not available)
+        """
+        # For testing/live modes with adapter
+        if hasattr(self.data_source, "adapter"):
+            adapter = self.data_source.adapter
+            if hasattr(adapter, "position_tracker"):
+                return adapter.position_tracker.open_positions
+
+        # For backtest mode with position_tracker
+        if hasattr(self.data_source, "position_tracker"):
+            return self.data_source.position_tracker.open_positions
+
+        return []
 
     async def _check_and_process_closed_trades(self) -> None:
         """
