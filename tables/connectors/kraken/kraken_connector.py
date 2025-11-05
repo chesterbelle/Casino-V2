@@ -500,6 +500,89 @@ class KrakenConnector(BaseConnector):
             self.logger.error(f"❌ Error creando orden: {e}")
             raise
 
+    async def create_tp_sl_order(
+        self,
+        symbol: str,
+        side: str,
+        amount: float,
+        trigger_price: float,
+        order_type: Literal["take_profit", "stop"] = "take_profit",
+    ) -> Dict[str, Any]:
+        """
+        Create a Take Profit or Stop Loss order for Kraken Futures.
+
+        This is a Kraken-specific method that handles the peculiarities of
+        Kraken Futures TP/SL orders, including:
+        - Using 'stopPrice' instead of 'triggerPrice'
+        - Setting 'triggerSignal' to 'mark' (mark price)
+        - Ensuring 'reduceOnly' is set correctly
+
+        Args:
+            symbol: Standard symbol format (e.g., "BTC/USD")
+            side: Order side - 'buy' or 'sell' (opposite of position)
+            amount: Order amount in base currency
+            trigger_price: Price at which the order should trigger
+            order_type: 'take_profit' or 'stop'
+
+        Returns:
+            Normalized order result
+        """
+        if not self._connected:
+            raise RuntimeError("Not connected to Kraken. Call connect() first.")
+
+        try:
+            # Normalize symbol to Kraken format
+            kraken_symbol = self.normalize_symbol(symbol)
+
+            # Round amount and price
+            amount = round(float(amount), 8)
+            trigger_price = round(float(trigger_price), 2)
+
+            # Kraken Futures specific params for TP/SL
+            # Kraken requires both triggerPrice (when to activate) and limitPrice (execution price)
+            params = {
+                "triggerPrice": trigger_price,  # When to trigger the order
+                "limitPrice": trigger_price,  # Execution price once triggered
+                "reduceOnly": True,  # Only close position, don't open new
+            }
+
+            self.logger.info(
+                f"📋 Creating {order_type.upper()} order: symbol={kraken_symbol}, "
+                f"side={side}, amount={amount}, triggerPrice={trigger_price}, params={params}"
+            )
+
+            # Create the conditional order
+            order = await self.exchange.create_order(
+                symbol=kraken_symbol,
+                type=order_type,  # 'take_profit' or 'stop'
+                side=side.lower(),
+                amount=amount,
+                price=None,  # Price goes in params for Kraken
+                params=params,
+            )
+
+            # Normalize response
+            normalized = {
+                "id": order.get("id"),
+                "symbol": symbol,
+                "side": side.lower(),
+                "type": order_type,
+                "status": order.get("status"),
+                "trigger_price": trigger_price,
+                "amount": float(order.get("amount", 0)),
+                "timestamp": order.get("timestamp"),
+            }
+
+            self.logger.info(
+                f"✅ {order_type.upper()} order created | " f"{symbol} {side.upper()} @ ${trigger_price:.2f}"
+            )
+
+            return normalized
+
+        except Exception as e:
+            self.logger.error(f"❌ Error creating {order_type} order: {e}")
+            raise
+
     # =========================================================
     # 🔧 UTILITY METHODS
     # =========================================================

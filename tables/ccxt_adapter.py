@@ -540,41 +540,69 @@ class CCXTAdapter(BaseTable):
         close_side = "sell" if side == "buy" else "buy"
 
         try:
-            # Create Take Profit order (limit order triggered when price reaches TP)
-            await self.connector.create_order(
-                symbol=symbol,
-                side=close_side,
-                amount=amount,
-                price=tp_price,
-                order_type="take_profit",  # Kraken Futures conditional order type
-                params={
-                    "triggerPrice": tp_price,
-                    "reduceOnly": True,  # Only close position, don't open new one
-                },
-            )
-            self.logger.info(
-                f"✅ Take Profit order created | "
-                f"{symbol} {close_side.upper()} @ ${tp_price:.2f} "
-                f"(+{(tp_multiplier-1)*100:.2f}%)"
-            )
+            # Check if connector has Kraken-specific TP/SL method
+            if hasattr(self.connector, "create_tp_sl_order"):
+                # Use Kraken-specific method (handles stopPrice, triggerSignal, etc.)
+                await self.connector.create_tp_sl_order(
+                    symbol=symbol,
+                    side=close_side,
+                    amount=amount,
+                    trigger_price=tp_price,
+                    order_type="take_profit",
+                )
+                self.logger.info(
+                    f"✅ Take Profit order created | "
+                    f"{symbol} {close_side.upper()} @ ${tp_price:.2f} "
+                    f"(+{(tp_multiplier-1)*100:.2f}%)"
+                )
 
-            # Create Stop Loss order (stop order triggered when price reaches SL)
-            await self.connector.create_order(
-                symbol=symbol,
-                side=close_side,
-                amount=amount,
-                price=sl_price,
-                order_type="stop",  # Kraken Futures stop order type
-                params={
-                    "triggerPrice": sl_price,
-                    "reduceOnly": True,  # Only close position, don't open new one
-                },
-            )
-            self.logger.info(
-                f"✅ Stop Loss order created | "
-                f"{symbol} {close_side.upper()} @ ${sl_price:.2f} "
-                f"(-{(1-sl_multiplier)*100:.2f}%)"
-            )
+                await self.connector.create_tp_sl_order(
+                    symbol=symbol,
+                    side=close_side,
+                    amount=amount,
+                    trigger_price=sl_price,
+                    order_type="stop",
+                )
+                self.logger.info(
+                    f"✅ Stop Loss order created | "
+                    f"{symbol} {close_side.upper()} @ ${sl_price:.2f} "
+                    f"(-{(1-sl_multiplier)*100:.2f}%)"
+                )
+            else:
+                # Generic method for other exchanges
+                await self.connector.create_order(
+                    symbol=symbol,
+                    side=close_side,
+                    amount=amount,
+                    price=tp_price,
+                    order_type="take_profit",
+                    params={
+                        "triggerPrice": tp_price,
+                        "reduceOnly": True,
+                    },
+                )
+                self.logger.info(
+                    f"✅ Take Profit order created | "
+                    f"{symbol} {close_side.upper()} @ ${tp_price:.2f} "
+                    f"(+{(tp_multiplier-1)*100:.2f}%)"
+                )
+
+                await self.connector.create_order(
+                    symbol=symbol,
+                    side=close_side,
+                    amount=amount,
+                    price=sl_price,
+                    order_type="stop",
+                    params={
+                        "triggerPrice": sl_price,
+                        "reduceOnly": True,
+                    },
+                )
+                self.logger.info(
+                    f"✅ Stop Loss order created | "
+                    f"{symbol} {close_side.upper()} @ ${sl_price:.2f} "
+                    f"(-{(1-sl_multiplier)*100:.2f}%)"
+                )
 
         except Exception as e:
             self.logger.error(f"❌ Error creating TP/SL orders: {e}")

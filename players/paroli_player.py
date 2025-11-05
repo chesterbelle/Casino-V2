@@ -30,6 +30,7 @@ la persistencia del estado y solo pasa metadata al player en cada iteración.
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING, Dict, Optional, Tuple
 
 try:
@@ -129,6 +130,11 @@ def calculate_position_size(
     current_symbol = meta.get("symbol")  # Debe venir del contexto
     current_timeframe = meta.get("timeframe")  # Debe venir del contexto
 
+    # DEBUG: Log para ver qué recibimos
+    logging.info(
+        f"🔍 PAROLI DEBUG | open_positions count: {len(open_positions)} | symbol: {current_symbol} | timeframe: {current_timeframe}"
+    )
+
     # Filtrar posiciones de ESTE player en ESTE symbol/timeframe
     # Soporta tanto objetos OpenPosition como dicts (backtest)
     my_active_cycles = []
@@ -146,11 +152,17 @@ def calculate_position_size(
             else p.get("timeframe") if isinstance(p, dict) else None
         )
 
+        # DEBUG: Log cada posición
+        logging.info(f"🔍 PAROLI DEBUG | Position: player={p_player}, symbol={p_symbol}, timeframe={p_timeframe}")
+
         if p_player == "paroli" and p_symbol == current_symbol and p_timeframe == current_timeframe:
             my_active_cycles.append(p)
 
+    logging.info(f"🔍 PAROLI DEBUG | my_active_cycles count: {len(my_active_cycles)}")
+
     if len(my_active_cycles) > 0:
         # Ya tengo un ciclo activo en este symbol/timeframe, no apostar
+        logging.info("❌ PAROLI | Ciclo activo detectado, NO apostar")
         return 0.0
 
     state = meta.get("paroli_state") or {}

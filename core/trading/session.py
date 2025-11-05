@@ -280,17 +280,22 @@ class TradingSession:
         """
         # Only check for testing/live modes (backtest handles this internally)
         if not hasattr(self.data_source, "adapter"):
+            logger.debug("🔍 DEBUG | No adapter, skipping closed trades check")
             return
 
         try:
             # Get adapter from data source
             adapter = self.data_source.adapter
+            logger.debug(f"🔍 DEBUG | Checking closed trades | adapter: {type(adapter).__name__}")
 
             # Fetch recent trades (last 100 to catch all closes)
             if not hasattr(adapter.connector, "fetch_my_trades"):
+                logger.debug(f"🔍 DEBUG | Connector {type(adapter.connector).__name__} has no fetch_my_trades")
                 return
 
+            logger.debug(f"🔍 DEBUG | Fetching recent trades from {adapter.symbol}")
             recent_trades = await adapter.connector.fetch_my_trades(symbol=adapter.symbol, limit=100)
+            logger.debug(f"🔍 DEBUG | Found {len(recent_trades) if recent_trades else 0} recent trades")
 
             if not recent_trades:
                 return
