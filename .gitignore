@@ -8,3 +8,8 @@ __pycache__/
 log/
 *.log
 .idea/
+
+# Testing temporales
+testing_*.log
+RESULTADOS_TEST_*.md
+RELEASE_NOTES_*.md
