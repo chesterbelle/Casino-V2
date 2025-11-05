@@ -97,6 +97,12 @@ class TradingSession:
         self.player = player_module
         self.max_candles = max_candles
 
+        # Initialize player state (for progression tracking)
+        self.player_state = player_module.init_state() if hasattr(player_module, "init_state") else {}
+
+        # Track last processed trades to avoid duplicates
+        self.processed_trade_ids = set()
+
         # Initialize components
         self.sensor_manager = SensorManager()
         self.gemini = Gemini()
@@ -117,7 +123,8 @@ class TradingSession:
         logger.info(
             f"🎰 TradingSession initialized | "
             f"Player: {player_module.__name__ if hasattr(player_module, '__name__') else 'unknown'} | "
-            f"Max candles: {max_candles or 'unlimited'}"
+            f"Max candles: {max_candles or 'unlimited'} | "
+            f"Initial state: {self.player_state}"
         )
 
     async def run(self) -> dict:
@@ -145,6 +152,13 @@ class TradingSession:
                     logger.info(f"🏁 Max candles reached: {self.max_candles}")
                     break
 
+                # STEP 1: Check for closed positions (TP/SL triggered by exchange)
+                await self._check_and_process_closed_trades()
+
+                # STEP 2: Prepare player state for this iteration
+                current_equity = self.data_source.get_equity()
+                self.player_state, player_meta = self._prepare_player_state(current_equity)
+
                 # Get next candle
                 candle = await self.data_source.next_candle()
 
@@ -152,11 +166,12 @@ class TradingSession:
                     logger.info("🏁 No more candles available")
                     break
 
-                # Create context
+                # Create context with player metadata
                 context = TradingContext(
                     candle=candle,
-                    equity=self.data_source.get_equity(),
+                    equity=current_equity,
                     balance=self.data_source.get_balance(),
+                    metadata=player_meta,
                 )
 
                 # Process through pipeline
@@ -172,7 +187,8 @@ class TradingSession:
                         f"Candles: {self.stats.candles_processed} | "
                         f"Signals: {self.stats.signals_detected} | "
                         f"Orders: {self.stats.orders_executed} | "
-                        f"Equity: {self.data_source.get_equity():.2f}"
+                        f"Equity: {current_equity:.2f} | "
+                        f"Player step: {self.player_state.get('step', 0)}"
                     )
 
         except KeyboardInterrupt:
@@ -207,3 +223,105 @@ class TradingSession:
                 )
 
         return self.stats.summary()
+
+    def _prepare_player_state(self, equity: float) -> tuple:
+        """
+        Prepare player state for current iteration.
+
+        Calls player's prepare_state() to ensure unit is calculated
+        and returns metadata for BuildOrderStage.
+
+        Args:
+            equity: Current equity
+
+        Returns:
+            (updated_state, metadata)
+        """
+        if hasattr(self.player, "prepare_state"):
+            return self.player.prepare_state(self.player_state, equity)
+        return self.player_state, {}
+
+    async def _check_and_process_closed_trades(self) -> None:
+        """
+        Check for closed positions and update player state.
+
+        This method:
+        1. Fetches recent trades from exchange
+        2. Identifies closed positions (TP/SL triggered)
+        3. Calculates WIN/LOSS based on PnL
+        4. Updates player state (advances Paroli progression)
+        """
+        # Only check for testing/live modes (backtest handles this internally)
+        if not hasattr(self.data_source, "adapter"):
+            return
+
+        try:
+            # Get adapter from data source
+            adapter = self.data_source.adapter
+
+            # Fetch recent trades (last 100 to catch all closes)
+            if not hasattr(adapter.connector, "fetch_my_trades"):
+                return
+
+            recent_trades = await adapter.connector.fetch_my_trades(symbol=adapter.symbol, limit=100)
+
+            if not recent_trades:
+                return
+
+            # Process each trade
+            for trade in recent_trades:
+                trade_id = trade.get("id")
+
+                # Skip if already processed
+                if trade_id in self.processed_trade_ids:
+                    continue
+
+                # Mark as processed
+                self.processed_trade_ids.add(trade_id)
+
+                # Only process closing trades (reduceOnly or position closes)
+                # In Kraken Futures, TP/SL orders have reduceOnly=True
+                info = trade.get("info", {})
+                if not info.get("reduceOnly"):
+                    # This is an opening trade, skip
+                    continue
+
+                # Calculate PnL from trade
+                # Note: Kraken returns realized PnL in the trade
+                pnl = float(trade.get("info", {}).get("realizedPnl", 0))
+
+                # If no PnL in trade, try to calculate from price difference
+                if pnl == 0:
+                    # This might be a manual close or we need to fetch position history
+                    # For now, skip trades without PnL
+                    continue
+
+                # Determine WIN/LOSS based on PnL
+                outcome = "WIN" if pnl > 0 else "LOSS"
+
+                # Update player state
+                if hasattr(self.player, "handle_trade_outcome"):
+                    previous_state = dict(self.player_state)
+                    self.player_state = self.player.handle_trade_outcome(
+                        self.player_state,
+                        "BET",
+                        {"result": outcome, "pnl": pnl, "trade": trade},
+                    )
+
+                    logger.info(
+                        f"🎯 Trade closed | "
+                        f"Outcome: {outcome} | "
+                        f"PnL: ${pnl:+.2f} | "
+                        f"Player state: {previous_state.get('step', 0)} → {self.player_state.get('step', 0)}"
+                    )
+
+                    # Update session stats
+                    if outcome == "WIN":
+                        self.stats.wins += 1
+                        self.stats.total_pnl += pnl
+                    else:
+                        self.stats.losses += 1
+                        self.stats.total_pnl += pnl
+
+        except Exception as e:
+            logger.warning(f"⚠️ Error checking closed trades: {e}")

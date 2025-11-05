@@ -104,8 +104,9 @@ class BuildOrderStage(Stage):
 
                 player_verdict = SimpleVerdict(order["side"])
 
-                # Calculate size using player's logic
-                player_size = self.player.calculate_position_size(player_verdict, context.equity, meta={})
+                # Calculate size using player's logic with metadata from session
+                player_meta = context.metadata or {}
+                player_size = self.player.calculate_position_size(player_verdict, context.equity, meta=player_meta)
 
                 if player_size and player_size > 0:
                     size_fraction = player_size
