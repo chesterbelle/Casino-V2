@@ -258,9 +258,9 @@ class TradingSession:
             if hasattr(adapter, "position_tracker"):
                 return adapter.position_tracker.open_positions
 
-        # For backtest mode with position_tracker
-        if hasattr(self.data_source, "position_tracker"):
-            return self.data_source.position_tracker.open_positions
+        # For backtest mode with direct open_positions list
+        if hasattr(self.data_source, "open_positions"):
+            return self.data_source.open_positions
 
         return []
 
