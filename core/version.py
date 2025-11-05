@@ -22,15 +22,36 @@ from typing import Dict, Literal
 # =====================================================
 # 🎯 VERSIÓN ACTUAL
 # =====================================================
-__version__ = "1.9.1"
-__version_name__ = "Clean Up Logic"
-__release_date__ = "2025-11-03"
+__version__ = "1.9.2"
+__version_name__ = "Paroli Progression Fix"
+__release_date__ = "2025-11-05"
 __status__: Literal["stable", "beta", "alpha", "dev"] = "dev"
 
 # =====================================================
 # 📝 CHANGELOG RESUMIDO
 # =====================================================
 CHANGELOG = {
+    "1.9.2": {
+        "name": "Paroli Progression Fix",
+        "date": "2025-11-05",
+        "highlights": [
+            "Implementada progresión Paroli (1x-4x-8x) en TradingSession",
+            "Agregado player_state para tracking de progresión",
+            "Implementado _check_and_process_closed_trades() para detectar TP/SL",
+            "handle_trade_outcome() se llama cuando posición cierra",
+            "Metadata (paroli_state) se pasa a BuildOrderStage",
+            "Auditoría exhaustiva de lógica del bot completada",
+        ],
+    },
+    "1.9.1": {
+        "name": "Clean Up Logic",
+        "date": "2025-11-03",
+        "highlights": [
+            "Limpieza de código y documentación",
+            "Correcciones de linting y formato",
+            "Mejoras en estructura del proyecto",
+        ],
+    },
     "1.9": {
         "name": "Tres Modos + Conectores Híbridos",
         "date": "2025-11-04",
