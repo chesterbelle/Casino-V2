@@ -131,7 +131,7 @@ def calculate_position_size(
     current_timeframe = meta.get("timeframe")  # Debe venir del contexto
 
     # DEBUG: Log para ver qué recibimos
-    logging.info(
+    logging.debug(
         f"🔍 PAROLI DEBUG | open_positions count: {len(open_positions)} | symbol: {current_symbol} | timeframe: {current_timeframe}"
     )
 
@@ -153,16 +153,16 @@ def calculate_position_size(
         )
 
         # DEBUG: Log cada posición
-        logging.info(f"🔍 PAROLI DEBUG | Position: player={p_player}, symbol={p_symbol}, timeframe={p_timeframe}")
+        logging.debug(f"🔍 PAROLI DEBUG | Position: player={p_player}, symbol={p_symbol}, timeframe={p_timeframe}")
 
         if p_player == "paroli" and p_symbol == current_symbol and p_timeframe == current_timeframe:
             my_active_cycles.append(p)
 
-    logging.info(f"🔍 PAROLI DEBUG | my_active_cycles count: {len(my_active_cycles)}")
+    logging.debug(f"🔍 PAROLI DEBUG | my_active_cycles count: {len(my_active_cycles)}")
 
     if len(my_active_cycles) > 0:
         # Ya tengo un ciclo activo en este symbol/timeframe, no apostar
-        logging.info("❌ PAROLI | Ciclo activo detectado, NO apostar")
+        logging.debug("❌ PAROLI | Ciclo activo detectado, NO apostar")
         return 0.0
 
     state = meta.get("paroli_state") or {}
