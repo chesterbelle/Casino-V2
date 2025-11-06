@@ -4,14 +4,102 @@ Base Connector Interface for Exchange Integration.
 This module defines the abstract base class that all exchange connectors must implement.
 Inspired by Hummingbot's connector architecture.
 
-Architecture:
-    CCXTAdapter (Mesa) → BaseConnector (Interface) → KrakenConnector (Implementation)
+⚠️  ARQUITECTURA MODULAR - IMPORTANTE:
+================================================================================
+Los conectores DEBEN manejar TODAS las particularidades específicas del exchange.
+El adaptador (CCXTAdapter) NO debe conocer detalles de ningún exchange.
 
-Key Principles:
-    - Separation of concerns: Mesa handles business logic, Connector handles exchange communication
-    - Standardized interface: All exchanges implement the same methods
-    - Normalization: Each connector normalizes exchange-specific responses to a common format
-    - Error handling: Connectors handle exchange-specific errors and retry logic
+Arquitectura (v2.0):
+    CCXTAdapter (Adaptador) → BaseConnector (Interface) → KrakenConnector (Implementation)
+                                                        → BinanceConnector (Implementation)
+                                                        → HyperliquidConnector (Implementation)
+
+================================================================================
+
+📋 PRINCIPIOS ARQUITECTURALES:
+
+    1. SEPARACIÓN DE RESPONSABILIDADES:
+       ├── Adaptador (CCXTAdapter): Business logic exchange-agnostic
+       └── Conector (este): Comunicación y particularidades del exchange
+
+    2. INTERFAZ ESTANDARIZADA:
+       ├── Todos los exchanges implementan los mismos métodos
+       └── Pero cada uno con su propia implementación específica
+
+    3. NORMALIZACIÓN:
+       ├── Cada conector normaliza respuestas del exchange
+       └── Formato común para que el adaptador sea agnóstico
+
+    4. MANEJO DE PARTICULARIDADES:
+       ├── TP/SL: Cada exchange tiene su propio mecanismo
+       ├── Tipos de órdenes: Específicos de cada exchange
+       └── Parámetros: Específicos de cada exchange
+
+================================================================================
+
+📋 RESPONSABILIDADES DEL CONECTOR:
+
+    ✅ DEBE IMPLEMENTAR (Exchange-Specific):
+        - Conexión al exchange (REST + WebSocket)
+        - Fetch de datos de mercado (OHLCV, order book, ticker)
+        - Ejecución de órdenes con particularidades del exchange
+        - Fetch de datos de cuenta (balance, posiciones, trades)
+        - Normalización de respuestas a formato común
+        - Manejo de errores específicos del exchange
+        - Rate limiting específico del exchange
+        - Implementación de TP/SL según el exchange:
+          * Kraken: Órdenes separadas (take_profit, stop)
+          * Binance: Params en orden principal
+          * Hyperliquid: Su propio mecanismo
+
+    ❌ NO DEBE HACER:
+        - Lógica de negocio (va en el adaptador)
+        - Gestión de balance (va en BalanceManager)
+        - Tracking de posiciones (va en PositionTracker)
+        - Validación de órdenes (va en el adaptador)
+
+================================================================================
+
+🔄 FLUJO DE IMPLEMENTACIÓN DE TP/SL (EJEMPLO CLAVE):
+
+    BaseConnector (Interface):
+        @abstractmethod
+        async def create_order_with_tpsl(tp_price, sl_price):
+            pass
+
+    KrakenConnector (Implementation):
+        async def create_order_with_tpsl(tp_price, sl_price):
+            # 1. Crear orden principal
+            main_order = await self.create_order(...)
+            # 2. Crear TP como conditional order (Kraken-specific)
+            await self.create_order(order_type="take_profit", ...)
+            # 3. Crear SL como stop order (Kraken-specific)
+            await self.create_order(order_type="stop", ...)
+            return main_order
+
+    BinanceConnector (Implementation):
+        async def create_order_with_tpsl(tp_price, sl_price):
+            # Binance permite TP/SL como params en la orden principal
+            params = {"stopPrice": tp_price, "stopLoss": sl_price}
+            return await self.create_order(..., params=params)
+
+    Resultado: Cada exchange maneja TP/SL a su manera, adaptador no lo sabe
+
+================================================================================
+
+📚 REFERENCIAS:
+    - Análisis completo: docs/ARQUITECTURA_MODULARIDAD_ANALISIS.md
+    - Adaptador agnóstico: exchanges/adapters/ccxt_adapter.py
+    - Ejemplo de implementación: exchanges/connectors/kraken/kraken_connector.py
+
+⚠️  AL IMPLEMENTAR UN NUEVO CONECTOR:
+    1. Heredar de BaseConnector
+    2. Implementar TODOS los métodos abstractos
+    3. Manejar TODAS las particularidades del exchange aquí
+    4. NO agregar lógica específica en el adaptador
+    5. Normalizar respuestas a formato común
+
+================================================================================
 """
 
 from __future__ import annotations

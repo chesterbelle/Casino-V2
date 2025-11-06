@@ -1,4 +1,32 @@
-"""Kraken Futures connector (testing + live)."""
+"""
+Kraken Futures Connector - Exchange-Specific Implementation.
+
+⚠️  ARQUITECTURA MODULAR - IMPORTANTE:
+================================================================================
+Este conector maneja TODAS las particularidades específicas de Kraken Futures.
+NO mover lógica específica de Kraken al adaptador (CCXTAdapter).
+
+Particularidades de Kraken Futures:
+    - TP/SL requieren órdenes separadas (conditional orders)
+    - Tipos de órdenes: "take_profit", "stop", "limit", "market"
+    - Parámetros específicos: "triggerPrice", "reduceOnly"
+    - Símbolos: "BTC/USD" → "PF_XBTUSD"
+    - Testnet: demo-futures.kraken.com
+    - Live: futures.kraken.com
+
+Implementación de TP/SL (Kraken-specific):
+    - create_order_with_tpsl() crea 3 órdenes:
+      1. Orden principal (market/limit)
+      2. Take Profit (conditional order con triggerPrice)
+      3. Stop Loss (stop order con triggerPrice)
+
+📚 Referencias:
+    - Interface: exchanges/connectors/connector_base.py
+    - Adaptador agnóstico: exchanges/adapters/ccxt_adapter.py
+    - Análisis: docs/ARQUITECTURA_MODULARIDAD_ANALISIS.md
+
+================================================================================
+"""
 
 from __future__ import annotations
 

@@ -4,35 +4,86 @@ CCXTAdapter - Adaptador CCXT para Mesas (DataSource).
 Este adaptador envuelve la lógica de negocio del trading y delega
 la comunicación con exchanges a conectores modulares específicos.
 
-Arquitectura (v1.9.2):
+⚠️  ARQUITECTURA MODULAR - IMPORTANTE:
+================================================================================
+Este adaptador DEBE ser 100% EXCHANGE-AGNOSTIC.
+NO agregar lógica específica de ningún exchange aquí.
+
+Arquitectura (v2.0):
     Mesa (DataSource) → CCXTAdapter (Adaptador) → Conector (Driver) → CCXT → Exchange
 
     Ejemplo:
     LiveDataSource → CCXTAdapter → KrakenConnector → CCXT → Kraken API
 
-Responsabilidades del Adaptador (CCXTAdapter):
-    - Gestión de balance (BalanceManager)
-    - Tracking de posiciones (PositionTracker)
-    - Validación de órdenes
-    - Lógica de TP/SL
-    - Logging y auditoría
-    - Sincronización de estado real (ExchangeStateSync)
+================================================================================
 
-Responsabilidades del Conector (KrakenConnector, etc.):
-    - Comunicación con el exchange (REST + WebSocket)
-    - Normalización de datos
-    - Manejo de errores específicos del exchange
-    - Rate limiting
+📋 RESPONSABILIDADES DEL ADAPTADOR (CCXTAdapter):
+    ✅ PERMITIDO (Business Logic - Exchange Agnostic):
+        - Gestión de balance (BalanceManager)
+        - Tracking de posiciones (PositionTracker)
+        - Validación de órdenes (límites, balance)
+        - Cálculo de precios TP/SL (multipliers → absolute prices)
+        - Logging y auditoría
+        - Sincronización de estado real (ExchangeStateSync)
+
+    ❌ PROHIBIDO (Exchange-Specific Logic):
+        - Lógica específica de Kraken, Binance, etc.
+        - Tipos de órdenes específicos de un exchange
+        - Parámetros específicos de un exchange
+        - Manejo de particularidades de un exchange
+
+📋 RESPONSABILIDADES DEL CONECTOR (KrakenConnector, BinanceConnector, etc.):
+    ✅ PERMITIDO (Exchange-Specific Implementation):
+        - Comunicación con el exchange (REST + WebSocket)
+        - Normalización de datos del exchange
+        - Manejo de errores específicos del exchange
+        - Rate limiting específico del exchange
+        - Implementación de TP/SL según particularidades del exchange
+        - Tipos de órdenes específicos (take_profit, stop, etc.)
+        - Parámetros específicos (reduceOnly, triggerPrice, etc.)
+
+================================================================================
+
+🔄 FLUJO DE EJECUCIÓN DE ÓRDENES CON TP/SL:
+
+    1. CCXTAdapter.execute_order(order):
+       ├── Validar orden (balance, límites) ← Business logic
+       ├── Calcular precios TP/SL absolutos ← Business logic
+       │   tp_price = current_price * tp_multiplier
+       │   sl_price = current_price * sl_multiplier
+       └── Delegar a conector ↓
+
+    2. Connector.create_order_with_tpsl(tp_price, sl_price):
+       ├── Kraken: Crear órdenes separadas (take_profit, stop)
+       ├── Binance: Agregar TP/SL como params en orden principal
+       └── Hyperliquid: Usar su propio mecanismo de TP/SL
+
+    Resultado: Adaptador agnóstico, cada conector maneja sus particularidades
+
+================================================================================
+
+📚 REFERENCIAS:
+    - Análisis completo: docs/ARQUITECTURA_MODULARIDAD_ANALISIS.md
+    - Interface de conectores: exchanges/connectors/connector_base.py
+    - Ejemplo de implementación: exchanges/connectors/kraken/kraken_connector.py
+
+⚠️  ANTES DE MODIFICAR ESTE ARCHIVO:
+    1. Pregúntate: ¿Esta lógica es específica de un exchange?
+    2. Si SÍ → Debe ir en el conector, NO aquí
+    3. Si NO → Puede ir aquí (es business logic)
+    4. En duda → Consultar docs/ARQUITECTURA_MODULARIDAD_ANALISIS.md
+
+================================================================================
 
 Usage:
     ```python
-    from tables.connectors import KrakenConnector
-    from tables.ccxt_adapter import CCXTAdapter
+    from exchanges.connectors import KrakenConnector
+    from exchanges.adapters import CCXTAdapter
 
-    # Create connector (driver específico)
+    # Create connector (exchange-specific driver)
     connector = KrakenConnector(testnet=True)
 
-    # Create adapter (lógica de negocio)
+    # Create adapter (exchange-agnostic business logic)
     adapter = CCXTAdapter(
         connector=connector,
         symbol="BTC/USD",
