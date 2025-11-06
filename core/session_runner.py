@@ -8,11 +8,11 @@ import os
 from typing import Any, Dict, Optional, Union
 
 from config import system
+from core.portfolio.position_tracker import PositionTracker
 from croupier.croupier import Croupier
+from exchanges.adapters.ccxt_adapter import CCXTAdapter
 from gemini.gemini_core import Gemini
 from sensors.sensor_manager import SensorManager
-from tables.ccxt_adapter import CCXTAdapter
-from tables.position_tracker import PositionTracker
 
 from .exceptions import CasinoError, TradingError
 from .logger import logger, performance_monitor

@@ -9,7 +9,7 @@ import asyncio
 import logging
 from typing import Dict, Optional
 
-from tables.ccxt_adapter import CCXTAdapter
+from exchanges.adapters.ccxt_adapter import CCXTAdapter
 
 from .base import Candle, DataSource
 

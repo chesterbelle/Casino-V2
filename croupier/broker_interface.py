@@ -29,7 +29,7 @@ puede operar sin preocuparse del origen de los datos.
 import logging
 
 from config import exchange, system
-from tables.ccxt_adapter import CCXTAdapter
+from exchanges.adapters.ccxt_adapter import CCXTAdapter
 
 # Importaciones condicionales (según modo)
 
@@ -119,7 +119,7 @@ class BrokerInterface:
 
     def _create_testing_engine(self, symbol: str | None, interval: str | None, exchange_name: str):
         """Construye la mesa CCXT Pro para modo testing CON RESILIENCIA."""
-        from tables.connectors import KrakenConnector, ResilientConnector
+        from exchanges.connectors import KrakenConnector, ResilientConnector
 
         if "KRAKEN" in exchange_name:
             # Crear conector base

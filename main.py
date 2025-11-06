@@ -14,8 +14,8 @@ import sys
 from config import system
 from core.data_sources import BacktestDataSource, LiveDataSource, TestingDataSource
 from core.trading import TradingSession
+from exchanges.connectors import KrakenConnector, ResilientConnector
 from players import kelly_player, paroli_player
-from tables.connectors import KrakenConnector, ResilientConnector
 
 # Setup logging
 logging.basicConfig(
