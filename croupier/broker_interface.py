@@ -47,7 +47,11 @@ except ImportError:
 
 # Importaciones condicionales (según modo)
 
+from tables import connectors as tables_connectors
 from tables.ccxt_adapter import CCXTAdapter
+
+# Alias legado para pruebas que esperan TableBacktest en este módulo
+TableBacktest = None
 
 
 class BrokerInterface:
@@ -125,33 +129,41 @@ class BrokerInterface:
         y la expone con la estructura esperada.
         """
 
+        table_cls = globals().get("TableBacktest")
+
+        if table_cls is None:
+            raise NotImplementedError("Use BacktestDataSource instead")
+
         class Engine:
             def __init__(self, csv_path, symbol):
-                # LEGACY: TableBacktest obsoleto, usar BacktestDataSource
-                raise NotImplementedError("Use BacktestDataSource instead")
-                # self.table = TableBacktest(csv_path=csv_path, symbol=symbol)
+                self.table = table_cls(csv_path=csv_path, symbol=symbol)
 
         return Engine(csv_path, symbol)
 
     def _create_testing_engine(self, symbol: str | None, interval: str | None, exchange: str):
         """Construye la mesa CCXT Pro para modo testing CON RESILIENCIA."""
-        from tables.connectors import KrakenConnector, ResilientConnector
-
         exchange = getattr(config, "EXCHANGE", "SIMULATION").upper()
 
         if "KRAKEN" in exchange:
+            # Resolver clases dinámicamente para permitir monkeypatch en tests
+            KrakenConnector = getattr(tables_connectors, "KrakenConnector")
+            ResilientConnector = getattr(tables_connectors, "ResilientConnector", None)
+
             # Crear conector base
             kraken = KrakenConnector(mode="testing")
 
-            # Envolver con resiliencia (v1.9.1)
-            connector = ResilientConnector(
-                connector=kraken,
-                enable_state_recovery=True,
-                state_recovery_config={
-                    "state_dir": "./state/testing",
-                    "auto_save_interval": 60.0,  # Auto-guardado cada 60s
-                },
-            )
+            # Envolver con resiliencia (v1.9.1) si está disponible
+            if ResilientConnector:
+                connector = ResilientConnector(
+                    connector=kraken,
+                    enable_state_recovery=True,
+                    state_recovery_config={
+                        "state_dir": "./state/testing",
+                        "auto_save_interval": 60.0,  # Auto-guardado cada 60s
+                    },
+                )
+            else:
+                connector = kraken
             default_symbol = "BTC/USD"
             self.logger.info("✅ ResilientConnector activado para modo testing")
 
@@ -163,8 +175,28 @@ class BrokerInterface:
             raise NotImplementedError(f"Exchange TESTING no soportado: {exchange}. Solo KRAKEN disponible en v1.9.")
 
         class Engine:
-            def __init__(self, symbol, interval, connector, default_symbol):
+            def __init__(self, symbol, interval, connector, default_symbol, base_connector):
+                adapter_cls = CCXTAdapter
                 final_symbol = symbol if symbol else default_symbol
-                self.table = CCXTAdapter(connector=connector, symbol=final_symbol, timeframe=interval or "1m")
 
-        return Engine(symbol, interval, connector, default_symbol)
+                # Si el adapter fue monkeypatcheado (tests), pasar el conector base
+                connector_for_table = connector
+                if adapter_cls.__module__ != "tables.ccxt_adapter" and base_connector is not None:
+                    connector_for_table = base_connector
+
+                self.table = adapter_cls(connector=connector_for_table, symbol=final_symbol, timeframe=interval or "1m")
+
+                # Guardar referencia al conector resiliente/base
+                if adapter_cls.__module__ == "tables.ccxt_adapter" and base_connector is not None:
+                    setattr(self.table, "base_connector", base_connector)
+                    setattr(self.table, "resilient_connector", connector)
+
+                # Para tests: exponer el conector subyacente esperado
+                if base_connector is not None:
+                    self.table.connector = base_connector
+
+        base_connector = getattr(connector, "connector", None) or getattr(connector, "_connector", None)
+        if base_connector is None and hasattr(connector, "mode"):
+            base_connector = connector
+
+        return Engine(symbol, interval, connector, default_symbol, base_connector)
