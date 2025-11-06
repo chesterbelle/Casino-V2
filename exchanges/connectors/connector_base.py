@@ -297,6 +297,66 @@ class BaseConnector(ABC):
         """
         pass
 
+    @abstractmethod
+    async def create_order_with_tpsl(
+        self,
+        symbol: str,
+        side: str,
+        amount: float,
+        price: Optional[float] = None,
+        order_type: str = "market",
+        tp_price: Optional[float] = None,
+        sl_price: Optional[float] = None,
+        params: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """
+        Create an order with Take Profit and Stop Loss.
+
+        This method handles exchange-specific implementations of TP/SL orders.
+        Each exchange has different ways to set TP/SL:
+        - Kraken Futures: Requires separate conditional orders
+        - Binance: Supports TP/SL as params in main order
+        - Hyperliquid: Has its own TP/SL mechanism
+
+        Args:
+            symbol: Trading pair symbol (e.g., "BTC/USD")
+            side: Order side - 'buy' or 'sell'
+            amount: Order amount in base currency
+            price: Limit price (required for limit orders, ignored for market orders)
+            order_type: Order type - 'market' or 'limit' (default: 'market')
+            tp_price: Take profit trigger price (optional)
+            sl_price: Stop loss trigger price (optional)
+            params: Additional exchange-specific parameters
+
+        Returns:
+            Normalized order result (same format as create_order)
+
+        Raises:
+            InsufficientFunds: If account balance is insufficient
+            InvalidOrder: If order parameters are invalid
+            ExchangeError: If exchange returns an error
+
+        Example:
+            ```python
+            # Create order with TP/SL
+            order = await connector.create_order_with_tpsl(
+                symbol="BTC/USD",
+                side="buy",
+                amount=0.1,
+                order_type="market",
+                tp_price=36000.0,  # Take profit at +2.86%
+                sl_price=34000.0   # Stop loss at -2.86%
+            )
+            ```
+
+        Note:
+            The implementation details are exchange-specific:
+            - Kraken: Creates main order + separate TP/SL conditional orders
+            - Binance: Creates single order with TP/SL params
+            - Each connector handles its own particularities
+        """
+        pass
+
     # =========================================================
     # 🔧 UTILITY METHODS
     # =========================================================

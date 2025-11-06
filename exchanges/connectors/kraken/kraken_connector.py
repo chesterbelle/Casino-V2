@@ -623,6 +623,98 @@ class KrakenConnector(BaseConnector):
 
         return True
 
+    async def create_order_with_tpsl(
+        self,
+        symbol: str,
+        side: str,
+        amount: float,
+        price: Optional[float] = None,
+        order_type: str = "market",
+        tp_price: Optional[float] = None,
+        sl_price: Optional[float] = None,
+        params: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """
+        Create order with TP/SL for Kraken Futures.
+
+        Kraken Futures requires TP/SL as separate conditional orders,
+        not as params in the main order. This method:
+        1. Creates the main market/limit order
+        2. Creates separate Take Profit conditional order (if tp_price provided)
+        3. Creates separate Stop Loss conditional order (if sl_price provided)
+
+        Args:
+            symbol: Trading pair symbol (e.g., "BTC/USD")
+            side: Order side - 'buy' or 'sell'
+            amount: Order amount in base currency
+            price: Limit price (for limit orders)
+            order_type: Order type - 'market' or 'limit'
+            tp_price: Take profit trigger price (optional)
+            sl_price: Stop loss trigger price (optional)
+            params: Additional parameters
+
+        Returns:
+            Main order result (normalized)
+
+        Raises:
+            ExchangeError: If order creation fails
+        """
+        # 1. Create main order
+        main_order = await self.create_order(
+            symbol=symbol,
+            side=side,
+            amount=amount,
+            price=price,
+            order_type=order_type,
+            params=params,
+        )
+
+        # If no TP/SL, return main order
+        if not tp_price and not sl_price:
+            return main_order
+
+        # 2. Create TP/SL orders (Kraken-specific implementation)
+        # Determine close side (opposite of entry)
+        close_side = "sell" if side == "buy" else "buy"
+
+        try:
+            # Create Take Profit order (if provided)
+            if tp_price:
+                await self.create_order(
+                    symbol=symbol,
+                    side=close_side,
+                    amount=amount,
+                    price=tp_price,
+                    order_type="take_profit",  # Kraken Futures conditional order
+                    params={
+                        "triggerPrice": tp_price,
+                        "reduceOnly": True,  # Only close position
+                    },
+                )
+                self.logger.info(f"✅ Take Profit order created | " f"{symbol} {close_side.upper()} @ ${tp_price:.2f}")
+
+            # Create Stop Loss order (if provided)
+            if sl_price:
+                await self.create_order(
+                    symbol=symbol,
+                    side=close_side,
+                    amount=amount,
+                    price=sl_price,
+                    order_type="stop",  # Kraken Futures stop order
+                    params={
+                        "triggerPrice": sl_price,
+                        "reduceOnly": True,  # Only close position
+                    },
+                )
+                self.logger.info(f"✅ Stop Loss order created | " f"{symbol} {close_side.upper()} @ ${sl_price:.2f}")
+
+        except Exception as e:
+            self.logger.error(f"❌ Error creating TP/SL orders: {e}")
+            # Don't fail the main order if TP/SL creation fails
+            # The main order was already executed successfully
+
+        return main_order
+
     @property
     def status_dict(self) -> Dict[str, bool]:
         """
