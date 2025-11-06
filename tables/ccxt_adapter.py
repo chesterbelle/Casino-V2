@@ -51,11 +51,12 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any, Dict, Optional
+import time
+from typing import Any, Dict, List, Optional
 
 from .balance_manager import BalanceManager
 from .connectors.connector_base import BaseConnector
-from .exchange_state_sync import ExchangeStateSync
+from .exchange_state_sync import ExchangeStateSync, Fill
 from .position_tracker import PositionTracker
 from .table_base import BaseTable
 
@@ -153,6 +154,8 @@ class CCXTAdapter(BaseTable):
         self._last_sync_time = 0
         self.exchange = None
         self.base_currency = getattr(connector, "base_currency", "USD")
+        self._confirmed_closes: List[Dict[str, Any]] = []
+        self._order_to_trade: Dict[str, str] = {}
 
         self.logger.info(f"🪙 CCXTAdapter inicializada | Exchange: {connector.exchange_name} | Symbol: {symbol}")
 
@@ -306,6 +309,9 @@ class CCXTAdapter(BaseTable):
                     f"Positions: {len(positions)} | Fills: {len(recent_fills)}"
                 )
 
+                # Procesar fills confirmados
+                self._process_recent_fills(recent_fills)
+
                 return enriched_candle
 
             except Exception as sync_error:
@@ -388,6 +394,9 @@ class CCXTAdapter(BaseTable):
 
             # 4. Update internal state
             self._update_after_order(result)
+
+            # 5. Registrar posición abierta
+            self._register_open_position(order, result)
 
             self.logger.info(f"✅ Orden ejecutada | {result['symbol']} {result['side'].upper()} {result['amount']}")
 
@@ -618,6 +627,153 @@ class CCXTAdapter(BaseTable):
                 self.logger.debug("⚠️ Resultado de orden sin side reconocible: %s", order_result)
 
             self.logger.info("💰 Balance actualizado después de orden | Costo: %.6f | Fee: %.6f", cost, fee)
+
+    def _register_open_position(self, order: Dict, result: Dict) -> None:
+        """Registra la posición abierta en el tracker interno."""
+
+        if not hasattr(self, "position_tracker") or self.position_tracker is None:
+            return
+
+        status = (result.get("status") or "").lower()
+        if status in {"rejected", "canceled", "error"}:
+            return
+
+        size_fraction = order.get("size")
+        if not size_fraction or size_fraction <= 0:
+            return
+
+        leverage = order.get("leverage") or order.get("params", {}).get("leverage") or 1.0
+        available_equity = order.get("equity")
+        if available_equity is None:
+            available_equity = self.balance_manager.get_balance()
+
+        # Determinar precio de entrada
+        entry_price = result.get("price") or order.get("entry_price_hint") or order.get("price")
+        if entry_price is None and self._last_candle and "close" in self._last_candle:
+            entry_price = self._last_candle["close"]
+
+        if entry_price is None:
+            self.logger.warning("⚠️ No se pudo determinar precio de entrada para registrar posición")
+            return
+
+        trade_id = order.get("trade_id") or result.get("id") or f"trade_{int(time.time() * 1000)}"
+        order_id = result.get("id")
+
+        tracking_order = {
+            "symbol": order.get("symbol", self.symbol),
+            "side": order.get("side", ""),
+            "size": size_fraction,
+            "leverage": leverage,
+            "take_profit": order.get("take_profit"),
+            "stop_loss": order.get("stop_loss"),
+            "trade_id": trade_id,
+            "player": order.get("player"),
+            "timeframe": order.get("timeframe"),
+            "cycle_step": order.get("cycle_step", 0),
+            "order_id": order_id,
+        }
+
+        entry_timestamp = result.get("timestamp") or order.get("timestamp") or int(time.time() * 1000)
+
+        position = self.position_tracker.open_position(
+            tracking_order,
+            float(entry_price),
+            str(entry_timestamp),
+            float(available_equity),
+        )
+
+        if position:
+            # Guardar trade_id asociado en el resultado para otros consumidores
+            result["trade_id"] = trade_id
+            if order_id:
+                self._order_to_trade[order_id] = trade_id
+
+    def _process_recent_fills(self, fills: List[Fill]) -> None:
+        """Procesa fills recientes confirmados por el exchange."""
+
+        if not fills or not hasattr(self, "position_tracker") or self.position_tracker is None:
+            return
+
+        for fill in fills:
+            if not fill.is_close:
+                continue
+
+            trade_id: Optional[str] = None
+            position = None
+
+            if fill.trade_id:
+                position = next(
+                    (pos for pos in self.position_tracker.open_positions if pos.trade_id == fill.trade_id),
+                    None,
+                )
+                if position:
+                    trade_id = position.trade_id
+
+            if position is None and fill.order_id:
+                mapped_trade = self._order_to_trade.get(fill.order_id)
+                if mapped_trade:
+                    trade_id = mapped_trade
+                    position = next(
+                        (pos for pos in self.position_tracker.open_positions if pos.trade_id == mapped_trade),
+                        None,
+                    )
+
+            if position is None:
+                position = next(
+                    (pos for pos in self.position_tracker.open_positions if pos.symbol == fill.symbol),
+                    None,
+                )
+                if position:
+                    trade_id = position.trade_id
+
+            if position is None or trade_id is None:
+                self.logger.debug("⚠️ Fill confirmado sin posición asociada | order_id=%s", fill.order_id)
+                continue
+
+            pnl = float(fill.realized_pnl)
+            if pnl == 0 and position.entry_price:
+                quantity = position.notional / position.entry_price if position.entry_price else 0.0
+                if quantity:
+                    if position.side == "LONG":
+                        pnl = (fill.price - position.entry_price) * quantity
+                    else:
+                        pnl = (position.entry_price - fill.price) * quantity
+                pnl -= float(fill.fee)
+
+            exit_reason = fill.reason
+            if not exit_reason:
+                if position.side == "LONG":
+                    if position.tp_level and fill.price >= position.tp_level * (1 - 1e-4):
+                        exit_reason = "TP"
+                    elif position.sl_level and fill.price <= position.sl_level * (1 + 1e-4):
+                        exit_reason = "SL"
+                else:
+                    if position.tp_level and fill.price <= position.tp_level * (1 + 1e-4):
+                        exit_reason = "TP"
+                    elif position.sl_level and fill.price >= position.sl_level * (1 - 1e-4):
+                        exit_reason = "SL"
+                if not exit_reason:
+                    exit_reason = "MANUAL"
+
+            closed = self.position_tracker.confirm_close(
+                trade_id=trade_id,
+                exit_price=fill.price,
+                exit_reason=exit_reason,
+                pnl=pnl,
+                fee=fill.fee,
+            )
+
+            if closed:
+                if fill.order_id:
+                    self._order_to_trade.pop(fill.order_id, None)
+                self._confirmed_closes.append(closed)
+
+    def consume_confirmed_closes(self) -> List[Dict[str, Any]]:
+        """Devuelve y limpia cierres confirmados procesados."""
+
+        closes = list(self._confirmed_closes)
+        self._confirmed_closes.clear()
+        return closes
 
     # =========================================================
     # 📊 PROPERTIES
