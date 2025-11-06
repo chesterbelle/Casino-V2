@@ -45,12 +45,15 @@
 
 ## 🔄 EN PROGRESO
 
-### Sprint 1 - Día 2: Actualizar Imports
+### Sprint 1 - Día 2: Actualizar Imports (EN PROGRESO)
 
 **Objetivo:** Migrar todos los módulos a usar nueva estructura de config
 
-**Archivos a actualizar:**
-- [ ] `main.py`
+**Archivos actualizados:**
+- [x] `core/config.py` - Convertido a wrapper legacy (reexporta desde config/)
+- [x] `main.py` - Usa `config.system`
+
+**Archivos pendientes:**
 - [ ] `core/trading/session.py`
 - [ ] `gemini/gemini_core.py`
 - [ ] `sensors/sensor_manager.py`
@@ -58,7 +61,12 @@
 - [ ] `players/kelly_player.py`
 - [ ] `core/data_sources/*.py`
 - [ ] `tables/connectors/*.py`
-- [ ] Otros módulos que importen config
+- [ ] Otros módulos (20 archivos más)
+
+**Estrategia:**
+- Backward compatibility: `core/config.py` reexporta todo
+- Código existente sigue funcionando sin cambios
+- Migración gradual a nueva estructura
 
 ---
 
