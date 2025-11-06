@@ -5,21 +5,12 @@ This package contains the main execution logic, session management, and configur
 """
 
 from . import config
-from .session_helpers import (
-    ask_initial_balance,
-    get_table_state,
-    log_trade,
-    set_table_balance,
-)
-from .session_runner import run_session_with_player
-from .session_summary import print_session_summary
+
+# Lazy imports to avoid circular dependencies
+# Import these directly when needed:
+# from core.session_runner import run_session_with_player
+# from core.session_helpers import ask_initial_balance, etc.
 
 __all__ = [
     "config",
-    "run_session_with_player",
-    "ask_initial_balance",
-    "set_table_balance",
-    "get_table_state",
-    "log_trade",
-    "print_session_summary",
 ]

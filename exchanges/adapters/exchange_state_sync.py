@@ -24,7 +24,7 @@ import time
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
-from .connectors.connector_base import BaseConnector
+from exchanges.connectors.connector_base import BaseConnector
 
 
 @dataclass
