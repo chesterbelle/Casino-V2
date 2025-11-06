@@ -8,6 +8,7 @@ Estos tests validan que:
 4. Integración end-to-end con Kraken Demo
 """
 
+import asyncio
 from unittest.mock import AsyncMock, Mock
 
 import pytest
@@ -32,12 +33,11 @@ class TestExchangeStateSync:
         connector.fetch_my_trades = AsyncMock(return_value=[])
         return connector
 
-    @pytest.mark.asyncio
-    async def test_sync_equity_basic(self, mock_connector):
+    def test_sync_equity_basic(self, mock_connector):
         """Test básico de sync_equity."""
         sync = ExchangeStateSync(mock_connector)
 
-        equity = await sync.sync_equity()
+        equity = asyncio.run(sync.sync_equity())
 
         assert equity.balance == 5000.0
         assert equity.unrealized_pnl == 0.0
@@ -45,8 +45,7 @@ class TestExchangeStateSync:
         assert equity.open_positions == 0
         assert equity.currency == "USD"
 
-    @pytest.mark.asyncio
-    async def test_sync_equity_with_position(self, mock_connector):
+    def test_sync_equity_with_position(self, mock_connector):
         """Test sync_equity con posición abierta."""
         # Mock posición con unrealized PnL
         mock_connector.fetch_positions = AsyncMock(
@@ -66,7 +65,7 @@ class TestExchangeStateSync:
         )
 
         sync = ExchangeStateSync(mock_connector)
-        equity = await sync.sync_equity()
+        equity = asyncio.run(sync.sync_equity())
 
         assert equity.balance == 5000.0
         assert equity.unrealized_pnl == 100.0
@@ -74,8 +73,7 @@ class TestExchangeStateSync:
         assert equity.open_positions == 1
         assert equity.margin_used == 500.0
 
-    @pytest.mark.asyncio
-    async def test_sync_positions(self, mock_connector):
+    def test_sync_positions(self, mock_connector):
         """Test sync_positions."""
         mock_connector.fetch_positions = AsyncMock(
             return_value=[
@@ -94,7 +92,7 @@ class TestExchangeStateSync:
         )
 
         sync = ExchangeStateSync(mock_connector)
-        positions = await sync.sync_positions()
+        positions = asyncio.run(sync.sync_positions())
 
         assert len(positions) == 1
         assert positions[0].symbol == "BTC/USD"
@@ -102,8 +100,7 @@ class TestExchangeStateSync:
         assert positions[0].size == 0.1
         assert positions[0].unrealized_pnl == 100.0
 
-    @pytest.mark.asyncio
-    async def test_sync_fills(self, mock_connector):
+    def test_sync_fills(self, mock_connector):
         """Test sync_fills."""
         mock_connector.fetch_my_trades = AsyncMock(
             return_value=[
@@ -123,24 +120,23 @@ class TestExchangeStateSync:
         )
 
         sync = ExchangeStateSync(mock_connector)
-        fills = await sync.sync_fills()
+        fills = asyncio.run(sync.sync_fills())
 
         assert len(fills) == 1
         assert fills[0].trade_id == "trade_123"
         assert fills[0].price == 50000.0
         assert fills[0].fee == 2.5
 
-    @pytest.mark.asyncio
-    async def test_equity_cache(self, mock_connector):
+    def test_equity_cache(self, mock_connector):
         """Test que el cache de equity funciona."""
         sync = ExchangeStateSync(mock_connector)
 
         # Primera llamada
-        equity1 = await sync.sync_equity()
+        equity1 = asyncio.run(sync.sync_equity())
         call_count_1 = mock_connector.fetch_balance.call_count
 
         # Segunda llamada inmediata (debe usar cache)
-        equity2 = await sync.sync_equity(use_cache=True)
+        equity2 = asyncio.run(sync.sync_equity(use_cache=True))
         call_count_2 = mock_connector.fetch_balance.call_count
 
         # No debe haber llamadas adicionales
@@ -265,8 +261,7 @@ class TestPositionTrackerHybrid:
 class TestCCXTAdapterEnriched:
     """Tests para CCXTAdapter con velas enriquecidas."""
 
-    @pytest.mark.asyncio
-    async def test_next_candle_enriched_structure(self):
+    def test_next_candle_enriched_structure(self):
         """Test que next_candle retorna estructura enriquecida."""
         # Mock connector
         connector = Mock()
@@ -290,7 +285,7 @@ class TestCCXTAdapterEnriched:
         table = CCXTAdapter(connector, "BTC/USD:USD", "1m")
         table._connected = True
 
-        candle = await table.next_candle()
+        candle = asyncio.run(table.next_candle())
 
         # Verificar estructura enriquecida
         assert candle is not None
@@ -305,8 +300,7 @@ class TestCCXTAdapterEnriched:
 
 
 @pytest.mark.integration
-@pytest.mark.asyncio
-async def test_integration_kraken_demo():
+def test_integration_kraken_demo():
     """
     Test de integración con Kraken Demo.
 
@@ -316,11 +310,11 @@ async def test_integration_kraken_demo():
     """
     try:
         connector = KrakenConnector(mode="testing")
-        await connector.connect()
+        asyncio.run(connector.connect())
 
         # Test ExchangeStateSync
         sync = ExchangeStateSync(connector)
-        equity = await sync.sync_equity()
+        equity = asyncio.run(sync.sync_equity())
 
         assert equity.balance > 0
         assert equity.currency in ["USD", "USDT", "USDC"]
@@ -329,14 +323,14 @@ async def test_integration_kraken_demo():
         table = CCXTAdapter(connector, "BTC/USD:USD", "1m")
         table._connected = True
 
-        candle = await table.next_candle()
+        candle = asyncio.run(table.next_candle())
 
         assert candle is not None
         assert candle.get("state_source") == "exchange_confirmed"
         assert "equity" in candle
         assert "balance" in candle
 
-        await connector.close()
+        asyncio.run(connector.close())
 
         print("✅ Test de integración con Kraken Demo PASADO")
 
