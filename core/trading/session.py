@@ -286,6 +286,41 @@ class TradingSession:
             # Get adapter from data source
             adapter = self.data_source.adapter
 
+            # Process confirmed closes from adapter position tracker
+            if hasattr(adapter, "consume_confirmed_closes"):
+                confirmed_closes = adapter.consume_confirmed_closes()
+                for close in confirmed_closes:
+                    trade_id = close.get("trade_id")
+
+                    if trade_id and trade_id in self.processed_trade_ids:
+                        continue
+
+                    if trade_id:
+                        self.processed_trade_ids.add(trade_id)
+
+                    outcome = (close.get("result") or "").upper()
+                    pnl = float(close.get("pnl", 0.0))
+
+                    if outcome == "WIN":
+                        self.stats.wins += 1
+                    elif outcome == "LOSS":
+                        self.stats.losses += 1
+                    self.stats.total_pnl += pnl
+
+                    if hasattr(self.player, "handle_trade_outcome"):
+                        previous_state = dict(self.player_state)
+                        self.player_state = self.player.handle_trade_outcome(
+                            self.player_state,
+                            "BET",
+                            close,
+                        )
+
+                        logger.info(
+                            f"🎯 Confirmed trade closed | Outcome: {outcome} | "
+                            f"PnL: ${pnl:+.2f} | Player state: "
+                            f"{previous_state.get('step', 0)} → {self.player_state.get('step', 0)}"
+                        )
+
             # Fetch recent trades (last 100 to catch all closes)
             if not hasattr(adapter.connector, "fetch_my_trades"):
                 return
