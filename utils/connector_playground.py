@@ -110,6 +110,9 @@ class ConnectorPlayground:
             "fees": self.cmd_fees,
             "precision": self.cmd_precision,
             "timeframes": self.cmd_timeframes,
+            "testorder": self.cmd_test_order,
+            "monitor": self.cmd_monitor_position,
+            "closeall": self.cmd_close_all,
             "exit": self.cmd_exit,
             "quit": self.cmd_exit,
         }
@@ -138,6 +141,12 @@ class ConnectorPlayground:
         logger.info("  fees                 - Muestra fees")
         logger.info("  precision            - Muestra precisión de precios")
         logger.info("  timeframes           - Muestra timeframes disponibles")
+        logger.info("")
+        logger.info("  🧪 TESTING DE ÓRDENES:")
+        logger.info("  testorder [side]     - Crea orden de prueba con TP/SL narrow (40x)")
+        logger.info("  monitor              - Monitorea posición hasta que cierre por TP/SL")
+        logger.info("  closeall             - Cierra todas las posiciones abiertas")
+        logger.info("")
         logger.info("  exit, quit           - Sale del playground")
         logger.info("─" * 80)
         logger.info(f"📊 Símbolo actual: {self.symbol}")
@@ -394,6 +403,227 @@ class ConnectorPlayground:
                 logger.info(f"  {tf_key:8s} = {tf_value}")
         else:
             logger.info("  No hay timeframes disponibles")
+
+    async def cmd_test_order(self, args):
+        """Comando: testorder - Crea orden de prueba con TP/SL narrow."""
+        side = args[0].upper() if args else "LONG"
+
+        if side not in ["LONG", "SHORT"]:
+            logger.error("❌ Side debe ser LONG o SHORT")
+            return
+
+        logger.info(f"🧪 Creando orden de prueba {side} en {self.symbol}...")
+        logger.info("⚠️  Configuración: 40x leverage, TP/SL narrow para ejecución rápida")
+
+        try:
+            # Obtener precio actual
+            ticker = await self.connector.fetch_ticker(self.symbol)
+            current_price = ticker.get("last")
+
+            if not current_price:
+                logger.error("❌ No se pudo obtener precio actual")
+                return
+
+            # Calcular TP/SL narrow (0.5% para que se alcance rápido con 40x)
+            if side == "LONG":
+                tp_price = current_price * 1.005  # +0.5%
+                sl_price = current_price * 0.995  # -0.5%
+            else:  # SHORT
+                tp_price = current_price * 0.995  # -0.5%
+                sl_price = current_price * 1.005  # +0.5%
+
+            # Calcular size mínimo (usar balance disponible / 40)
+            balance = await self.connector.fetch_balance()
+            available = 0
+
+            # Buscar balance en USD o USDT
+            for currency in ["USD", "USDT", "USDC"]:
+                if currency in balance and isinstance(balance[currency], dict):
+                    available = balance[currency].get("free", 0)
+                    if available > 0:
+                        break
+
+            if available == 0:
+                logger.error("❌ No hay balance disponible")
+                return
+
+            # Size = balance / (precio * 40) para usar 40x leverage
+            size = (available / 40) / current_price
+            size = round(size, 8)  # Redondear a 8 decimales
+
+            logger.info(f"\n📊 PARÁMETROS DE LA ORDEN:")
+            logger.info(f"  Symbol: {self.symbol}")
+            logger.info(f"  Side: {side}")
+            logger.info(f"  Size: {size}")
+            logger.info(f"  Entry Price: {current_price:.2f}")
+            logger.info(f"  Take Profit: {tp_price:.2f} ({'+0.5%' if side == 'LONG' else '-0.5%'})")
+            logger.info(f"  Stop Loss: {sl_price:.2f} ({'-0.5%' if side == 'LONG' else '+0.5%'})")
+            logger.info(f"  Leverage: 40x")
+            logger.info(f"  Balance usado: ${available / 40:.2f} (de ${available:.2f})")
+
+            # Confirmar
+            confirm = input("\n⚠️  ¿Crear esta orden? (yes/no): ").strip().lower()
+            if confirm != "yes":
+                logger.info("❌ Orden cancelada")
+                return
+
+            # Crear orden market con TP/SL
+            logger.info("🚀 Creando orden...")
+
+            order_params = {
+                "stopLoss": {"triggerPrice": sl_price},
+                "takeProfit": {"triggerPrice": tp_price},
+                "leverage": 40,
+            }
+
+            order = await self.connector.create_order(
+                symbol=self.symbol,
+                type="market",
+                side="buy" if side == "LONG" else "sell",
+                amount=size,
+                params=order_params,
+            )
+
+            logger.info(f"\n✅ ORDEN CREADA:")
+            logger.info(f"  Order ID: {order.get('id')}")
+            logger.info(f"  Status: {order.get('status')}")
+            logger.info(f"  Filled: {order.get('filled')}")
+            logger.info(f"  Average Price: {order.get('average')}")
+
+            logger.info(f"\n💡 Usa 'monitor' para monitorear la posición hasta que cierre por TP/SL")
+
+        except Exception as e:
+            logger.error(f"❌ Error al crear orden: {e}", exc_info=True)
+
+    async def cmd_monitor_position(self, args):
+        """Comando: monitor - Monitorea posición hasta que cierre."""
+        logger.info(f"👁️  Monitoreando posiciones de {self.symbol}...")
+        logger.info("⏸️  Presiona Ctrl+C para detener el monitoreo")
+        logger.info("─" * 80)
+
+        try:
+            last_position_count = 0
+            check_count = 0
+
+            while True:
+                check_count += 1
+
+                # Obtener posiciones
+                positions = await self.connector.fetch_positions()
+
+                # Filtrar por símbolo
+                symbol_positions = [p for p in positions if p.get("symbol") == self.symbol]
+
+                # Mostrar estado
+                if len(symbol_positions) != last_position_count:
+                    logger.info(f"\n📊 Check #{check_count} - {asyncio.get_event_loop().time():.0f}s")
+                    logger.info(f"  Posiciones abiertas: {len(symbol_positions)}")
+
+                    if len(symbol_positions) == 0 and last_position_count > 0:
+                        logger.info("\n🎯 ¡POSICIÓN CERRADA!")
+                        logger.info("─" * 80)
+
+                        # Obtener último trade para ver el resultado
+                        logger.info("📊 Obteniendo detalles del cierre...")
+                        trades = await self.connector.fetch_my_trades(symbol=self.symbol, limit=5)
+
+                        if trades:
+                            last_trade = trades[0]
+                            logger.info(f"\n💰 ÚLTIMO TRADE:")
+                            logger.info(f"  ID: {last_trade.get('id')}")
+                            logger.info(f"  Side: {last_trade.get('side')}")
+                            logger.info(f"  Price: {last_trade.get('price')}")
+                            logger.info(f"  Amount: {last_trade.get('amount')}")
+                            logger.info(f"  Fee: {last_trade.get('fee', {}).get('cost', 0)}")
+
+                            # Intentar obtener PnL del info
+                            info = last_trade.get("info", {})
+                            if "realizedPnl" in info:
+                                pnl = float(info["realizedPnl"])
+                                pnl_emoji = "🟢" if pnl > 0 else "🔴"
+                                logger.info(f"  {pnl_emoji} Realized PnL: ${pnl:+.2f}")
+
+                        # Mostrar balance actualizado
+                        balance = await self.connector.fetch_balance()
+                        for currency in ["USD", "USDT", "USDC"]:
+                            if currency in balance and isinstance(balance[currency], dict):
+                                total = balance[currency].get("total", 0)
+                                if total > 0:
+                                    logger.info(f"\n💰 Balance {currency}: ${total:.2f}")
+                                    break
+
+                        logger.info("\n✅ Monitoreo completado")
+                        break
+
+                    last_position_count = len(symbol_positions)
+
+                # Mostrar posiciones actuales
+                for pos in symbol_positions:
+                    unrealized_pnl = pos.get("unrealizedPnl", 0)
+                    pnl_emoji = "🟢" if unrealized_pnl > 0 else "🔴"
+                    logger.info(
+                        f"  {pnl_emoji} {pos.get('side'):5s} | "
+                        f"Size: {pos.get('contracts'):>10.8f} | "
+                        f"Entry: {pos.get('entryPrice'):>10.2f} | "
+                        f"Mark: {pos.get('markPrice'):>10.2f} | "
+                        f"PnL: ${unrealized_pnl:>8.2f}"
+                    )
+
+                # Esperar antes del próximo check (cada 2 segundos)
+                await asyncio.sleep(2)
+
+        except KeyboardInterrupt:
+            logger.info("\n⏸️  Monitoreo detenido por usuario")
+        except Exception as e:
+            logger.error(f"❌ Error en monitoreo: {e}", exc_info=True)
+
+    async def cmd_close_all(self, args):
+        """Comando: closeall - Cierra todas las posiciones."""
+        logger.info(f"🔴 Cerrando todas las posiciones de {self.symbol}...")
+
+        try:
+            # Obtener posiciones
+            positions = await self.connector.fetch_positions()
+
+            # Filtrar por símbolo
+            symbol_positions = [p for p in positions if p.get("symbol") == self.symbol]
+
+            if not symbol_positions:
+                logger.info("📭 No hay posiciones abiertas para cerrar")
+                return
+
+            logger.info(f"  Posiciones a cerrar: {len(symbol_positions)}")
+
+            # Confirmar
+            confirm = input("\n⚠️  ¿Cerrar todas las posiciones? (yes/no): ").strip().lower()
+            if confirm != "yes":
+                logger.info("❌ Operación cancelada")
+                return
+
+            # Cerrar cada posición
+            for pos in symbol_positions:
+                side = pos.get("side")
+                contracts = pos.get("contracts")
+
+                # Para cerrar: LONG → sell, SHORT → buy
+                close_side = "sell" if side == "long" else "buy"
+
+                logger.info(f"  Cerrando {side} de {contracts} contratos...")
+
+                order = await self.connector.create_order(
+                    symbol=self.symbol,
+                    type="market",
+                    side=close_side,
+                    amount=abs(contracts),
+                    params={"reduceOnly": True},
+                )
+
+                logger.info(f"    ✅ Orden de cierre creada: {order.get('id')}")
+
+            logger.info("\n✅ Todas las posiciones cerradas")
+
+        except Exception as e:
+            logger.error(f"❌ Error al cerrar posiciones: {e}", exc_info=True)
 
     async def cmd_exit(self, args):
         """Comando: exit."""

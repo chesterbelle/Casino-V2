@@ -142,6 +142,15 @@ precision            - Muestra precisión de precios
 timeframes           - Muestra timeframes disponibles
 ```
 
+#### Comandos de Testing de Órdenes (NUEVO)
+```
+testorder [side]     - Crea orden de prueba con TP/SL narrow (40x leverage)
+monitor              - Monitorea posición hasta que cierre por TP/SL
+closeall             - Cierra todas las posiciones abiertas
+```
+
+**Nota:** Los comandos de testing crean órdenes REALES. Úsalos solo en testnet o con precaución en live.
+
 ### Ejemplo de Sesión
 
 ```
@@ -198,6 +207,63 @@ timeframes           - Muestra timeframes disponibles
 
   Spread: 0.50
 
+🎮 > testorder LONG
+🧪 Creando orden de prueba LONG en BTC/USD...
+⚠️  Configuración: 40x leverage, TP/SL narrow para ejecución rápida
+
+📊 PARÁMETROS DE LA ORDEN:
+  Symbol: BTC/USD
+  Side: LONG
+  Size: 0.00580000
+  Entry Price: 43250.00
+  Take Profit: 43466.25 (+0.5%)
+  Stop Loss: 43033.75 (-0.5%)
+  Leverage: 40x
+  Balance usado: $250.00 (de $10000.00)
+
+⚠️  ¿Crear esta orden? (yes/no): yes
+🚀 Creando orden...
+
+✅ ORDEN CREADA:
+  Order ID: ABC123
+  Status: closed
+  Filled: 0.00580000
+  Average Price: 43250.50
+
+💡 Usa 'monitor' para monitorear la posición hasta que cierre por TP/SL
+
+🎮 > monitor
+👁️  Monitoreando posiciones de BTC/USD...
+⏸️  Presiona Ctrl+C para detener el monitoreo
+────────────────────────────────────────────────────────────────────────────────
+
+📊 Check #1 - 1699300000s
+  Posiciones abiertas: 1
+  🟢 long  | Size: 0.00580000 | Entry:   43250.00 | Mark:   43280.00 | PnL: $   34.80
+
+📊 Check #15 - 1699300030s
+  Posiciones abiertas: 1
+  🟢 long  | Size: 0.00580000 | Entry:   43250.00 | Mark:   43450.00 | PnL: $  232.00
+
+📊 Check #18 - 1699300036s
+  Posiciones abiertas: 0
+
+🎯 ¡POSICIÓN CERRADA!
+────────────────────────────────────────────────────────────────────────────────
+📊 Obteniendo detalles del cierre...
+
+💰 ÚLTIMO TRADE:
+  ID: XYZ789
+  Side: sell
+  Price: 43466.25
+  Amount: 0.00580000
+  Fee: 0.12
+  🟢 Realized PnL: $+250.83
+
+💰 Balance USD: $10250.71
+
+✅ Monitoreo completado
+
 🎮 > exit
 👋 Saliendo...
 🔌 Desconectado
@@ -253,7 +319,32 @@ python -m utils.connector_playground --exchange kraken --testnet
 🎮 > precision
 ```
 
-### 4. Validación Pre-Producción
+### 4. Testing de TP/SL y Cierre de Posiciones (NUEVO)
+
+Para validar que el conector maneja correctamente el cierre de posiciones por TP/SL:
+
+```bash
+# Iniciar playground en testnet
+python -m utils.connector_playground --exchange kraken --testnet
+
+# Crear orden de prueba con TP/SL narrow
+🎮 > testorder LONG
+
+# Monitorear hasta que cierre
+🎮 > monitor
+
+# Si necesitas cerrar manualmente
+🎮 > closeall
+```
+
+**¿Por qué es útil?**
+- Valida que el conector detecta correctamente cuando una posición cierra
+- Prueba el manejo de órdenes TP/SL del exchange
+- Verifica que el PnL se calcula correctamente
+- Usa 40x leverage y TP/SL narrow (0.5%) para que se ejecute rápido
+- Ideal para debugear el flujo de cierre de posiciones
+
+### 5. Validación Pre-Producción
 
 Antes de usar un conector en producción:
 
