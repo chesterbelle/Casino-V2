@@ -11,7 +11,7 @@ import asyncio
 import logging
 import sys
 
-from core import config
+from config import system
 from core.data_sources import BacktestDataSource, LiveDataSource, TestingDataSource
 from core.trading import TradingSession
 from players import kelly_player, paroli_player
@@ -19,7 +19,7 @@ from tables.connectors import KrakenConnector, ResilientConnector
 
 # Setup logging
 logging.basicConfig(
-    level=getattr(logging, config.LOG_LEVEL, logging.INFO),
+    level=getattr(logging, system.LOG_LEVEL, logging.INFO),
     format="%(asctime)s | %(name)s | %(levelname)s | %(message)s",
 )
 
@@ -34,7 +34,7 @@ PLAYERS = {
 
 def parse_args():
     """Parse command line arguments."""
-    mode = getattr(config, "MODE", "backtest").lower()
+    mode = getattr(system, "MODE", "backtest").lower()
     player_name = "paroli"
     symbol = None
     interval = None
@@ -115,7 +115,7 @@ async def run_backtest(player_module, data_file, max_candles):
 
     # Create backtest data source
     if not data_file:
-        data_file = getattr(config, "DATASET_PATH", "tables/data/raw/BTCUSDT_1m__30d.csv")
+        data_file = getattr(system, "DATASET_PATH", "tables/data/raw/BTCUSDT_1m__30d.csv")
 
     logger.info(f"📁 Loading data from: {data_file}")
 
