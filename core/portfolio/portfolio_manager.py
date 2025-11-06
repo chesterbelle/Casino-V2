@@ -1,32 +1,31 @@
 """
 Portfolio Manager - Casino V2
 
-Gestiona el portfolio completo del trader, incluyendo balance y posiciones.
-Centraliza toda la información financiera del trading.
+Centraliza la gestión de balance y posiciones.
+Gestiona balance y tracking simple de posiciones.
 """
-
-from __future__ import annotations
 
 import logging
 from typing import Dict, List, Optional
 
 from .balance_manager import BalanceManager
-from .position_tracker import PositionTracker
+
+logger = logging.getLogger(__name__)
 
 
 class PortfolioManager:
     """
-    Gestiona el portfolio completo del trader.
+    Gestor centralizado de portfolio.
 
     Responsabilidades:
-    - Mantener balance actual
-    - Trackear posiciones abiertas
-    - Calcular equity disponible
-    - Validar que hay fondos suficientes
-    - Coordinar actualizaciones de balance y posiciones
+    - Gestión de balance (disponible vs. bloqueado)
+    - Tracking de posiciones abiertas
+    - Cálculo de equity
+    - Validación de fondos
 
-    Esta clase compone BalanceManager y PositionTracker para proveer
-    una interfaz unificada de gestión de portfolio.
+    Usa:
+    - BalanceManager: Gestión de capital
+    - Dict interno: Tracking simple de posiciones
     """
 
     def __init__(self, initial_balance: float):
@@ -36,9 +35,9 @@ class PortfolioManager:
         Args:
             initial_balance: Balance inicial en USDT
         """
-        self.logger = logging.getLogger("PortfolioManager")
         self.balance_manager = BalanceManager(initial_balance)
-        self.position_tracker = PositionTracker()
+        self.positions: Dict[str, Dict] = {}  # trade_id -> position info
+        self.logger = logging.getLogger(__name__)
 
         self.logger.info(f"💼 Portfolio initialized with balance: ${initial_balance:,.2f}")
 
@@ -62,7 +61,7 @@ class PortfolioManager:
         Returns:
             Equity total en USDT
         """
-        return self.balance_manager.get_equity()
+        return self.balance_manager.equity
 
     def get_open_positions(self) -> List[Dict]:
         """
@@ -71,7 +70,7 @@ class PortfolioManager:
         Returns:
             Lista de diccionarios con info de posiciones
         """
-        return self.position_tracker.get_open_positions()
+        return list(self.positions.values())
 
     def get_position(self, trade_id: str) -> Optional[Dict]:
         """
@@ -83,7 +82,7 @@ class PortfolioManager:
         Returns:
             Diccionario con info de la posición o None si no existe
         """
-        return self.position_tracker.get_position(trade_id)
+        return self.positions.get(trade_id)
 
     def get_portfolio_state(self) -> Dict:
         """
@@ -163,20 +162,21 @@ class PortfolioManager:
         if not self.can_open_position(size):
             raise ValueError(f"Insufficient funds: need ${size:,.2f}, have ${self.get_balance():,.2f}")
 
-        # Reservar fondos
-        self.balance_manager.reserve_funds(size)
+        # Reservar fondos (reducir balance disponible)
+        self.balance_manager.update_balance(-size)
 
         # Registrar posición
-        self.position_tracker.open_position(
-            trade_id=trade_id,
-            symbol=symbol,
-            side=side,
-            size=size,
-            entry_price=entry_price,
-            take_profit=take_profit,
-            stop_loss=stop_loss,
-            timestamp=timestamp,
-        )
+        self.positions[trade_id] = {
+            "trade_id": trade_id,
+            "symbol": symbol,
+            "side": side,
+            "size": size,
+            "entry_price": entry_price,
+            "take_profit": take_profit,
+            "stop_loss": stop_loss,
+            "timestamp": timestamp,
+            "status": "open",
+        }
 
         self.logger.info(
             f"📈 Position opened: {trade_id} | {symbol} {side} | " f"size=${size:,.2f} @ {entry_price:.2f}"
@@ -221,18 +221,12 @@ class PortfolioManager:
         # Calcular PnL
         pnl = self._calculate_pnl(position, exit_price, fee)
 
-        # Cerrar posición en tracker
-        self.position_tracker.close_position(
-            trade_id=trade_id,
-            exit_price=exit_price,
-            exit_reason=exit_reason,
-            pnl=pnl,
-            timestamp=timestamp,
-        )
+        # Remover posición del tracking
+        del self.positions[trade_id]
 
-        # Liberar fondos y aplicar PnL
-        self.balance_manager.release_funds(position["size"])
-        self.balance_manager.apply_pnl(pnl)
+        # Liberar fondos (devolver el tamaño de la posición) y aplicar PnL
+        self.balance_manager.update_balance(position["size"])  # Devolver fondos reservados
+        self.balance_manager.apply_pnl(pnl, fee)  # Aplicar resultado neto
 
         result = "WIN" if pnl > 0 else "LOSS"
 
@@ -298,7 +292,7 @@ class PortfolioManager:
             new_balance: Nuevo balance inicial
         """
         self.balance_manager = BalanceManager(new_balance)
-        self.position_tracker = PositionTracker()
+        self.positions = {}  # Reset positions
         self.logger.info(f"🔄 Portfolio reset to ${new_balance:,.2f}")
 
     def get_statistics(self) -> Dict:
@@ -312,5 +306,4 @@ class PortfolioManager:
             "balance": self.get_balance(),
             "equity": self.get_equity(),
             "open_positions": len(self.get_open_positions()),
-            "total_trades": len(self.position_tracker.closed_positions),
         }
