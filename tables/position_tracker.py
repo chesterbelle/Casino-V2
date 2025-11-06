@@ -120,19 +120,38 @@ class PositionTracker:
         """Calcula capital disponible (total - bloqueado)."""
         return max(0.0, total_equity - self.blocked_capital)
 
-    def can_open_position(self, required_margin: float, available_equity: float) -> bool:
+    def can_open_position(
+        self,
+        required_margin: float,
+        available_equity: float,
+        *,
+        symbol: Optional[str] = None,
+        timeframe: Optional[str] = None,
+    ) -> bool:
         """
         Verifica si se puede abrir una nueva posición.
 
         Args:
             required_margin: Margen requerido para la nueva posición
             available_equity: Capital disponible actualmente
+            symbol: Símbolo del activo (opcional, para límites por activo)
+            timeframe: Timeframe de la estrategia (opcional, para límites por timeframe)
 
         Returns:
             True si se puede abrir la posición
         """
-        # Verificar límite de posiciones concurrentes
-        if len(self.open_positions) >= self.max_concurrent_positions:
+        positions_scope = self.open_positions
+
+        if symbol is not None or timeframe is not None:
+            positions_scope = [
+                pos
+                for pos in self.open_positions
+                if (symbol is None or pos.symbol == symbol)
+                and (timeframe is None or (pos.timeframe is not None and pos.timeframe == timeframe))
+            ]
+
+        # Verificar límite de posiciones concurrentes en el scope solicitado
+        if len(positions_scope) >= self.max_concurrent_positions:
             return False
 
         # Verificar capital disponible

@@ -281,7 +281,12 @@ def run_session_with_player(
             # Verificar si se puede abrir la posición
             margin_required = order.get("margin_used", 0.0)
 
-            if position_tracker.can_open_position(margin_required, available_equity):
+            if position_tracker.can_open_position(
+                margin_required,
+                available_equity,
+                symbol=order.get("symbol"),
+                timeframe=order.get("timeframe"),
+            ):
                 # Calcular precio de entrada (close de vela actual)
                 entry_price = float(current_candle.get("close", 0.0))
 
