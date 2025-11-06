@@ -32,22 +32,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Dict, Optional, Tuple
 
-try:
-    import config
-except ImportError:
-    # Fallback for when config is in core/
-    import os
-    import sys
-
-    # Add project root to path
-    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    if project_root not in sys.path:
-        sys.path.insert(0, project_root)
-    try:
-        import config
-    except ImportError:
-        # Last resort: import from core
-        from core import config
+from config import trading
 
 if TYPE_CHECKING:  # pragma: no cover - solo para hints
     from gemini.gemini_core import Verdict
@@ -55,11 +40,11 @@ if TYPE_CHECKING:  # pragma: no cover - solo para hints
 # Parámetros Paroli
 BASE_DIVISOR = 250  # Unidad inicial = equity / 250
 PROGRESSION = (1, 4, 8)  # Multiplicadores Paroli
-MAX_POSITION_SIZE = float(getattr(config, "MAX_POSITION_SIZE", 0.02))
-LEVERAGE = 10  # Apalancamiento para futures (máx permitido: config.MAX_LEVERAGE)
+MAX_POSITION_SIZE = float(getattr(trading, "MAX_POSITION_SIZE", 0.02))
+LEVERAGE = 10  # Apalancamiento para futures (máx permitido: trading.MAX_LEVERAGE)
 
 # Validar leverage contra config
-MAX_LEVERAGE = int(getattr(config, "MAX_LEVERAGE", 50))
+MAX_LEVERAGE = int(getattr(trading, "MAX_LEVERAGE", 50))
 if LEVERAGE > MAX_LEVERAGE:
     raise ValueError(f"Paroli player: LEVERAGE={LEVERAGE} excede MAX_LEVERAGE={MAX_LEVERAGE} del config")
 

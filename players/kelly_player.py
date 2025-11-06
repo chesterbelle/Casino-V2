@@ -39,31 +39,16 @@ from typing import TYPE_CHECKING, Optional
 if TYPE_CHECKING:
     from gemini.gemini_core import Verdict
 
-try:
-    import config
-except ImportError:
-    # Fallback for when config is in core/
-    import os
-    import sys
-
-    # Add project root to path
-    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    if project_root not in sys.path:
-        sys.path.insert(0, project_root)
-    try:
-        import config
-    except ImportError:
-        # Last resort: import from core
-        from core import config
+from config import strategy, trading
 
 # Logger
 logger = logging.getLogger("KellyPlayer")
 
 # Parámetros de cálculo (mismos que Gemini usa para P_STAR)
-R_GROSS = getattr(config, "TAKE_PROFIT", 0.01)
-L_GROSS = getattr(config, "STOP_LOSS", 0.01)
-FEES = 2 * getattr(config, "COMMISSION_RATE", 0.0)
-SLIPPAGE = getattr(config, "SLIPPAGE_DEFAULT", 0.0)
+R_GROSS = getattr(trading, "TAKE_PROFIT", 0.01)
+L_GROSS = getattr(trading, "STOP_LOSS", 0.01)
+FEES = 2 * getattr(trading, "COMMISSION_RATE", 0.0)
+SLIPPAGE = getattr(trading, "SLIPPAGE_DEFAULT", 0.0)
 COST = FEES + SLIPPAGE
 
 R_NET = max(0.0, R_GROSS - COST)
@@ -78,12 +63,12 @@ else:
     B = R_NET / L_NET
 
 # Configuración de Kelly
-KELLY_FRACTION = getattr(config, "KELLY_FRACTION", 0.2)
-MAX_POSITION_SIZE = getattr(config, "MAX_POSITION_SIZE", 0.02)
-LEVERAGE = 10  # Consistente con sistema para validación de TP/SL (máx: config.MAX_LEVERAGE)
+KELLY_FRACTION = getattr(strategy, "KELLY_FRACTION", 0.2)
+MAX_POSITION_SIZE = getattr(trading, "MAX_POSITION_SIZE", 0.02)
+LEVERAGE = 10  # Consistente con sistema para validación de TP/SL (máx: trading.MAX_LEVERAGE)
 
 # Validar leverage contra config
-MAX_LEVERAGE = int(getattr(config, "MAX_LEVERAGE", 50))
+MAX_LEVERAGE = int(getattr(trading, "MAX_LEVERAGE", 50))
 if LEVERAGE > MAX_LEVERAGE:
     raise ValueError(f"Kelly player: LEVERAGE={LEVERAGE} excede MAX_LEVERAGE={MAX_LEVERAGE} del config")
 

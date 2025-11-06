@@ -8,22 +8,7 @@ Cada sensor devuelve señales crudas con contexto y score de confianza.
 import logging
 from typing import Dict, Iterable, List, Tuple
 
-try:
-    import config
-except ImportError:
-    # Fallback for when config is in core/
-    import os
-    import sys
-
-    # Add project root to path
-    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    if project_root not in sys.path:
-        sys.path.insert(0, project_root)
-    try:
-        import config
-    except ImportError:
-        # Last resort: import from core
-        from core import config
+from config import sensors as sensors_config
 
 from .mean_reversion import (
     BollingerSqueeze,
@@ -78,15 +63,15 @@ class SensorManager:
         self.logger = logging.getLogger("SensorManager")
         self.sensors = list(self._load_sensors())
         self.cooldown_bars = max(
-            0, int(getattr(config, "SENSOR_COOLDOWN_BARS", getattr(config, "SENSOR_COOLDOWN", 0)) or 0)
+            0, int(getattr(sensors_config, "SENSOR_COOLDOWN_BARS", getattr(sensors_config, "SENSOR_COOLDOWN", 0)) or 0)
         )
         self._candle_index = -1
         self._last_trigger: Dict[str, int] = {}
 
     def _load_sensors(self) -> Iterable[Tuple[str, object]]:
         """Instancia sensores activos definidos en config.py."""
-        active_cfg: Dict[str, bool] = getattr(config, "ACTIVE_SENSORS", {}) or {}
-        params_cfg: Dict[str, Dict] = getattr(config, "SENSOR_PARAMS", {}) or {}
+        active_cfg: Dict[str, bool] = getattr(sensors_config, "ACTIVE_SENSORS", {}) or {}
+        params_cfg: Dict[str, Dict] = getattr(sensors_config, "SENSOR_PARAMS", {}) or {}
 
         sensors = []
         items = active_cfg.items() if active_cfg else ((name, True) for name in SENSOR_REGISTRY.keys())
@@ -127,7 +112,7 @@ class SensorManager:
         per_side: Dict[str, List[Tuple[str, dict]]] = {"LONG": [], "SHORT": []}
 
         # Process sensors in batches to reduce memory pressure
-        batch_size = getattr(config, "SENSOR_BATCH_SIZE", 5)
+        batch_size = getattr(sensors_config, "SENSOR_BATCH_SIZE", 5)
         sensor_batches = [self.sensors[i : i + batch_size] for i in range(0, len(self.sensors), batch_size)]
 
         for batch in sensor_batches:

@@ -49,22 +49,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Dict, Iterable, List, Optional, Set, Tuple
 
-try:
-    import config
-except ImportError:
-    # Fallback for when config is in core/
-    import os
-    import sys
-
-    # Add project root to path
-    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    if project_root not in sys.path:
-        sys.path.insert(0, project_root)
-    try:
-        import config
-    except ImportError:
-        # Last resort: import from core
-        from core import config
+from config import strategy, trading
 
 from .bucket_manager import BucketManager
 from .decision_logger import DecisionLogger
@@ -80,13 +65,13 @@ from statistics import NormalDist
 # =========================================================
 # Utilidades y parámetros por defecto seguros
 # =========================================================
-APPROVAL_MIN_SAMPLES = getattr(config, "MIN_SUPPORT", 20)
-KELLY_FRACTION = getattr(config, "KELLY_FRACTION", 1.0)
+APPROVAL_MIN_SAMPLES = getattr(strategy, "MIN_SUPPORT", 20)
+KELLY_FRACTION = getattr(strategy, "KELLY_FRACTION", 1.0)
 
-R_GROSS = getattr(config, "TAKE_PROFIT", 0.01)
-L_GROSS = getattr(config, "STOP_LOSS", 0.01)
-FEES = 2 * getattr(config, "COMMISSION_RATE", 0.0)
-SLIPPAGE = getattr(config, "SLIPPAGE_DEFAULT", 0.0)
+R_GROSS = getattr(trading, "TAKE_PROFIT", 0.01)
+L_GROSS = getattr(trading, "STOP_LOSS", 0.01)
+FEES = 2 * getattr(trading, "COMMISSION_RATE", 0.0)
+SLIPPAGE = getattr(trading, "SLIPPAGE_DEFAULT", 0.0)
 COST = FEES + SLIPPAGE
 R_NET = max(0.0, R_GROSS - COST)
 L_NET = L_GROSS + COST
@@ -97,10 +82,10 @@ if R_NET <= 0 or (R_NET + L_NET) <= 0:
 else:
     P_STAR = L_NET / (L_NET + R_NET)
     B = R_NET / L_NET if L_NET > 0 else 0.0
-ALPHA_PRIOR = float(getattr(config, "BAYES_ALPHA", 1.0))
-BETA_PRIOR = float(getattr(config, "BAYES_BETA", 1.0))
-CREDIBILITY_THRESHOLD = float(getattr(config, "BAYES_CREDIBILITY_THRESHOLD", 0.6))
-LOWER_CREDIBLE_PERCENTILE = float(getattr(config, "BAYES_LOWER_PERCENTILE", 0.1))
+ALPHA_PRIOR = float(getattr(strategy, "BAYES_ALPHA", 1.0))
+BETA_PRIOR = float(getattr(strategy, "BAYES_BETA", 1.0))
+CREDIBILITY_THRESHOLD = float(getattr(strategy, "BAYES_CREDIBILITY_THRESHOLD", 0.6))
+LOWER_CREDIBLE_PERCENTILE = float(getattr(strategy, "BAYES_LOWER_PERCENTILE", 0.1))
 
 
 # =========================================================
@@ -187,8 +172,8 @@ class Gemini:
         self.logger = logging.getLogger("Gemini")
         self.memory = memory or GeminiMemory()
         self.bucket_manager = bucket_manager or BucketManager(
-            window=getattr(config, "WINDOW_SIZE", 120),
-            min_support=getattr(config, "MIN_SUPPORT", 20),
+            window=getattr(strategy, "WINDOW_SIZE", 120),
+            min_support=getattr(strategy, "MIN_SUPPORT", 20),
         )
         self.decision_logger = DecisionLogger()
         # Almacenar base_meta temporalmente para make_order_from_verdict
@@ -334,7 +319,7 @@ class Gemini:
             min_kelly = min(m.kelly for m in positive_kelly_metrics)
             if min_kelly > 0:
                 action = "BET"
-                size_fraction = min(min_kelly, getattr(config, "MAX_POSITION_SIZE", 0.25))
+                size_fraction = min(min_kelly, getattr(trading, "MAX_POSITION_SIZE", 0.25))
                 reason = "apuesta_conservadora"
             else:
                 # Este caso es raro, pero por si acaso min() diera 0
