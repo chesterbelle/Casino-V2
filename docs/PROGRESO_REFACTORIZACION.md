@@ -118,24 +118,40 @@ core/portfolio/      # Portfolio management
 
 ---
 
-## 📋 PENDIENTE
+### Sprint 1 - Día 5: Limpieza Final (COMPLETADO)
 
-### Sprint 1 - Día 5: Limpieza Final (PRÓXIMO)
+**Objetivo:** Eliminar duplicados y validar estructura
 
-**Objetivo:** Reorganizar estructura de directorios
+**Archivos eliminados (21 duplicados):**
+- ✅ `tables/balance_manager.py`
+- ✅ `tables/position_manager.py`
+- ✅ `tables/position_tracker.py`
+- ✅ `tables/ccxt_adapter.py`
+- ✅ `tables/exchange_state_sync.py`
+- ✅ `tables/table_base.py`
+- ✅ `tables/connectors/*` (14 archivos)
+- ✅ `tables/resilience/*` (3 archivos)
 
-**Tareas:**
-- [ ] Crear `exchanges/connectors/`
-- [ ] Crear `exchanges/adapters/`
-- [ ] Crear `exchanges/resilience/`
-- [ ] Crear `core/portfolio/`
-- [ ] Mover archivos de `tables/` a nuevas ubicaciones
-- [ ] Actualizar imports
-- [ ] Eliminar carpeta `tables/` (legacy)
+**Archivos mantenidos (backward compatibility):**
+- ✅ `tables/__init__.py` - Wrapper con DeprecationWarning
+- ✅ `tables/connectors/__init__.py` - Wrapper con DeprecationWarning
+
+**Correcciones:**
+- ✅ Import circular resuelto en `core/__init__.py` (lazy imports)
+- ✅ Import path corregido en `exchange_state_sync.py`
+
+**Validación:**
+- ✅ Nuevos imports funcionan (`exchanges.*`, `core.portfolio.*`)
+- ✅ Backward compatibility funciona (`tables.*` con warnings)
+- ✅ Sin dependencias circulares
+
+**Resultado:** -4980 líneas de código duplicado eliminadas. Estructura limpia y mantenible.
 
 ---
 
-### Sprint 2: Refactorizar Croupier
+## 📋 PENDIENTE
+
+### Sprint 2: Refactorizar Croupier (PRÓXIMO)
 
 **Objetivo:** Convertir Croupier en tablero de control
 
