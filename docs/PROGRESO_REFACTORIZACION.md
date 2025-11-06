@@ -77,9 +77,50 @@
 
 ---
 
+### Sprint 1 - Día 3-4: Reestructurar Carpetas (COMPLETADO)
+
+**Objetivo:** Reorganizar carpetas para separar responsabilidades
+
+**Nueva estructura creada:**
+```
+exchanges/
+├── connectors/      # Exchange API connectors (Kraken, Binance, etc.)
+├── adapters/        # CCXT adapter, state sync
+└── resilience/      # Resilient wrappers
+
+core/portfolio/      # Portfolio management
+├── balance_manager.py
+├── position_manager.py
+└── position_tracker.py
+```
+
+**Archivos migrados:**
+- ✅ `tables/connectors/*` → `exchanges/connectors/`
+- ✅ `tables/ccxt_adapter.py` → `exchanges/adapters/`
+- ✅ `tables/exchange_state_sync.py` → `exchanges/adapters/`
+- ✅ `tables/resilience/*` → `exchanges/resilience/`
+- ✅ `tables/balance_manager.py` → `core/portfolio/`
+- ✅ `tables/position_manager.py` → `core/portfolio/`
+- ✅ `tables/position_tracker.py` → `core/portfolio/`
+
+**Imports actualizados en:**
+- ✅ `main.py`
+- ✅ `core/session_runner.py`
+- ✅ `croupier/broker_interface.py`
+- ✅ `core/data_sources/testing.py`
+- ✅ `exchanges/adapters/ccxt_adapter.py`
+
+**Backward compatibility:**
+- ✅ `tables/__init__.py` - Wrapper con DeprecationWarning
+- ✅ `tables/connectors/__init__.py` - Wrapper con DeprecationWarning
+
+**Resultado:** Nueva estructura clara, código existente sigue funcionando con warnings.
+
+---
+
 ## 📋 PENDIENTE
 
-### Sprint 1 - Día 3-5: Reestructurar Carpetas
+### Sprint 1 - Día 5: Limpieza Final (PRÓXIMO)
 
 **Objetivo:** Reorganizar estructura de directorios
 
