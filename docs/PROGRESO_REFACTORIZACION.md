@@ -273,4 +273,43 @@ Ver detalles completos en: `RESULTADOS_BACKTEST_CROUPIER_V2.md`
 
 ---
 
+---
+
+## 🧹 LIMPIEZA DE CÓDIGO LEGACY (COMPLETADA)
+
+### Archivos Eliminados (2025-11-06)
+
+**Core Legacy (5 archivos):**
+- ❌ `core/config_v18_backup.py`
+- ❌ `core/live_session_v18_backup.py`
+- ❌ `core/session_runner.py` → Reemplazado por `core/trading/session.py`
+- ❌ `core/session_helpers.py`
+- ❌ `core/session_summary.py`
+
+**Croupier Legacy (2 archivos):**
+- ❌ `croupier/croupier_v2.py` → Ya migrado a `croupier.py`
+- ❌ `croupier/broker_interface.py`
+
+**Tables Legacy (3 archivos + 1 dir):**
+- ❌ `tables/__init__.py` → Wrapper de compatibilidad
+- ❌ `tables/connectors/__init__.py` → Wrapper de compatibilidad
+- ❌ `tables/connectors/` → Directorio vacío
+
+**Documentación Legacy (2 archivos):**
+- ❌ `PRUEBAS_VALIDACION_BACKTEST_VS_LIVE.md`
+- ❌ `ROADMAP_v1.9.4_REFACTORIZACION.md`
+
+**Scripts Temporales (1 archivo):**
+- ❌ `validate_refactoring.py`
+
+**Resultado:**
+- 🗑️ **3,001 líneas** de código legacy eliminadas
+- 🗑️ **13 archivos** obsoletos removidos
+- ✅ **100% arquitectura V2** - Sin dependencias legacy
+- ✅ Código más limpio y mantenible
+
+Ver detalles completos en: `LIMPIEZA_LEGACY_COMPLETADA.md`
+
+---
+
 **Última actualización:** 2025-11-06
