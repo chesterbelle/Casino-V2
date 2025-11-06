@@ -610,7 +610,160 @@ class KrakenConnector(BaseConnector):
         self.logger.info("✅ Credenciales validadas para modo live")
 
     # =========================================================
+    # 📊 ADDITIONAL MARKET DATA METHODS
+    # =========================================================
+
+    async def fetch_ticker(self, symbol: str) -> Dict[str, Any]:
+        """
+        Fetch ticker data for a symbol.
+
+        Args:
+            symbol: Trading pair symbol (e.g., "BTC/USD")
+
+        Returns:
+            Normalized ticker data
+        """
+        if not self._connected or not self.exchange:
+            raise RuntimeError("Not connected. Call connect() first.")
+
+        try:
+            normalized_symbol = self.normalize_symbol(symbol)
+            ticker = await self.exchange.fetch_ticker(normalized_symbol)
+            return ticker
+        except Exception as e:
+            self.logger.error(f"❌ Error fetching ticker for {symbol}: {e}")
+            raise
+
+    async def fetch_order_book(self, symbol: str, limit: Optional[int] = None) -> Dict[str, Any]:
+        """
+        Fetch order book for a symbol.
+
+        Args:
+            symbol: Trading pair symbol (e.g., "BTC/USD")
+            limit: Number of orders to fetch (optional)
+
+        Returns:
+            Normalized order book data
+        """
+        if not self._connected or not self.exchange:
+            raise RuntimeError("Not connected. Call connect() first.")
+
+        try:
+            normalized_symbol = self.normalize_symbol(symbol)
+            orderbook = await self.exchange.fetch_order_book(normalized_symbol, limit=limit)
+            return orderbook
+        except Exception as e:
+            self.logger.error(f"❌ Error fetching order book for {symbol}: {e}")
+            raise
+
+    async def fetch_trades(
+        self, symbol: str, since: Optional[int] = None, limit: Optional[int] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Fetch recent public trades for a symbol.
+
+        Args:
+            symbol: Trading pair symbol (e.g., "BTC/USD")
+            since: Timestamp in ms to fetch trades from (optional)
+            limit: Number of trades to fetch (optional)
+
+        Returns:
+            List of normalized trade data
+        """
+        if not self._connected or not self.exchange:
+            raise RuntimeError("Not connected. Call connect() first.")
+
+        try:
+            normalized_symbol = self.normalize_symbol(symbol)
+            trades = await self.exchange.fetch_trades(normalized_symbol, since=since, limit=limit)
+            return trades
+        except Exception as e:
+            self.logger.error(f"❌ Error fetching trades for {symbol}: {e}")
+            raise
+
+    async def fetch_open_orders(
+        self, symbol: Optional[str] = None, since: Optional[int] = None, limit: Optional[int] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Fetch open orders.
+
+        Args:
+            symbol: Trading pair symbol (optional, fetches all if not provided)
+            since: Timestamp in ms to fetch orders from (optional)
+            limit: Number of orders to fetch (optional)
+
+        Returns:
+            List of normalized order data
+        """
+        if not self._connected or not self.exchange:
+            raise RuntimeError("Not connected. Call connect() first.")
+
+        try:
+            normalized_symbol = self.normalize_symbol(symbol) if symbol else None
+            orders = await self.exchange.fetch_open_orders(symbol=normalized_symbol, since=since, limit=limit)
+            return orders
+        except Exception as e:
+            self.logger.error(f"❌ Error fetching open orders: {e}")
+            raise
+
+    async def load_markets(self, reload: bool = False) -> Dict[str, Any]:
+        """
+        Load markets from exchange.
+
+        Args:
+            reload: Force reload markets (optional)
+
+        Returns:
+            Dictionary of markets
+        """
+        if not self._connected or not self.exchange:
+            raise RuntimeError("Not connected. Call connect() first.")
+
+        try:
+            if reload or not self._markets:
+                self._markets = await self.exchange.load_markets(reload=reload)
+            return self._markets
+        except Exception as e:
+            self.logger.error(f"❌ Error loading markets: {e}")
+            raise
+
+    async def disconnect(self) -> None:
+        """
+        Disconnect from exchange.
+
+        Calls close() for compatibility.
+        """
+        await self.close()
+
+    # =========================================================
     # 🧾 PROPERTIES
+    # =========================================================
+
+    @property
+    def timeframes(self) -> Dict[str, str]:
+        """
+        Available timeframes for OHLCV data.
+
+        Returns:
+            Dictionary mapping timeframe keys to their values
+        """
+        if self.exchange and hasattr(self.exchange, "timeframes"):
+            return self.exchange.timeframes
+        # Default Kraken Futures timeframes
+        return {
+            "1m": "1m",
+            "5m": "5m",
+            "15m": "15m",
+            "30m": "30m",
+            "1h": "1h",
+            "4h": "4h",
+            "12h": "12h",
+            "1d": "1d",
+            "1w": "1w",
+        }
+
+    # =========================================================
+    # 🧾 PROPERTIES (CONTINUED)
     # =========================================================
 
     @property

@@ -15,7 +15,6 @@ import logging
 from datetime import datetime
 from typing import Dict, List, Optional
 
-from config.exchange import EXCHANGE_CONFIG
 from exchanges.connectors import KrakenConnector
 from exchanges.connectors.connector_base import BaseConnector
 
