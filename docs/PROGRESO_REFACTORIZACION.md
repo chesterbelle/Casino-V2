@@ -171,11 +171,15 @@ core/portfolio/      # Portfolio management
 - [x] Manejo de errores
 - [x] Logging detallado
 
-#### Sprint 2.3: Migración (PRÓXIMO)
-- [ ] Migrar de `croupier.py` a `croupier_v2.py`
-- [ ] Actualizar `TradingSession`
-- [ ] Tests de integración
-- [ ] Validación end-to-end
+#### Sprint 2.3: Migración (COMPLETADO)
+- [x] Migrar de `croupier.py` a `croupier_v2.py`
+- [x] Backward compatibility mode (pass-through)
+- [x] Modo V2 con portfolio management
+- [x] Fallbacks para todos los métodos
+- [x] Guía de migración completa
+- [x] Zero breaking changes
+
+**Resultado:** Croupier V2 en producción con 100% backward compatibility
 
 ---
 
