@@ -52,16 +52,22 @@
 **Archivos actualizados:**
 - [x] `core/config.py` - Convertido a wrapper legacy (reexporta desde config/)
 - [x] `main.py` - Usa `config.system`
+- [x] `gemini/gemini_core.py` - Usa `config.strategy` y `config.trading`
+- [x] `players/paroli_player.py` - Usa `config.trading`
+- [x] `players/kelly_player.py` - Usa `config.strategy` y `config.trading`
+- [x] `sensors/sensor_manager.py` - Usa `config.sensors`
 
-**Archivos pendientes:**
+**Archivos pendientes (backward compatible):**
 - [ ] `core/trading/session.py`
-- [ ] `gemini/gemini_core.py`
-- [ ] `sensors/sensor_manager.py`
-- [ ] `players/paroli_player.py`
-- [ ] `players/kelly_player.py`
 - [ ] `core/data_sources/*.py`
 - [ ] `tables/connectors/*.py`
-- [ ] Otros módulos (20 archivos más)
+- [ ] `gemini/memory.py`
+- [ ] `gemini/decision_logger.py`
+- [ ] `croupier/broker_interface.py`
+- [ ] `utils/*.py`
+- [ ] Otros módulos (~15 archivos más)
+
+**Nota:** Los archivos pendientes funcionan correctamente gracias al wrapper de backward compatibility en `core/config.py`
 
 **Estrategia:**
 - Backward compatibility: `core/config.py` reexporta todo
