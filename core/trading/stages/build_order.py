@@ -155,6 +155,10 @@ class BuildOrderStage(Stage):
             "params": {
                 "leverage": leverage,
             },
+            "size": size_fraction,
+            "leverage": leverage,
+            "equity": context.equity,
+            "entry_price_hint": current_price,
             # Metadata para position tracking
             "player": player_name,
             "timeframe": player_meta.get("timeframe"),
