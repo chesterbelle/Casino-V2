@@ -695,8 +695,6 @@ class CCXTAdapter(BaseTable):
             return
 
         for fill in fills:
-            if not fill.is_close:
-                continue
 
             trade_id: Optional[str] = None
             position = None
@@ -728,6 +726,26 @@ class CCXTAdapter(BaseTable):
 
             if position is None or trade_id is None:
                 self.logger.debug("⚠️ Fill confirmado sin posición asociada | order_id=%s", fill.order_id)
+                continue
+
+            fill_side = (fill.side or "").lower()
+            position_side = position.side.lower()
+
+            # Detectar si el fill representa un cierre según dirección
+            is_close_fill = fill.is_close
+            if not is_close_fill:
+                if position_side == "long" and fill_side == "sell":
+                    is_close_fill = True
+                elif position_side == "short" and fill_side == "buy":
+                    is_close_fill = True
+
+            # Si el fill coincide con la dirección de apertura (ej. agregar posición), ignorar
+            if not is_close_fill:
+                self.logger.debug(
+                    "ℹ️ Fill ignorado (mismo lado que apertura) | trade_id=%s | fill_side=%s",
+                    trade_id,
+                    fill_side,
+                )
                 continue
 
             pnl = float(fill.realized_pnl)

@@ -13,3 +13,6 @@ log/
 testing_*.log
 RESULTADOS_TEST_*.md
 RELEASE_NOTES_*.md
+
+# Datos generados
+gemini/data/gemini_decisions.csv
