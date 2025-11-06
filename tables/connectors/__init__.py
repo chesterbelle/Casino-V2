@@ -35,26 +35,26 @@ Usage:
     candles = await resilient_connector.fetch_ohlcv("BTC/USD", "1m")
     balance = await resilient_connector.fetch_balance()
 
-    # Close
-    await resilient_connector.close()
-    ```
-
-Architecture:
-    CCXTAdapter (Mesa) uses BaseConnector interface
-    → Specific connector implementation (KrakenConnector, etc.)
-    → Exchange API (REST + WebSocket)
 """
 
-from .binance import BinanceConnector
-from .connector_base import BaseConnector
-from .hyperliquid import HyperliquidConnector
-from .kraken import KrakenConnector
-from .resilient_connector import ResilientConnector
+import warnings
+
+# Re-export from new location
+from exchanges.connectors import (  # noqa: E402
+    BaseConnector,
+    KrakenConnector,
+    ResilientConnector,
+)
+
+warnings.warn(
+    "The 'tables.connectors' module is deprecated and will be removed in v2.0. "
+    "Please use 'exchanges.connectors' instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 __all__ = [
     "BaseConnector",
     "KrakenConnector",
-    "BinanceConnector",
-    "HyperliquidConnector",
     "ResilientConnector",
 ]
