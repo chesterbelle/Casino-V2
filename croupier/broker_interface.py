@@ -28,26 +28,10 @@ puede operar sin preocuparse del origen de los datos.
 
 import logging
 
-try:
-    import config
-except ImportError:
-    # Fallback for when config is in core/
-    import os
-    import sys
-
-    # Add project root to path
-    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    if project_root not in sys.path:
-        sys.path.insert(0, project_root)
-    try:
-        import config
-    except ImportError:
-        # Last resort: import from core
-        from core import config
+from config import exchange, system
+from tables.ccxt_adapter import CCXTAdapter
 
 # Importaciones condicionales (según modo)
-
-from tables.ccxt_adapter import CCXTAdapter
 
 
 class BrokerInterface:
@@ -74,16 +58,16 @@ class BrokerInterface:
             Nombre opcional del símbolo (BTCUSDT, LTCUSDT, etc.)
         """
         self.logger = logging.getLogger("BrokerInterface")
-        self.mode = getattr(config, "MODE", "backtest").lower()
-        exchange = getattr(config, "EXCHANGE", "SIMULATION").upper()
+        self.mode = getattr(system, "MODE", "backtest").lower()
+        exchange_name = getattr(exchange, "EXCHANGE", "SIMULATION").upper()
         if interval:
             self.interval = interval
-        elif "KRAKEN" in exchange:
-            self.interval = getattr(config, "KRAKEN_FUTURES_INTERVAL", "1m")
-        elif "BINANCE" in exchange:
-            self.interval = getattr(config, "BINANCE_DEFAULT_INTERVAL", "15m")
+        elif "KRAKEN" in exchange_name:
+            self.interval = getattr(exchange, "KRAKEN_FUTURES_INTERVAL", "1m")
+        elif "BINANCE" in exchange_name:
+            self.interval = getattr(exchange, "BINANCE_DEFAULT_INTERVAL", "15m")
         else:
-            self.interval = getattr(config, "ASTER_DEFAULT_INTERVAL", "1m")
+            self.interval = getattr(exchange, "ASTER_DEFAULT_INTERVAL", "1m")
 
         if self.mode == "backtest":
             if not csv_path:
@@ -92,8 +76,8 @@ class BrokerInterface:
             self.engine = self._create_backtest_engine(csv_path, symbol)
 
         elif self.mode == "testing":
-            self.logger.info("🧪 Iniciando mesa TESTING (exchange=%s)", exchange)
-            self.engine = self._create_testing_engine(symbol, self.interval, exchange)
+            self.logger.info("🧪 Iniciando mesa TESTING (exchange=%s)", exchange_name)
+            self.engine = self._create_testing_engine(symbol, self.interval, exchange_name)
             self.logger.info("✅ Mesa testing preparada (conexión pendiente)")
 
         elif self.mode == "live":
@@ -133,13 +117,11 @@ class BrokerInterface:
 
         return Engine(csv_path, symbol)
 
-    def _create_testing_engine(self, symbol: str | None, interval: str | None, exchange: str):
+    def _create_testing_engine(self, symbol: str | None, interval: str | None, exchange_name: str):
         """Construye la mesa CCXT Pro para modo testing CON RESILIENCIA."""
         from tables.connectors import KrakenConnector, ResilientConnector
 
-        exchange = getattr(config, "EXCHANGE", "SIMULATION").upper()
-
-        if "KRAKEN" in exchange:
+        if "KRAKEN" in exchange_name:
             # Crear conector base
             kraken = KrakenConnector(mode="testing")
 
@@ -155,12 +137,14 @@ class BrokerInterface:
             default_symbol = "BTC/USD"
             self.logger.info("✅ ResilientConnector activado para modo testing")
 
-        elif "BINANCE" in exchange:
+        elif "BINANCE" in exchange_name:
             raise NotImplementedError("BinanceConnector (testing) aún no está disponible en v1.9.")
-        elif "HYPERLIQUID" in exchange:
+        elif "HYPERLIQUID" in exchange_name:
             raise NotImplementedError("HyperliquidConnector (testing) aún no está disponible en v1.9.")
         else:
-            raise NotImplementedError(f"Exchange TESTING no soportado: {exchange}. Solo KRAKEN disponible en v1.9.")
+            raise NotImplementedError(
+                f"Exchange TESTING no soportado: {exchange_name}. Solo KRAKEN disponible en v1.9."
+            )
 
         class Engine:
             def __init__(self, symbol, interval, connector, default_symbol):

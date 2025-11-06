@@ -39,9 +39,9 @@ def ask_initial_balance() -> float:
     except Exception as e:
         logger.warning(f"Error en input de usuario: {e}")
         try:
-            from . import config
+            from config import trading
 
-            default = float(getattr(config, "STARTING_BALANCE", 10_000.0))
+            default = float(getattr(trading, "STARTING_BALANCE", 10_000.0))
             validated_default = validate_positive_number(default, "STARTING_BALANCE")
             print(f"⚠️ Usando STARTING_BALANCE de config: {validated_default:.2f}")
             return validated_default

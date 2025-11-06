@@ -4,23 +4,9 @@ from __future__ import annotations
 
 import csv
 import os
-import sys
 from typing import Any, Dict, Iterable
 
-try:
-    import config
-except ImportError:
-    # Fallback for when config is in core/
-
-    # Add project root to path
-    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    if project_root not in sys.path:
-        sys.path.insert(0, project_root)
-    try:
-        import config
-    except ImportError:
-        # Last resort: import from core
-        from core import config
+from config import system
 
 
 class DecisionLogger:
@@ -71,8 +57,8 @@ class DecisionLogger:
     ]
 
     def __init__(self, path: str | None = None) -> None:
-        self.path = path or getattr(config, "DECISIONS_LOG_PATH", "gemini/data/gemini_decisions.csv")
-        self.result_path = getattr(config, "TRADE_RESULTS_LOG_PATH", "gemini/data/gemini_trade_results.csv")
+        self.path = path or getattr(system, "DECISIONS_LOG_PATH", "gemini/data/gemini_decisions.csv")
+        self.result_path = getattr(system, "TRADE_RESULTS_LOG_PATH", "gemini/data/gemini_trade_results.csv")
         self._ensure_file()
         self._ensure_result_file()
 
