@@ -200,11 +200,19 @@ class TestingDataSource(DataSource):
                     "order": order,
                 }
 
-            logger.info(
-                f"✅ Order executed | "
-                f"{result.get('side', '?').upper()} "
-                f"{result.get('amount', 0):.4f} @ {result.get('price', 0):.2f}"
-            )
+            side = (result.get("side") or "?").upper()
+            amount = result.get("amount")
+            price = result.get("price")
+
+            if amount is not None and price is not None:
+                logger.info(f"✅ Order executed | {side} {float(amount):.4f} @ {float(price):.2f}")
+            else:
+                logger.info(
+                    "✅ Order executed | %s amount=%s price=%s",
+                    side,
+                    amount,
+                    price,
+                )
 
             return {
                 "status": "opened",
