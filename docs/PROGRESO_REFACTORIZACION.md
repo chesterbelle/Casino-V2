@@ -149,18 +149,33 @@ core/portfolio/      # Portfolio management
 
 ---
 
-## 📋 PENDIENTE
+## 📋 EN PROGRESO
 
-### Sprint 2: Refactorizar Croupier (PRÓXIMO)
+### Sprint 2: Refactorizar Croupier (EN PROGRESO)
 
 **Objetivo:** Convertir Croupier en tablero de control
 
-**Tareas:**
-- [ ] Crear `PortfolioManager`
-- [ ] Extraer `PositionTracker`
-- [ ] Refactorizar `Croupier` con composición
+#### Sprint 2.1: PortfolioManager (COMPLETADO)
+- [x] Crear `PortfolioManager`
+- [x] Componer `BalanceManager` + `PositionTracker`
+- [x] API unificada de portfolio
+- [x] Validación de fondos
+- [x] Cálculo automático de PnL
+- [x] Documentación de diseño
+
+#### Sprint 2.2: Croupier V2 (COMPLETADO)
+- [x] Crear `Croupier V2` con `PortfolioManager`
+- [x] API de consulta (get_balance, get_equity, etc.)
+- [x] Validación de órdenes
+- [x] Coordinación con exchange adapter
+- [x] Manejo de errores
+- [x] Logging detallado
+
+#### Sprint 2.3: Migración (PRÓXIMO)
+- [ ] Migrar de `croupier.py` a `croupier_v2.py`
 - [ ] Actualizar `TradingSession`
-- [ ] Tests unitarios
+- [ ] Tests de integración
+- [ ] Validación end-to-end
 
 ---
 
