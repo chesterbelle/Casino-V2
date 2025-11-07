@@ -29,10 +29,12 @@ Version: 1.9.1
 
 import asyncio
 import logging
+import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from ..resilience import ConnectionManager, SessionState, StateRecovery
+from ..resilience.order_tracker import OrderTracker
 from .connector_base import BaseConnector
 
 
@@ -126,6 +128,9 @@ class ResilientConnector(BaseConnector):
         self._connected = False
         self._session_id: Optional[str] = None
         self._session_state: Optional[SessionState] = None
+
+        # Order Tracking (CRÍTICO)
+        self._order_tracker = OrderTracker(max_tracked_orders=1000)
 
         # Auto-save task
         self._auto_save_task: Optional[asyncio.Task] = None
@@ -277,30 +282,78 @@ class ResilientConnector(BaseConnector):
         """
         Crea orden con tracking (inspirado en Hummingbot).
 
-        Tracking antes de enviar al exchange para no perder órdenes
-        si la API falla después de crear la orden.
+        CRÍTICO: Trackea la orden ANTES de enviarla al exchange.
+        Esto garantiza que no perdemos órdenes si la API falla.
+
+        Flow:
+        1. Generar client_order_id único
+        2. START tracking (estado: PENDING)
+        3. Enviar al exchange
+        4. UPDATE tracking con exchange_order_id (estado: SUBMITTED)
+        5. Si falla, marcar como FAILED pero mantener tracking
         """
-        # TODO: Implementar order tracking antes de enviar
-        # (similar a Hummingbot's start_tracking_order)
+        # 1. Generar client_order_id único
+        client_order_id = self._generate_client_order_id()
+
+        # 2. START tracking ANTES de enviar
+        self._order_tracker.start_tracking(
+            client_order_id=client_order_id,
+            symbol=symbol,
+            side=side,
+            amount=amount,
+            order_type=order_type,
+            price=price,
+            params=params,
+        )
 
         try:
-            order = await self._connector.create_order(symbol, side, amount, price, order_type, params)
+            # 3. Enviar al exchange
+            order_result = await self._connector.create_order(symbol, side, amount, price, order_type, params)
+
+            # 4. UPDATE tracking con resultado del exchange
+            exchange_order_id = order_result.get("id")
+            if exchange_order_id:
+                self._order_tracker.update_order_submitted(client_order_id, exchange_order_id)
+            else:
+                self.logger.warning(f"⚠️ Order created but no exchange_order_id: {order_result}")
+
+            # Agregar client_order_id al resultado para referencia
+            order_result["client_order_id"] = client_order_id
 
             # Update session state
             if self._session_state:
-                # TODO: Agregar orden a tracking
-                pass
+                self._session_state.add_order(order_result)
 
-            return order
+            return order_result
 
         except Exception as e:
-            self.logger.error(f"❌ create_order falló: {e}")
+            # 5. Si falla, marcar como FAILED pero mantener tracking
+            self._order_tracker.update_order_failed(client_order_id, str(e))
+            self.logger.error(f"❌ create_order falló | {client_order_id} | {e}")
             raise
 
     async def cancel_order(self, order_id: str, symbol: str, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        """Cancela orden con tracking."""
-        # TODO: Implementar order tracking
-        return await self._connector.cancel_order(order_id, symbol, params)
+        """
+        Cancela orden con tracking.
+
+        Args:
+            order_id: Puede ser client_order_id o exchange_order_id
+            symbol: Par de trading
+            params: Parámetros adicionales
+        """
+        try:
+            result = await self._connector.cancel_order(order_id, symbol, params)
+
+            # Actualizar tracking si es client_order_id
+            tracked_order = self._order_tracker.get_order(order_id)
+            if tracked_order:
+                self._order_tracker.update_from_exchange(order_id, {"status": "cancelled"})
+
+            return result
+
+        except Exception as e:
+            self.logger.error(f"❌ cancel_order falló | {order_id} | {e}")
+            raise
 
     async def create_order_with_tpsl(
         self,
@@ -495,6 +548,38 @@ class ResilientConnector(BaseConnector):
             self._session_state.closed_trades = closed_trades
 
         self._session_state.last_update = datetime.now().timestamp()
+
+        # Note: Auto-save happens in background loop, not here
+
+    # =========================================================
+    # 📊 ORDER TRACKING UTILITIES
+    # =========================================================
+
+    def _generate_client_order_id(self) -> str:
+        """
+        Genera client_order_id único.
+
+        Formato: CASINO_{timestamp}_{uuid}
+        """
+        timestamp = int(datetime.now().timestamp() * 1000)
+        unique_id = str(uuid.uuid4())[:8]
+        return f"CASINO_{timestamp}_{unique_id}"
+
+    def get_order_tracker(self) -> OrderTracker:
+        """Obtiene el OrderTracker (para debugging/monitoring)."""
+        return self._order_tracker
+
+    def get_tracked_order(self, client_order_id: str):
+        """Obtiene orden trackeada por client_order_id."""
+        return self._order_tracker.get_order(client_order_id)
+
+    def get_all_in_flight_orders(self):
+        """Obtiene todas las órdenes en vuelo."""
+        return self._order_tracker.get_all_in_flight()
+
+    def get_order_tracker_metrics(self) -> Dict[str, Any]:
+        """Obtiene métricas del order tracker."""
+        return self._order_tracker.get_metrics()
 
     async def save_state(self):
         """Guarda estado manualmente."""
