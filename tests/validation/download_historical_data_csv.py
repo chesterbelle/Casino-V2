@@ -72,10 +72,8 @@ async def download_and_save_csv(
         logger.info(f"  Expected candles: {duration_minutes}")
 
         # Descargar datos
-        since = int(start_time.timestamp() * 1000)
-        ohlcv_data = await connector.fetch_ohlcv(
-            symbol=symbol, timeframe=timeframe, limit=duration_minutes, since=since
-        )
+        # Note: KrakenConnector.fetch_ohlcv no acepta 'since', descarga las últimas N velas
+        ohlcv_data = await connector.fetch_ohlcv(symbol=symbol, timeframe=timeframe, limit=duration_minutes)
 
         logger.info(f"✅ Descargadas {len(ohlcv_data)} velas")
 
