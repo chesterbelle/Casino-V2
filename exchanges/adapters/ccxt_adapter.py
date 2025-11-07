@@ -159,6 +159,7 @@ class CCXTAdapter(BaseTable):
         # Configuration
         self.symbol = symbol
         self.timeframe = timeframe
+        self.base_currency = getattr(connector, "base_currency", "USD")
 
         # Components (business logic)
         self.balance_manager = BalanceManager(starting_balance=starting_balance)
@@ -180,7 +181,6 @@ class CCXTAdapter(BaseTable):
         self._last_balance_snapshot: Optional[Dict[str, Any]] = None
         self._last_sync_time = 0
         self.exchange = None
-        self.base_currency = getattr(connector, "base_currency", "USD")
 
         self.logger.info(f"🪙 CCXTAdapter inicializada | Exchange: {connector.exchange_name} | Symbol: {symbol}")
 
