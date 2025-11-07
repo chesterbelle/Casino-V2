@@ -41,6 +41,7 @@ from .kraken_constants import denormalize_symbol as denormalize_kraken_symbol
 from .kraken_constants import get_urls
 from .kraken_constants import normalize_symbol as normalize_kraken_symbol
 from .kraken_websocket import KrakenWebSocket
+from .oco_monitor import OCOOrderMonitor
 
 
 class KrakenConnector(BaseConnector):
@@ -116,6 +117,11 @@ class KrakenConnector(BaseConnector):
             self._ws = KrakenWebSocket(testnet=self._testnet)
             self.logger.info("✅ WebSocket habilitado")
 
+        # OCO Monitor (para órdenes TP/SL)
+        # Kraken Futures NO soporta OCO automático, por lo que debemos
+        # monitorear y cancelar órdenes manualmente
+        self._oco_monitor: Optional[OCOOrderMonitor] = None
+
         env = "DEMO" if self._testnet else "MAINNET"
         self.logger.info("🔧 KrakenConnector inicializado | modo=%s", env)
 
@@ -180,6 +186,14 @@ class KrakenConnector(BaseConnector):
                     self.logger.warning(f"⚠️ WebSocket falló, usando solo REST: {e}")
                     self._ws_connected = False
 
+            # Iniciar OCO Monitor
+            # Kraken Futures NO soporta OCO automático, por lo que necesitamos
+            # monitorear las órdenes TP/SL manualmente
+            if self._oco_monitor is None:
+                self._oco_monitor = OCOOrderMonitor(self, check_interval=2.0)
+                await self._oco_monitor.start()
+                self.logger.info("✅ OCO Monitor started")
+
         except ccxt_async.AuthenticationError as e:
             self.logger.error(f"❌ Error de autenticación: {e}")
             raise
@@ -191,9 +205,17 @@ class KrakenConnector(BaseConnector):
         """
         Close connection to Kraken exchange.
 
-        Closes the CCXT exchange instance and WebSocket (if enabled).
+        Closes the CCXT exchange instance, WebSocket, and OCO Monitor.
         """
-        # Desconectar WebSocket primero
+        # Detener OCO Monitor primero
+        if self._oco_monitor:
+            try:
+                await self._oco_monitor.stop()
+                self.logger.info("⏹️ OCO Monitor stopped")
+            except Exception as e:
+                self.logger.error(f"❌ Error stopping OCO Monitor: {e}")
+
+        # Desconectar WebSocket
         if self._ws and self._ws_connected:
             try:
                 await self._ws.disconnect()
@@ -511,9 +533,24 @@ class KrakenConnector(BaseConnector):
 
             # Clean params - remove leverage as it causes decimal.ConversionSyntax error
             clean_params = (params or {}).copy()
+            leverage_value = None
             if "leverage" in clean_params:
-                removed_leverage = clean_params.pop("leverage")
-                self.logger.info(f"🔧 Removed leverage={removed_leverage} from params")
+                leverage_value = clean_params.pop("leverage")
+                self.logger.info(f"🔧 Removed leverage={leverage_value} from params")
+
+            # IMPORTANTE: Configurar margin mode ANTES de crear la orden
+            # Kraken Futures requiere llamar a set_margin_mode() explícitamente
+            try:
+                # Usar isolated margin por defecto (no cross)
+                await self.exchange.set_margin_mode("isolated", symbol=kraken_symbol)
+                self.logger.info(f"🔧 Set margin mode to ISOLATED for {kraken_symbol}")
+
+                # Si se especificó leverage, configurarlo también
+                if leverage_value:
+                    await self.exchange.set_leverage(int(leverage_value), symbol=kraken_symbol)
+                    self.logger.info(f"🔧 Set leverage to {leverage_value}x for {kraken_symbol}")
+            except Exception as e:
+                self.logger.warning(f"⚠️ Could not set margin mode/leverage: {e}")
 
             self.logger.info(f"📋 Clean params being sent: {clean_params}")
 
@@ -846,13 +883,15 @@ class KrakenConnector(BaseConnector):
         params: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
-        Create order with TP/SL for Kraken Futures.
+        Create order with TP/SL for Kraken Futures with manual OCO implementation.
 
-        Kraken Futures requires TP/SL as separate conditional orders,
-        not as params in the main order. This method:
-        1. Creates the main market/limit order
-        2. Creates separate Take Profit conditional order (if tp_price provided)
-        3. Creates separate Stop Loss conditional order (if sl_price provided)
+        Kraken Futures API does NOT support automatic OCO (One Cancels the Other).
+        This method creates:
+        1. Main order (market/limit)
+        2. Take Profit order (separate, conditional)
+        3. Stop Loss order (separate, conditional)
+
+        The OCO logic must be implemented externally by monitoring these orders.
 
         Args:
             symbol: Trading pair symbol (e.g., "BTC/USD")
@@ -865,7 +904,16 @@ class KrakenConnector(BaseConnector):
             params: Additional parameters
 
         Returns:
-            Main order result (normalized)
+            Dict with main order result and TP/SL order IDs:
+            {
+                'id': main_order_id,
+                'symbol': symbol,
+                'side': side,
+                'amount': amount,
+                ...
+                'tp_order_id': tp_order_id,  # if TP created
+                'sl_order_id': sl_order_id,  # if SL created
+            }
 
         Raises:
             ExchangeError: If order creation fails
@@ -880,49 +928,94 @@ class KrakenConnector(BaseConnector):
             params=params,
         )
 
+        self.logger.info(
+            f"✅ Main order created | " f"{symbol} {side.upper()} {amount:.4f} @ {main_order.get('price', 'market')}"
+        )
+
         # If no TP/SL, return main order
         if not tp_price and not sl_price:
             return main_order
 
-        # 2. Create TP/SL orders (Kraken-specific implementation)
-        # Determine close side (opposite of entry)
+        # 2. Determine close side (opposite of entry)
         close_side = "sell" if side == "buy" else "buy"
+
+        # 3. Create TP/SL orders (Kraken-specific types)
+        tp_order_id = None
+        sl_order_id = None
 
         try:
             # Create Take Profit order (if provided)
+            # CCXT no reconoce tipos específicos de Kraken (takeProfitLimit)
+            # Solución: usar type="limit" estándar + triggerPrice en params
             if tp_price:
-                await self.create_order(
+                tp_order = await self.exchange.create_order(
                     symbol=symbol,
+                    type="limit",  # Tipo estándar CCXT
                     side=close_side,
                     amount=amount,
-                    price=tp_price,
-                    order_type="take_profit",  # Kraken Futures conditional order
+                    price=tp_price,  # Limit price
                     params={
-                        "triggerPrice": tp_price,
-                        "reduceOnly": True,  # Only close position
+                        "triggerPrice": tp_price,  # Trigger para activar la orden
+                        "reduceOnly": True,  # Solo cerrar posición
                     },
                 )
-                self.logger.info(f"✅ Take Profit order created | " f"{symbol} {close_side.upper()} @ ${tp_price:.2f}")
+                # CCXT ya normaliza la respuesta
+                tp_order_id = tp_order.get("id")
+                self.logger.info(
+                    f"✅ Take Profit order created | "
+                    f"{symbol} {close_side.upper()} @ ${tp_price:.2f} | "
+                    f"ID: {tp_order_id}"
+                )
 
             # Create Stop Loss order (if provided)
+            # Mismo enfoque: type="limit" + triggerPrice
             if sl_price:
-                await self.create_order(
+                sl_order = await self.exchange.create_order(
                     symbol=symbol,
+                    type="limit",  # Tipo estándar CCXT
                     side=close_side,
                     amount=amount,
-                    price=sl_price,
-                    order_type="stop",  # Kraken Futures stop order
+                    price=sl_price,  # Limit price
                     params={
-                        "triggerPrice": sl_price,
-                        "reduceOnly": True,  # Only close position
+                        "triggerPrice": sl_price,  # Trigger para activar la orden
+                        "reduceOnly": True,  # Solo cerrar posición
                     },
                 )
-                self.logger.info(f"✅ Stop Loss order created | " f"{symbol} {close_side.upper()} @ ${sl_price:.2f}")
+                # CCXT ya normaliza la respuesta
+                sl_order_id = sl_order.get("id")
+                self.logger.info(
+                    f"✅ Stop Loss order created | "
+                    f"{symbol} {close_side.upper()} @ ${sl_price:.2f} | "
+                    f"ID: {sl_order_id}"
+                )
 
         except Exception as e:
             self.logger.error(f"❌ Error creating TP/SL orders: {e}")
             # Don't fail the main order if TP/SL creation fails
             # The main order was already executed successfully
+
+        # 4. Add TP/SL order IDs to main order result
+        main_order["tp_order_id"] = tp_order_id
+        main_order["sl_order_id"] = sl_order_id
+
+        # 5. Register OCO pair for monitoring
+        if self._oco_monitor and (tp_order_id or sl_order_id):
+            try:
+                pair_id = self._oco_monitor.register_oco_pair(
+                    symbol=symbol,
+                    tp_order_id=tp_order_id,
+                    sl_order_id=sl_order_id,
+                )
+                self.logger.info(f"📋 OCO pair registered: {pair_id}")
+            except Exception as e:
+                self.logger.error(f"❌ Error registering OCO pair: {e}")
+
+        self.logger.info(
+            f"✅ Order with TP/SL created | "
+            f"Main: {main_order.get('id')} | "
+            f"TP: {tp_order_id or 'None'} | "
+            f"SL: {sl_order_id or 'None'}"
+        )
 
         return main_order
 
