@@ -585,25 +585,14 @@ class Gemini:
         """
         symbol = meta.get("symbol", "UNKNOWN")
         timeframe = meta.get("timeframe", "UNKNOWN")
-
-        # Calculate TP/SL multipliers based on side
-        # LONG: TP above entry (1.0 + R), SL below entry (1.0 - L)
-        # SHORT: TP below entry (1.0 - R), SL above entry (1.0 + L)
-        if side.upper() in ("SHORT", "SELL"):
-            take_profit_mult = 1.0 - R_GROSS  # Profit if price goes down
-            stop_loss_mult = 1.0 + L_GROSS  # Loss if price goes up
-        else:  # LONG or BUY
-            take_profit_mult = 1.0 + R_GROSS  # Profit if price goes up
-            stop_loss_mult = 1.0 - L_GROSS  # Loss if price goes down
-
         order = {
             "symbol": symbol,
             "timeframe": timeframe,
             "timestamp": meta.get("timestamp"),
             "side": side,
             "size": float(size_fraction),
-            "take_profit": take_profit_mult,
-            "stop_loss": stop_loss_mult,
+            "take_profit": 1.0 + R_GROSS,
+            "stop_loss": 1.0 - L_GROSS,
         }
         if timeframe and timeframe != "UNKNOWN":
             order["market"] = f"{symbol}@{timeframe}"
