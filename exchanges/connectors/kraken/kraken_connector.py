@@ -40,6 +40,7 @@ from .kraken_constants import BASE_CURRENCY, KRAKEN_DEFAULT_CONFIG
 from .kraken_constants import denormalize_symbol as denormalize_kraken_symbol
 from .kraken_constants import get_urls
 from .kraken_constants import normalize_symbol as normalize_kraken_symbol
+from .kraken_websocket import KrakenWebSocket
 
 
 class KrakenConnector(BaseConnector):
@@ -108,6 +109,13 @@ class KrakenConnector(BaseConnector):
         self._balance_updated = False
         self._last_balance_update: float = 0.0
 
+        # WebSocket (opcional)
+        self._ws: Optional[KrakenWebSocket] = None
+        self._ws_connected = False
+        if enable_websocket:
+            self._ws = KrakenWebSocket(testnet=self._testnet)
+            self.logger.info("✅ WebSocket habilitado")
+
         env = "DEMO" if self._testnet else "MAINNET"
         self.logger.info("🔧 KrakenConnector inicializado | modo=%s", env)
 
@@ -159,6 +167,19 @@ class KrakenConnector(BaseConnector):
             market_count = len(self._markets)
             self.logger.info(f"✅ Conectado a Kraken Futures {env_name} | {market_count} mercados cargados")
 
+            # Conectar WebSocket si está habilitado
+            if self._ws:
+                try:
+                    self.logger.info("🔌 Conectando WebSocket...")
+                    self._ws_connected = await self._ws.connect()
+                    if self._ws_connected:
+                        self.logger.info("✅ WebSocket conectado")
+                    else:
+                        self.logger.warning("⚠️ WebSocket falló, usando solo REST")
+                except Exception as e:
+                    self.logger.warning(f"⚠️ WebSocket falló, usando solo REST: {e}")
+                    self._ws_connected = False
+
         except ccxt_async.AuthenticationError as e:
             self.logger.error(f"❌ Error de autenticación: {e}")
             raise
@@ -170,8 +191,17 @@ class KrakenConnector(BaseConnector):
         """
         Close connection to Kraken exchange.
 
-        Closes the CCXT exchange instance and cleans up resources.
+        Closes the CCXT exchange instance and WebSocket (if enabled).
         """
+        # Desconectar WebSocket primero
+        if self._ws and self._ws_connected:
+            try:
+                await self._ws.disconnect()
+                self._ws_connected = False
+            except Exception as e:
+                self.logger.error(f"❌ Error cerrando WebSocket: {e}")
+
+        # Desconectar REST
         if self.exchange:
             try:
                 await self.exchange.close()
@@ -908,7 +938,7 @@ class KrakenConnector(BaseConnector):
             "connected": self._connected,
             "markets_loaded": bool(self._markets),
             "balance_updated": self._balance_updated,
-            "websocket_active": False,  # TODO: Implementar cuando WebSocket esté listo
+            "websocket_active": self._ws_connected if self._ws else False,
             "ready": self.ready,
         }
 
