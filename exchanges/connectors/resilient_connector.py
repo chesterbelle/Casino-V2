@@ -34,6 +34,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from ..resilience import ConnectionManager, SessionState, StateRecovery
+from ..resilience.error_classifier import ErrorClassifier
 from ..resilience.order_tracker import OrderTracker
 from .connector_base import BaseConnector
 
@@ -132,6 +133,9 @@ class ResilientConnector(BaseConnector):
         # Order Tracking (CRÍTICO)
         self._order_tracker = OrderTracker(max_tracked_orders=1000)
 
+        # Error Classification (CRÍTICO)
+        self._error_classifier = ErrorClassifier()
+
         # Auto-save task
         self._auto_save_task: Optional[asyncio.Task] = None
 
@@ -210,61 +214,75 @@ class ResilientConnector(BaseConnector):
     # 📊 MARKET DATA (Delegación con resiliencia)
     # =========================================================
 
+    async def _execute_with_smart_retry(self, func, *args, max_retries: int = 3, **kwargs):
+        """
+        Ejecuta función con retry inteligente basado en clasificación de errores.
+
+        CRÍTICO: Usa ErrorClassifier para determinar si el error es retriable.
+
+        Args:
+            func: Función a ejecutar
+            max_retries: Máximo de intentos
+            *args, **kwargs: Argumentos para la función
+
+        Returns:
+            Resultado de la función
+
+        Raises:
+            Exception: Si falla después de todos los intentos o error no retriable
+        """
+        for attempt in range(max_retries):
+            try:
+                return await func(*args, **kwargs)
+
+            except Exception as e:
+                # Clasificar error
+                classification = self._error_classifier.classify(e)
+
+                # Si NO es retriable, fallar inmediatamente
+                if not classification.is_retriable:
+                    self.logger.error(
+                        f"❌ Error NO retriable | "
+                        f"Category: {classification.category.value} | "
+                        f"Action: {classification.suggested_action.value} | "
+                        f"{classification.message}"
+                    )
+                    raise
+
+                # Si es retriable pero es el último intento, fallar
+                if attempt >= max_retries - 1:
+                    self.logger.error(
+                        f"❌ Error retriable pero max retries alcanzado | "
+                        f"Category: {classification.category.value} | "
+                        f"{classification.message}"
+                    )
+                    raise
+
+                # Retry con delay inteligente
+                delay = classification.retry_delay or (2**attempt)
+                self.logger.warning(
+                    f"⚠️ Error retriable (intento {attempt + 1}/{max_retries}) | "
+                    f"Category: {classification.category.value} | "
+                    f"Retry in {delay:.1f}s | "
+                    f"{classification.message}"
+                )
+                await asyncio.sleep(delay)
+
     async def fetch_ohlcv(self, symbol: str, timeframe: str, limit: Optional[int] = None) -> list:
         """
-        Fetch OHLCV con retry automático.
+        Fetch OHLCV con retry inteligente.
 
-        Delega al conector subyacente pero agrega retry logic.
+        Usa ErrorClassifier para determinar si reintentar.
         """
-        max_retries = 3
-        for attempt in range(max_retries):
-            try:
-                return await self._connector.fetch_ohlcv(symbol, timeframe, limit)
-            except Exception as e:
-                if attempt < max_retries - 1:
-                    delay = 2**attempt
-                    self.logger.warning(
-                        f"⚠️ fetch_ohlcv falló (intento {attempt + 1}/{max_retries}), " f"reintentando en {delay}s: {e}"
-                    )
-                    await asyncio.sleep(delay)
-                    continue
-                self.logger.error(f"❌ fetch_ohlcv falló después de {max_retries} intentos")
-                raise
+        return await self._execute_with_smart_retry(self._connector.fetch_ohlcv, symbol, timeframe, limit)
 
     async def fetch_ticker(self, symbol: str) -> Dict[str, Any]:
-        """Fetch ticker con retry automático."""
-        max_retries = 3
-        for attempt in range(max_retries):
-            try:
-                return await self._connector.fetch_ticker(symbol)
-            except Exception as e:
-                if attempt < max_retries - 1:
-                    delay = 2**attempt
-                    self.logger.warning(
-                        f"⚠️ fetch_ticker falló (intento {attempt + 1}/{max_retries}), " f"reintentando en {delay}s: {e}"
-                    )
-                    await asyncio.sleep(delay)
-                    continue
-                self.logger.error(f"❌ fetch_ticker falló después de {max_retries} intentos")
-                raise
+        """Fetch ticker con retry inteligente."""
+        return await self._execute_with_smart_retry(self._connector.fetch_ticker, symbol)
 
     async def fetch_order_book(self, symbol: str, limit: Optional[int] = None) -> Dict[str, Any]:
-        """Fetch order book con retry automático."""
-        max_retries = 3
-        for attempt in range(max_retries):
-            try:
-                return await self._connector.fetch_order_book(symbol, limit)
-            except Exception as e:
-                if attempt < max_retries - 1:
-                    delay = 2**attempt
-                    self.logger.warning(
-                        f"⚠️ fetch_order_book falló (intento {attempt + 1}/{max_retries}), "
-                        f"reintentando en {delay}s: {e}"
-                    )
-                    await asyncio.sleep(delay)
-                    continue
-                self.logger.error(f"❌ fetch_order_book falló después de {max_retries} intentos")
-                raise
+        """Fetch order book con retry inteligente."""
+        return await self._execute_with_smart_retry(self._connector.fetch_order_book, symbol, limit)
 
     # =========================================================
     # 💼 TRADING OPERATIONS (Delegación con tracking)
@@ -580,6 +598,10 @@ class ResilientConnector(BaseConnector):
     def get_order_tracker_metrics(self) -> Dict[str, Any]:
         """Obtiene métricas del order tracker."""
         return self._order_tracker.get_metrics()
+
+    def get_error_classifier_metrics(self) -> Dict[str, Any]:
+        """Obtiene métricas del error classifier."""
+        return self._error_classifier.get_metrics()
 
     async def save_state(self):
         """Guarda estado manualmente."""
