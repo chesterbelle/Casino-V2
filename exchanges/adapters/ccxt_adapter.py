@@ -107,6 +107,7 @@ from typing import Any, Dict, Optional
 from core.portfolio.balance_manager import BalanceManager
 from core.portfolio.position_tracker import PositionTracker
 from exchanges.connectors.connector_base import BaseConnector
+from exchanges.resilience.balance_cache import BalanceCache
 
 from .exchange_state_sync import ExchangeStateSync
 from .table_base import BaseTable
@@ -165,6 +166,13 @@ class CCXTAdapter(BaseTable):
 
         # NUEVO: Sincronizador de estado real
         self.state_sync = ExchangeStateSync(connector)
+
+        # NUEVO: Balance cache con fallback (CRÍTICO)
+        self.balance_cache = BalanceCache(
+            cache_ttl=30.0,  # Cache válido por 30 segundos
+            max_age=300.0,  # Máximo 5 minutos de staleness
+            currency=self.base_currency,
+        )
 
         # State
         self._connected = False
@@ -460,6 +468,43 @@ class CCXTAdapter(BaseTable):
             self.logger.error(f"❌ Error refreshing balance: {e}")
             raise
 
+    def get_balance_safe(self) -> float:
+        """
+        Obtiene balance con fallback inteligente.
+
+        CRÍTICO: Este método NUNCA falla. Usa cache/fallback si el exchange no responde.
+
+        Estrategia:
+        1. Cache fresco (< 30s)
+        2. Balance calculado (si existe)
+        3. Cache stale (< 5min)
+        4. Último conocido (< 5min)
+        5. Error crítico
+
+        Returns:
+            Balance actual o fallback
+
+        Raises:
+            RuntimeError: Solo si NO hay balance disponible (muy raro)
+        """
+        try:
+            snapshot = self.balance_cache.get_balance_safe()
+
+            # Advertir si está usando fallback
+            if snapshot.is_stale:
+                self.logger.warning(
+                    f"⚠️ Using stale balance | "
+                    f"Source: {snapshot.source.value} | "
+                    f"Age: {snapshot.staleness_seconds:.1f}s"
+                )
+
+            return snapshot.balance
+
+        except RuntimeError as e:
+            # Sin balance disponible - error crítico
+            self.logger.error(f"❌ CRITICAL: No balance available: {e}")
+            raise
+
     async def get_positions(self) -> list:
         """
         Get open positions from exchange.
@@ -559,45 +604,34 @@ class CCXTAdapter(BaseTable):
         return True
 
     def _update_balance(self, balance_data: Dict) -> None:
-        """Update internal balance from exchange data."""
+        """
+        Update internal balance from exchange data.
 
-        target_currency = balance_data.get("currency") or self.base_currency
-        free_section = balance_data.get("free", {}) or {}
+        NUEVO: Usa BalanceCache para almacenar y proveer fallback.
+        """
+        try:
+            # Actualizar cache con datos del exchange
+            snapshot = self.balance_cache.update_from_exchange(balance_data)
 
-        balance_value = 0.0
-        currency_used = target_currency
+            # Actualizar balance_manager con valor del cache
+            self.balance_manager.set_balance(snapshot.balance)
 
-        if isinstance(free_section, dict) and free_section:
-            if target_currency in free_section and free_section[target_currency]:
-                balance_value = float(free_section[target_currency])
-            else:
-                for candidate in ("USD", "USDT", "USDC", "EUR"):
-                    if candidate in free_section and free_section[candidate]:
-                        balance_value = float(free_section[candidate])
-                        currency_used = candidate
-                        break
-                else:
-                    try:
-                        candidate_currency, candidate_value = next(
-                            (curr, value) for curr, value in free_section.items() if value
-                        )
-                        balance_value = float(candidate_value)
-                        currency_used = candidate_currency
-                    except StopIteration:
-                        balance_value = 0.0
+            self.logger.info(
+                f"💰 Balance actualizado: {snapshot.balance:.4f} {snapshot.currency} | "
+                f"Source: {snapshot.source.value}"
+            )
 
-        if balance_value > 0:
-            self.balance_manager.set_balance(balance_value)
-            self.logger.info("💰 Balance actualizado: %.4f %s", balance_value, currency_used)
-        else:
-            self.logger.warning("⚠️ Balance no disponible o cero. Datos: %s", balance_data)
+            self._last_balance_snapshot = {
+                "balance": snapshot.balance,
+                "currency": snapshot.currency,
+                "source": snapshot.source.value,
+                "timestamp": snapshot.timestamp,
+                "raw": balance_data,
+            }
 
-        self._last_balance_snapshot = {
-            "balance": balance_value,
-            "currency": currency_used,
-            "free": free_section,
-            "raw": balance_data,
-        }
+        except ValueError as e:
+            self.logger.error(f"❌ Error updating balance: {e}")
+            # No actualizar balance_manager si falla la extracción
 
     def get_balance_sync(self) -> Optional[Dict[str, Any]]:
         """Return último snapshot de balance sin operaciones async."""
