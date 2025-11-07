@@ -12,10 +12,17 @@ import argparse
 import asyncio
 import json
 import logging
+import sys
+from pathlib import Path
 from typing import Optional
 
-from exchanges.connectors import KrakenConnector
+# Add project root to path
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
+
 from exchanges.connectors.connector_base import BaseConnector
+from exchanges.connectors.kraken import KrakenConnector
+from exchanges.connectors.resilient_connector import ResilientConnector
 
 # Setup logging
 logging.basicConfig(
@@ -113,6 +120,10 @@ class ConnectorPlayground:
             "testorder": self.cmd_test_order,
             "monitor": self.cmd_monitor_position,
             "closeall": self.cmd_close_all,
+            # Nuevos comandos
+            "status": self.cmd_status,
+            "metrics": self.cmd_metrics,
+            "ws": self.cmd_websocket_status,
             "exit": self.cmd_exit,
             "quit": self.cmd_exit,
         }
@@ -141,11 +152,14 @@ class ConnectorPlayground:
         logger.info("  fees                 - Muestra fees")
         logger.info("  precision            - Muestra precisión de precios")
         logger.info("  timeframes           - Muestra timeframes disponibles")
+        logger.info("  testorder            - Crea orden de prueba (pequeña)")
+        logger.info("  monitor              - Monitorea posición actual")
+        logger.info("  closeall             - Cierra todas las posiciones")
         logger.info("")
-        logger.info("  🧪 TESTING DE ÓRDENES:")
-        logger.info("  testorder [side]     - Crea orden de prueba con TP/SL narrow (40x)")
-        logger.info("  monitor              - Monitorea posición hasta que cierre por TP/SL")
-        logger.info("  closeall             - Cierra todas las posiciones abiertas")
+        logger.info("  🆕 NUEVOS COMANDOS:")
+        logger.info("  status               - Estado del conector (WebSocket, etc.)")
+        logger.info("  metrics              - Métricas (OrderTracker, ErrorClassifier)")
+        logger.info("  ws                   - Estado del WebSocket")
         logger.info("")
         logger.info("  exit, quit           - Sale del playground")
         logger.info("─" * 80)
@@ -625,6 +639,69 @@ class ConnectorPlayground:
         except Exception as e:
             logger.error(f"❌ Error al cerrar posiciones: {e}", exc_info=True)
 
+    async def cmd_status(self, args):
+        """Muestra estado del conector."""
+        logger.info("📊 Obteniendo estado del conector...")
+
+        # Estado básico
+        if hasattr(self.connector, "status_dict"):
+            status = self.connector.status_dict
+            logger.info("\n📊 ESTADO DEL CONECTOR:")
+            logger.info("─" * 80)
+            for key, value in status.items():
+                logger.info(f"  {key:20s} | {value}")
+
+        # Si es ResilientConnector, mostrar más detalles
+        if isinstance(self.connector, ResilientConnector):
+            logger.info("\n📊 RESILIENT CONNECTOR:")
+            logger.info("─" * 80)
+            logger.info(f"  Connected: {self.connector._connected}")
+            logger.info(f"  Session ID: {self.connector._session_id}")
+
+    async def cmd_metrics(self, args):
+        """Muestra métricas del conector."""
+        logger.info("📊 Obteniendo métricas...")
+
+        # Si es ResilientConnector
+        if isinstance(self.connector, ResilientConnector):
+            logger.info("\n📊 ORDER TRACKER METRICS:")
+            logger.info("─" * 80)
+            metrics = self.connector.get_order_tracker_metrics()
+            for key, value in metrics.items():
+                logger.info(f"  {key:25s} | {value}")
+
+            logger.info("\n📊 ERROR CLASSIFIER METRICS:")
+            logger.info("─" * 80)
+            metrics = self.connector.get_error_classifier_metrics()
+            for key, value in metrics.items():
+                if isinstance(value, dict):
+                    logger.info(f"  {key}:")
+                    for k, v in value.items():
+                        logger.info(f"    {k}: {v}")
+                else:
+                    logger.info(f"  {key:25s} | {value}")
+        else:
+            logger.warning("⚠️ Métricas solo disponibles en ResilientConnector")
+
+    async def cmd_websocket_status(self, args):
+        """Muestra estado del WebSocket."""
+        logger.info("📊 Obteniendo estado de WebSocket...")
+
+        # Acceder al conector subyacente si es ResilientConnector
+        connector = self.connector._connector if isinstance(self.connector, ResilientConnector) else self.connector
+
+        if hasattr(connector, "_ws") and connector._ws:
+            logger.info("\n📊 WEBSOCKET STATUS:")
+            logger.info("─" * 80)
+            logger.info(f"  Connected: {connector._ws_connected}")
+
+            if connector._ws_connected:
+                metrics = connector._ws.get_metrics()
+                for key, value in metrics.items():
+                    logger.info(f"  {key:25s} | {value}")
+        else:
+            logger.warning("⚠️ WebSocket no habilitado")
+
     async def cmd_exit(self, args):
         """Comando: exit."""
         self.running = False
@@ -641,11 +718,26 @@ async def start_playground(exchange: str, testnet: bool = True):
     logger.info(f"🚀 Iniciando playground para: {exchange}")
     logger.info(f"🌐 Modo: {'TESTNET' if testnet else 'LIVE'}")
 
-    # Crear conector
+    # Crear conector base
     if exchange.lower() == "kraken":
-        connector = KrakenConnector(testnet=testnet)
+        base_connector = KrakenConnector(
+            mode="testing" if testnet else "live",
+            enable_websocket=True,  # ← Habilitar WebSocket
+        )
     else:
         raise ValueError(f"Exchange no soportado: {exchange}")
+
+    # Envolver con ResilientConnector para agregar todas las mejoras
+    connector = ResilientConnector(
+        connector=base_connector,
+        enable_state_recovery=False,  # Deshabilitado para playground
+    )
+
+    logger.info("✅ Conector creado con:")
+    logger.info("  - Order Tracking")
+    logger.info("  - Error Classification")
+    logger.info("  - WebSocket (si disponible)")
+    logger.info("  - Balance Cache + Fallback")
 
     # Crear y ejecutar playground
     playground = ConnectorPlayground(connector)
