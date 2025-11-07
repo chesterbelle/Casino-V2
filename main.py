@@ -40,6 +40,7 @@ def parse_args():
     interval = None
     max_candles = None
     data_file = None
+    initial_balance = None
 
     for arg in sys.argv[1:]:
         if arg.startswith("--mode="):
@@ -54,11 +55,13 @@ def parse_args():
             max_candles = int(arg.split("=")[1])
         elif arg.startswith("--data="):
             data_file = arg.split("=")[1]
+        elif arg.startswith("--initial-balance="):
+            initial_balance = float(arg.split("=")[1])
         elif arg in ["--help", "-h"]:
             print_help()
             sys.exit(0)
 
-    return mode, player_name, symbol, interval, max_candles, data_file
+    return mode, player_name, symbol, interval, max_candles, data_file, initial_balance
 
 
 def print_help():
@@ -71,23 +74,24 @@ Usage:
     python main.py [options]
 
 Options:
-    --mode=<mode>           Trading mode: backtest, testing, live
-                            Default: backtest
-
-    --player=<player>       Player strategy: paroli, kelly, fixed
+    --mode=MODE              Trading mode: backtest, testing, live (default: backtest)
+    --player=PLAYER          Player strategy: paroli, kelly, fixed
                             Default: paroli
 
-    --symbol=<symbol>       Trading pair (for testing/live)
+    --symbol=SYMBOL          Trading pair (for testing/live)
                             Default: BTC/USD
 
-    --interval=<interval>   Candle interval (for testing/live)
+    --interval=INTERVAL      Candle interval (for testing/live)
                             Default: 5m
 
-    --max-candles=<n>       Maximum candles to process
+    --max-candles=N          Maximum candles to process
                             Default: unlimited
 
-    --data=<file>           Data file for backtest (CSV or Parquet)
-                            Default: tables/data/raw/BTCUSDT_1m__30d.csv
+    --data=FILE              Data file path (for backtest mode)
+                                Default: tables/data/raw/BTCUSDT_1m__30d.csv
+    --initial-balance=AMOUNT Initial balance for BACKTEST ONLY (default: 10000.0)
+                                ⚠️ Testing/Live modes use REAL exchange balance
+                                Use this to match testing balance for validation
 
 Examples:
     # Backtest with Paroli
@@ -102,7 +106,7 @@ Examples:
     )
 
 
-async def run_backtest(player_module, data_file, max_candles):
+async def run_backtest(player_module, data_file, max_candles, initial_balance=None):
     """
     Run backtest mode.
 
@@ -119,8 +123,15 @@ async def run_backtest(player_module, data_file, max_candles):
 
     logger.info(f"📁 Loading data from: {data_file}")
 
+    # Use provided initial_balance or default
+    if initial_balance is not None:
+        logger.info(f"💰 Using custom initial balance: ${initial_balance:,.2f}")
+    else:
+        initial_balance = 10000.0  # Default
+        logger.info(f"💰 Using default initial balance: ${initial_balance:,.2f}")
+
     if data_file.endswith(".parquet"):
-        source = BacktestDataSource.from_parquet(data_file)
+        source = BacktestDataSource.from_parquet(data_file, initial_balance=initial_balance)
     else:
         # Force timeframe to 1m for Gemini memory compatibility
         # Gemini's memory was trained on 1m data, so we pretend any data is 1m
@@ -128,6 +139,7 @@ async def run_backtest(player_module, data_file, max_candles):
             data_file,
             normalize_symbol=True,  # USDT/USDC/BUSD → USD
             force_timeframe="1m",  # Force to 1m for memory compatibility
+            initial_balance=initial_balance,
         )
 
     # Create session
@@ -254,7 +266,7 @@ async def run_live(player_module, symbol, interval, max_candles):
 async def main():
     """Main entry point."""
     # Parse arguments
-    mode, player_name, symbol, interval, max_candles, data_file = parse_args()
+    mode, player_name, symbol, interval, max_candles, data_file, initial_balance = parse_args()
 
     # Get player module
     if player_name not in PLAYERS:
@@ -272,10 +284,10 @@ async def main():
     print(f"Player: {player_name.upper()}")
     print("=" * 60 + "\n")
 
-    # Run appropriate mode
+    # Run mode
     try:
         if mode == "backtest":
-            await run_backtest(player_module, data_file, max_candles)
+            await run_backtest(player_module, data_file, max_candles, initial_balance)
         elif mode == "testing":
             await run_testing(player_module, symbol, interval, max_candles)
         elif mode == "live":

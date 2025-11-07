@@ -10,7 +10,42 @@ Esto asegura que el sistema de backtesting es confiable y produce resultados con
 
 ---
 
-## 📋 Metodología
+## ⚡ Flujo Rápido (TL;DR)
+
+**Este es el procedimiento que debes seguir cada vez que quieras validar backtesting vs testing:**
+
+1. **Ejecutar Testing** (60 min):
+   ```bash
+   python main.py --mode=testing --player=paroli --symbol=BTC/USD:USD --interval=1m --max-candles=60
+   ```
+   → Al terminar, **COPIAR** el "Initial Balance" del resumen
+
+2. **Descargar Datos Históricos** (1-2 min):
+   ```bash
+   python tests/validation/download_historical_data.py --start "YYYY-MM-DD HH:MM:SS" --end "YYYY-MM-DD HH:MM:SS"
+   ```
+
+3. **Ejecutar Backtest** (segundos):
+   ```bash
+   # ⚠️ IMPORTANTE: Usar el balance copiado del paso 1
+   python main.py --mode=backtest --player=paroli --data=datos.csv --max-candles=60 --initial-balance=XXXX.XX
+   ```
+
+4. **Comparar Resultados** (segundos):
+   ```bash
+   python tests/validation/compare_results.py --testing-log logs/testing_XXX.log --backtest-log logs/backtest_XXX.log
+   ```
+
+**⚠️ REGLA DE ORO:** Ambos tests DEBEN comenzar con el MISMO balance inicial para que los resultados sean comparables.
+
+**📝 NOTA IMPORTANTE:**
+- **Testing/Live modes:** Usan el balance REAL del exchange (no se puede modificar)
+- **Backtest mode:** Usa balance simulado (configurable con `--initial-balance`)
+- Por eso debes COPIAR el balance del testing y pasarlo al backtest
+
+---
+
+## 📋 Metodología Detallada
 
 ### Fase 1: Ejecución en Modo Testing (Live Testnet)
 ```bash
@@ -19,10 +54,21 @@ python main.py --mode=testing --player=paroli --symbol=BTC/USD:USD --interval=1m
 
 **Qué hace:**
 1. Conecta a Kraken Futures testnet
-2. Obtiene balance inicial automáticamente
+2. Obtiene balance inicial automáticamente del exchange
 3. Ejecuta Player Paroli durante 60 velas de 1 minuto
 4. Registra todas las operaciones y resultados en logs
 5. Guarda estado final
+
+**⚠️ IMPORTANTE - COPIAR BALANCE INICIAL:**
+Al finalizar, el resumen imprime:
+```
+📊 TESTING RESULTS
+================================================================================
+Initial Balance:  $4,569.55  ← ⚠️ COPIAR ESTE VALOR
+Final Balance:    $4,XXX.XX
+...
+```
+**DEBES COPIAR el "Initial Balance" para usarlo en el backtest** y asegurar que ambos tests comiencen con el mismo balance.
 
 **Duración:** 60 minutos (1 hora)
 
@@ -43,14 +89,21 @@ python tests/validation/download_historical_data.py \
 
 ### Fase 3: Ejecución en Modo Backtesting
 ```bash
-python main.py --mode=backtest --player=paroli --data=data/validation/BTC_USD_60candles.csv --max-candles=60
+# IMPORTANTE: Usar el balance inicial copiado del testing
+# Ejemplo: Si el testing mostró Initial Balance: $4,569.55
+python main.py --mode=backtest --player=paroli --data=data/validation/BTC_USD_60candles.csv --max-candles=60 --initial-balance=4569.55
 ```
 
 **Qué hace:**
 1. Carga datos históricos descargados
-2. Usa mismo balance inicial que testing (configurado en system.py)
+2. Usa el MISMO balance inicial que testing (pasado como parámetro)
 3. Ejecuta Player Paroli con los mismos datos
 4. Registra todas las operaciones y resultados en logs
+
+**⚠️ CRÍTICO:**
+- **DEBES pasar `--initial-balance=XXXX.XX`** con el valor exacto copiado del testing
+- Si no lo pasas, usará el balance por defecto ($10,000) y los resultados NO serán comparables
+- El balance debe tener la misma precisión (2 decimales)
 
 **Duración:** Segundos (backtesting es instantáneo)
 
