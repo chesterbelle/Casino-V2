@@ -266,13 +266,24 @@ class TestingDataSource(DataSource):
         """
         Get trading statistics from exchange.
 
+        CRITICAL: This method MUST sync with exchange to get REAL balance,
+        not internal balance which may be desynchronized.
+
         Returns:
             Dict with trading stats (balance, equity, positions, etc.)
         """
         try:
-            # Get current balance and equity
-            balance = self.get_balance()
-            equity = self.get_equity()
+            # CRITICAL: Sync with exchange to get REAL balance
+            # Do NOT use self.get_balance() which reads internal balance_manager
+            try:
+                equity_snapshot = await self.adapter.state_sync.sync_equity()
+                balance = equity_snapshot.balance
+                equity = equity_snapshot.equity
+                logger.info(f"✅ Stats synced with exchange | Balance: ${balance:,.2f} | Equity: ${equity:,.2f}")
+            except Exception as e:
+                logger.warning(f"⚠️ Failed to sync with exchange, using internal balance: {e}")
+                balance = self.get_balance()
+                equity = self.get_equity()
 
             # Try to get closed trades from exchange
             try:
