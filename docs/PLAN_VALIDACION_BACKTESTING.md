@@ -2,34 +2,73 @@
 
 ## 🎯 Objetivo
 
-Validar que el modo **backtesting** produce los mismos resultados que el modo **testing** (live testnet) cuando se ejecutan con los mismos datos y condiciones iniciales.
+Validar que **main.py con Player Paroli** produce los mismos resultados cuando se ejecuta en:
+- **Modo Testing** (live testnet con Kraken)
+- **Modo Backtesting** (con los mismos datos históricos)
+
+Esto asegura que el sistema de backtesting es confiable y produce resultados consistentes con el trading en vivo.
 
 ---
 
 ## 📋 Metodología
 
 ### Fase 1: Ejecución en Modo Testing (Live Testnet)
-1. Conectar a Kraken Futures testnet
-2. Registrar balance inicial
-3. Ejecutar estrategia durante 60 velas de 1 minuto
-4. Registrar todas las operaciones y resultados
-5. Guardar datos de mercado (OHLCV) de esas 60 velas
+```bash
+python main.py --mode=testing --player=paroli --symbol=BTC/USD:USD --interval=1m --max-candles=60
+```
+
+**Qué hace:**
+1. Conecta a Kraken Futures testnet
+2. Obtiene balance inicial automáticamente
+3. Ejecuta Player Paroli durante 60 velas de 1 minuto
+4. Registra todas las operaciones y resultados en logs
+5. Guarda estado final
+
+**Duración:** 60 minutos (1 hora)
 
 ### Fase 2: Descarga y Preparación de Datos
-1. Descargar datos OHLCV de las mismas 60 velas
-2. Validar que los datos descargados coinciden con los usados en testing
-3. Preparar archivo de datos para backtesting
+```bash
+python tests/validation/download_historical_data.py \
+    --start "2024-11-06T20:00:00Z" \
+    --end "2024-11-06T21:00:00Z" \
+    --output data/validation/BTC_USD_60candles.csv
+```
+
+**Qué hace:**
+1. Descarga datos OHLCV de Kraken para el período exacto
+2. Valida que los datos coinciden con los usados en testing
+3. Guarda en formato CSV para backtesting
+
+**Duración:** 1-2 minutos
 
 ### Fase 3: Ejecución en Modo Backtesting
-1. Configurar backtesting con mismo balance inicial
-2. Ejecutar misma estrategia con los datos descargados
-3. Registrar todas las operaciones y resultados
+```bash
+python main.py --mode=backtest --player=paroli --data=data/validation/BTC_USD_60candles.csv --max-candles=60
+```
+
+**Qué hace:**
+1. Carga datos históricos descargados
+2. Usa mismo balance inicial que testing (configurado en system.py)
+3. Ejecuta Player Paroli con los mismos datos
+4. Registra todas las operaciones y resultados en logs
+
+**Duración:** Segundos (backtesting es instantáneo)
 
 ### Fase 4: Comparación de Resultados
-1. Comparar órdenes ejecutadas (cantidad, precio, timing)
-2. Comparar balance final
-3. Comparar métricas de rendimiento
-4. Identificar discrepancias si existen
+```bash
+python tests/validation/compare_results.py \
+    --testing-log logs/testing_20241106_2000.log \
+    --backtest-log logs/backtest_20241106_2100.log
+```
+
+**Qué hace:**
+1. Parsea logs de ambos modos
+2. Compara órdenes ejecutadas (cantidad, precio, timing)
+3. Compara balance final
+4. Compara métricas de rendimiento
+5. Genera reporte de diferencias
+
+**Duración:** Segundos
 
 ---
 
