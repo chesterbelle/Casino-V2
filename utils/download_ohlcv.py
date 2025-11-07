@@ -29,7 +29,7 @@ import pandas as pd
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from tables.connectors.kraken.kraken_connector import KrakenConnector
+from exchanges.connectors.kraken.kraken_connector import KrakenConnector
 
 
 async def download_ohlcv(
@@ -56,7 +56,7 @@ async def download_ohlcv(
     print("=" * 60)
 
     # Crear connector
-    connector = KrakenConnector(mode="demo")
+    connector = KrakenConnector(mode="testing")
 
     try:
         # Conectar
@@ -69,22 +69,24 @@ async def download_ohlcv(
             # Calcular timestamps basado en last_n_candles
             print(f"\n📊 Descargando últimas {last_n_candles} velas...")
             limit = last_n_candles
-            since = None
         elif start_ts and end_ts:
             # Usar timestamps específicos
             print(f"\n📊 Descargando período específico...")
             print(f"   Inicio: {datetime.fromtimestamp(start_ts/1000)}")
             print(f"   Fin:    {datetime.fromtimestamp(end_ts/1000)}")
-            limit = None
-            since = start_ts
+            # Calcular número de velas necesarias
+            duration_ms = end_ts - start_ts
+            interval_ms = 60000  # 1m = 60000ms (simplificado, debería parsear interval)
+            limit = int(duration_ms / interval_ms) + 10  # +10 para asegurar que tenemos suficientes
         else:
             raise ValueError("Debes especificar --last-n-candles o --start y --end")
 
         # Descargar datos
         print(f"   Symbol: {symbol}")
         print(f"   Interval: {interval}")
+        print(f"   Limit: {limit}")
 
-        ohlcv = await connector.fetch_ohlcv(symbol=symbol, timeframe=interval, since=since, limit=limit)
+        ohlcv = await connector.fetch_ohlcv(symbol=symbol, timeframe=interval, limit=limit)
 
         if not ohlcv:
             print("❌ No se obtuvieron datos")
@@ -133,7 +135,7 @@ async def download_ohlcv(
 
     finally:
         # Desconectar
-        await connector.disconnect()
+        await connector.close()
         print("\n🔌 Desconectado")
 
     print("\n" + "=" * 60)
