@@ -28,6 +28,7 @@ from typing import Dict, List, Optional
 
 from exchanges.adapters.ccxt_adapter import CCXTAdapter
 from exchanges.connectors import KrakenConnector
+from exchanges.connectors.binance import BinanceConnector
 from exchanges.connectors.bybit import BybitConnector
 from exchanges.connectors.connector_base import BaseConnector
 from exchanges.connectors.resilient_connector import ResilientConnector
@@ -87,6 +88,7 @@ class ConnectorValidator:
             ("Conexión", self.test_connection),
             ("Balance", self.test_fetch_balance),
             ("Posiciones", self.test_fetch_positions),
+            ("🔥 CRÍTICO: OHLCV", self.test_fetch_ohlcv),
             ("Ticker", self.test_fetch_ticker),
             ("Order Book", self.test_fetch_order_book),
             ("Trades Recientes", self.test_fetch_trades),
@@ -117,6 +119,8 @@ class ConnectorValidator:
 
             tests.extend(
                 [
+                    ("🔥 CRÍTICO: Cancelar Orden", self.test_cancel_order_real),
+                    ("🔥 CRÍTICO: Manejo de Errores", self.test_error_handling),
                     ("🔥 Cleanup Inicial", self.test_cleanup_positions),
                     ("🔥 Crear Orden con TP/SL", self.test_create_order_with_tpsl),
                     ("🔥 Validar Posición Abierta", self.test_validate_position_opened),
@@ -234,6 +238,71 @@ class ConnectorValidator:
                     )
 
             return {"success": True, "data": data, "duration": duration}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    async def test_fetch_ohlcv(self) -> Dict:
+        """Test CRÍTICO: Obtención de velas OHLCV para análisis técnico."""
+        start = datetime.now()
+        try:
+            # Test múltiples timeframes que el bot usa
+            timeframes_to_test = ["1m", "5m", "1h"]
+            results = {}
+
+            for timeframe in timeframes_to_test:
+                try:
+                    candles = await self.connector.fetch_ohlcv(symbol=self.symbol, timeframe=timeframe, limit=100)
+
+                    # Validar estructura
+                    if not candles or len(candles) == 0:
+                        results[timeframe] = "❌ No data"
+                        continue
+
+                    first_candle = candles[0]
+
+                    # CCXT puede retornar listas [timestamp, open, high, low, close, volume]
+                    # o diccionarios {'timestamp': ..., 'open': ..., ...}
+                    if isinstance(first_candle, list):
+                        # Formato lista: [timestamp, open, high, low, close, volume]
+                        if len(first_candle) < 6:
+                            results[timeframe] = f"❌ Invalid format: {len(first_candle)} elements"
+                            continue
+                        # Validar que son numéricos
+                        if not all(isinstance(v, (int, float)) for v in first_candle[:6]):
+                            results[timeframe] = "❌ Non-numeric values"
+                            continue
+                    elif isinstance(first_candle, dict):
+                        # Formato diccionario
+                        required_keys = ["timestamp", "open", "high", "low", "close", "volume"]
+                        if not all(k in first_candle for k in required_keys):
+                            results[timeframe] = f"❌ Missing keys"
+                            continue
+                        if not all(isinstance(first_candle[k], (int, float)) for k in required_keys):
+                            results[timeframe] = "❌ Non-numeric values"
+                            continue
+                    else:
+                        results[timeframe] = f"❌ Unknown format: {type(first_candle)}"
+                        continue
+
+                    results[timeframe] = f"✅ {len(candles)} candles"
+
+                except Exception as e:
+                    results[timeframe] = f"❌ {str(e)}"
+
+            duration = (datetime.now() - start).total_seconds()
+
+            # Success si al menos un timeframe funciona
+            success = any("✅" in v for v in results.values())
+
+            return {
+                "success": success,
+                "data": {
+                    "timeframes_tested": timeframes_to_test,
+                    "results": results,
+                    "total_candles": sum(int(v.split()[1]) for v in results.values() if "✅" in v),
+                },
+                "duration": duration,
+            }
         except Exception as e:
             return {"success": False, "error": str(e)}
 
@@ -485,6 +554,171 @@ class ConnectorValidator:
             }
 
             return {"success": True, "data": data, "duration": duration}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    # =========================================================
+    # 🔥 TESTS CRÍTICOS ADICIONALES
+    # =========================================================
+
+    async def test_cancel_order_real(self) -> Dict:
+        """Test CRÍTICO: Cancelación de orden REAL para gestión de riesgo."""
+        start = datetime.now()
+        try:
+            logger.info("📝 Creando orden limit para cancelar...")
+
+            # Obtener precio actual
+            ticker = await self.connector.fetch_ticker(self.symbol)
+            current_price = ticker.get("last", 0)
+
+            if not current_price:
+                return {"success": False, "error": "No se pudo obtener precio actual"}
+
+            # Crear orden limit muy lejos del precio actual (no se ejecutará)
+            limit_price = current_price * 2.0  # 100% más alto
+
+            # Amount mínimo - normalizar símbolo primero
+            normalized_symbol = self.connector.normalize_symbol(self.symbol)
+
+            # Cargar markets si no están cargados
+            if not self.connector.exchange.markets:
+                await self.connector.exchange.load_markets()
+
+            market = self.connector.exchange.markets.get(normalized_symbol)
+            if not market:
+                return {"success": False, "error": f"Market info not found for {normalized_symbol}"}
+
+            # Calcular amount basado en notional mínimo
+            min_amount = market["limits"]["amount"]["min"]
+            min_cost = market["limits"]["cost"].get("min", 0) if market["limits"].get("cost") else 0
+
+            # Si hay notional mínimo (cost), calcular amount necesario
+            if min_cost > 0:
+                # Amount necesario para cumplir con notional mínimo
+                amount_for_notional = min_cost / limit_price
+                # Agregar 5% extra para compensar redondeo (step size puede reducir el amount)
+                amount_for_notional = amount_for_notional * 1.05
+                # Usar el mayor entre min_amount y amount_for_notional
+                final_amount = max(min_amount, amount_for_notional)
+                logger.info(f"  💰 Precio actual: ${current_price:.2f}")
+                logger.info(f"  📊 Precio limit: ${limit_price:.2f} (no se ejecutará)")
+                logger.info(f"  💵 Notional mínimo: ${min_cost:.2f}")
+                logger.info(f"  📏 Amount calculado: {final_amount:.6f} (notional: ${limit_price * final_amount:.2f})")
+            else:
+                # No hay notional mínimo, usar min_amount
+                final_amount = min_amount
+                logger.info(f"  💰 Precio actual: ${current_price:.2f}")
+                logger.info(f"  📊 Precio limit: ${limit_price:.2f} (no se ejecutará)")
+                logger.info(f"  📏 Amount: {final_amount}")
+
+            # Crear orden limit con timeInForce
+            order = await self.connector.create_order(
+                symbol=self.symbol,
+                side="sell",
+                amount=final_amount,
+                price=limit_price,
+                order_type="limit",
+                params={"timeInForce": "GTC"},  # Good Till Cancel
+            )
+
+            order_id = order.get("id")
+            logger.info(f"  ✅ Orden creada: ID={order_id}")
+
+            # Esperar un momento
+            await asyncio.sleep(1)
+
+            # Cancelar orden
+            logger.info(f"  🗑️  Cancelando orden {order_id}...")
+            await self.connector.cancel_order(order_id, self.symbol)
+            logger.info(f"  ✅ Orden cancelada")
+
+            # Verificar que se canceló
+            await asyncio.sleep(1)
+            open_orders = await self.connector.fetch_open_orders(self.symbol)
+            order_ids = [o.get("id") for o in open_orders]
+
+            if order_id in order_ids:
+                return {"success": False, "error": f"Orden {order_id} todavía aparece en órdenes abiertas"}
+
+            duration = (datetime.now() - start).total_seconds()
+
+            return {
+                "success": True,
+                "data": {"order_id": order_id, "status": "canceled", "verified": "not in open orders"},
+                "duration": duration,
+            }
+
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    async def test_error_handling(self) -> Dict:
+        """Test CRÍTICO: Manejo de errores para robustez."""
+        start = datetime.now()
+        errors_handled = []
+        errors_not_handled = []
+
+        try:
+            # Test 1: Símbolo inválido
+            logger.info("  🧪 Test 1: Símbolo inválido")
+            try:
+                # Usar un símbolo que definitivamente no existe
+                await self.connector.fetch_ticker("ZZZZZ/USDT:USDT")
+                errors_not_handled.append("Invalid symbol - No exception raised")
+            except Exception as e:
+                errors_handled.append(f"Invalid symbol - {type(e).__name__}")
+                logger.info(f"    ✅ Exception raised: {type(e).__name__}")
+
+            # Test 2: Amount negativo
+            logger.info("  🧪 Test 2: Amount negativo")
+            try:
+                await self.connector.create_order(symbol=self.symbol, side="buy", amount=-1, order_type="market")
+                errors_not_handled.append("Negative amount - No exception raised")
+            except Exception as e:
+                errors_handled.append(f"Negative amount - {type(e).__name__}")
+                logger.info(f"    ✅ Exception raised: {type(e).__name__}")
+
+            # Test 3: Amount cero
+            logger.info("  🧪 Test 3: Amount cero")
+            try:
+                await self.connector.create_order(symbol=self.symbol, side="buy", amount=0, order_type="market")
+                errors_not_handled.append("Zero amount - No exception raised")
+            except Exception as e:
+                errors_handled.append(f"Zero amount - {type(e).__name__}")
+                logger.info(f"    ✅ Exception raised: {type(e).__name__}")
+
+            # Test 4: Side inválido
+            logger.info("  🧪 Test 4: Side inválido")
+            try:
+                await self.connector.create_order(
+                    symbol=self.symbol, side="invalid_side", amount=0.001, order_type="market"
+                )
+                errors_not_handled.append("Invalid side - No exception raised")
+            except Exception as e:
+                errors_handled.append(f"Invalid side - {type(e).__name__}")
+                logger.info(f"    ✅ Exception raised: {type(e).__name__}")
+
+            duration = (datetime.now() - start).total_seconds()
+
+            # Success si todos los errores fueron manejados
+            success = len(errors_not_handled) == 0
+
+            if not success:
+                error_msg = f"{len(errors_not_handled)} errors not handled: {errors_not_handled}"
+            else:
+                error_msg = None
+
+            return {
+                "success": success,
+                "data": {
+                    "errors_handled": len(errors_handled),
+                    "errors_not_handled": len(errors_not_handled),
+                    "details_handled": errors_handled,
+                    "details_not_handled": errors_not_handled,
+                },
+                "error": error_msg,
+                "duration": duration,
+            }
+
         except Exception as e:
             return {"success": False, "error": str(e)}
 
@@ -841,6 +1075,9 @@ async def validate_connector(
     elif exchange.lower() == "bybit":
         mode = "demo" if demo else "live"
         connector = BybitConnector(mode=mode)
+    elif exchange.lower() == "binance":
+        mode = "testnet" if demo else "live"
+        connector = BinanceConnector(mode=mode)
     else:
         raise ValueError(f"Exchange no soportado: {exchange}")
 
