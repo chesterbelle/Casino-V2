@@ -1,0 +1,33 @@
+{
+  "mode": "demo",
+  "player": "paroli_player",
+  "timestamp": "2025-11-10T17:40:07.576590",
+  "symbol": "LTC/USD:USD",
+  "timeframe": "1m",
+  "initial_balance": 10000.0,
+  "final_balance": 4364.37012468,
+  "final_equity": 4364.37012468,
+  "total_pnl": -5635.62987532,
+  "total_trades": 98,
+  "wins": 0,
+  "losses": 0,
+  "win_rate": 0,
+  "open_positions": 0,
+  "orders_rejected": 0,
+  "orders_error": 1,
+  "rejection_reasons": [
+    {
+      "candle": 5,
+      "reason": "binance POST https://testnet.binancefuture.com/fapi/v1/order 502 Bad Gateway <!DOCTYPE HTML PUBLIC \"-//IETF//DTD HTML 2.0//EN\">\r\n<html>\r\n<head><title>502 Bad Gateway</title></head>\r\n<body>\r\n<center><h1>502 Bad Gateway</h1></center>\r\n Sorry for the inconvenience.<br/>\r\nPlease report this message and include the following information to us.<br/>\r\nThank you very much!</p>\r\n<table>\r\n<tr>\r\n<td>URL:</td>\r\n<td>http://testnet.binancefuture.com/fapi/v1/order</td>\r\n</tr>\r\n<tr>\r\n<td>Server:</td>\r\n<td>tf_futures_testnet_nginx1_ec2</td>\r\n</tr>\r\n<tr>\r\n<td>Date:</td>\r\n<td>2025/11/10 21:30:09</td>\r\n</tr>\r\n</table>\r\n<hr/>Powered by Bengine<hr><center>tengine</center>\r\n</body>\r\n</html>",
+      "order": {
+        "symbol": "LTC/USD:USD",
+        "side": "LONG",
+        "size": 0.0025,
+        "take_profit": 1.005,
+        "stop_loss": 0.985,
+        "trade_id": "LTC/USD:USD@1m-LONG-1762810200000",
+        "leverage": 10
+      }
+    }
+  ]
+}

@@ -22,11 +22,12 @@ Validaciones:
 import argparse
 import asyncio
 import logging
+import os
 import sys
 from datetime import datetime
 from pathlib import Path
 
-import ccxt
+import ccxt.async_support as ccxt_async
 import pandas as pd
 
 # Setup logging
@@ -126,34 +127,35 @@ async def download_data(
     """
     logger.info(f"📡 Connecting to {exchange_name.upper()}...")
 
-    # Create exchange instance
+    # Create exchange instance (async)
     if exchange_name == "bybit":
-        exchange = ccxt.bybit(
+        exchange = ccxt_async.bybit(
             {
                 "enableRateLimit": True,
             }
         )
     elif exchange_name == "kraken":
-        exchange = ccxt.kraken(
+        exchange = ccxt_async.kraken(
             {
                 "enableRateLimit": True,
             }
         )
     elif exchange_name == "binance":
-        # Use Binance testnet for historical data
-        exchange = ccxt.binance(
+        logger.info("📡 Connecting to BINANCE testnet...")
+        # Import and use custom BinanceTestnet class
+        sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
+        from exchanges.connectors.binance.binance_connector import BinanceTestnet
+
+        exchange = BinanceTestnet(
             {
+                "apiKey": os.getenv("BINANCE_TESTNET_API_KEY"),
+                "secret": os.getenv("BINANCE_TESTNET_SECRET"),
                 "enableRateLimit": True,
                 "options": {
                     "defaultType": "future",
                 },
             }
         )
-        # Override URLs to point to testnet
-        exchange.urls["api"] = {
-            "public": "https://testnet.binancefuture.com/fapi/v1",
-            "private": "https://testnet.binancefuture.com/fapi/v1",
-        }
     else:
         raise ValueError(f"Unsupported exchange: {exchange_name}")
 
@@ -184,8 +186,8 @@ async def download_data(
         interval_ms = get_interval_ms(interval)
 
         while current_ts < end_ts:
-            # Fetch candles (CCXT fetch_ohlcv is synchronous)
-            candles = exchange.fetch_ohlcv(
+            # Fetch candles (async)
+            candles = await exchange.fetch_ohlcv(
                 normalized_symbol, timeframe=interval, since=current_ts, limit=1000
             )  # Max per request
 
