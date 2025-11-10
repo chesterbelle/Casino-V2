@@ -356,7 +356,8 @@ class Croupier:
         """
         status = result.get("status", "unknown")
 
-        if status == "opened":
+        # Aceptar tanto "open" (CCXT) como "opened" (normalizado)
+        if status in ["open", "opened"]:
             # Posición abierta
             self.portfolio.open_position(
                 trade_id=order.get("trade_id", "unknown"),

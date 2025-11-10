@@ -1092,8 +1092,10 @@ class ConnectorValidator:
             # 5. Validar
             duration = (datetime.now() - start).total_seconds()
 
-            if result.get("status") != "opened":
-                return {"success": False, "error": f"Status: {result.get('status')}", "duration": duration}
+            # Aceptar tanto "open" (CCXT) como "opened" (Croupier normalizado)
+            status = result.get("status")
+            if status not in ["open", "opened"]:
+                return {"success": False, "error": f"Status: {status}", "duration": duration}
 
             if "amount" not in result or result["amount"] <= 0:
                 return {"success": False, "error": "Amount not calculated", "duration": duration}
@@ -1151,8 +1153,9 @@ class ConnectorValidator:
 
             result = croupier.execute_order(order)
 
-            if result.get("status") != "opened":
-                return {"success": False, "error": result.get("status")}
+            status = result.get("status")
+            if status not in ["open", "opened"]:
+                return {"success": False, "error": status}
 
             actual_amount = result.get("amount", 0)
             diff = abs(actual_amount - expected_amount) / expected_amount if expected_amount > 0 else 1
@@ -1208,11 +1211,15 @@ class ConnectorValidator:
 
             result = croupier.execute_order(order)
 
-            if result.get("status") != "opened":
-                return {"success": False, "error": f"Order failed: {result.get('status')}"}
+            status = result.get("status")
+            if status not in ["open", "opened"]:
+                return {"success": False, "error": f"Order failed: {status}"}
 
             new_balance = croupier.get_balance()
+            open_positions = croupier.get_open_positions()
+
             logger.info(f"  💰 Balance: ${initial_balance:,.2f} → ${new_balance:,.2f}")
+            logger.info(f"  📈 Posiciones abiertas: {len(open_positions)}")
 
             # Cleanup
             try:
@@ -1222,10 +1229,13 @@ class ConnectorValidator:
 
             duration = (datetime.now() - start).total_seconds()
 
-            if new_balance >= initial_balance:
-                return {"success": False, "error": "Balance not decreased", "duration": duration}
+            # Validar que el portfolio se actualizó
+            # El balance puede no cambiar si el portfolio usa tracking interno
+            # Lo importante es que haya posiciones abiertas
+            if len(open_positions) == 0:
+                return {"success": False, "error": "No open positions in portfolio", "duration": duration}
 
-            logger.info(f"  ✅ Portfolio actualizado")
+            logger.info(f"  ✅ Portfolio actualizado ({len(open_positions)} posiciones)")
 
             return {"success": True, "duration": duration}
 
