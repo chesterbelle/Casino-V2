@@ -58,7 +58,7 @@ def parse_args():
         "--exchange",
         type=str,
         default="bybit",
-        choices=["bybit", "kraken"],
+        choices=["bybit", "kraken", "binance"],
         help="Exchange to download from (default: bybit)",
     )
 
@@ -139,16 +139,41 @@ async def download_data(
                 "enableRateLimit": True,
             }
         )
+    elif exchange_name == "binance":
+        # Use Binance testnet for historical data
+        exchange = ccxt.binance(
+            {
+                "enableRateLimit": True,
+                "options": {
+                    "defaultType": "future",
+                },
+            }
+        )
+        # Override URLs to point to testnet
+        exchange.urls["api"] = {
+            "public": "https://testnet.binancefuture.com/fapi/v1",
+            "private": "https://testnet.binancefuture.com/fapi/v1",
+        }
     else:
         raise ValueError(f"Unsupported exchange: {exchange_name}")
 
     try:
+        # Normalize symbol for exchange
+        normalized_symbol = symbol
+        if exchange_name == "binance":
+            # Convert LTC/USD:USD to LTC/USDT:USDT for Binance
+            if symbol == "LTC/USD:USD":
+                normalized_symbol = "LTC/USDT:USDT"
+            elif symbol == "BTC/USD:USD":
+                normalized_symbol = "BTC/USDT:USDT"
+            logger.info(f"📝 Normalized symbol: {symbol} → {normalized_symbol}")
+
         # Convert datetimes to timestamps
         start_ts = int(start_dt.timestamp() * 1000)
         end_ts = int(end_dt.timestamp() * 1000)
 
         logger.info(f"📊 Downloading data...")
-        logger.info(f"   Symbol: {symbol}")
+        logger.info(f"   Symbol: {normalized_symbol}")
         logger.info(f"   Interval: {interval}")
         logger.info(f"   Start: {start_dt}")
         logger.info(f"   End: {end_dt}")
@@ -160,7 +185,9 @@ async def download_data(
 
         while current_ts < end_ts:
             # Fetch candles (CCXT fetch_ohlcv is synchronous)
-            candles = exchange.fetch_ohlcv(symbol, timeframe=interval, since=current_ts, limit=1000)  # Max per request
+            candles = exchange.fetch_ohlcv(
+                normalized_symbol, timeframe=interval, since=current_ts, limit=1000
+            )  # Max per request
 
             if not candles:
                 break

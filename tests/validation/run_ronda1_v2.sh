@@ -3,9 +3,9 @@
 # Duración: ~15 minutos
 #
 # FLUJO CORRECTO:
-# 1. Ejecutar demo (10 velas en tiempo real, ~10 min) - Bybit Demo Trading
+# 1. Ejecutar demo (10 velas en tiempo real, ~10 min) - Binance Testnet
 # 2. Extraer timestamps de las velas REALMENTE procesadas
-# 3. Descargar esas velas específicas de Bybit
+# 3. Descargar esas velas específicas de Binance
 # 4. Ejecutar backtest con esas velas
 # 5. Comparar resultados
 
@@ -29,14 +29,14 @@ NC='\033[0m' # No Color
 echo -e "${YELLOW}📊 PASO 1: Ejecutando demo trading (10 velas, ~10 minutos)...${NC}"
 echo -e "${BLUE}⏰ Esto tomará aproximadamente 10 minutos reales${NC}"
 echo -e "${BLUE}   Cada vela = 1 minuto de tiempo real${NC}"
-echo -e "${BLUE}   Exchange: Bybit Demo Trading${NC}"
+echo -e "${BLUE}   Exchange: Binance Testnet${NC}"
 echo ""
 
-python main.py \
+.venv/bin/python main.py \
     --mode=demo \
-    --exchange=bybit \
+    --exchange=binance \
     --player=paroli \
-    --symbol=BTC/USDT:USDT \
+    --symbol=LTC/USD:USD \
     --interval=1m \
     --max-candles=10
 
@@ -66,23 +66,23 @@ fi
 echo "📄 Log de demo: $DEMO_LOG"
 
 # Extract initial balance
-INITIAL_BALANCE=$(python3 -c "import json; print(json.load(open('$DEMO_LOG'))['initial_balance'])")
+INITIAL_BALANCE=$(.venv/bin/python -c "import json; print(json.load(open('$DEMO_LOG'))['initial_balance'])")
 echo -e "${GREEN}💰 Balance inicial: \$$INITIAL_BALANCE${NC}"
 
 # Extract timestamp (cuando TERMINÓ el demo)
-END_TIMESTAMP=$(python3 -c "import json; print(json.load(open('$DEMO_LOG'))['timestamp'])")
+END_TIMESTAMP=$(.venv/bin/python -c "import json; print(json.load(open('$DEMO_LOG'))['timestamp'])")
 echo "📅 Demo trading terminó: $END_TIMESTAMP"
 
 # Calculate start time (10 minutes before end)
 # El demo procesó 10 velas de 1 minuto = 10 minutos atrás
-START_TIME=$(python3 -c "
+START_TIME=$(.venv/bin/python -c "
 from datetime import datetime, timedelta
 end = datetime.fromisoformat('$END_TIMESTAMP')
 start = end - timedelta(minutes=10)
 print(start.strftime('%Y-%m-%d %H:%M:%S'))
 ")
 
-END_TIME=$(python3 -c "
+END_TIME=$(.venv/bin/python -c "
 from datetime import datetime
 end = datetime.fromisoformat('$END_TIMESTAMP')
 print(end.strftime('%Y-%m-%d %H:%M:%S'))
@@ -99,12 +99,12 @@ echo ""
 echo -e "${YELLOW}📥 PASO 3: Descargando datos históricos del período exacto...${NC}"
 echo ""
 
-python tests/validation/download_historical_data.py \
+.venv/bin/python tests/validation/download_historical_data.py \
     --start "$START_TIME" \
     --end "$END_TIME" \
-    --symbol BTC/USDT:USDT \
+    --symbol LTC/USD:USD \
     --interval 1m \
-    --exchange bybit \
+    --exchange binance \
     --output data/validation/historical_ronda1.csv
 
 if [ $? -ne 0 ]; then
@@ -117,7 +117,7 @@ echo -e "${GREEN}✅ Datos históricos descargados${NC}"
 echo ""
 
 # Verify we got the right number of candles
-CANDLE_COUNT=$(python3 -c "
+CANDLE_COUNT=$(.venv/bin/python -c "
 import pandas as pd
 df = pd.read_csv('data/validation/historical_ronda1.csv')
 print(len(df))
@@ -138,7 +138,7 @@ echo ""
 echo -e "${YELLOW}🎮 PASO 4: Ejecutando backtest con los mismos datos...${NC}"
 echo ""
 
-python main.py \
+.venv/bin/python main.py \
     --mode=backtest \
     --data=data/validation/historical_ronda1.csv \
     --player=paroli \
@@ -171,7 +171,7 @@ echo ""
 echo -e "${YELLOW}📊 PASO 5: Comparando resultados...${NC}"
 echo ""
 
-python tests/validation/compare_results.py \
+.venv/bin/python tests/validation/compare_results.py \
     --testing "$DEMO_LOG" \
     --backtest "$BACKTEST_LOG" \
     --tolerance 0.5 \

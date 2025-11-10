@@ -6,17 +6,12 @@ Esta herramienta prueba TODAS las funcionalidades necesarias para el bot:
 - Órdenes REALES con TP/SL
 - Ejecución automática de TP/SL (CRÍTICO para el bot)
 
-Funciona con CUALQUIER exchange que implemente BaseConnector.
+Includes both:
+- Basic tests (connector direct)
+- Integration tests (with Croupier + Adapter)
 
-Uso:
-    # Validación completa (incluye órdenes reales)
-    python -m utils.connector_validator --exchange bybit --demo --execute-orders
-
-    # Solo validación de métodos (sin órdenes)
-    python -m utils.connector_validator --exchange bybit --demo
-
-    # Con símbolo específico
-    python -m utils.connector_validator --exchange bybit --demo --symbol ETH/USDT:USDT
+Usage:
+    python -m utils.connector_validator --exchange binance --demo --symbol LTC/USD:USD
 """
 
 import argparse
@@ -26,6 +21,7 @@ import time
 from datetime import datetime
 from typing import Dict, List, Optional
 
+from croupier.croupier import Croupier
 from exchanges.adapters.ccxt_adapter import CCXTAdapter
 from exchanges.connectors import KrakenConnector
 from exchanges.connectors.binance import BinanceConnector
@@ -125,6 +121,10 @@ class ConnectorValidator:
                     ("🔥 Crear Orden con TP/SL", self.test_create_order_with_tpsl),
                     ("🔥 Validar Posición Abierta", self.test_validate_position_opened),
                     ("🔥 CRÍTICO: Ejecución de TP/SL", self.test_tpsl_execution),
+                    # Tests de integración con Croupier
+                    ("🎯 INTEGRACIÓN: Orden con Croupier", self.test_create_order_with_croupier),
+                    ("🎯 INTEGRACIÓN: Cálculo de Amount", self.test_croupier_amount_calculation),
+                    ("🎯 INTEGRACIÓN: Portfolio Update", self.test_croupier_portfolio_update),
                 ]
             )
         else:
@@ -1049,6 +1049,190 @@ class ConnectorValidator:
                 logger.info(f"      Error: {result['error']}")
 
         logger.info("\n" + "=" * 80)
+
+    # =========================================================
+    # 🎯 INTEGRATION TESTS (with Croupier)
+    # =========================================================
+
+    async def test_create_order_with_croupier(self) -> Dict:
+        """Test INTEGRACIÓN: Crear orden usando Croupier (flujo completo de producción)."""
+        start = datetime.now()
+
+        try:
+            logger.info("🎯 Creando orden con Croupier (flujo completo)...")
+
+            # 1. Setup: Crear Croupier con balance inicial
+            initial_balance = 10000.0
+            croupier = Croupier(self.adapter, initial_balance=initial_balance)
+
+            logger.info(f"  💰 Balance inicial: ${initial_balance:,.2f}")
+
+            # 2. Obtener precio actual
+            ticker = await self.connector.fetch_ticker(self.symbol)
+            current_price = ticker["last"]
+            logger.info(f"  📈 Precio actual: ${current_price:.2f}")
+
+            # 3. Crear orden usando Croupier
+            order = {
+                "trade_id": f"test_croupier_{int(time.time())}",
+                "symbol": self.symbol,
+                "side": "LONG",
+                "size": 0.01,  # 1% del equity
+                "take_profit": 1.01,  # +1%
+                "stop_loss": 0.992,  # -0.8%
+                "leverage": 10,
+                "ghost": False,
+            }
+
+            logger.info(f"  📝 Orden: size={order['size']*100}%, TP={order['take_profit']}, SL={order['stop_loss']}")
+
+            # 4. Ejecutar orden
+            result = croupier.execute_order(order)
+
+            # 5. Validar
+            duration = (datetime.now() - start).total_seconds()
+
+            if result.get("status") != "opened":
+                return {"success": False, "error": f"Status: {result.get('status')}", "duration": duration}
+
+            if "amount" not in result or result["amount"] <= 0:
+                return {"success": False, "error": "Amount not calculated", "duration": duration}
+
+            logger.info(f"  ✅ Orden creada con Croupier")
+            logger.info(f"  📊 Amount: {result['amount']:.6f}")
+
+            # 6. Cleanup
+            try:
+                await self.connector.cancel_all_orders(self.symbol)
+            except Exception:
+                pass
+
+            return {"success": True, "duration": duration, "data": {"amount": result["amount"]}}
+
+        except Exception as e:
+            duration = (datetime.now() - start).total_seconds()
+            logger.error(f"  ❌ Error: {e}")
+            return {"success": False, "error": str(e), "duration": duration}
+
+    async def test_croupier_amount_calculation(self) -> Dict:
+        """Test INTEGRACIÓN: Validar cálculo de amount desde size."""
+        start = datetime.now()
+
+        try:
+            logger.info("🎯 Validando cálculo de amount...")
+
+            initial_balance = 10000.0
+            croupier = Croupier(self.adapter, initial_balance=initial_balance)
+
+            ticker = await self.connector.fetch_ticker(self.symbol)
+            current_price = ticker["last"]
+
+            # Test con size=1%, leverage=10x
+            size = 0.01
+            leverage = 10
+
+            # Cálculo esperado
+            margin = initial_balance * size  # $100
+            position_value = margin * leverage  # $1000
+            expected_amount = position_value / current_price
+
+            logger.info(f"  📊 Expected amount: {expected_amount:.6f}")
+
+            order = {
+                "trade_id": f"test_calc_{int(time.time())}",
+                "symbol": self.symbol,
+                "side": "LONG",
+                "size": size,
+                "take_profit": 1.01,
+                "stop_loss": 0.992,
+                "leverage": leverage,
+                "ghost": True,  # No afecta balance
+            }
+
+            result = croupier.execute_order(order)
+
+            if result.get("status") != "opened":
+                return {"success": False, "error": result.get("status")}
+
+            actual_amount = result.get("amount", 0)
+            diff = abs(actual_amount - expected_amount) / expected_amount if expected_amount > 0 else 1
+
+            # Cleanup
+            try:
+                await self.connector.cancel_all_orders(self.symbol)
+            except Exception:
+                pass
+
+            duration = (datetime.now() - start).total_seconds()
+
+            if diff > 0.01:  # Tolerancia 1%
+                return {
+                    "success": False,
+                    "error": f"Amount diff: {diff*100:.2f}%",
+                    "expected": expected_amount,
+                    "actual": actual_amount,
+                    "duration": duration,
+                }
+
+            logger.info(f"  ✅ Amount: {actual_amount:.6f} (diff: {diff*100:.2f}%)")
+
+            return {"success": True, "duration": duration}
+
+        except Exception as e:
+            duration = (datetime.now() - start).total_seconds()
+            logger.error(f"  ❌ Error: {e}")
+            return {"success": False, "error": str(e), "duration": duration}
+
+    async def test_croupier_portfolio_update(self) -> Dict:
+        """Test INTEGRACIÓN: Validar actualización de portfolio."""
+        start = datetime.now()
+
+        try:
+            logger.info("🎯 Validando portfolio update...")
+
+            initial_balance = 10000.0
+            croupier = Croupier(self.adapter, initial_balance=initial_balance)
+
+            logger.info(f"  💰 Balance inicial: ${initial_balance:,.2f}")
+
+            order = {
+                "trade_id": f"test_portfolio_{int(time.time())}",
+                "symbol": self.symbol,
+                "side": "LONG",
+                "size": 0.01,
+                "take_profit": 1.01,
+                "stop_loss": 0.992,
+                "leverage": 10,
+                "ghost": False,
+            }
+
+            result = croupier.execute_order(order)
+
+            if result.get("status") != "opened":
+                return {"success": False, "error": f"Order failed: {result.get('status')}"}
+
+            new_balance = croupier.get_balance()
+            logger.info(f"  💰 Balance: ${initial_balance:,.2f} → ${new_balance:,.2f}")
+
+            # Cleanup
+            try:
+                await self.connector.cancel_all_orders(self.symbol)
+            except Exception:
+                pass
+
+            duration = (datetime.now() - start).total_seconds()
+
+            if new_balance >= initial_balance:
+                return {"success": False, "error": "Balance not decreased", "duration": duration}
+
+            logger.info(f"  ✅ Portfolio actualizado")
+
+            return {"success": True, "duration": duration}
+
+        except Exception as e:
+            duration = (datetime.now() - start).total_seconds()
+            logger.error(f"  ❌ Error: {e}")
+            return {"success": False, "error": str(e), "duration": duration}
 
 
 async def validate_connector(

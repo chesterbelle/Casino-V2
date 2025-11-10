@@ -1085,20 +1085,23 @@ class BinanceConnector(BaseConnector):
     # 📜 TRADE HISTORY
     # =========================================================
 
-    async def fetch_my_trades(self, symbol: Optional[str] = None, limit: Optional[int] = None) -> List[Dict[str, Any]]:
+    async def fetch_my_trades(
+        self, symbol: Optional[str] = None, since: Optional[int] = None, limit: Optional[int] = None
+    ) -> List[Dict[str, Any]]:
         """
         Fetch user's trade history from Binance.
 
         Args:
-            symbol: Optional symbol to filter
-            limit: Optional limit
+            symbol: Trading pair symbol (optional)
+            since: Timestamp in milliseconds to fetch trades from (optional)
+            limit: Maximum number of trades to fetch (optional)
 
         Returns:
             List of trades
         """
         try:
             binance_symbol = self.normalize_symbol(symbol) if symbol else None
-            trades = await self.exchange.fetch_my_trades(binance_symbol, limit=limit)
+            trades = await self.exchange.fetch_my_trades(binance_symbol, since=since, limit=limit)
             self.logger.debug(f"📊 Trades fetched: {len(trades)}")
             return trades
         except Exception as e:

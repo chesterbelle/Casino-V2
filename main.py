@@ -38,13 +38,14 @@ PLAYERS = {
 
 def parse_args():
     """Parse command line arguments."""
-    mode = getattr(system, "MODE", "backtest").lower()
+    mode = "backtest"
     player_name = "paroli"
     symbol = None
     interval = None
     max_candles = None
     data_file = None
-    initial_balance = None
+    initial_balance = 10000.0
+    exchange = None
 
     for arg in sys.argv[1:]:
         if arg.startswith("--mode="):
@@ -61,11 +62,13 @@ def parse_args():
             data_file = arg.split("=")[1]
         elif arg.startswith("--initial-balance="):
             initial_balance = float(arg.split("=")[1])
+        elif arg.startswith("--exchange="):
+            exchange = arg.split("=")[1].lower()
         elif arg in ["--help", "-h"]:
             print_help()
             sys.exit(0)
 
-    return mode, player_name, symbol, interval, max_candles, data_file, initial_balance
+    return mode, player_name, symbol, interval, max_candles, data_file, initial_balance, exchange
 
 
 def print_help():
@@ -257,36 +260,46 @@ async def run_backtest(player_module, data_file, max_candles, initial_balance=No
     )
 
 
-async def run_demo(player_module, symbol, interval, max_candles):
-    """Run demo mode (Bybit Demo Trading with real prices)."""
-    logger.info(f"🎰 Starting DEMO mode (Exchange: {exchange_config.EXCHANGE})")
+async def run_demo(player_module, symbol, interval, max_candles, exchange=None):
+    """Run demo mode (Exchange Demo Trading with real prices)."""
+    # Use exchange from argument or fall back to config
+    exchange_name = exchange.upper() if exchange else exchange_config.EXCHANGE
+    logger.info(f"🎰 Starting DEMO mode (Exchange: {exchange_name})")
 
-    # Default values based on exchange config
+    # Default values based on exchange
     if not symbol:
-        if exchange_config.EXCHANGE == "BYBIT":
+        if exchange_name == "BYBIT":
             symbol = exchange_config.BYBIT_DEFAULT_SYMBOL
-        elif exchange_config.EXCHANGE == "KRAKEN":
+        elif exchange_name == "KRAKEN":
             symbol = "BTC/USD"
+        elif exchange_name == "BINANCE":
+            symbol = "LTC/USD:USD"
         else:
             symbol = exchange_config.SYMBOL
 
     if not interval:
-        if exchange_config.EXCHANGE == "BYBIT":
+        if exchange_name == "BYBIT":
             interval = exchange_config.BYBIT_DEFAULT_INTERVAL
-        elif exchange_config.EXCHANGE == "KRAKEN":
+        elif exchange_name == "KRAKEN":
             interval = "5m"
+        elif exchange_name == "BINANCE":
+            interval = "1m"
         else:
             interval = exchange_config.TIMEFRAME
 
     logger.info(f"📊 Symbol: {symbol} | Interval: {interval}")
 
-    # Create connector based on config
-    if exchange_config.EXCHANGE == "BYBIT":
+    # Create connector based on exchange
+    if exchange_name == "BYBIT":
         base_connector = BybitConnector(mode="demo")
-    elif exchange_config.EXCHANGE == "KRAKEN":
+    elif exchange_name == "KRAKEN":
         base_connector = KrakenConnector(mode="demo")
+    elif exchange_name == "BINANCE":
+        from exchanges.connectors.binance import BinanceConnector
+
+        base_connector = BinanceConnector(mode="testnet")
     else:
-        raise ValueError(f"Exchange {exchange_config.EXCHANGE} not supported in demo mode")
+        raise ValueError(f"Exchange {exchange_name} not supported in demo mode")
 
     connector = ResilientConnector(
         connector=base_connector,
@@ -402,7 +415,7 @@ async def run_live(player_module, symbol, interval, max_candles):
 async def main():
     """Main entry point."""
     # Parse arguments
-    mode, player_name, symbol, interval, max_candles, data_file, initial_balance = parse_args()
+    mode, player_name, symbol, interval, max_candles, data_file, initial_balance, exchange = parse_args()
 
     # Get player module
     if player_name not in PLAYERS:
@@ -425,7 +438,7 @@ async def main():
         if mode == "backtest":
             await run_backtest(player_module, data_file, max_candles, initial_balance)
         elif mode == "demo":
-            await run_demo(player_module, symbol, interval, max_candles)
+            await run_demo(player_module, symbol, interval, max_candles, exchange)
         elif mode == "live":
             await run_live(player_module, symbol, interval, max_candles)
         else:
