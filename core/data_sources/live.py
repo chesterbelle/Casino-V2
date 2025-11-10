@@ -35,6 +35,7 @@ class LiveDataSource(TestingDataSource):
         symbol: str,
         timeframe: str,
         poll_interval: float = 5.0,
+        starting_balance: float = None,  # Will fetch from exchange
     ):
         """
         Initialize live data source.
@@ -44,11 +45,14 @@ class LiveDataSource(TestingDataSource):
             symbol: Trading pair (e.g., "BTC/USD")
             timeframe: Candle interval (e.g., "5m", "1h")
             poll_interval: Seconds to wait between candle checks
+            starting_balance: Initial balance (fetched from exchange if None)
         """
-        super().__init__(connector, symbol, timeframe, poll_interval)
+        # Use real balance from exchange (starting_balance will be fetched on connect)
+        super().__init__(connector, symbol, timeframe, poll_interval, starting_balance or 10000.0)
 
         logger.warning("⚠️" * 20)
         logger.warning("⚠️ LIVE DATA SOURCE INITIALIZED - REAL MONEY ⚠️")
+        logger.warning("⚠️ Using Croupier for order execution and portfolio management")
         logger.warning("⚠️" * 20)
 
     async def connect(self) -> None:

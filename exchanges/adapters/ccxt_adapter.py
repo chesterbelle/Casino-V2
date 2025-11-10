@@ -242,6 +242,48 @@ class CCXTAdapter(BaseTable):
             self.logger.error(f"❌ Error conectando: {e}")
             raise
 
+    def get_current_price(self, symbol: str = None) -> float:
+        """
+        Get current market price for a symbol.
+
+        Args:
+            symbol: Trading symbol (uses self.symbol if not provided)
+
+        Returns:
+            Current price as float
+
+        Raises:
+            RuntimeError: If not connected
+            ValueError: If price cannot be obtained
+        """
+        if not self._connected:
+            raise RuntimeError("Not connected. Call connect() first.")
+
+        symbol = symbol or self.symbol
+        self.logger.info(f"🔍 get_current_price | requested_symbol={symbol} | adapter_symbol={self.symbol}")
+
+        # Try to get from connector synchronously
+        import asyncio
+
+        import nest_asyncio
+
+        nest_asyncio.apply()
+
+        try:
+            loop = asyncio.get_running_loop()
+            task = loop.create_task(self.connector.fetch_ticker(symbol))
+            done, pending = loop.run_until_complete(asyncio.wait([task]))
+            ticker = list(done)[0].result()
+        except RuntimeError:
+            # No event loop, create one
+            ticker = asyncio.run(self.connector.fetch_ticker(symbol))
+
+        price = ticker.get("last")
+        if not price:
+            raise ValueError(f"Could not get current price for {symbol}")
+
+        return float(price)
+
     async def close(self) -> None:
         """
         Close connection to the exchange.
@@ -433,6 +475,112 @@ class CCXTAdapter(BaseTable):
         except Exception as e:
             self.logger.error(f"❌ Error ejecutando orden: {e}")
             raise
+
+    def execute_order_sync(self, order: Dict) -> Dict:
+        """
+        Synchronous wrapper for execute_order.
+
+        This method is used by Croupier which operates synchronously.
+        It translates from Croupier format to CCXT format and executes the order.
+
+        Croupier format:
+            - side: "LONG" or "SHORT"
+            - size: fraction of equity (e.g., 0.0025 = 0.25%)
+            - leverage: multiplier (e.g., 10)
+
+        CCXT format:
+            - side: "buy" or "sell"
+            - amount: base currency amount (e.g., 0.001 BTC)
+            - params: {"leverage": 10}
+
+        Args:
+            order: Order dictionary in Croupier format
+
+        Returns:
+            Order result dictionary
+        """
+        import asyncio
+
+        import nest_asyncio
+
+        # Allow nested event loops
+        nest_asyncio.apply()
+
+        # Get or create event loop
+        try:
+            loop = asyncio.get_running_loop()
+            # We're in an async context, create a task and wait for it
+            # Translate and execute in one async call
+            task = loop.create_task(self._translate_and_execute(order))
+            # Use asyncio.wait to get the result synchronously
+            done, pending = loop.run_until_complete(asyncio.wait([task]))
+            return list(done)[0].result()
+        except RuntimeError:
+            # No event loop running, create one
+            return asyncio.run(self._translate_and_execute(order))
+
+    async def _translate_and_execute(self, order: Dict) -> Dict:
+        """
+        Translate Croupier order to CCXT format and execute.
+
+        This is async so we can fetch the current price for amount calculation.
+
+        Args:
+            order: Order in Croupier format
+
+        Returns:
+            Order result
+        """
+        # Translate Croupier format to CCXT format (async to get current price)
+        ccxt_order = await self._translate_croupier_to_ccxt_async(order)
+
+        # Execute the order
+        return await self.execute_order(ccxt_order)
+
+    async def _translate_croupier_to_ccxt_async(self, order: Dict) -> Dict:
+        """
+        Translate order from Croupier format to CCXT format (async version).
+
+        Args:
+            order: Order in Croupier format with:
+                - amount: base currency amount (already calculated by BuildOrderStage)
+                - leverage: multiplier (e.g., 10)
+                - side: "LONG" or "SHORT"
+
+        Returns:
+            Order in CCXT format with:
+                - amount: base currency amount (e.g., 0.3 ETH)
+                - side: "buy" or "sell"
+        """
+        # Translate side: LONG/SHORT → buy/sell
+        side = order["side"].lower()
+        if side == "long":
+            side = "buy"
+        elif side == "short":
+            side = "sell"
+
+        # Use amount directly from order (already calculated)
+        amount = float(order["amount"])
+        leverage = order.get("leverage", 1)
+        symbol = order["symbol"]
+
+        self.logger.info(f"📊 Order translation | " f"Amount: {amount:.4f} | " f"Leverage: {leverage}x")
+
+        # Build CCXT order
+        ccxt_order = {
+            "symbol": symbol,
+            "side": side,
+            "amount": amount,
+            "type": order.get("type", "market"),
+            "take_profit": order.get("take_profit"),
+            "stop_loss": order.get("stop_loss"),
+            "trade_id": order.get("trade_id"),
+            "params": {
+                "leverage": leverage,
+            },
+        }
+
+        return ccxt_order
 
     # =========================================================
     # 💰 BALANCE & POSITIONS

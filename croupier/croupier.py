@@ -272,17 +272,79 @@ class Croupier:
         """
         Delega la ejecución al exchange adapter.
 
+        Si la orden tiene 'size' (USD nominal) pero no 'amount',
+        el Croupier calcula el 'amount' usando el precio real del exchange.
+
         Args:
             order: Diccionario con la orden
 
         Returns:
             Resultado de la ejecución del exchange
         """
+        # Si la orden tiene 'size' pero no 'amount', calcular amount
+        if "size" in order and "amount" not in order:
+            self.logger.info(f"🎯 Croupier will calculate amount from size={order['size']}")
+            order = self._calculate_amount_from_size(order)
+        elif "amount" in order:
+            self.logger.info(f"✅ Order already has amount={order['amount']:.6f}, skipping calculation")
+
         # Usar execute_order_sync si existe (para adapters async)
         if hasattr(self.exchange, "execute_order_sync"):
             return self.exchange.execute_order_sync(order)
         else:
             return self.exchange.execute_order(order)
+
+    def _calculate_amount_from_size(self, order: dict) -> dict:
+        """
+        Calcula el 'amount' en base currency desde 'size' (USD nominal).
+
+        Args:
+            order: Orden con 'size' (fracción de equity)
+
+        Returns:
+            Orden con 'amount' calculado
+        """
+        size_fraction = float(order["size"])
+        leverage = order.get("leverage", 1)
+        symbol = order["symbol"]
+
+        # Obtener equity actual
+        equity = self.get_equity()
+
+        # Obtener precio actual del exchange
+        if hasattr(self.exchange, "get_current_price"):
+            current_price = self.exchange.get_current_price(symbol)
+        else:
+            # Fallback: intentar obtener del balance_manager si existe
+            if hasattr(self.exchange, "balance_manager"):
+                current_price = getattr(self.exchange.balance_manager, "last_price", None)
+            else:
+                current_price = None
+
+        if not current_price:
+            raise ValueError(f"Cannot get current price for {symbol} from exchange")
+
+        # Calcular amount
+        margin = equity * size_fraction  # USD a arriesgar
+        position_value = margin * leverage  # USD de posición total
+        amount = position_value / current_price  # Cantidad en base currency
+
+        self.logger.info(
+            f"📊 Croupier calculation | "
+            f"Equity: ${equity:.2f} | "
+            f"Size: {size_fraction*100:.2f}% | "
+            f"Margin: ${margin:.2f} | "
+            f"Leverage: {leverage}x | "
+            f"Position: ${position_value:.2f} | "
+            f"Price: ${current_price:.2f} | "
+            f"Amount: {amount:.6f}"
+        )
+
+        # Crear nueva orden con amount
+        order_with_amount = dict(order)
+        order_with_amount["amount"] = amount
+
+        return order_with_amount
 
     def _update_portfolio(self, order: dict, result: dict):
         """

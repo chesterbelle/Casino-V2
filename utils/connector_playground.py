@@ -481,21 +481,18 @@ class ConnectorPlayground:
                 logger.info("❌ Orden cancelada")
                 return
 
-            # Crear orden market con TP/SL
-            logger.info("🚀 Creando orden...")
+            # Crear orden market con TP/SL usando OCO bracket
+            logger.info("🚀 Creando orden con OCO bracket...")
 
-            order_params = {
-                "stopLoss": {"triggerPrice": sl_price},
-                "takeProfit": {"triggerPrice": tp_price},
-                "leverage": 40,
-            }
-
-            order = await self.connector.create_order(
+            order = await self.connector.create_order_with_tpsl(
                 symbol=self.symbol,
-                type="market",
                 side="buy" if side == "LONG" else "sell",
                 amount=size,
-                params=order_params,
+                price=None,  # Market order
+                order_type="market",
+                tp_price=tp_price,
+                sl_price=sl_price,
+                params={"leverage": 40},
             )
 
             logger.info(f"\n✅ ORDEN CREADA:")

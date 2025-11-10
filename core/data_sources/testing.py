@@ -1,14 +1,18 @@
 """
 Testing Data Source - Casino V2
 
-Provides real-time data from exchange demo/testnet.
-Uses CCXTAdapter internally for balance/position management.
+Provides real-time data from exchange demo trading (Bybit Demo Trading).
+Uses Croupier for order execution and portfolio management.
+
+Note: Despite the name "TestingDataSource", this now connects to Demo Trading
+which uses REAL market prices (not testnet fake prices).
 """
 
 import asyncio
 import logging
 from typing import Dict, Optional
 
+from croupier.croupier import Croupier
 from exchanges.adapters.ccxt_adapter import CCXTAdapter
 
 from .base import Candle, DataSource
@@ -18,17 +22,17 @@ logger = logging.getLogger(__name__)
 
 class TestingDataSource(DataSource):
     """
-    Data source for testing with exchange demo/testnet.
+    Data source for demo trading with real market prices.
 
     Features:
-    - Real-time candles from demo exchange
-    - Real order execution (no real money)
-    - Real slippage and fees
+    - Real-time candles with REAL market prices (from mainnet)
+    - Simulated order execution (no real money)
+    - Real slippage and fees simulation
     - Resilient connection (auto-reconnect)
 
     Example:
-        >>> connector = ResilientConnector(KrakenConnector(mode="demo"))
-        >>> source = TestingDataSource(connector, "BTC/USD", "5m")
+        >>> connector = ResilientConnector(BybitConnector(mode="demo"))
+        >>> source = TestingDataSource(connector, "BTC/USDT:USDT", "1m")
         >>> await source.connect()
         >>> candle = await source.next_candle()
     """
@@ -51,13 +55,17 @@ class TestingDataSource(DataSource):
             poll_interval: Seconds to wait between candle checks
             starting_balance: Initial balance for testing
         """
-        # Use CCXTAdapter internally for balance/position management
+        # Create CCXTAdapter for exchange communication
         self.adapter = CCXTAdapter(
             connector=connector,
             symbol=symbol,
             timeframe=timeframe,
             starting_balance=starting_balance,
         )
+
+        # Create Croupier for order execution and portfolio management
+        self.croupier = Croupier(exchange_adapter=self.adapter, initial_balance=starting_balance)
+
         self.symbol = symbol
         self.timeframe = timeframe
         self.poll_interval = poll_interval
@@ -69,7 +77,8 @@ class TestingDataSource(DataSource):
             f"📊 TestingDataSource initialized | "
             f"Symbol: {symbol} | "
             f"Timeframe: {timeframe} | "
-            f"Poll: {poll_interval}s"
+            f"Poll: {poll_interval}s | "
+            f"Using Croupier for order execution"
         )
 
     async def connect(self) -> None:
@@ -155,8 +164,8 @@ class TestingDataSource(DataSource):
 
                 candle_data = candles[0]
 
-                # Extract timestamp
-                timestamp = int(candle_data["timestamp"])
+                # Extract timestamp (CCXT format: [timestamp, open, high, low, close, volume])
+                timestamp = int(candle_data[0])
                 logger.debug(f"📊 Received candle with timestamp: {timestamp}")
 
                 # Check if it's a new candle
@@ -174,13 +183,14 @@ class TestingDataSource(DataSource):
                 balance = self.adapter.balance_manager.balance
                 equity = self.adapter.balance_manager.equity
 
+                # CCXT format: [timestamp, open, high, low, close, volume]
                 return Candle(
                     timestamp=timestamp,
-                    open=float(candle_data["open"]),
-                    high=float(candle_data["high"]),
-                    low=float(candle_data["low"]),
-                    close=float(candle_data["close"]),
-                    volume=float(candle_data["volume"]),
+                    open=float(candle_data[1]),
+                    high=float(candle_data[2]),
+                    low=float(candle_data[3]),
+                    close=float(candle_data[4]),
+                    volume=float(candle_data[5]),
                     symbol=self.symbol,
                     timeframe=self.timeframe,
                     equity=equity,
@@ -196,10 +206,10 @@ class TestingDataSource(DataSource):
 
     async def execute_order(self, order: Dict) -> Dict:
         """
-        Execute order on exchange demo.
+        Execute order on exchange demo through Croupier.
 
         Args:
-            order: Order dict with keys: symbol, side, amount, type, price
+            order: Order dict with keys: symbol, side, size, take_profit, stop_loss
 
         Returns:
             Result dict with status, trade_id, entry_price, fee, balance
@@ -208,56 +218,54 @@ class TestingDataSource(DataSource):
             raise RuntimeError("Not connected. Call connect() first.")
 
         try:
-            # Execute through adapter
-            result = await self.adapter.execute_order(order)
+            # Execute through Croupier (synchronous call)
+            # Croupier will validate, execute via adapter, and update portfolio
+            result = self.croupier.execute_order(order)
 
             # Check if result is valid
             if result is None:
-                logger.error("❌ Order execution failed: adapter returned None")
+                logger.error("❌ Order execution failed: croupier returned None")
                 return {
                     "status": "rejected",
-                    "reason": "Adapter returned None",
+                    "reason": "Croupier returned None",
                     "order": order,
                 }
 
-            logger.info(
-                f"✅ Order executed | "
-                f"{result.get('side', '?').upper()} "
-                f"{result.get('amount', 0):.4f} @ {result.get('price', 0):.2f}"
-            )
+            # Log execution
+            status = result.get("status", "unknown")
+            if status == "opened":
+                logger.info(
+                    f"✅ Order executed | "
+                    f"{result.get('side', '?').upper()} "
+                    f"{result.get('amount', 0):.4f} @ {result.get('entry_price', 0):.2f}"
+                )
+            elif status == "rejected":
+                logger.warning(f"⚠️ Order rejected: {result.get('reason', 'unknown')}")
+            elif status == "error":
+                logger.error(f"❌ Order error: {result.get('reason', 'unknown')}")
 
-            return {
-                "status": "opened",
-                "result": "OPENED",
-                "trade_id": result.get("id", order.get("trade_id")),
-                "symbol": result.get("symbol"),
-                "side": result.get("side"),
-                "amount": result.get("amount"),
-                "entry_price": result.get("price"),
-                "fee": result.get("fee", {}).get("cost", 0) if isinstance(result.get("fee"), dict) else 0,
-                "balance": self.get_balance(),
-            }
+            return result
 
         except Exception as e:
             logger.error(f"❌ Order execution failed: {e}")
             return {
-                "status": "rejected",
+                "status": "error",
                 "reason": str(e),
                 "order": order,
             }
 
     def get_balance(self) -> float:
-        """Get current balance from adapter."""
+        """Get current balance from Croupier."""
         try:
-            return self.adapter.balance_manager.balance
+            return self.croupier.get_balance()
         except Exception as e:
             logger.warning(f"⚠️ Error fetching balance: {e}")
             return 0.0
 
     def get_equity(self) -> float:
-        """Get current equity from adapter."""
+        """Get current equity from Croupier."""
         try:
-            return self.adapter.balance_manager.equity
+            return self.croupier.get_equity()
         except Exception as e:
             logger.warning(f"⚠️ Error fetching equity: {e}")
             return 0.0

@@ -517,9 +517,23 @@ class KrakenConnector(BaseConnector):
             # Normalize symbol to Kraken format
             kraken_symbol = self.normalize_symbol(symbol)
 
+            # Validate amount
+            if amount is None:
+                self.logger.error("❌ Amount cannot be None")
+                raise ValueError("Order amount cannot be None")
+
+            try:
+                amount = float(amount)
+                if amount <= 0:
+                    raise ValueError("Amount must be positive")
+            except (TypeError, ValueError) as e:
+                self.logger.error(f"❌ Invalid amount: {amount}")
+                raise ValueError(f"Invalid order amount: {amount}") from e
+
+            # Continue with order creation
             # Round amount to avoid decimal.ConversionSyntax error
             # Kraken Futures requires specific precision
-            amount = round(float(amount), 8)  # 8 decimals should be enough
+            amount = round(amount, 8)  # 8 decimals should be enough
 
             # Log order details for debugging
             self.logger.info(
@@ -528,29 +542,13 @@ class KrakenConnector(BaseConnector):
             )
 
             # Note: Kraken Futures handles leverage at account level
-            # The 'leverage' param is informational and used for position sizing calculation
-            # but the actual leverage is configured in the account settings
+            # The actual leverage is configured in the account settings, NOT per-order
 
-            # Clean params - remove leverage as it causes decimal.ConversionSyntax error
+            # Clean params - remove leverage if present (not supported per-order)
             clean_params = (params or {}).copy()
-            leverage_value = None
             if "leverage" in clean_params:
-                leverage_value = clean_params.pop("leverage")
-                self.logger.info(f"🔧 Removed leverage={leverage_value} from params")
-
-            # IMPORTANTE: Configurar margin mode ANTES de crear la orden
-            # Kraken Futures requiere llamar a set_margin_mode() explícitamente
-            try:
-                # Usar isolated margin por defecto (no cross)
-                await self.exchange.set_margin_mode("isolated", symbol=kraken_symbol)
-                self.logger.info(f"🔧 Set margin mode to ISOLATED for {kraken_symbol}")
-
-                # Si se especificó leverage, configurarlo también
-                if leverage_value:
-                    await self.exchange.set_leverage(int(leverage_value), symbol=kraken_symbol)
-                    self.logger.info(f"🔧 Set leverage to {leverage_value}x for {kraken_symbol}")
-            except Exception as e:
-                self.logger.warning(f"⚠️ Could not set margin mode/leverage: {e}")
+                clean_params.pop("leverage")
+                self.logger.debug("Removed 'leverage' from params (configured at account level)")
 
             self.logger.info(f"📋 Clean params being sent: {clean_params}")
 
@@ -564,18 +562,26 @@ class KrakenConnector(BaseConnector):
                 params=clean_params,
             )
 
-            # Normalize response
+            # Normalize response with safe conversion
+            def to_float(value, default=0.0):
+                if value is None:
+                    return default
+                try:
+                    return float(value)
+                except (TypeError, ValueError):
+                    return default
+
             normalized = {
                 "id": order.get("id"),
-                "symbol": symbol,  # Standard format
+                "symbol": symbol,
                 "side": side.lower(),
                 "type": order_type,
                 "status": order.get("status"),
-                "price": float(order.get("price", 0)) if order.get("price") else None,
-                "amount": float(order.get("amount", 0)),
-                "filled": float(order.get("filled", 0)),
-                "remaining": float(order.get("remaining", 0)),
-                "cost": float(order.get("cost", 0)),
+                "price": to_float(order.get("price")),
+                "amount": to_float(order.get("amount")),
+                "filled": to_float(order.get("filled")),
+                "remaining": to_float(order.get("remaining")),
+                "cost": to_float(order.get("cost")),
                 "fee": order.get("fee", {}),
                 "timestamp": order.get("timestamp"),
                 "trades": order.get("trades", []),
@@ -594,6 +600,101 @@ class KrakenConnector(BaseConnector):
         except Exception as e:
             self.logger.error(f"❌ Error creando orden: {e}")
             raise
+
+    # =========================================================
+    # 🎯 ORDER WITH TP/SL (OCO IMPLEMENTATION)
+    # =========================================================
+
+    async def create_order_with_tpsl(
+        self,
+        symbol: str,
+        side: str,
+        amount: float,
+        price: Optional[float] = None,
+        order_type: str = "market",
+        tp_price: Optional[float] = None,
+        sl_price: Optional[float] = None,
+        params: Optional[Dict] = None,
+    ) -> Dict:
+        """
+        Crea una orden con Take Profit y Stop Loss (OCO bracket).
+
+        Args:
+            symbol: Símbolo de trading (e.g., "BTC/USD")
+            side: "buy" o "sell"
+            amount: Cantidad de la orden
+            price: Precio límite (para órdenes limit)
+            order_type: "market" o "limit"
+            tp_price: Precio de Take Profit
+            sl_price: Precio de Stop Loss
+            params: Parámetros adicionales
+
+        Returns:
+            Información de la orden principal
+
+        Note:
+            Crea tres órdenes separadas y las registra en el OCO Monitor.
+        """
+        # Validar precios TP/SL solo si la orden es limit (tiene precio)
+        if price is not None and (tp_price or sl_price):
+            if tp_price and side == "buy" and tp_price <= price:
+                raise ValueError("TP debe ser mayor que el precio de entrada para órdenes BUY")
+            if tp_price and side == "sell" and tp_price >= price:
+                raise ValueError("TP debe ser menor que el precio de entrada para órdenes SELL")
+            if sl_price and side == "buy" and sl_price >= price:
+                raise ValueError("SL debe ser menor que el precio de entrada para órdenes BUY")
+            if sl_price and side == "sell" and sl_price <= price:
+                raise ValueError("SL debe ser mayor que el precio de entrada para órdenes SELL")
+
+        # Crear orden principal
+        main_order = await self.create_order(
+            symbol=symbol, side=side, amount=amount, price=price, order_type=order_type, params=params
+        )
+
+        # Preparar para órdenes TP/SL
+        tp_order = None
+        sl_order = None
+        close_side = "sell" if side == "buy" else "buy"
+
+        # Crear orden Take Profit (limit con trigger)
+        if tp_price:
+            try:
+                tp_order = await self.exchange.create_order(
+                    symbol=self.normalize_symbol(symbol),
+                    type="limit",
+                    side=close_side,
+                    amount=amount,
+                    price=tp_price,
+                    params={"triggerPrice": tp_price, "reduceOnly": True},
+                )
+                self.logger.info(f"✅ Orden Take Profit creada: {tp_order['id']}")
+            except Exception as e:
+                self.logger.error(f"❌ Fallo al crear Take Profit: {e}")
+
+        # Crear orden Stop Loss (market con trigger)
+        if sl_price:
+            try:
+                sl_order = await self.exchange.create_order(
+                    symbol=self.normalize_symbol(symbol),
+                    type="market",
+                    side=close_side,
+                    amount=amount,
+                    price=None,
+                    params={"triggerPrice": sl_price, "reduceOnly": True},
+                )
+                self.logger.info(f"✅ Orden Stop Loss creada: {sl_order['id']}")
+            except Exception as e:
+                self.logger.error(f"❌ Fallo al crear Stop Loss: {e}")
+
+        # Registrar en OCO monitor
+        if self._oco_monitor and (tp_order or sl_order):
+            self._oco_monitor.register_oco_pair(
+                symbol=symbol,
+                tp_order_id=tp_order["id"] if tp_order else None,
+                sl_order_id=sl_order["id"] if sl_order else None,
+            )
+
+        return main_order
 
     # =========================================================
     # 🔧 UTILITY METHODS
@@ -870,170 +971,6 @@ class KrakenConnector(BaseConnector):
         # (puede operar sin balance actualizado)
 
         return True
-
-    async def create_order_with_tpsl(
-        self,
-        symbol: str,
-        side: str,
-        amount: float,
-        price: Optional[float] = None,
-        order_type: str = "market",
-        tp_price: Optional[float] = None,
-        sl_price: Optional[float] = None,
-        params: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
-        """
-        Create order with TP/SL for Kraken Futures with manual OCO implementation.
-
-        Kraken Futures API does NOT support automatic OCO (One Cancels the Other).
-        This method creates:
-        1. Main order (market/limit)
-        2. Take Profit order (separate, conditional)
-        3. Stop Loss order (separate, conditional)
-
-        The OCO logic must be implemented externally by monitoring these orders.
-
-        Args:
-            symbol: Trading pair symbol (e.g., "BTC/USD")
-            side: Order side - 'buy' or 'sell'
-            amount: Order amount in base currency
-            price: Limit price (for limit orders)
-            order_type: Order type - 'market' or 'limit'
-            tp_price: Take profit trigger price (optional)
-            sl_price: Stop loss trigger price (optional)
-            params: Additional parameters
-
-        Returns:
-            Dict with main order result and TP/SL order IDs:
-            {
-                'id': main_order_id,
-                'symbol': symbol,
-                'side': side,
-                'amount': amount,
-                ...
-                'tp_order_id': tp_order_id,  # if TP created
-                'sl_order_id': sl_order_id,  # if SL created
-            }
-
-        Raises:
-            ExchangeError: If order creation fails
-        """
-        # 1. Create main order
-        main_order = await self.create_order(
-            symbol=symbol,
-            side=side,
-            amount=amount,
-            price=price,
-            order_type=order_type,
-            params=params,
-        )
-
-        self.logger.info(
-            f"✅ Main order created | " f"{symbol} {side.upper()} {amount:.4f} @ {main_order.get('price', 'market')}"
-        )
-
-        # If no TP/SL, return main order
-        if not tp_price and not sl_price:
-            return main_order
-
-        # 2. Determine close side (opposite of entry)
-        close_side = "sell" if side == "buy" else "buy"
-
-        # 3. Create TP/SL orders (Kraken-specific types)
-        tp_order_id = None
-        sl_order_id = None
-
-        try:
-            # Create Take Profit order (if provided)
-            # CCXT no reconoce tipos específicos de Kraken (takeProfitLimit)
-            # Solución: usar type="limit" estándar + triggerPrice en params
-            if tp_price:
-                tp_order = await self.exchange.create_order(
-                    symbol=symbol,
-                    type="limit",  # Tipo estándar CCXT
-                    side=close_side,
-                    amount=amount,
-                    price=tp_price,  # Limit price
-                    params={
-                        "triggerPrice": tp_price,  # Trigger para activar la orden
-                        "reduceOnly": True,  # Solo cerrar posición
-                    },
-                )
-                # CCXT ya normaliza la respuesta
-                tp_order_id = tp_order.get("id")
-                self.logger.info(
-                    f"✅ Take Profit order created | "
-                    f"{symbol} {close_side.upper()} @ ${tp_price:.2f} | "
-                    f"ID: {tp_order_id}"
-                )
-
-            # Create Stop Loss order (if provided)
-            # Mismo enfoque: type="limit" + triggerPrice
-            if sl_price:
-                sl_order = await self.exchange.create_order(
-                    symbol=symbol,
-                    type="limit",  # Tipo estándar CCXT
-                    side=close_side,
-                    amount=amount,
-                    price=sl_price,  # Limit price
-                    params={
-                        "triggerPrice": sl_price,  # Trigger para activar la orden
-                        "reduceOnly": True,  # Solo cerrar posición
-                    },
-                )
-                # CCXT ya normaliza la respuesta
-                sl_order_id = sl_order.get("id")
-                self.logger.info(
-                    f"✅ Stop Loss order created | "
-                    f"{symbol} {close_side.upper()} @ ${sl_price:.2f} | "
-                    f"ID: {sl_order_id}"
-                )
-
-        except Exception as e:
-            self.logger.error(f"❌ Error creating TP/SL orders: {e}")
-            # Don't fail the main order if TP/SL creation fails
-            # The main order was already executed successfully
-
-        # 4. Add TP/SL order IDs to main order result
-        main_order["tp_order_id"] = tp_order_id
-        main_order["sl_order_id"] = sl_order_id
-
-        # 5. Register OCO pair for monitoring
-        if self._oco_monitor and (tp_order_id or sl_order_id):
-            try:
-                pair_id = self._oco_monitor.register_oco_pair(
-                    symbol=symbol,
-                    tp_order_id=tp_order_id,
-                    sl_order_id=sl_order_id,
-                )
-                self.logger.info(f"📋 OCO pair registered: {pair_id}")
-            except Exception as e:
-                self.logger.error(f"❌ Error registering OCO pair: {e}")
-
-        self.logger.info(
-            f"✅ Order with TP/SL created | "
-            f"Main: {main_order.get('id')} | "
-            f"TP: {tp_order_id or 'None'} | "
-            f"SL: {sl_order_id or 'None'}"
-        )
-
-        return main_order
-
-    @property
-    def status_dict(self) -> Dict[str, bool]:
-        """
-        Estado de componentes del conector.
-
-        Returns:
-            Diccionario con estado de cada componente
-        """
-        return {
-            "connected": self._connected,
-            "markets_loaded": bool(self._markets),
-            "balance_updated": self._balance_updated,
-            "websocket_active": self._ws_connected if self._ws else False,
-            "ready": self.ready,
-        }
 
     @property
     def tracking_states(self) -> Dict[str, Any]:

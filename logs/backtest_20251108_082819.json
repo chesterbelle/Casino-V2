@@ -1,0 +1,19 @@
+{
+  "mode": "backtest",
+  "player": "paroli_player",
+  "timestamp": "2025-11-08T08:28:19.413402",
+  "symbol": "LTC/USDC:USDC",
+  "timeframe": "1m",
+  "initial_balance": 10000.0,
+  "final_balance": 10002.06670020404,
+  "final_equity": 9999.984999999997,
+  "total_pnl": 2.1567116312700074,
+  "total_trades": 6,
+  "wins": 6,
+  "losses": 0,
+  "win_rate": 1.0,
+  "open_positions": 0,
+  "orders_rejected": 0,
+  "orders_error": 0,
+  "rejection_reasons": []
+}

@@ -8,13 +8,17 @@ Nueva arquitectura unificada:
 """
 
 import asyncio
+import json
 import logging
 import sys
+from datetime import datetime
+from pathlib import Path
 
+from config import exchange as exchange_config
 from config import system
 from core.data_sources import BacktestDataSource, LiveDataSource, TestingDataSource
 from core.trading import TradingSession
-from exchanges.connectors import KrakenConnector, ResilientConnector
+from exchanges.connectors import BybitConnector, KrakenConnector, ResilientConnector
 from players import kelly_player, paroli_player
 
 # Setup logging
@@ -74,7 +78,7 @@ Usage:
     python main.py [options]
 
 Options:
-    --mode=MODE              Trading mode: backtest, testing, live (default: backtest)
+    --mode=MODE              Trading mode: backtest, demo, live (default: backtest)
     --player=PLAYER          Player strategy: paroli, kelly, fixed
                             Default: paroli
 
@@ -90,20 +94,73 @@ Options:
     --data=FILE              Data file path (for backtest mode)
                                 Default: tables/data/raw/BTCUSDT_1m__30d.csv
     --initial-balance=AMOUNT Initial balance for BACKTEST ONLY (default: 10000.0)
-                                ⚠️ Testing/Live modes use REAL exchange balance
+                                ⚠️ Demo/Live modes use REAL exchange balance
                                 Use this to match testing balance for validation
 
 Examples:
     # Backtest with Paroli
     python main.py --mode=backtest --player=paroli --data=BTC_1h.csv
 
-    # Testing with Kraken Demo
-    python main.py --mode=testing --player=paroli --symbol=BTC/USD --interval=5m
+    # Demo with Bybit Demo Trading
+    python main.py --mode=demo --player=paroli --symbol=BTC/USDT:USDT --interval=1m
 
     # Live trading (REAL MONEY)
     python main.py --mode=live --player=paroli --symbol=BTC/USD --interval=5m
 """
     )
+
+
+def save_results_json(mode: str, stats: dict, player_name: str, symbol: str = None, timeframe: str = None):
+    """
+    Save session results to JSON file for validation.
+
+    Args:
+        mode: Trading mode (backtest, demo, live)
+        stats: Statistics dictionary from data source
+        player_name: Name of the player strategy
+        symbol: Trading symbol (optional)
+        timeframe: Candle timeframe (optional)
+    """
+    try:
+        # Create logs directory if it doesn't exist
+        logs_dir = Path("logs")
+        logs_dir.mkdir(exist_ok=True)
+
+        # Generate filename with timestamp
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = logs_dir / f"{mode}_{timestamp}.json"
+
+        # Prepare data
+        data = {
+            "mode": mode,
+            "player": player_name,
+            "timestamp": datetime.now().isoformat(),
+            "symbol": symbol or "BTC/USD",
+            "timeframe": timeframe or "1m",
+            "initial_balance": stats.get("initial_balance", 0),
+            "final_balance": stats.get("final_balance", 0),
+            "final_equity": stats.get("final_equity", 0),
+            "total_pnl": stats.get("total_pnl", 0),
+            "total_trades": stats.get("total_trades", 0),
+            "wins": stats.get("wins", 0),
+            "losses": stats.get("losses", 0),
+            "win_rate": stats.get("win_rate", 0),
+            "open_positions": stats.get("open_positions", 0),
+            "orders_rejected": stats.get("orders_rejected", 0),
+            "orders_error": stats.get("orders_error", 0),
+            "rejection_reasons": stats.get("rejection_reasons", []),
+        }
+
+        # Save to file
+        with open(filename, "w") as f:
+            json.dump(data, f, indent=2)
+
+        logger.info(f"📝 Results saved to: {filename}")
+        return filename
+
+    except Exception as e:
+        logger.error(f"❌ Failed to save results JSON: {e}")
+        return None
 
 
 async def run_backtest(player_module, data_file, max_candles, initial_balance=None):
@@ -146,10 +203,19 @@ async def run_backtest(player_module, data_file, max_candles, initial_balance=No
     session = TradingSession(source, player_module, max_candles)
 
     # Run
-    await session.run()
+    session_stats = await session.run()
 
-    # Print stats
+    # Print stats - combine session stats with data source stats
     stats = source.get_stats()
+
+    # Merge session stats (orders_rejected, orders_error, rejection_reasons)
+    stats.update(
+        {
+            "orders_rejected": session_stats.get("orders_rejected", 0),
+            "orders_error": session_stats.get("orders_error", 0),
+            "rejection_reasons": session_stats.get("rejection_reasons", []),
+        }
+    )
     print("\n" + "=" * 60)
     print("📊 BACKTEST RESULTS")
     print("=" * 60)
@@ -164,25 +230,66 @@ async def run_backtest(player_module, data_file, max_candles, initial_balance=No
     print(f"Win Rate:         {stats['win_rate']:.2%}")
     print(f"Avg Win:          ${stats['avg_win']:+,.2f}")
     print(f"Avg Loss:         ${stats['avg_loss']:+,.2f}")
+
+    # Show rejected/error orders
+    orders_rejected = stats.get("orders_rejected", 0)
+    orders_error = stats.get("orders_error", 0)
+    if orders_rejected > 0 or orders_error > 0:
+        print(f"\n⚠️  Orders Rejected:  {orders_rejected}")
+        print(f"❌ Orders Error:     {orders_error}")
+
+        # Show rejection reasons
+        rejection_reasons = stats.get("rejection_reasons", [])
+        if rejection_reasons:
+            print("\n📋 Rejection Details:")
+            for i, rejection in enumerate(rejection_reasons, 1):
+                print(f"  {i}. Candle #{rejection['candle']}: {rejection['reason']}")
+
     print("=" * 60 + "\n")
 
+    # Save results to JSON for validation
+    save_results_json(
+        mode="backtest",
+        stats=stats,
+        player_name=player_module.__name__.split(".")[-1],
+        symbol=source.symbol,
+        timeframe=source.timeframe,
+    )
 
-async def run_testing(player_module, symbol, interval, max_candles):
-    """Run testing mode (demo exchange)."""
-    logger.info("🎰 Starting TESTING mode (Demo Exchange)")
 
-    # Default values
+async def run_demo(player_module, symbol, interval, max_candles):
+    """Run demo mode (Bybit Demo Trading with real prices)."""
+    logger.info(f"🎰 Starting DEMO mode (Exchange: {exchange_config.EXCHANGE})")
+
+    # Default values based on exchange config
     if not symbol:
-        symbol = "BTC/USD"
+        if exchange_config.EXCHANGE == "BYBIT":
+            symbol = exchange_config.BYBIT_DEFAULT_SYMBOL
+        elif exchange_config.EXCHANGE == "KRAKEN":
+            symbol = "BTC/USD"
+        else:
+            symbol = exchange_config.SYMBOL
+
     if not interval:
-        interval = "5m"
+        if exchange_config.EXCHANGE == "BYBIT":
+            interval = exchange_config.BYBIT_DEFAULT_INTERVAL
+        elif exchange_config.EXCHANGE == "KRAKEN":
+            interval = "5m"
+        else:
+            interval = exchange_config.TIMEFRAME
 
     logger.info(f"📊 Symbol: {symbol} | Interval: {interval}")
 
-    # Create connector with resilience
-    kraken = KrakenConnector(mode="testing")
+    # Create connector based on config
+    if exchange_config.EXCHANGE == "BYBIT":
+        base_connector = BybitConnector(mode="demo")
+    elif exchange_config.EXCHANGE == "KRAKEN":
+        base_connector = KrakenConnector(mode="demo")
+    else:
+        raise ValueError(f"Exchange {exchange_config.EXCHANGE} not supported in demo mode")
+
     connector = ResilientConnector(
-        connector=kraken,
+        connector=base_connector,
         enable_state_recovery=True,
         state_recovery_config={
             "state_dir": "./state/testing",
@@ -197,10 +304,19 @@ async def run_testing(player_module, symbol, interval, max_candles):
     session = TradingSession(source, player_module, max_candles)
 
     # Run
-    await session.run()
+    session_stats = await session.run()
 
-    # Show final stats
+    # Show final stats - combine session stats with data source stats
     stats = await source.get_stats()
+
+    # Merge session stats (orders_rejected, orders_error, rejection_reasons)
+    stats.update(
+        {
+            "orders_rejected": session_stats.get("orders_rejected", 0),
+            "orders_error": session_stats.get("orders_error", 0),
+            "rejection_reasons": session_stats.get("rejection_reasons", []),
+        }
+    )
     print("\n" + "=" * 60)
     print("📊 TESTING RESULTS")
     print("=" * 60)
@@ -210,7 +326,27 @@ async def run_testing(player_module, symbol, interval, max_candles):
     print(f"Net PnL:          ${stats['total_pnl']:+,.2f}")
     print(f"Total Trades:     {stats['total_trades']}")
     print(f"Open Positions:   {stats['open_positions']}")
-    print("=" * 60)
+
+    # Show rejected/error orders
+    orders_rejected = stats.get("orders_rejected", 0)
+    orders_error = stats.get("orders_error", 0)
+    if orders_rejected > 0 or orders_error > 0:
+        print(f"\n⚠️  Orders Rejected:  {orders_rejected}")
+        print(f"❌ Orders Error:     {orders_error}")
+
+        # Show rejection reasons
+        rejection_reasons = stats.get("rejection_reasons", [])
+        if rejection_reasons:
+            print("\n📋 Rejection Details:")
+            for i, rejection in enumerate(rejection_reasons, 1):
+                print(f"  {i}. Candle #{rejection['candle']}: {rejection['reason']}")
+
+    print("=" * 60 + "\n")
+
+    # Save results to JSON for validation
+    save_results_json(
+        mode="demo", stats=stats, player_name=player_module.__name__.split(".")[-1], symbol=symbol, timeframe=interval
+    )
 
 
 async def run_live(player_module, symbol, interval, max_candles):
@@ -288,8 +424,8 @@ async def main():
     try:
         if mode == "backtest":
             await run_backtest(player_module, data_file, max_candles, initial_balance)
-        elif mode == "testing":
-            await run_testing(player_module, symbol, interval, max_candles)
+        elif mode == "demo":
+            await run_demo(player_module, symbol, interval, max_candles)
         elif mode == "live":
             await run_live(player_module, symbol, interval, max_candles)
         else:

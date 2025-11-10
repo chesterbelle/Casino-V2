@@ -127,6 +127,7 @@ class ResilientConnector(BaseConnector):
 
         # Estado
         self._connected = False
+        self._ready = False
         self._session_id: Optional[str] = None
         self._session_state: Optional[SessionState] = None
 
@@ -178,6 +179,7 @@ class ResilientConnector(BaseConnector):
         try:
             await self._connector.connect()
             self._connected = True
+            self._ready = True  # Mark as ready after successful connection
             self.logger.info("✅ Conectado al exchange")
 
             # Start auto-save
@@ -208,6 +210,7 @@ class ResilientConnector(BaseConnector):
         # Close underlying connector
         await self._connector.close()
         self._connected = False
+        self._ready = False
         self.logger.info("✅ Conexión cerrada")
 
     # =========================================================

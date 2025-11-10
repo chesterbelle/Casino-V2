@@ -15,24 +15,24 @@ from typing import Literal
 # =====================================================
 
 _MODE_ENV_VAR = "CASINO_MODE"
-_ALLOWED_MODES = {"backtest", "testing", "live"}
+_ALLOWED_MODES = {"backtest", "demo", "live"}
 
 
-def _get_mode(default: Literal["backtest", "testing", "live"]) -> Literal["backtest", "testing", "live"]:
+def _get_mode(default: Literal["backtest", "demo", "live"]) -> Literal["backtest", "demo", "live"]:
     value = os.getenv(_MODE_ENV_VAR)
     if value:
         normalized = value.strip().lower()
         if normalized not in _ALLOWED_MODES:
-            raise ValueError(f"Modo inválido '{value}'. Usa uno de {_ALLOWED_MODES}.")
-        return normalized  # type: ignore[return-value]
+            raise ValueError(f"Invalid MODE: {value}. Must be one of {_ALLOWED_MODES}")
+        return normalized
     return default
 
 
 # Modo de operación:
 #  - "backtest" → usa dataset CSV y simula operaciones históricas
-#  - "testing"  → conecta a exchanges demo/testnet (Kraken Demo)
+#  - "demo"     → conecta a Bybit Demo Trading (precios reales, trades simulados)
 #  - "live"     → trading real con dinero real
-MODE: Literal["backtest", "testing", "live"] = _get_mode("testing")
+MODE: Literal["backtest", "demo", "live"] = _get_mode("demo")
 
 
 # =====================================================

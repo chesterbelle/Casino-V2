@@ -2,13 +2,17 @@
 Backtest Data Source - Casino V2
 
 Provides historical data for backtesting strategies.
-Simulates order execution with realistic slippage and fees.
+Uses Croupier + SimulatedAdapter + SimulatedConnector for modular architecture.
 """
 
 import logging
 from typing import Dict, List, Optional
 
 import pandas as pd
+
+from croupier.croupier import Croupier
+from exchanges.adapters.simulated_adapter import SimulatedAdapter
+from exchanges.connectors.simulated import SimulatedConnector
 
 from .base import Candle, DataSource
 
@@ -57,13 +61,31 @@ class BacktestDataSource(DataSource):
         self.fee_rate = fee_rate
         self.slippage_rate = slippage_rate
 
-        # Position tracking
+        # Position tracking (usado por SimulatedConnector)
         self.open_positions: List[Dict] = []
         self.closed_trades: List[Dict] = []
 
         # Metadata
         self.symbol = data.get("symbol", pd.Series(["BTC/USD"]))[0] if "symbol" in data.columns else "BTC/USD"
         self.timeframe = data.get("timeframe", pd.Series(["1h"]))[0] if "timeframe" in data.columns else "1h"
+
+        # Create modular architecture: Connector → Adapter → Croupier
+        self.connector = SimulatedConnector(
+            data_source=self,
+            fee_rate=fee_rate,
+            slippage_rate=slippage_rate,
+        )
+
+        self.adapter = SimulatedAdapter(
+            connector=self.connector,
+            symbol=self.symbol,
+            timeframe=self.timeframe,
+        )
+
+        self.croupier = Croupier(
+            exchange_adapter=self.adapter,
+            initial_balance=initial_balance,
+        )
 
         self._connected = False
 
@@ -72,7 +94,8 @@ class BacktestDataSource(DataSource):
             f"Symbol: {self.symbol} | "
             f"Timeframe: {self.timeframe} | "
             f"Candles: {len(self.data)} | "
-            f"Balance: {initial_balance:.2f}"
+            f"Balance: {initial_balance:.2f} | "
+            f"Using Croupier for order execution"
         )
 
     @classmethod
@@ -302,15 +325,10 @@ class BacktestDataSource(DataSource):
 
     async def execute_order(self, order: Dict) -> Dict:
         """
-        Simulate order execution.
-
-        Simulates:
-        - Slippage (slightly worse entry price)
-        - Fees (taker commission)
-        - TP/SL (checked in next_candle)
+        Execute order through Croupier (modular architecture).
 
         Args:
-            order: Order dict with keys: symbol, side, amount, type, price
+            order: Order dict with keys: symbol, side, size, take_profit, stop_loss
 
         Returns:
             Result dict with status, trade_id, entry_price, fee, balance
@@ -318,92 +336,57 @@ class BacktestDataSource(DataSource):
         if not self._connected:
             raise RuntimeError("Not connected. Call connect() first.")
 
-        # Check if there's already an open position
-        if self.open_positions:
-            logger.warning(
-                f"❌ Order rejected | " f"Already have {len(self.open_positions)} open position(s) | " f"Max allowed: 1"
-            )
+        try:
+            # Execute through Croupier (synchronous call)
+            # Croupier will validate, execute via adapter, and update portfolio
+            result = self.croupier.execute_order(order)
+
+            # Check if result is valid
+            if result is None:
+                logger.error("❌ Order execution failed: croupier returned None")
+                return {
+                    "status": "rejected",
+                    "reason": "Croupier returned None",
+                    "order": order,
+                }
+
+            # If order was opened, track position for TP/SL simulation
+            if result.get("status") == "opened":
+                # Add position to tracking (for TP/SL checks in next_candle)
+                position = {
+                    "trade_id": result.get("trade_id"),
+                    "symbol": result.get("symbol"),
+                    "side": result.get("side"),
+                    "amount": result.get("amount"),
+                    "entry_price": result.get("entry_price"),
+                    "notional": result.get("amount") * result.get("entry_price"),
+                    "fee": result.get("fee", 0),
+                    "take_profit": (
+                        result.get("tp_price") / result.get("entry_price") if result.get("tp_price") else None
+                    ),
+                    "stop_loss": result.get("sl_price") / result.get("entry_price") if result.get("sl_price") else None,
+                    "timestamp": result.get("timestamp", self._get_current_timestamp()),
+                }
+                self.open_positions.append(position)
+
+                # Update balance (deduct fee + margin)
+                self.balance -= position["fee"]
+                self.balance -= position["notional"]
+
+                logger.info(
+                    f"📈 Position tracked | "
+                    f"{position['side']} {position['amount']:.4f} @ {position['entry_price']:.2f}"
+                )
+
+            return result
+
+        except Exception as e:
+            logger.error(f"❌ Order execution failed: {e}")
             return {
-                "status": "rejected",
-                "reason": "max_positions_reached",
-                "open_positions": len(self.open_positions),
-                "balance": self.balance,
+                "status": "error",
+                "reason": str(e),
+                "order": order,
             }
-
-        side = order["side"].lower()  # "buy" or "sell"
-        amount = float(order["amount"])
-
-        # Use current close price if no price specified
-        if self.index > 0:
-            price = float(order.get("price", self.data.iloc[self.index - 1]["close"]))
-        else:
-            price = float(order.get("price", self.data.iloc[0]["close"]))
-
-        # Simulate slippage (worse price)
-        if side == "buy":
-            entry_price = price * (1 + self.slippage_rate)
-        else:
-            entry_price = price * (1 - self.slippage_rate)
-
-        # Calculate cost/proceeds
-        notional = amount * entry_price
-        fee = notional * self.fee_rate
-
-        # Check sufficient balance (for buy orders)
-        if side == "buy" and (notional + fee) > self.balance:
-            logger.warning(
-                f"❌ Insufficient balance | " f"Required: {notional + fee:.2f} | " f"Available: {self.balance:.2f}"
-            )
-            return {
-                "status": "rejected",
-                "reason": "insufficient_balance",
-                "balance": self.balance,
-                "required": notional + fee,
-            }
-
-        # Open position
-        position = {
-            "trade_id": order.get("trade_id", f"backtest_{len(self.closed_trades)}"),
-            "symbol": order["symbol"],
-            "side": side,
-            "amount": amount,
-            "entry_price": entry_price,
-            "notional": notional,
-            "fee": fee,
-            "take_profit": order.get("take_profit"),  # Multiplier (e.g., 1.01)
-            "stop_loss": order.get("stop_loss"),  # Multiplier (e.g., 0.99)
-            "timestamp": self.data.iloc[self.index - 1]["timestamp"] if self.index > 0 else 0,
-        }
-
-        self.open_positions.append(position)
-
-        # Update balance: deduct fee + reserve capital for position
-        # IMPORTANT: In futures/margin trading, we reserve the notional as margin
-        # This ensures balance tracking is realistic and prevents over-leveraging
-        # When position closes, we'll return the margin + PnL
-        self.balance -= fee
-        self.balance -= notional  # Reserve capital (margin)
-
-        logger.info(
-            f"📈 Order opened | "
-            f"{side.upper()} {amount:.4f} @ {entry_price:.2f} | "
-            f"Fee: {fee:.4f} | "
-            f"Margin reserved: {notional:.2f} | "
-            f"Balance: {self.balance:.2f}"
-        )
-
-        return {
-            "status": "opened",
-            "result": "OPENED",
-            "trade_id": position["trade_id"],
-            "symbol": position["symbol"],
-            "side": side,
-            "amount": amount,
-            "entry_price": entry_price,
-            "notional": notional,
-            "fee": fee,
-            "balance": self.balance,
-        }
 
     def _check_positions_tpsl(self, candle_row) -> None:
         """
@@ -544,16 +527,24 @@ class BacktestDataSource(DataSource):
         return unrealized
 
     def get_balance(self) -> float:
-        """Get current balance (without unrealized PnL)."""
-        return self.balance
+        """Get current balance from Croupier."""
+        try:
+            return self.croupier.get_balance()
+        except Exception:
+            # Fallback to internal balance
+            return self.balance
 
     def get_equity(self) -> float:
-        """Get current equity (balance + unrealized PnL)."""
-        if self.index > 0:
-            current_price = self.data.iloc[self.index - 1]["close"]
-            unrealized = self._calculate_unrealized_pnl(current_price)
-            return self.balance + unrealized
-        return self.balance
+        """Get current equity from Croupier."""
+        try:
+            return self.croupier.get_equity()
+        except Exception:
+            # Fallback to internal calculation
+            if self.index > 0:
+                current_price = self.data.iloc[self.index - 1]["close"]
+                unrealized = self._calculate_unrealized_pnl(current_price)
+                return self.balance + unrealized
+            return self.balance
 
     def get_stats(self) -> Dict:
         """
@@ -586,3 +577,38 @@ class BacktestDataSource(DataSource):
             "avg_win": sum(t["pnl"] for t in wins) / len(wins) if wins else 0,
             "avg_loss": sum(t["pnl"] for t in losses) / len(losses) if losses else 0,
         }
+
+    # =========================================================
+    # HELPER METHODS (for SimulatedConnector)
+    # =========================================================
+
+    def _get_current_timestamp(self) -> int:
+        """Get current timestamp from data."""
+        if self.index > 0:
+            return int(self.data.iloc[self.index - 1]["timestamp"])
+        else:
+            return int(self.data.iloc[0]["timestamp"])
+
+    def _get_ohlcv(self, limit: int = 1) -> List[Dict]:
+        """Get OHLCV data for SimulatedConnector."""
+        if self.index == 0:
+            return []
+
+        start_idx = max(0, self.index - limit)
+        end_idx = self.index
+
+        candles = []
+        for idx in range(start_idx, end_idx):
+            row = self.data.iloc[idx]
+            candles.append(
+                {
+                    "timestamp": int(row["timestamp"]),
+                    "open": float(row["open"]),
+                    "high": float(row["high"]),
+                    "low": float(row["low"]),
+                    "close": float(row["close"]),
+                    "volume": float(row["volume"]),
+                }
+            )
+
+        return candles

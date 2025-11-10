@@ -27,6 +27,9 @@ class SessionStats:
         self.candles_processed = 0
         self.signals_detected = 0
         self.orders_executed = 0
+        self.orders_rejected = 0
+        self.orders_error = 0
+        self.rejection_reasons = []  # List of rejection reasons
         self.wins = 0
         self.losses = 0
         self.total_pnl = 0.0
@@ -38,8 +41,23 @@ class SessionStats:
         if context.signals:
             self.signals_detected += len(context.signals)
 
-        if context.result and context.result.get("status") == "opened":
-            self.orders_executed += 1
+        if context.result:
+            status = context.result.get("status")
+            if status == "opened":
+                self.orders_executed += 1
+            elif status == "rejected":
+                self.orders_rejected += 1
+                reason = context.result.get("reason", "unknown")
+                self.rejection_reasons.append(
+                    {"candle": self.candles_processed, "reason": reason, "order": context.order}
+                )
+            elif status == "error":
+                self.orders_error += 1
+                # Get detailed error message if available, otherwise use generic reason
+                reason = context.result.get("error") or context.result.get("reason", "unknown")
+                self.rejection_reasons.append(
+                    {"candle": self.candles_processed, "reason": reason, "order": context.order}
+                )
 
     def summary(self) -> dict:
         """Get summary statistics."""
@@ -47,6 +65,9 @@ class SessionStats:
             "candles_processed": self.candles_processed,
             "signals_detected": self.signals_detected,
             "orders_executed": self.orders_executed,
+            "orders_rejected": self.orders_rejected,
+            "orders_error": self.orders_error,
+            "rejection_reasons": self.rejection_reasons,
             "wins": self.wins,
             "losses": self.losses,
             "total_pnl": self.total_pnl,

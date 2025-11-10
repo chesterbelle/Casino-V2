@@ -46,6 +46,7 @@ Architecture:
 """
 
 from .binance import BinanceConnector
+from .bybit import BybitConnector
 from .connector_base import BaseConnector
 from .hyperliquid import HyperliquidConnector
 from .kraken import KrakenConnector
@@ -55,6 +56,7 @@ __all__ = [
     "BaseConnector",
     "KrakenConnector",
     "BinanceConnector",
+    "BybitConnector",
     "HyperliquidConnector",
     "ResilientConnector",
 ]

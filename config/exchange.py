@@ -14,10 +14,12 @@ from typing import Literal
 # =====================================================
 
 _EXCHANGE_ENV_VAR = "CASINO_EXCHANGE"
-_ALLOWED_EXCHANGES = {"KRAKEN", "BINANCE", "HYPERLIQUID"}
+_ALLOWED_EXCHANGES = {"KRAKEN", "BINANCE", "BYBIT", "HYPERLIQUID"}
 
 
-def _get_exchange(default: Literal["KRAKEN", "BINANCE", "HYPERLIQUID"]) -> Literal["KRAKEN", "BINANCE", "HYPERLIQUID"]:
+def _get_exchange(
+    default: Literal["KRAKEN", "BINANCE", "BYBIT", "HYPERLIQUID"],
+) -> Literal["KRAKEN", "BINANCE", "BYBIT", "HYPERLIQUID"]:
     value = os.getenv(_EXCHANGE_ENV_VAR)
     if value:
         normalized = value.strip().upper()
@@ -31,8 +33,9 @@ def _get_exchange(default: Literal["KRAKEN", "BINANCE", "HYPERLIQUID"]) -> Liter
 # Opciones actuales:
 #  - "KRAKEN"     → Kraken Futures (demo en testing, real en live)
 #  - "BINANCE"    → Binance Futures
+#  - "BYBIT"      → Bybit (testnet en testing, real en live)
 #  - "HYPERLIQUID"→ Hyperliquid
-EXCHANGE: Literal["KRAKEN", "BINANCE", "HYPERLIQUID"] = _get_exchange("KRAKEN")
+EXCHANGE: Literal["KRAKEN", "BINANCE", "BYBIT", "HYPERLIQUID"] = _get_exchange("BYBIT")
 
 # Perfil del exchange (usa el JSON de tables/data/exchange_profiles)
 EXCHANGE_PROFILE = "kraken_futures_demo"
@@ -79,6 +82,19 @@ HYPERLIQUID_POLL_INTERVAL = 1.0
 HYPERLIQUID_API_KEY = None
 HYPERLIQUID_API_SECRET = None
 HYPERLIQUID_VAULT_ADDRESS = None  # Para vault trading
+
+
+# =====================================================
+# BYBIT — PARÁMETROS TESTNET/LIVE
+# =====================================================
+
+BYBIT_BASE_URL_TESTNET = "https://api-testnet.bybit.com"
+BYBIT_BASE_URL_LIVE = "https://api.bybit.com"
+BYBIT_DEFAULT_SYMBOL = "BTC/USDT:USDT"
+BYBIT_DEFAULT_INTERVAL = "1m"
+BYBIT_POLL_INTERVAL = 2.0
+BYBIT_API_KEY = None
+BYBIT_API_SECRET = None
 
 
 # =====================================================

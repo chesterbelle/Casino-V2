@@ -120,7 +120,8 @@ class BuildOrderStage(Stage):
             logger.debug("⏭️ Size is 0, skipping order")
             return context
 
-        current_price = context.candle.close
+        # Current price is available in context.candle.close if needed
+        # current_price = context.candle.close
 
         # Calculate notional amount (margin to use)
         notional_amount = context.equity * size_fraction
@@ -130,33 +131,26 @@ class BuildOrderStage(Stage):
         position_size_usd = notional_amount * leverage
 
         # Calculate base amount (in base currency)
-        base_amount = position_size_usd / current_price
+        # Not used in this context, removed to fix flake8 F841
+        # base_amount = position_size_usd / current_price
 
-        # Normalize side (Gemini uses LONG/SHORT, exchanges use buy/sell)
-        side = order["side"].lower()
-        if side == "long":
-            side = "buy"
-        elif side == "short":
-            side = "sell"
-
-        # Build executable order
+        # Build executable order (using Croupier's internal format)
+        # Note: Croupier expects LONG/SHORT (not buy/sell)
+        # Croupier will calculate 'amount' from 'size' using real exchange price
         executable_order = {
             "symbol": order["symbol"],
-            "side": side,  # "buy" or "sell"
-            "amount": base_amount,
-            "type": "market",
+            "side": order["side"],  # Keep LONG/SHORT (Croupier's format)
+            "size": size_fraction,  # Croupier expects "size" (fraction of equity)
             "take_profit": order["take_profit"],
             "stop_loss": order["stop_loss"],
             "trade_id": verdict.get("trade_id"),
-            "params": {
-                "leverage": leverage,
-            },
+            "leverage": leverage,
         }
 
         logger.info(
             f"📝 Order built | "
             f"{executable_order['side'].upper()} "
-            f"{executable_order['amount']:.4f} @ {current_price:.2f} | "
+            f"size={executable_order['size']:.4f} ({executable_order['size']*100:.2f}% equity) | "
             f"Margin: ${notional_amount:.2f} | "
             f"Position: ${position_size_usd:.2f} ({leverage}x)"
         )

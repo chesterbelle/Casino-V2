@@ -1,0 +1,19 @@
+{
+  "mode": "backtest",
+  "player": "paroli_player",
+  "timestamp": "2025-11-10T13:17:30.905965",
+  "symbol": "BTC/USDC:USDC",
+  "timeframe": "1m",
+  "initial_balance": 100000.0,
+  "final_balance": 103067.41443101324,
+  "final_equity": 99997.65499999782,
+  "total_pnl": 3200.407317015402,
+  "total_trades": 938,
+  "wins": 937,
+  "losses": 1,
+  "win_rate": 0.9989339019189766,
+  "open_positions": 0,
+  "orders_rejected": 0,
+  "orders_error": 0,
+  "rejection_reasons": []
+}
