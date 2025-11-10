@@ -293,10 +293,12 @@ class TestingDataSource(DataSource):
                 balance = self.get_balance()
                 equity = self.get_equity()
 
-            # Try to get closed trades from exchange
+            # Get closed trades count from position tracker
+            # NOTE: Do NOT use fetch_my_trades() as it returns ALL historical trades
+            # from the exchange, not just from this session
             try:
-                trades = await self.adapter.connector.fetch_my_trades(self.symbol, limit=1000)
-                closed_trades = len(trades) if trades else 0
+                tracker_stats = self.adapter.position_tracker.get_stats()
+                closed_trades = tracker_stats.get("total_closed", 0)
             except Exception:
                 closed_trades = 0
 
