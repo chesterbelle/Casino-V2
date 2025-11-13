@@ -18,6 +18,8 @@ from config import exchange as exchange_config
 from config import system
 from core.data_sources import BacktestDataSource, LiveDataSource, TestingDataSource
 from core.trading import TradingSession
+from croupier.croupier import Croupier
+from exchanges.adapters.ccxt_adapter import CCXTAdapter
 from exchanges.connectors import BybitConnector, KrakenConnector, ResilientConnector
 from players import kelly_player, paroli_player
 
@@ -365,8 +367,25 @@ async def run_demo(player_module, symbol, interval, max_candles, exchange=None, 
         },
     )
 
-    # Create testing data source
-    source = TestingDataSource(connector, symbol, interval)
+    # --- Nueva Arquitectura: Croupier como Cerebro ---
+    # 1. Obtener balance inicial REAL del exchange
+    logger.info("Obteniendo balance inicial real del exchange...")
+    balance_data = await connector.fetch_balance()
+    # Extraer el balance de la moneda base (ej. USDT)
+    # Esta lógica puede necesitar ajuste según la respuesta del conector
+    initial_balance_real = balance_data.get("free", {}).get(exchange_config.BASE_CURRENCY, 0.0)
+    if initial_balance_real == 0.0:
+        raise RuntimeError(f"No se pudo obtener un balance inicial válido para {exchange_config.BASE_CURRENCY}")
+    logger.info(f"Balance inicial real obtenido: ${initial_balance_real:,.2f}")
+
+    # 2. Crear el Adapter (sin estado)
+    adapter = CCXTAdapter(connector, symbol, interval)
+
+    # 3. Crear el Croupier (con estado)
+    croupier = Croupier(exchange_adapter=adapter, initial_balance=initial_balance_real)
+
+    # 4. Crear el DataSource (que usa el Croupier para ejecutar órdenes)
+    source = TestingDataSource(croupier, symbol, interval)
 
     # Create session
     session = TradingSession(source, player_module, max_candles)

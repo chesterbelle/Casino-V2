@@ -100,16 +100,11 @@ Usage:
 
 from __future__ import annotations
 
-import asyncio
 import logging
-from typing import Any, Dict, Optional
+from typing import Dict, Optional
 
-from core.portfolio.balance_manager import BalanceManager
-from core.portfolio.position_tracker import PositionTracker
 from exchanges.connectors.connector_base import BaseConnector
-from exchanges.resilience.balance_cache import BalanceCache
 
-from .exchange_state_sync import ExchangeStateSync
 from .table_base import BaseTable
 
 
@@ -138,52 +133,31 @@ class CCXTAdapter(BaseTable):
         connector: BaseConnector,
         symbol: str,
         timeframe: str = "1m",
-        starting_balance: float = 10000.0,
     ):
         """
-        Initialize CCXTAdapter with a connector.
+        Inicializa el CCXTAdapter sin estado.
 
         Args:
-            connector: Exchange connector (e.g., KrakenConnector, BinanceConnector)
-                      This is the driver that handles exchange-specific communication.
-            symbol: Trading pair symbol (e.g., "BTC/USD")
-            timeframe: Candle timeframe (e.g., "1m", "5m", "1h")
-            starting_balance: Initial balance for simulation (only used if real balance fails)
+            connector: Conector específico del exchange (p. ej., BinanceConnector).
+            symbol: Símbolo de trading por defecto.
+            timeframe: Timeframe de las velas por defecto.
         """
         super().__init__()
         self.logger = logging.getLogger("CCXTAdapter")
 
-        # Connector (dependency injection)
+        # El conector es la única dependencia.
         self.connector = connector
 
-        # Configuration
+        # Configuración básica de operación
         self.symbol = symbol
         self.timeframe = timeframe
-        self.base_currency = getattr(connector, "base_currency", "USD")
 
-        # Components (business logic)
-        self.balance_manager = BalanceManager(starting_balance=starting_balance)
-        # Usar modo 'confirmed' para cerrar posiciones cuando se detecta cierre en exchange
-        self.position_tracker = PositionTracker(mode="confirmed")
-
-        # NUEVO: Sincronizador de estado real
-        self.state_sync = ExchangeStateSync(connector)
-
-        # NUEVO: Balance cache con fallback (CRÍTICO)
-        self.balance_cache = BalanceCache(
-            cache_ttl=30.0,  # Cache válido por 30 segundos
-            max_age=300.0,  # Máximo 5 minutos de staleness
-            currency=self.base_currency,
-        )
-
-        # State
+        # Estado de conexión
         self._connected = False
         self._last_candle: Optional[Dict] = None
-        self._last_balance_snapshot: Optional[Dict[str, Any]] = None
-        self._last_sync_time = 0
         self.exchange = None
 
-        self.logger.info(f"CCXTAdapter initialized | Symbol: {self.symbol} | Timeframe: {self.timeframe}")
+        self.logger.info(f"Stateless CCXTAdapter initialized | Symbol: {self.symbol} | Timeframe: {self.timeframe}")
 
     # =========================================================
     # 🔌 CONNECTION MANAGEMENT
@@ -191,66 +165,23 @@ class CCXTAdapter(BaseTable):
 
     async def connect(self) -> None:
         """
-        Connect to the exchange via the connector.
-
-        This method:
-            1. Connects the connector to the exchange
-            2. Waits for connector to be ready
-            3. Fetches initial balance
-            4. Validates connection
-
-        Raises:
-            ConnectionError: If connection fails
-            RuntimeError: If balance cannot be fetched (CRITICAL SECURITY RULE)
+        Conecta al exchange a través del conector.
+        Falla rápido si la conexión no se puede establecer.
         """
         try:
-            self.logger.info("🔌 Conectando a exchange...")
-
-            # Connect via connector
+            self.logger.info(f"🔌 Conectando a {self.connector.exchange_name}...")
             await self.connector.connect()
             self.exchange = getattr(self.connector, "exchange", None)
 
-            # Wait for connector to be ready (Hummingbot-inspired)
-            max_wait = 10  # seconds
-            waited = 0
-
-            # Check if connector has ready property
-            if hasattr(self.connector, "ready"):
-                while not self.connector.ready and waited < max_wait:
-                    self.logger.info(f"⏳ Esperando que conector esté listo... ({waited}s)")
-                    await asyncio.sleep(1)
-                    waited += 1
-
-                if not self.connector.ready:
-                    raise RuntimeError(
-                        f"Connector not ready after {max_wait}s. " f"Status: {self.connector.status_dict}"
-                    )
-
-                self.logger.info(f"✅ Connector ready | Status: {self.connector.status_dict}")
-            else:
-                # Fallback: assume connector is ready if it doesn't have ready property
-                self.logger.warning("⚠️ Connector doesn't have 'ready' property, assuming ready")
-                self.logger.info(f"✅ Connector assumed ready | Type: {type(self.connector).__name__}")
-
-            # Fetch initial balance (CRITICAL: fail-fast if this fails)
-            try:
-                balance_data = await self.connector.fetch_balance()
-                self._update_balance(balance_data)
-                self.logger.info("✅ Balance inicial obtenido del exchange")
-            except Exception as e:
-                # CRITICAL SECURITY RULE: Never use default balance in LIVE mode
-                self.logger.error(f"❌ CRÍTICO: No se pudo obtener balance real: {e}")
-                raise RuntimeError(
-                    "CRITICAL: Cannot obtain real balance from exchange. "
-                    "System MUST stop. Never use default/simulated balance in LIVE mode."
-                )
+            # Prueba de conexión simple para asegurar que la API responde
+            await self.connector.fetch_ticker(self.symbol)
 
             self._connected = True
-            self.logger.info(f"✅ Conectado a {self.connector.exchange_name} | Symbol: {self.symbol}")
+            self.logger.info(f"✅ Conectado a {self.connector.exchange_name}")
 
         except Exception as e:
             self.logger.error(f"❌ Error conectando: {e}")
-            raise
+            raise  # Propaga la excepción al Croupier
 
     async def get_current_price(self, symbol: str = None) -> float:
         """
@@ -306,115 +237,27 @@ class CCXTAdapter(BaseTable):
 
     async def next_candle(self) -> Optional[Dict]:
         """
-        Get the next candle from the exchange + sincroniza estado real.
-
-        REFACTORIZADO v1.9.1: Ahora retorna vela enriquecida con estado real del exchange:
-        - equity: balance + unrealized_pnl (REAL)
-        - balance: balance libre (REAL)
-        - unrealized_pnl: PnL no realizado (REAL)
-        - open_positions: número de posiciones abiertas
-        - positions: lista de posiciones reales
-        - recent_fills: fills confirmados desde última sync
-        - state_source: "exchange_confirmed" (FLAG IMPORTANTE)
-
-        Returns:
-            Vela enriquecida con estado real o None si no hay datos
-
-        Raises:
-            RuntimeError: If not connected
+        Obtiene la siguiente vela del exchange. No gestiona estado.
+        Falla rápido si el conector no devuelve datos.
         """
         if not self._connected:
             raise RuntimeError("Not connected. Call connect() first.")
 
-        try:
-            # 1. Obtener vela (como antes)
-            candles = await self.connector.fetch_ohlcv(self.symbol, self.timeframe, limit=1)
+        candles = await self.connector.fetch_ohlcv(self.symbol, self.timeframe, limit=1)
+        if not candles:
+            return None
 
-            if not candles:
-                return None
-
-            candle = candles[0]
-
-            # 2. NUEVO: Sincronizar estado real del exchange
-            try:
-                equity_snapshot = await self.state_sync.sync_equity()
-                positions = await self.state_sync.sync_positions()
-                recent_fills = await self.state_sync.sync_fills(since=self._last_sync_time)
-
-                # Log para debugging
-                if recent_fills:
-                    self.logger.info(f"🔍 Detectados {len(recent_fills)} fills desde {self._last_sync_time}")
-
-                # 3. NUEVO: Procesar fills confirmados
-                for fill in recent_fills:
-                    self.logger.debug(
-                        f"📊 Fill confirmado: {fill.symbol} {fill.side} "
-                        f"@ {fill.price:.2f} | Amount: {fill.amount:.4f}"
-                    )
-
-                    # Si es un fill de cierre, confirmar el cierre en el position tracker
-                    if fill.is_close:
-                        # Buscar la posición abierta que corresponde a este fill
-                        for pos in self.position_tracker.open_positions:
-                            # Verificar si el fill corresponde a esta posición
-                            # (mismo símbolo y dirección opuesta al fill)
-                            if pos.symbol == fill.symbol:
-                                # Confirmar el cierre con los datos reales del exchange
-                                result = self.position_tracker.confirm_close(
-                                    trade_id=pos.trade_id,
-                                    exit_price=fill.price,
-                                    exit_reason=fill.reason or "MANUAL",
-                                    pnl=fill.realized_pnl,
-                                    fee=fill.fee,
-                                )
-                                if result:
-                                    self.logger.info(
-                                        f"✅ Posición cerrada confirmada | {pos.trade_id} | "
-                                        f"Exit: {fill.price:.2f} | PnL: ${fill.realized_pnl:.2f}"
-                                    )
-                                break
-
-                # 4. Actualizar balance interno con equity real
-                self.balance_manager.set_balance(equity_snapshot.balance)
-
-                # 5. Retornar vela enriquecida con estado REAL
-                enriched_candle = {
-                    **candle,
-                    # Estado real del exchange
-                    "equity": equity_snapshot.equity,  # ← REAL
-                    "balance": equity_snapshot.balance,  # ← REAL
-                    "unrealized_pnl": equity_snapshot.unrealized_pnl,  # ← REAL
-                    "margin_used": equity_snapshot.margin_used,
-                    "margin_available": equity_snapshot.margin_available,
-                    # Posiciones y fills
-                    "open_positions": len(positions),
-                    "positions": positions,
-                    "recent_fills": recent_fills,
-                    # Metadata
-                    "sync_timestamp": equity_snapshot.timestamp,
-                    "state_source": "exchange_confirmed",  # ← FLAG IMPORTANTE
-                }
-
-                self._last_candle = enriched_candle
-                self._last_sync_time = equity_snapshot.timestamp
-
-                self.logger.debug(
-                    f"✅ Vela enriquecida | Equity: {equity_snapshot.equity:.2f} | "
-                    f"Positions: {len(positions)} | Fills: {len(recent_fills)}"
-                )
-
-                return enriched_candle
-
-            except Exception as sync_error:
-                # Si falla la sincronización, retornar vela básica con warning
-                self.logger.warning(
-                    f"⚠️ Error sincronizando estado: {sync_error}. " f"Retornando vela sin estado enriquecido."
-                )
-                return candle
-
-        except Exception as e:
-            self.logger.error(f"❌ Error fetching candle: {e}")
-            raise
+        raw_candle = candles[0]
+        candle_dict = {
+            "timestamp": raw_candle[0],
+            "open": raw_candle[1],
+            "high": raw_candle[2],
+            "low": raw_candle[3],
+            "close": raw_candle[4],
+            "volume": raw_candle[5],
+        }
+        self._last_candle = candle_dict
+        return candle_dict
 
     # =========================================================
     # 📝 ORDER EXECUTION
@@ -422,64 +265,22 @@ class CCXTAdapter(BaseTable):
 
     async def execute_order(self, order: Dict) -> Dict:
         """
-        Execute an order on the exchange.
-
-        This method:
-            1. Validates the order (balance, limits, etc.)
-            2. Executes via connector
-            3. Updates internal state (balance, positions)
-
-        Args:
-            order: Order dictionary with keys:
-                - symbol: Trading pair
-                - side: 'buy' or 'sell'
-                - amount: Order size
-                - type: 'market' or 'limit' (optional)
-                - price: Limit price (optional)
-
-        Returns:
-            Order result dictionary
-
-        Raises:
-            RuntimeError: If not connected
-            ValueError: If order validation fails
+        Ejecuta una orden en el exchange. No valida balance ni gestiona estado.
+        Simplemente traduce y delega al conector.
         """
         if not self._connected:
             raise RuntimeError("Not connected. Call connect() first.")
 
         try:
-            # 1. Translate Croupier format to CCXT format (if needed)
-            # Croupier uses LONG/SHORT, CCXT uses buy/sell
+            # 1. Traducir formato de Croupier a CCXT si es necesario
             if order.get("side") in ["LONG", "SHORT"]:
-                order = order.copy()  # Don't modify original
+                order = order.copy()
                 order["side"] = "buy" if order["side"] == "LONG" else "sell"
 
-            # 2. Validate order
-            if not self._validate_order(order):
-                return {
-                    "status": "rejected",
-                    "reason": "validation_failed",
-                    "order": order,
-                }
+            # 2. Calcular precios absolutos de TP/SL (lógica de negocio que permanece aquí)
+            tp_price, sl_price = await self._calculate_tpsl_prices(order)
 
-            # 2. Calculate TP/SL prices if configured (business logic stays in adapter)
-            tp_price = None
-            sl_price = None
-
-            if "take_profit" in order and order["take_profit"]:
-                # Get current price for calculation
-                ticker = await self.connector.fetch_ticker(order.get("symbol", self.symbol))
-                current_price = ticker.get("last")
-
-                if current_price:
-                    tp_multiplier = float(order["take_profit"])
-                    sl_multiplier = float(order["stop_loss"])
-
-                    # Calculate absolute prices
-                    tp_price = current_price * tp_multiplier
-                    sl_price = current_price * sl_multiplier
-
-            # 3. Execute via connector (exchange-specific TP/SL implementation)
+            # 3. Delegar ejecución al conector
             result = await self.connector.create_order_with_tpsl(
                 symbol=order.get("symbol", self.symbol),
                 side=order["side"],
@@ -492,376 +293,45 @@ class CCXTAdapter(BaseTable):
             )
 
             if not isinstance(result, dict):
-                self.logger.error(
-                    "❌ El conector devolvió un resultado inválido para la orden: %s",
-                    result,
-                )
-                raise ValueError("Connector returned invalid order result")
+                raise ValueError(f"El conector devolvió un resultado inválido: {result}")
 
-            # 4. Update internal state
-            self._update_after_order(result)
-
-            self.logger.info(f"✅ Orden ejecutada | {result['symbol']} {result['side'].upper()} {result['amount']}")
-
+            self.logger.info(
+                f"✅ Orden delegada al conector | {result.get('symbol')} {result.get('side', '').upper()} {result.get('amount')}"
+            )
             return result
 
         except Exception as e:
-            self.logger.error(f"❌ Error ejecutando orden: {e}")
-            raise
+            self.logger.error(f"❌ Error en la ejecución de la orden: {e}")
+            raise  # Propaga la excepción al Croupier
 
-    def execute_order_sync(self, order: Dict) -> Dict:
+    async def _calculate_tpsl_prices(self, order: Dict) -> tuple[Optional[float], Optional[float]]:
         """
-        Synchronous wrapper for execute_order.
-
-        This method is used by Croupier which operates synchronously.
-        It translates from Croupier format to CCXT format and executes the order.
-
-        Croupier format:
-            - side: "LONG" or "SHORT"
-            - size: fraction of equity (e.g., 0.0025 = 0.25%)
-            - leverage: multiplier (e.g., 10)
-
-        CCXT format:
-            - side: "buy" or "sell"
-            - amount: base currency amount (e.g., 0.001 BTC)
-            - params: {"leverage": 10}
-
-        Args:
-            order: Order dictionary in Croupier format
-
-        Returns:
-            Order result dictionary
+        Calcula los precios absolutos de TP/SL a partir de multiplicadores.
         """
-        import asyncio
-
-        import nest_asyncio
-
-        # Allow nested event loops
-        nest_asyncio.apply()
-
-        # Get or create event loop
-        try:
-            loop = asyncio.get_running_loop()
-            # We're in an async context, create a task and wait for it
-            # Translate and execute in one async call
-            task = loop.create_task(self._translate_and_execute(order))
-            # Use asyncio.wait to get the result synchronously
-            done, pending = loop.run_until_complete(asyncio.wait([task]))
-            return list(done)[0].result()
-        except RuntimeError:
-            # No event loop running, create one
-            return asyncio.run(self._translate_and_execute(order))
-
-    async def _translate_and_execute(self, order: Dict) -> Dict:
-        """
-        Translate Croupier order to CCXT format and execute.
-
-        This is async so we can fetch the current price for amount calculation.
-
-        Args:
-            order: Order in Croupier format
-
-        Returns:
-            Order result
-        """
-        # Translate Croupier format to CCXT format (async to get current price)
-        ccxt_order = await self._translate_croupier_to_ccxt_async(order)
-
-        # Execute the order
-        return await self.execute_order(ccxt_order)
-
-    async def _translate_croupier_to_ccxt_async(self, order: Dict) -> Dict:
-        """
-        Translate order from Croupier format to CCXT format (async version).
-
-        Args:
-            order: Order in Croupier format with:
-                - amount: base currency amount (already calculated by BuildOrderStage)
-                - leverage: multiplier (e.g., 10)
-                - side: "LONG" or "SHORT"
-
-        Returns:
-            Order in CCXT format with:
-                - amount: base currency amount (e.g., 0.3 ETH)
-                - side: "buy" or "sell"
-        """
-        # Translate side: LONG/SHORT → buy/sell
-        side = order["side"].lower()
-        if side == "long":
-            side = "buy"
-        elif side == "short":
-            side = "sell"
-
-        # Use amount directly from order (already calculated)
-        amount = float(order["amount"])
-        leverage = order.get("leverage", 1)
-        symbol = order["symbol"]
-
-        self.logger.info(f"📊 Order translation | " f"Amount: {amount:.4f} | " f"Leverage: {leverage}x")
-
-        # Build CCXT order
-        ccxt_order = {
-            "symbol": symbol,
-            "side": side,
-            "amount": amount,
-            "type": order.get("type", "market"),
-            "take_profit": order.get("take_profit"),
-            "stop_loss": order.get("stop_loss"),
-            "trade_id": order.get("trade_id"),
-            "params": {
-                "leverage": leverage,
-            },
-        }
-
-        return ccxt_order
-
-    # =========================================================
-    # 💰 BALANCE & POSITIONS
-    # =========================================================
-
-    def get_balance(self) -> float:
-        """
-        Get current balance.
-
-        Returns:
-            Current balance in account currency
-        """
-        return self.balance_manager.get_balance()
-
-    async def refresh_balance(self) -> float:
-        """
-        Refresh balance from exchange.
-
-        Returns:
-            Updated balance
-
-        Raises:
-            RuntimeError: If not connected
-        """
-        if not self._connected:
-            raise RuntimeError("Not connected. Call connect() first.")
+        if "take_profit" not in order or not order["take_profit"]:
+            return None, None
 
         try:
-            balance_data = await self.connector.fetch_balance()
-            self._update_balance(balance_data)
-            return self.get_balance()
+            current_price = await self.get_current_price(order.get("symbol", self.symbol))
+            tp_multiplier = float(order["take_profit"])
+            sl_multiplier = float(order["stop_loss"])
+
+            # Lógica corregida para LONG/SHORT
+            if order.get("side") == "buy":  # LONG
+                # Para LONG, TP > entry, SL < entry. Multiplicadores: tp > 1, sl < 1
+                tp_price = current_price * tp_multiplier
+                sl_price = current_price * sl_multiplier
+            else:  # SHORT
+                # Para SHORT, TP < entry, SL > entry. Los multiplicadores deben ser inversos.
+                # Asumimos que la orden llega con multiplicadores para LONG (tp > 1, sl < 1)
+                # por lo que los invertimos aquí.
+                tp_price = current_price * (1.0 / tp_multiplier)  # Invertir para que baje el precio
+                sl_price = current_price * (1.0 / sl_multiplier)  # Invertir para que suba el precio
+
+            return tp_price, sl_price
         except Exception as e:
-            self.logger.error(f"❌ Error refreshing balance: {e}")
+            self.logger.error(f"❌ Error calculando precios TP/SL: {e}")
             raise
-
-    def get_balance_safe(self) -> float:
-        """
-        Obtiene balance con fallback inteligente.
-
-        CRÍTICO: Este método NUNCA falla. Usa cache/fallback si el exchange no responde.
-
-        Estrategia:
-        1. Cache fresco (< 30s)
-        2. Balance calculado (si existe)
-        3. Cache stale (< 5min)
-        4. Último conocido (< 5min)
-        5. Error crítico
-
-        Returns:
-            Balance actual o fallback
-
-        Raises:
-            RuntimeError: Solo si NO hay balance disponible (muy raro)
-        """
-        try:
-            snapshot = self.balance_cache.get_balance_safe()
-
-            # Advertir si está usando fallback
-            if snapshot.is_stale:
-                self.logger.warning(
-                    f"⚠️ Using stale balance | "
-                    f"Source: {snapshot.source.value} | "
-                    f"Age: {snapshot.staleness_seconds:.1f}s"
-                )
-
-            return snapshot.balance
-
-        except RuntimeError as e:
-            # Sin balance disponible - error crítico
-            self.logger.error(f"❌ CRITICAL: No balance available: {e}")
-            raise
-
-    async def get_positions(self) -> list:
-        """
-        Get open positions from exchange.
-
-        Returns:
-            List of position dictionaries
-
-        Raises:
-            RuntimeError: If not connected
-        """
-        if not self._connected:
-            raise RuntimeError("Not connected. Call connect() first.")
-
-        try:
-            positions = await self.connector.fetch_positions()
-            return positions
-        except Exception as e:
-            self.logger.error(f"❌ Error fetching positions: {e}")
-            raise
-
-    async def close_all_positions(self) -> list:
-        """Fuerza el cierre de posiciones abiertas usando el último precio conocido."""
-
-        if not hasattr(self, "position_tracker") or self.position_tracker is None:
-            return []
-
-        current_candle = self._last_candle or {}
-        if not current_candle:
-            # Fallback mínimo con el último balance conocido
-            snapshot = self.balance_manager.get_state() if hasattr(self.balance_manager, "get_state") else {}
-            current_price = snapshot.get("last_price") if isinstance(snapshot, dict) else None
-            current_candle = {
-                "close": current_price or 0.0,
-                "timestamp": snapshot.get("timestamp") if isinstance(snapshot, dict) else None,
-                "symbol": self.symbol,
-                "timeframe": self.timeframe,
-            }
-
-        results = self.position_tracker.force_close_all_positions(current_candle)
-
-        for result in results:
-            self.logger.info(
-                "🔒 FORCE CLOSE (mesa) | %s %s | Exit: %s | P&L: %.6f",
-                result.get("symbol"),
-                result.get("side"),
-                result.get("trigger_price"),
-                float(result.get("pnl", 0.0)),
-            )
-
-        return results
-
-    # =========================================================
-    # 🔐 PRIVATE METHODS
-    # =========================================================
-
-    def _validate_order(self, order: Dict) -> bool:
-        """
-        Validate order before execution.
-
-        Args:
-            order: Order dictionary
-
-        Returns:
-            True if valid, False otherwise
-        """
-        # Basic validation
-        if "side" not in order or "amount" not in order:
-            self.logger.error("❌ Orden inválida: falta 'side' o 'amount'")
-            return False
-
-        # Validate side
-        if order["side"] not in ["buy", "sell"]:
-            self.logger.error(f"❌ Orden inválida: side '{order['side']}' no válido")
-            return False
-
-        # Validate amount
-        if order["amount"] <= 0:
-            self.logger.error(f"❌ Orden inválida: amount {order['amount']} <= 0")
-            return False
-
-        # Validate balance (for buy orders)
-        if order["side"] == "buy":
-            # Estimate cost (for market orders, use last price as estimate)
-            estimated_cost = order["amount"]
-            if order.get("price"):
-                estimated_cost = order["amount"] * order["price"]
-            elif self._last_candle:
-                estimated_cost = order["amount"] * self._last_candle["close"]
-
-            if estimated_cost > self.get_balance():
-                self.logger.error(
-                    f"❌ Orden inválida: balance insuficiente "
-                    f"(necesario: {estimated_cost}, disponible: {self.get_balance()})"
-                )
-                return False
-
-        return True
-
-    def _update_balance(self, balance_data: Dict) -> None:
-        """
-        Update internal balance from exchange data.
-
-        NUEVO: Usa BalanceCache para almacenar y proveer fallback.
-        """
-        try:
-            # Actualizar cache con datos del exchange
-            snapshot = self.balance_cache.update_from_exchange(balance_data)
-
-            # Actualizar balance_manager con valor del cache
-            self.balance_manager.set_balance(snapshot.balance)
-
-            self.logger.info(
-                f"💰 Balance actualizado: {snapshot.balance:.4f} {snapshot.currency} | "
-                f"Source: {snapshot.source.value}"
-            )
-
-            self._last_balance_snapshot = {
-                "balance": snapshot.balance,
-                "currency": snapshot.currency,
-                "source": snapshot.source.value,
-                "timestamp": snapshot.timestamp,
-                "raw": balance_data,
-            }
-
-        except ValueError as e:
-            self.logger.error(f"❌ Error updating balance: {e}")
-            # No actualizar balance_manager si falla la extracción
-
-    def get_balance_sync(self) -> Optional[Dict[str, Any]]:
-        """Return último snapshot de balance sin operaciones async."""
-
-        return self._last_balance_snapshot
-
-    def _update_after_order(self, order_result: Dict) -> None:
-        """
-        Update internal state after order execution.
-
-        Args:
-            order_result: Order result from connector
-        """
-        # Update balance based on order cost
-        if not isinstance(order_result, dict):
-            self.logger.warning("⚠️ No se actualizó balance: resultado de orden inválido (%s)", order_result)
-            return
-
-        if order_result.get("status") == "closed":
-            raw_cost = order_result.get("cost")
-            try:
-                cost = float(raw_cost) if raw_cost is not None else 0.0
-            except (TypeError, ValueError):
-                cost = 0.0
-
-            fee_info = order_result.get("fee") or {}
-            fee = 0.0
-            if isinstance(fee_info, dict):
-                try:
-                    fee = float(fee_info.get("cost") or 0.0)
-                except (TypeError, ValueError):
-                    fee = 0.0
-            else:
-                try:
-                    fee = float(fee_info)
-                except (TypeError, ValueError):
-                    fee = 0.0
-
-            side = (order_result.get("side") or "").lower()
-            if side == "buy":
-                # Deduct cost + fee from balance
-                self.balance_manager.update_balance(-(cost + fee))
-            elif side == "sell":
-                # Add proceeds - fee to balance
-                self.balance_manager.update_balance(cost - fee)
-            else:
-                self.logger.debug("⚠️ Resultado de orden sin side reconocible: %s", order_result)
-
-            self.logger.info("💰 Balance actualizado después de orden | Costo: %.6f | Fee: %.6f", cost, fee)
 
     # =========================================================
     # 📊 PROPERTIES

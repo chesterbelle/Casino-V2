@@ -47,41 +47,35 @@ from __future__ import annotations
 import logging
 from typing import Dict, List, Optional
 
-from core.portfolio import PortfolioManager
+from core.portfolio.balance_manager import BalanceManager
+from core.portfolio.position_tracker import PositionTracker
+from exchanges.adapters.exchange_state_sync import ExchangeStateSync
 
 
 class Croupier:
     """
-    Tablero de control centralizado del Casino.
-
-    El Croupier es el dueño del portfolio y coordina todas las
-    operaciones de trading. Cualquier componente que necesite
-    información del portfolio debe consultarle al Croupier.
+    Cerebro central del sistema de trading. Es el dueño del estado del portfolio
+    y el único responsable de la lógica de negocio y la recuperación de errores.
     """
 
-    def __init__(self, exchange_adapter, initial_balance: float = None):
+    def __init__(self, exchange_adapter, initial_balance: float):
         """
-        Inicializa el Croupier.
+        Inicializa el Croupier como el dueño del estado.
 
         Args:
-            exchange_adapter: Adaptador para comunicación con exchange
-            initial_balance: Balance inicial en USDT (opcional para backward compatibility)
-
-        Note:
-            Si initial_balance no se provee, el Croupier funcionará en modo
-            "pass-through" sin gestionar portfolio (backward compatibility).
+            exchange_adapter: Adaptador para comunicación con el exchange (debe ser sin estado).
+            initial_balance: Balance inicial en USDT. Requerido para inicializar el estado.
         """
         self.logger = logging.getLogger("Croupier")
         self.exchange = exchange_adapter
 
-        # Modo con portfolio management (nuevo)
-        if initial_balance is not None:
-            self.portfolio = PortfolioManager(initial_balance)
-            self.logger.info(f"🎯 Croupier V2 initialized | Balance: ${initial_balance:,.2f}")
-        # Modo pass-through (backward compatibility)
-        else:
-            self.portfolio = None
-            self.logger.info("🎯 Croupier initialized (pass-through mode)")
+        # --- El Croupier ahora es dueño del estado ---
+        self.balance_manager = BalanceManager(starting_balance=initial_balance)
+        self.position_tracker = PositionTracker(mode="hybrid")  # Modo recomendado
+        self.state_sync = ExchangeStateSync(exchange_adapter.connector)
+        # --------------------------------------------
+
+        self.logger.info(f"🎯 Croupier initialized as State Owner | Balance: ${initial_balance:,.2f}")
 
         # Alias para backward compatibility
         self.table = exchange_adapter
@@ -97,12 +91,7 @@ class Croupier:
         Returns:
             Balance en USDT
         """
-        if self.portfolio:
-            return self.portfolio.get_balance()
-        # Backward compatibility: try to get from exchange/table
-        if hasattr(self.exchange, "balance_manager"):
-            return self.exchange.balance_manager.balance
-        return 0.0
+        return self.balance_manager.get_balance()
 
     def get_equity(self) -> float:
         """
@@ -111,9 +100,9 @@ class Croupier:
         Returns:
             Equity total en USDT
         """
-        if self.portfolio:
-            return self.portfolio.get_equity()
-        return self.get_balance()
+        # Equity = balance + PnL no realizado de posiciones abiertas
+        # (Esta lógica se puede refinar después)
+        return self.balance_manager.get_equity()
 
     def get_open_positions(self) -> List[Dict]:
         """
@@ -122,12 +111,7 @@ class Croupier:
         Returns:
             Lista de diccionarios con info de posiciones
         """
-        if self.portfolio:
-            return self.portfolio.get_open_positions()
-        # Backward compatibility
-        if hasattr(self.exchange, "position_tracker"):
-            return self.exchange.position_tracker.get_open_positions()
-        return []
+        return self.position_tracker.open_positions
 
     def get_position(self, trade_id: str) -> Optional[Dict]:
         """
@@ -139,11 +123,9 @@ class Croupier:
         Returns:
             Diccionario con info de la posición o None
         """
-        if self.portfolio:
-            return self.portfolio.get_position(trade_id)
-        # Backward compatibility
-        if hasattr(self.exchange, "position_tracker"):
-            return self.exchange.position_tracker.get_position(trade_id)
+        for pos in self.position_tracker.open_positions:
+            if pos.trade_id == trade_id:
+                return pos.__dict__
         return None
 
     def get_portfolio_state(self) -> Dict:
@@ -153,8 +135,7 @@ class Croupier:
         Returns:
             Diccionario con balance, equity, y posiciones
         """
-        if self.portfolio:
-            return self.portfolio.get_portfolio_state()
+        return self.balance_manager.get_state()
         # Backward compatibility
         return {
             "balance": self.get_balance(),
@@ -201,11 +182,12 @@ class Croupier:
                 "equity": self.get_equity(),
             }
 
-        # 3. Verificar fondos (si no es ghost y tenemos portfolio)
+        # 3. Verificar fondos usando nuestro propio BalanceManager
         is_ghost = order.get("ghost", False)
-        if not is_ghost and self.portfolio:
-            if not self.portfolio.can_open_position(order["size"]):
-                return self._insufficient_funds_result(order)
+        # (La lógica de cálculo de margen requerido se refinará)
+        required_margin = self.get_equity() * order.get("size", 0.0)
+        if not is_ghost and not self.balance_manager.can_open_position(required_margin):
+            return self._insufficient_funds_result(order)
 
         # 3. Delegar ejecución al exchange
         try:
@@ -214,14 +196,16 @@ class Croupier:
             self.logger.error(f"❌ Exchange execution failed: {e}")
             return self._execution_error_result(order, str(e))
 
-        # 4. Actualizar portfolio (si no es ghost y tenemos portfolio)
-        if not is_ghost and self.portfolio:
-            try:
-                self._update_portfolio(order, result)
-            except Exception as e:
-                self.logger.error(f"❌ Portfolio update failed: {e}")
-                # Nota: La orden ya se ejecutó en el exchange,
-                # pero no pudimos actualizar el portfolio local
+        # 4. Actualizar portfolio (si no es ghost)
+        if not is_ghost and result.get("status") in ["open", "opened"]:
+            self.position_tracker.open_position(
+                order=order,
+                entry_price=result.get("price", 0.0),
+                entry_timestamp=result.get("timestamp", ""),
+                available_equity=self.get_equity(),
+                tp_order_id=result.get("tp_order_id"),
+                sl_order_id=result.get("sl_order_id"),
+            )
 
         # 5. Enriquecer resultado con info de portfolio
         result["balance"] = self.get_balance()
@@ -281,29 +265,29 @@ class Croupier:
 
     async def _execute_on_exchange(self, order: dict) -> dict:
         """
-        Delega la ejecución al exchange adapter (async).
-
-        Si la orden tiene 'size' (USD nominal) pero no 'amount',
-        el Croupier calcula el 'amount' usando el precio real del exchange.
-
-        Args:
-            order: Diccionario con la orden
-
-        Returns:
-            Resultado de la ejecución del exchange
+        Orquesta la creación de la posición y sus órdenes TP/SL.
+        Implementa la lógica OCO manual.
         """
-        # Si la orden tiene 'size' pero no 'amount', calcular amount
+        # 1. Calcular 'amount' si no está presente
         if "size" in order and "amount" not in order:
-            self.logger.info(f"🎯 Croupier will calculate amount from size={order['size']}")
+            self.logger.info(f"🎯 Croupier calculará el 'amount' desde size={order['size']}")
             order = await self._calculate_amount_from_size(order)
-        elif "amount" in order:
-            self.logger.info(f"✅ Order already has amount={order['amount']:.6f}, skipping calculation")
 
-        # Usar execute_order (ahora async)
-        if hasattr(self.exchange, "execute_order"):
-            return await self.exchange.execute_order(order)
-        else:
-            raise ValueError("Exchange adapter does not have execute_order method")
+        # 2. Crear la orden principal para abrir la posición
+        main_order_result = await self.exchange.execute_order(order)
+        if main_order_result.get("status") not in ["open", "opened"]:
+            self.logger.error(f"❌ La orden principal falló: {main_order_result}")
+            return main_order_result
+
+        self.logger.info(f"✅ Orden principal ejecutada: {main_order_result.get('id')}")
+
+        # 3. Crear órdenes TP y SL separadas
+        tp_order_id, sl_order_id = await self._create_tpsl_orders(order, main_order_result)
+
+        # 4. Devolver un resultado combinado
+        main_order_result["tp_order_id"] = tp_order_id
+        main_order_result["sl_order_id"] = sl_order_id
+        return main_order_result
 
     async def _calculate_amount_from_size(self, order: dict) -> dict:
         """
@@ -359,39 +343,53 @@ class Croupier:
 
         return order_with_amount
 
-    def _update_portfolio(self, order: dict, result: dict):
-        """
-        Actualiza el portfolio basado en el resultado de ejecución.
+    async def _create_tpsl_orders(
+        self, base_order: dict, main_order_result: dict
+    ) -> tuple[Optional[str], Optional[str]]:
+        """Crea las órdenes de Take Profit y Stop Loss por separado."""
+        tp_order_id, sl_order_id = None, None
+        try:
+            # Calcular precios absolutos de TP/SL
+            _, sl_price = await self.exchange._calculate_tpsl_prices(base_order)
+            tp_price, _ = await self.exchange._calculate_tpsl_prices(base_order)
 
-        Args:
-            order: Orden original
-            result: Resultado de la ejecución
-        """
-        status = result.get("status", "unknown")
+            order_side = base_order["side"]
+            close_side = "sell" if order_side == "LONG" else "buy"
+            amount = float(main_order_result.get("amount", 0.0))
 
-        # Aceptar tanto "open" (CCXT) como "opened" (normalizado)
-        if status in ["open", "opened"]:
-            # Posición abierta
-            self.portfolio.open_position(
-                trade_id=order.get("trade_id", "unknown"),
-                symbol=order["symbol"],
-                side=order["side"],
-                size=order["size"],
-                entry_price=result.get("entry_price", 0.0),
-                take_profit=order["take_profit"],
-                stop_loss=order["stop_loss"],
-                timestamp=order.get("timestamp"),
-            )
+            # Crear orden Take Profit (Limit)
+            if tp_price:
+                tp_order = {
+                    "symbol": base_order["symbol"],
+                    "type": "limit",
+                    "side": close_side,
+                    "amount": amount,
+                    "price": tp_price,
+                    "params": {"reduceOnly": True},
+                }
+                tp_result = await self.exchange.execute_order(tp_order)
+                tp_order_id = tp_result.get("id")
+                self.logger.info(f"✅ Orden TP creada: {tp_order_id} @ {tp_price:.2f}")
 
-        elif status == "closed":
-            # Posición cerrada
-            self.portfolio.close_position(
-                trade_id=order.get("trade_id", "unknown"),
-                exit_price=result.get("exit_price", 0.0),
-                exit_reason=result.get("exit_reason", "unknown"),
-                fee=result.get("fee", 0.0),
-                timestamp=result.get("timestamp"),
-            )
+            # Crear orden Stop Loss (Stop Market)
+            if sl_price:
+                sl_order = {
+                    "symbol": base_order["symbol"],
+                    "type": "stop_market",
+                    "side": close_side,
+                    "amount": amount,
+                    "price": sl_price,  # Stop price
+                    "params": {"reduceOnly": True},
+                }
+                sl_result = await self.exchange.execute_order(sl_order)
+                sl_order_id = sl_result.get("id")
+                self.logger.info(f"✅ Orden SL creada: {sl_order_id} @ {sl_price:.2f}")
+
+        except Exception as e:
+            self.logger.error(f"❌ Falló la creación de órdenes TP/SL: {e}", exc_info=True)
+            # Opcional: intentar cancelar la posición principal si TP/SL fallan
+
+        return tp_order_id, sl_order_id
 
     # ========================================
     # Métodos Privados: Resultados de Error
@@ -473,6 +471,49 @@ class Croupier:
             )
         else:
             self.logger.debug(f"🃏 Exec | {symbol} {side} | status={status} | ghost={is_ghost}")
+
+    async def sync_and_process_fills(self):
+        """
+        Sincroniza con el exchange para obtener nuevos fills (ejecuciones)
+        y procesa la lógica OCO si una orden de TP/SL se ejecutó.
+        """
+        self.logger.debug("🔄 Sincronizando fills para lógica OCO...")
+        try:
+            recent_fills = await self.state_sync.sync_fills()
+            for fill in recent_fills:
+                if not fill.order_id:
+                    continue
+
+                # Buscar si el fill corresponde a una de nuestras posiciones abiertas
+                for position in self.position_tracker.open_positions:
+                    if fill.order_id == position.tp_order_id:
+                        self.logger.info(f"🎯 HIT DE TAKE PROFIT DETECTADO para {position.symbol}")
+                        await self._cancel_sibling_order(position.sl_order_id, "SL")
+                        self.position_tracker.confirm_close(
+                            position.trade_id, fill.price, "TP", fill.realized_pnl, fill.fee
+                        )
+                        break
+
+                    elif fill.order_id == position.sl_order_id:
+                        self.logger.info(f"🛡️ HIT DE STOP LOSS DETECTADO para {position.symbol}")
+                        await self._cancel_sibling_order(position.tp_order_id, "TP")
+                        self.position_tracker.confirm_close(
+                            position.trade_id, fill.price, "SL", fill.realized_pnl, fill.fee
+                        )
+                        break
+        except Exception as e:
+            self.logger.error(f"❌ Error procesando fills para OCO: {e}", exc_info=True)
+
+    async def _cancel_sibling_order(self, order_id: Optional[str], order_type: str):
+        """Cancela la orden OCO hermana."""
+        if not order_id:
+            return
+        try:
+            self.logger.info(f"🗑️ Cancelando orden {order_type} hermana: {order_id}")
+            await self.exchange.connector.cancel_order(order_id)
+        except Exception as e:
+            self.logger.error(f"❌ CRÍTICO: Falló al cancelar la orden {order_type} {order_id}: {e}", exc_info=True)
+            # Aquí se podría añadir una alerta para el operador
 
     async def _has_open_position(self, symbol: str) -> bool:
         """

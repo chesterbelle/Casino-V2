@@ -53,6 +53,8 @@ class OpenPosition:
     sl_level: float
     liquidation_level: Optional[float]
     order: Dict[str, Any]
+    tp_order_id: Optional[str] = None
+    sl_order_id: Optional[str] = None
     bars_held: int = 0
     funding_accrued: float = 0.0
 
@@ -151,7 +153,13 @@ class PositionTracker:
         return None
 
     def open_position(
-        self, order: Dict[str, Any], entry_price: float, entry_timestamp: str, available_equity: float
+        self,
+        order: Dict[str, Any],
+        entry_price: float,
+        entry_timestamp: str,
+        available_equity: float,
+        tp_order_id: Optional[str] = None,
+        sl_order_id: Optional[str] = None,
     ) -> Optional[OpenPosition]:
         """
         Abre una nueva posición y la registra.
@@ -218,6 +226,8 @@ class PositionTracker:
                 sl_level=sl_level,
                 liquidation_level=liquidation_level,
                 order=order.copy(),
+                tp_order_id=tp_order_id,
+                sl_order_id=sl_order_id,
             )
 
             # Registrar posición

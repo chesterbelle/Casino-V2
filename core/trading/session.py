@@ -173,8 +173,11 @@ class TradingSession:
                     logger.info(f"🏁 Max candles reached: {self.max_candles}")
                     break
 
-                # STEP 1: Check for closed positions (TP/SL triggered by exchange)
-                await self._check_and_process_closed_trades()
+                # STEP 1: Sincronizar fills y procesar lógica OCO (si aplica)
+                if hasattr(self.data_source, "croupier") and hasattr(
+                    self.data_source.croupier, "sync_and_process_fills"
+                ):
+                    await self.data_source.croupier.sync_and_process_fills()
 
                 # STEP 2: Prepare player state for this iteration
                 current_equity = self.data_source.get_equity()
@@ -261,53 +264,3 @@ class TradingSession:
         if hasattr(self.player, "prepare_state"):
             return self.player.prepare_state(self.player_state, equity)
         return self.player_state, {}
-
-    async def _check_and_process_closed_trades(self) -> None:
-        """
-        Check for closed positions and update player state.
-
-        This method:
-        1. Fetches recent trades from exchange
-        2. Identifies closed positions (TP/SL triggered)
-        3. Calculates WIN/LOSS based on PnL
-        4. Updates player state (advances Paroli progression)
-        """
-        # Only check for testing/live modes (backtest handles this internally)
-        if not hasattr(self.data_source, "adapter"):
-            return
-
-        try:
-            # Get adapter from data source
-            adapter = self.data_source.adapter
-
-            # Fetch recent trades (last 100 to catch all closes)
-            if not hasattr(adapter.connector, "fetch_my_trades"):
-                return
-
-            recent_trades = await adapter.connector.fetch_my_trades(symbol=adapter.symbol, limit=100)
-
-            if not recent_trades:
-                return
-
-            # Process each trade
-            for trade in recent_trades:
-                trade_id = trade.get("id")
-
-                # Skip if already processed
-                if trade_id in self.processed_trade_ids:
-                    continue
-
-                # Mark as processed
-                self.processed_trade_ids.add(trade_id)
-
-                # NOTE: Trade normalization and close detection is now handled by
-                # the exchange connector and ExchangeStateSync. The ccxt_adapter
-                # automatically calls position_tracker.confirm_close() when it
-                # detects a fill with is_close=True from the connector.
-                #
-                # This method is kept for backward compatibility but may be
-                # deprecated in the future as the new architecture handles
-                # position closes automatically.
-
-        except Exception as e:
-            logger.warning(f"⚠️ Error checking closed trades: {e}")
