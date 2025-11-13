@@ -841,6 +841,10 @@ class BybitConnector(BaseConnector):
             f"SL: {sl_price or 'None'}"
         )
 
+        # Add TP/SL prices to result for backtest compatibility
+        main_order["tp_price"] = tp_price
+        main_order["sl_price"] = sl_price
+
         return main_order
 
     # =========================================================
@@ -1051,6 +1055,56 @@ class BybitConnector(BaseConnector):
         except Exception as e:
             self.logger.error(f"❌ Error fetching my trades: {e}")
             raise
+
+    def normalize_trade(self, raw_trade: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Normalize a Bybit trade to detect position closes.
+
+        Bybit-specific fields:
+            - info.closedPnl: PnL realized from this trade (string)
+            - info.execType: "Trade", "Funding", "AdlTrade", etc.
+            - info.orderType: Order type
+
+        A trade is a close if:
+            - closedPnl != "0" (Bybit returns string "0" for non-closes)
+
+        Args:
+            raw_trade: Raw trade from CCXT
+
+        Returns:
+            Normalized trade with is_close, realized_pnl, close_reason
+        """
+        info = raw_trade.get("info", {})
+
+        # Bybit returns closedPnl as string
+        closed_pnl_str = info.get("closedPnl", "0")
+        realized_pnl = float(closed_pnl_str) if closed_pnl_str else 0.0
+
+        # A trade is a close if closedPnl != 0
+        is_close = realized_pnl != 0.0
+
+        # Try to detect close reason from order type
+        close_reason = None
+        if is_close:
+            order_type = info.get("orderType", "").upper()
+            if "LIMIT" in order_type:
+                close_reason = "TP"
+            elif "MARKET" in order_type:
+                # Could be SL or manual, check stopOrderType
+                stop_order_type = info.get("stopOrderType", "")
+                if stop_order_type:
+                    close_reason = "SL"
+                else:
+                    close_reason = "MANUAL"
+            else:
+                close_reason = "MANUAL"
+
+        return {
+            **raw_trade,
+            "is_close": is_close,
+            "realized_pnl": realized_pnl,
+            "close_reason": close_reason,
+        }
 
     async def fetch_open_orders(self, symbol: Optional[str] = None) -> List[Dict[str, Any]]:
         """

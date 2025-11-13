@@ -146,6 +146,7 @@ TIME_IN_FORCE_GTC = "GTC"  # Good Till Cancel
 TIME_IN_FORCE_IOC = "IOC"  # Immediate or Cancel
 TIME_IN_FORCE_FOK = "FOK"  # Fill or Kill
 TIME_IN_FORCE_GTX = "GTX"  # Good Till Crossing (Post Only)
+TIME_IN_FORCE_GTE_GTC = "GTE_GTC"  # Good Till Executed - GTC (Enables OCO behavior for TP/SL)
 
 # Working type (for stop orders)
 WORKING_TYPE_MARK_PRICE = "MARK_PRICE"

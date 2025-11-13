@@ -5,8 +5,19 @@ __pycache__/
 
 # Archivos de entorno y logs
 .env
-log/
+# Logs
 *.log
+*.txt
+*.json
+
+# Data
+*.csv
+*.json
+
+# Data
+*.csv
+
+# Archivos de entorno y logs
 .idea/
 
 # Testing temporales

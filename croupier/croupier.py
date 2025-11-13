@@ -167,9 +167,9 @@ class Croupier:
     # API Pública: Ejecución de Órdenes
     # ========================================
 
-    def execute_order(self, order: dict) -> dict:
+    async def execute_order(self, order: dict) -> dict:
         """
-        Ejecuta una orden de trading.
+        Ejecuta una orden de trading (async).
 
         Flujo:
         1. Validar orden
@@ -190,7 +190,18 @@ class Croupier:
         # 1. Validar orden
         self._validate_order(order)
 
-        # 2. Verificar fondos (si no es ghost y tenemos portfolio)
+        # 2. NUEVO: Verificar que no hay posición abierta (prevenir múltiples posiciones)
+        if await self._has_open_position(order.get("symbol")):
+            self.logger.warning(f"⚠️ Ya hay posición abierta para {order.get('symbol')}, rechazando orden")
+            return {
+                "status": "rejected",
+                "reason": "Position already open for this symbol",
+                "order": order,
+                "balance": self.get_balance(),
+                "equity": self.get_equity(),
+            }
+
+        # 3. Verificar fondos (si no es ghost y tenemos portfolio)
         is_ghost = order.get("ghost", False)
         if not is_ghost and self.portfolio:
             if not self.portfolio.can_open_position(order["size"]):
@@ -198,7 +209,7 @@ class Croupier:
 
         # 3. Delegar ejecución al exchange
         try:
-            result = self._execute_on_exchange(order)
+            result = await self._execute_on_exchange(order)
         except Exception as e:
             self.logger.error(f"❌ Exchange execution failed: {e}")
             return self._execution_error_result(order, str(e))
@@ -222,9 +233,9 @@ class Croupier:
 
         return result
 
-    def route_order(self, order: dict) -> dict:
+    async def route_order(self, order: dict) -> dict:
         """
-        Alias de execute_order para backward compatibility.
+        Alias de execute_order para backward compatibility (async).
 
         Args:
             order: Diccionario con la orden a ejecutar
@@ -232,7 +243,7 @@ class Croupier:
         Returns:
             Diccionario con el resultado de la ejecución
         """
-        return self.execute_order(order)
+        return await self.execute_order(order)
 
     # ========================================
     # Métodos Privados: Validación
@@ -268,9 +279,9 @@ class Croupier:
     # Métodos Privados: Ejecución
     # ========================================
 
-    def _execute_on_exchange(self, order: dict) -> dict:
+    async def _execute_on_exchange(self, order: dict) -> dict:
         """
-        Delega la ejecución al exchange adapter.
+        Delega la ejecución al exchange adapter (async).
 
         Si la orden tiene 'size' (USD nominal) pero no 'amount',
         el Croupier calcula el 'amount' usando el precio real del exchange.
@@ -284,19 +295,19 @@ class Croupier:
         # Si la orden tiene 'size' pero no 'amount', calcular amount
         if "size" in order and "amount" not in order:
             self.logger.info(f"🎯 Croupier will calculate amount from size={order['size']}")
-            order = self._calculate_amount_from_size(order)
+            order = await self._calculate_amount_from_size(order)
         elif "amount" in order:
             self.logger.info(f"✅ Order already has amount={order['amount']:.6f}, skipping calculation")
 
-        # Usar execute_order_sync si existe (para adapters async)
-        if hasattr(self.exchange, "execute_order_sync"):
-            return self.exchange.execute_order_sync(order)
+        # Usar execute_order (ahora async)
+        if hasattr(self.exchange, "execute_order"):
+            return await self.exchange.execute_order(order)
         else:
-            return self.exchange.execute_order(order)
+            raise ValueError("Exchange adapter does not have execute_order method")
 
-    def _calculate_amount_from_size(self, order: dict) -> dict:
+    async def _calculate_amount_from_size(self, order: dict) -> dict:
         """
-        Calcula el 'amount' en base currency desde 'size' (USD nominal).
+        Calcula el 'amount' en base currency desde 'size' (USD nominal) (async).
 
         Args:
             order: Orden con 'size' (fracción de equity)
@@ -311,18 +322,20 @@ class Croupier:
         # Obtener equity actual
         equity = self.get_equity()
 
-        # Obtener precio actual del exchange
-        if hasattr(self.exchange, "get_current_price"):
-            current_price = self.exchange.get_current_price(symbol)
-        else:
-            # Fallback: intentar obtener del balance_manager si existe
-            if hasattr(self.exchange, "balance_manager"):
-                current_price = getattr(self.exchange.balance_manager, "last_price", None)
-            else:
-                current_price = None
+        # Obtener precio actual - primero verificar si viene en la orden
+        current_price = order.get("price")
 
-        if not current_price:
-            raise ValueError(f"Cannot get current price for {symbol} from exchange")
+        if current_price:
+            self.logger.info(f"💰 Using price from order: {current_price}")
+        else:
+            # Obtener precio del exchange (async)
+            if hasattr(self.exchange, "get_current_price"):
+                current_price = await self.exchange.get_current_price(symbol)
+            else:
+                raise ValueError("Exchange adapter does not have get_current_price method")
+
+            if not current_price:
+                raise ValueError(f"Cannot get current price for {symbol} from exchange")
 
         # Calcular amount
         margin = equity * size_fraction  # USD a arriesgar
@@ -460,3 +473,46 @@ class Croupier:
             )
         else:
             self.logger.debug(f"🃏 Exec | {symbol} {side} | status={status} | ghost={is_ghost}")
+
+    async def _has_open_position(self, symbol: str) -> bool:
+        """
+        Verifica si ya hay una posición abierta para el símbolo.
+
+        Args:
+            symbol: Símbolo a verificar
+
+        Returns:
+            True si hay posición abierta, False en caso contrario
+        """
+        try:
+            # Si estamos en modo simulado (backtest), verificar posiciones internas
+            if hasattr(self.exchange, "connector") and hasattr(self.exchange.connector, "open_positions"):
+                # BacktestDataSource tiene open_positions
+                open_positions = self.exchange.connector.open_positions
+                for pos in open_positions:
+                    if pos.get("symbol") == symbol:
+                        return True
+                return False
+
+            # Si estamos en modo real/demo, verificar con el exchange
+            if hasattr(self.exchange, "connector") and hasattr(self.exchange.connector, "fetch_positions"):
+                positions = await self.exchange.connector.fetch_positions()
+                for position in positions:
+                    # Verificar si el símbolo coincide y hay contratos
+                    pos_symbol = position.get("symbol", "")
+                    contracts = abs(float(position.get("contracts", 0)))
+
+                    # Normalizar símbolos (LTC/USDT:USDT -> LTC/USD:USD)
+                    if pos_symbol.replace("USDT", "USD") == symbol.replace("USDT", "USD"):
+                        if contracts > 0:
+                            self.logger.info(f"📊 Posición encontrada: {pos_symbol} con {contracts} contratos")
+                            return True
+                return False
+
+        except Exception as e:
+            self.logger.error(f"❌ CRITICAL: Error verifying open positions: {e}", exc_info=True)
+            self.logger.warning("🛡️ SAFETY FIRST: Rejecting order to prevent duplicate positions.")
+            # En caso de error, RECHAZAR la orden para evitar riesgo de posiciones duplicadas.
+            return True
+
+        return False

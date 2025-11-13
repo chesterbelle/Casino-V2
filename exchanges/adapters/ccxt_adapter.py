@@ -163,7 +163,8 @@ class CCXTAdapter(BaseTable):
 
         # Components (business logic)
         self.balance_manager = BalanceManager(starting_balance=starting_balance)
-        self.position_tracker = PositionTracker()
+        # Usar modo 'confirmed' para cerrar posiciones cuando se detecta cierre en exchange
+        self.position_tracker = PositionTracker(mode="confirmed")
 
         # NUEVO: Sincronizador de estado real
         self.state_sync = ExchangeStateSync(connector)
@@ -182,7 +183,7 @@ class CCXTAdapter(BaseTable):
         self._last_sync_time = 0
         self.exchange = None
 
-        self.logger.info(f"🪙 CCXTAdapter inicializada | Exchange: {connector.exchange_name} | Symbol: {symbol}")
+        self.logger.info(f"CCXTAdapter initialized | Symbol: {self.symbol} | Timeframe: {self.timeframe}")
 
     # =========================================================
     # 🔌 CONNECTION MANAGEMENT
@@ -212,15 +213,24 @@ class CCXTAdapter(BaseTable):
             # Wait for connector to be ready (Hummingbot-inspired)
             max_wait = 10  # seconds
             waited = 0
-            while not self.connector.ready and waited < max_wait:
-                self.logger.info(f"⏳ Esperando que conector esté listo... ({waited}s)")
-                await asyncio.sleep(1)
-                waited += 1
 
-            if not self.connector.ready:
-                raise RuntimeError(f"Connector not ready after {max_wait}s. " f"Status: {self.connector.status_dict}")
+            # Check if connector has ready property
+            if hasattr(self.connector, "ready"):
+                while not self.connector.ready and waited < max_wait:
+                    self.logger.info(f"⏳ Esperando que conector esté listo... ({waited}s)")
+                    await asyncio.sleep(1)
+                    waited += 1
 
-            self.logger.info(f"✅ Connector ready | Status: {self.connector.status_dict}")
+                if not self.connector.ready:
+                    raise RuntimeError(
+                        f"Connector not ready after {max_wait}s. " f"Status: {self.connector.status_dict}"
+                    )
+
+                self.logger.info(f"✅ Connector ready | Status: {self.connector.status_dict}")
+            else:
+                # Fallback: assume connector is ready if it doesn't have ready property
+                self.logger.warning("⚠️ Connector doesn't have 'ready' property, assuming ready")
+                self.logger.info(f"✅ Connector assumed ready | Type: {type(self.connector).__name__}")
 
             # Fetch initial balance (CRITICAL: fail-fast if this fails)
             try:
@@ -242,9 +252,9 @@ class CCXTAdapter(BaseTable):
             self.logger.error(f"❌ Error conectando: {e}")
             raise
 
-    def get_current_price(self, symbol: str = None) -> float:
+    async def get_current_price(self, symbol: str = None) -> float:
         """
-        Get current market price for a symbol.
+        Get current market price for a symbol (async).
 
         Args:
             symbol: Trading symbol (uses self.symbol if not provided)
@@ -262,27 +272,20 @@ class CCXTAdapter(BaseTable):
         symbol = symbol or self.symbol
         self.logger.info(f"🔍 get_current_price | requested_symbol={symbol} | adapter_symbol={self.symbol}")
 
-        # Try to get from connector synchronously
-        import asyncio
-
-        import nest_asyncio
-
-        nest_asyncio.apply()
-
         try:
-            loop = asyncio.get_running_loop()
-            task = loop.create_task(self.connector.fetch_ticker(symbol))
-            done, pending = loop.run_until_complete(asyncio.wait([task]))
-            ticker = list(done)[0].result()
-        except RuntimeError:
-            # No event loop, create one
-            ticker = asyncio.run(self.connector.fetch_ticker(symbol))
+            # Obtener ticker del exchange (async)
+            ticker = await self.connector.fetch_ticker(symbol)
+            current_price = ticker.get("last")
 
-        price = ticker.get("last")
-        if not price:
-            raise ValueError(f"Could not get current price for {symbol}")
+            if current_price is None:
+                raise ValueError(f"No price data available for {symbol}")
 
-        return float(price)
+            self.logger.info(f"💰 Current price for {symbol}: {current_price}")
+            return float(current_price)
+
+        except Exception as e:
+            self.logger.error(f"❌ Error getting current price for {symbol}: {e}")
+            raise ValueError(f"Cannot get current price for {symbol}: {e}")
 
     async def close(self) -> None:
         """
@@ -338,14 +341,38 @@ class CCXTAdapter(BaseTable):
                 positions = await self.state_sync.sync_positions()
                 recent_fills = await self.state_sync.sync_fills(since=self._last_sync_time)
 
+                # Log para debugging
+                if recent_fills:
+                    self.logger.info(f"🔍 Detectados {len(recent_fills)} fills desde {self._last_sync_time}")
+
                 # 3. NUEVO: Procesar fills confirmados
                 for fill in recent_fills:
-                    # TODO: Implementar lógica para detectar si fill es cierre
-                    # Por ahora, solo loggeamos
                     self.logger.debug(
                         f"📊 Fill confirmado: {fill.symbol} {fill.side} "
                         f"@ {fill.price:.2f} | Amount: {fill.amount:.4f}"
                     )
+
+                    # Si es un fill de cierre, confirmar el cierre en el position tracker
+                    if fill.is_close:
+                        # Buscar la posición abierta que corresponde a este fill
+                        for pos in self.position_tracker.open_positions:
+                            # Verificar si el fill corresponde a esta posición
+                            # (mismo símbolo y dirección opuesta al fill)
+                            if pos.symbol == fill.symbol:
+                                # Confirmar el cierre con los datos reales del exchange
+                                result = self.position_tracker.confirm_close(
+                                    trade_id=pos.trade_id,
+                                    exit_price=fill.price,
+                                    exit_reason=fill.reason or "MANUAL",
+                                    pnl=fill.realized_pnl,
+                                    fee=fill.fee,
+                                )
+                                if result:
+                                    self.logger.info(
+                                        f"✅ Posición cerrada confirmada | {pos.trade_id} | "
+                                        f"Exit: {fill.price:.2f} | PnL: ${fill.realized_pnl:.2f}"
+                                    )
+                                break
 
                 # 4. Actualizar balance interno con equity real
                 self.balance_manager.set_balance(equity_snapshot.balance)
@@ -421,7 +448,13 @@ class CCXTAdapter(BaseTable):
             raise RuntimeError("Not connected. Call connect() first.")
 
         try:
-            # 1. Validate order
+            # 1. Translate Croupier format to CCXT format (if needed)
+            # Croupier uses LONG/SHORT, CCXT uses buy/sell
+            if order.get("side") in ["LONG", "SHORT"]:
+                order = order.copy()  # Don't modify original
+                order["side"] = "buy" if order["side"] == "LONG" else "sell"
+
+            # 2. Validate order
             if not self._validate_order(order):
                 return {
                     "status": "rejected",

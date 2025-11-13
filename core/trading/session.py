@@ -300,49 +300,14 @@ class TradingSession:
                 # Mark as processed
                 self.processed_trade_ids.add(trade_id)
 
-                # Only process closing trades (reduceOnly or position closes)
-                # In Kraken Futures, TP/SL orders have reduceOnly=True
-                info = trade.get("info", {})
-                if not info.get("reduceOnly"):
-                    # This is an opening trade, skip
-                    continue
-
-                # Calculate PnL from trade
-                # Note: Kraken returns realized PnL in the trade
-                pnl = float(trade.get("info", {}).get("realizedPnl", 0))
-
-                # If no PnL in trade, try to calculate from price difference
-                if pnl == 0:
-                    # This might be a manual close or we need to fetch position history
-                    # For now, skip trades without PnL
-                    continue
-
-                # Determine WIN/LOSS based on PnL
-                outcome = "WIN" if pnl > 0 else "LOSS"
-
-                # Update player state
-                if hasattr(self.player, "handle_trade_outcome"):
-                    previous_state = dict(self.player_state)
-                    self.player_state = self.player.handle_trade_outcome(
-                        self.player_state,
-                        "BET",
-                        {"result": outcome, "pnl": pnl, "trade": trade},
-                    )
-
-                    logger.info(
-                        f"🎯 Trade closed | "
-                        f"Outcome: {outcome} | "
-                        f"PnL: ${pnl:+.2f} | "
-                        f"Player state: {previous_state.get('step', 0)} → {self.player_state.get('step', 0)}"
-                    )
-
-                    # Update session stats
-                    if outcome == "WIN":
-                        self.stats.wins += 1
-                        self.stats.total_pnl += pnl
-                    else:
-                        self.stats.losses += 1
-                        self.stats.total_pnl += pnl
+                # NOTE: Trade normalization and close detection is now handled by
+                # the exchange connector and ExchangeStateSync. The ccxt_adapter
+                # automatically calls position_tracker.confirm_close() when it
+                # detects a fill with is_close=True from the connector.
+                #
+                # This method is kept for backward compatibility but may be
+                # deprecated in the future as the new architecture handles
+                # position closes automatically.
 
         except Exception as e:
             logger.warning(f"⚠️ Error checking closed trades: {e}")

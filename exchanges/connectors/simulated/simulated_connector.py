@@ -30,6 +30,7 @@ class SimulatedConnector(BaseConnector):
         data_source,
         fee_rate: float = 0.0006,  # 0.06% (Kraken taker)
         slippage_rate: float = 0.0001,  # 0.01%
+        spread_rate: float = 0.0001,  # 0.01% spread bid/ask
         min_amount: float = 0.001,  # Mínimo BTC (similar a Bybit)
         amount_precision: int = 3,  # Decimales para BTC
     ):
@@ -40,6 +41,7 @@ class SimulatedConnector(BaseConnector):
             data_source: BacktestDataSource instance (para acceder a datos)
             fee_rate: Trading fee rate (0.0006 = 0.06%)
             slippage_rate: Simulated slippage (0.0001 = 0.01%)
+            spread_rate: Bid/ask spread (0.0001 = 0.01%)
             min_amount: Minimum order amount (similar a límites reales)
             amount_precision: Decimales para redondeo de amount
         """
@@ -49,6 +51,7 @@ class SimulatedConnector(BaseConnector):
         self.data_source = data_source
         self.fee_rate = fee_rate
         self.slippage_rate = slippage_rate
+        self.spread_rate = spread_rate
         self.min_amount = min_amount
         self.amount_precision = amount_precision
 
@@ -141,17 +144,25 @@ class SimulatedConnector(BaseConnector):
         current_price = self._get_current_price()
         entry_price = price if order_type == "limit" and price else current_price
 
-        # 3. Apply slippage (peor precio)
+        # 3. Apply spread (bid/ask difference)
+        if side.lower() == "buy":
+            # Buy at ask price (higher)
+            entry_price = entry_price * (1 + self.spread_rate)
+        else:
+            # Sell at bid price (lower)
+            entry_price = entry_price * (1 - self.spread_rate)
+
+        # 4. Apply slippage (peor precio adicional)
         if side.lower() == "buy":
             entry_price = entry_price * (1 + self.slippage_rate)
         else:
             entry_price = entry_price * (1 - self.slippage_rate)
 
-        # 4. Calculate fee
+        # 5. Calculate fee
         notional = amount_rounded * entry_price
         fee_cost = notional * self.fee_rate
 
-        # 5. Generate order ID
+        # 6. Generate order ID
         timestamp = self.data_source._get_current_timestamp()
         order_id = f"sim_{timestamp}_{side}_{amount_rounded}"
 
@@ -159,7 +170,7 @@ class SimulatedConnector(BaseConnector):
             f"📝 Order simulated | " f"{side.upper()} {amount_rounded} @ {entry_price:.2f} | " f"Fee: {fee_cost:.4f}"
         )
 
-        # 6. Return result (formato compatible con CCXT)
+        # 7. Return result (formato compatible con CCXT)
         return {
             "id": order_id,
             "symbol": symbol,

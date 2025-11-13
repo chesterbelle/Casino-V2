@@ -31,9 +31,10 @@ from typing import Any, Dict
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from core import config
 from tables.ccxt_adapter import CCXTAdapter
 from tables.connectors.kraken.kraken_connector import KrakenConnector
+
+from core import config
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")

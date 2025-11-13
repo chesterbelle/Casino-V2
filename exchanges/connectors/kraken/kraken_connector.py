@@ -478,6 +478,49 @@ class KrakenConnector(BaseConnector):
             self.logger.error(f"❌ Error fetching my trades: {e}")
             raise
 
+    def normalize_trade(self, raw_trade: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Normalize a Kraken trade to detect position closes.
+
+        Kraken-specific fields:
+            - info.reduceOnly: True if this trade closes a position
+            - info.realizedPnl: PnL realized from this trade
+
+        A trade is a close if:
+            - reduceOnly == True
+
+        Args:
+            raw_trade: Raw trade from CCXT
+
+        Returns:
+            Normalized trade with is_close, realized_pnl, close_reason
+        """
+        info = raw_trade.get("info", {})
+
+        # Kraken uses reduceOnly to indicate position closes
+        is_close = info.get("reduceOnly", False)
+
+        # Kraken provides realizedPnl for closes
+        realized_pnl = float(info.get("realizedPnl", 0))
+
+        # Try to detect close reason from order type
+        close_reason = None
+        if is_close:
+            order_type = info.get("orderType", "").lower()
+            if "take_profit" in order_type or "limit" in order_type:
+                close_reason = "TP"
+            elif "stop" in order_type:
+                close_reason = "SL"
+            else:
+                close_reason = "MANUAL"
+
+        return {
+            **raw_trade,
+            "is_close": is_close,
+            "realized_pnl": realized_pnl,
+            "close_reason": close_reason,
+        }
+
     # =========================================================
     # 📝 ORDER EXECUTION
     # =========================================================
@@ -693,6 +736,10 @@ class KrakenConnector(BaseConnector):
                 tp_order_id=tp_order["id"] if tp_order else None,
                 sl_order_id=sl_order["id"] if sl_order else None,
             )
+
+        # Add TP/SL prices to result for backtest compatibility
+        main_order["tp_price"] = tp_price
+        main_order["sl_price"] = sl_price
 
         return main_order
 

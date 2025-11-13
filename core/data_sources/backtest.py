@@ -42,8 +42,10 @@ class BacktestDataSource(DataSource):
         self,
         data: pd.DataFrame,
         initial_balance: float = 10000.0,
-        fee_rate: float = 0.0006,  # 0.06% (Kraken taker)
+        fee_rate: float = 0.0004,  # 0.04% (Binance taker)
         slippage_rate: float = 0.0001,  # 0.01%
+        spread_rate: float = 0.0001,  # 0.01% spread bid/ask
+        funding_rate: float = 0.0001,  # 0.01% funding fee per 8h
     ):
         """
         Initialize backtest data source.
@@ -51,8 +53,10 @@ class BacktestDataSource(DataSource):
         Args:
             data: DataFrame with columns [timestamp, open, high, low, close, volume]
             initial_balance: Starting balance for simulation
-            fee_rate: Trading fee rate (0.0006 = 0.06%)
+            fee_rate: Trading fee rate (0.0004 = 0.04%)
             slippage_rate: Simulated slippage (0.0001 = 0.01%)
+            spread_rate: Bid/ask spread (0.0001 = 0.01%)
+            funding_rate: Funding fee rate per 8h (0.0001 = 0.01%)
         """
         self.data = data.reset_index(drop=True)
         self.index = 0
@@ -60,6 +64,8 @@ class BacktestDataSource(DataSource):
         self.balance = initial_balance
         self.fee_rate = fee_rate
         self.slippage_rate = slippage_rate
+        self.spread_rate = spread_rate
+        self.funding_rate = funding_rate
 
         # Position tracking (usado por SimulatedConnector)
         self.open_positions: List[Dict] = []
@@ -74,6 +80,7 @@ class BacktestDataSource(DataSource):
             data_source=self,
             fee_rate=fee_rate,
             slippage_rate=slippage_rate,
+            spread_rate=spread_rate,
         )
 
         self.adapter = SimulatedAdapter(
@@ -305,6 +312,9 @@ class BacktestDataSource(DataSource):
         # Check TP/SL of open positions with this candle
         self._check_positions_tpsl(row)
 
+        # Apply funding fees for open positions (every 8 hours)
+        self._apply_funding_fees(row)
+
         # Calculate equity (balance + unrealized PnL)
         unrealized_pnl = self._calculate_unrealized_pnl(row["close"])
         equity = self.balance + unrealized_pnl
@@ -337,9 +347,9 @@ class BacktestDataSource(DataSource):
             raise RuntimeError("Not connected. Call connect() first.")
 
         try:
-            # Execute through Croupier (synchronous call)
+            # Execute through Croupier (async call)
             # Croupier will validate, execute via adapter, and update portfolio
-            result = self.croupier.execute_order(order)
+            result = await self.croupier.execute_order(order)
 
             # Check if result is valid
             if result is None:
@@ -387,6 +397,43 @@ class BacktestDataSource(DataSource):
                 "reason": str(e),
                 "order": order,
             }
+
+    def _apply_funding_fees(self, candle_row) -> None:
+        """
+        Apply funding fees to open positions (every 8 hours).
+
+        Binance charges funding fees at 00:00, 08:00, 16:00 UTC.
+        For simplicity, we charge proportionally based on time in position.
+        """
+        if not self.open_positions:
+            return
+
+        timestamp = int(candle_row["timestamp"])
+
+        for pos in self.open_positions:
+            # Calculate time in position (in ms)
+
+            # Check if we crossed an 8-hour boundary
+            if not hasattr(pos, "_last_funding_check"):
+                pos["_last_funding_check"] = pos["timestamp"]
+
+            hours_since_last_check = (timestamp - pos["_last_funding_check"]) / (1000 * 3600)
+
+            # If at least 8 hours passed, charge funding fee
+            if hours_since_last_check >= 8:
+                position_value = pos["amount"] * pos["entry_price"]
+                funding_fee = position_value * self.funding_rate
+
+                self.balance -= funding_fee
+
+                logger.debug(
+                    f"💸 Funding fee charged | "
+                    f"Position: {pos['side']} {pos['amount']:.4f} | "
+                    f"Fee: ${funding_fee:.4f}"
+                )
+
+                # Update last funding check
+                pos["_last_funding_check"] = timestamp
 
     def _check_positions_tpsl(self, candle_row) -> None:
         """
@@ -563,10 +610,19 @@ class BacktestDataSource(DataSource):
         total_pnl = sum(t["pnl"] for t in self.closed_trades)
         total_fees = sum(t["total_fee"] for t in self.closed_trades)
 
+        # Use the last available close to calculate equity so force-closed
+        # positions (handled during disconnect) are reflected correctly.
+        if self.index > 0:
+            last_close = float(self.data.iloc[self.index - 1]["close"])
+        else:
+            last_close = float(self.data.iloc[0]["close"])
+
+        final_equity = self.balance + self._calculate_unrealized_pnl(last_close)
+
         return {
             "initial_balance": self.initial_balance,
             "final_balance": self.balance,
-            "final_equity": self.get_equity(),
+            "final_equity": final_equity,
             "total_pnl": total_pnl,
             "total_fees": total_fees,
             "net_pnl": total_pnl,  # Already net after fees

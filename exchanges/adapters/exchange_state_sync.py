@@ -330,13 +330,19 @@ class ExchangeStateSync:
         )
 
     def _normalize_fill(self, raw_trade: Dict[str, Any]) -> Fill:
-        """Normaliza fill del exchange a formato interno."""
-        # Determinar si es cierre
-        # TODO: Implementar lógica para detectar si es cierre
-        # Por ahora, asumimos que todos los trades son cierres si hay PnL
-        is_close = False
-        realized_pnl = 0.0
-        reason = None
+        """
+        Normaliza fill del exchange a formato interno.
+
+        Usa el método normalize_trade() del conector para detectar cierres
+        de forma agnóstica del exchange.
+        """
+        # Normalizar el trade usando el método del conector (exchange-specific)
+        normalized_trade = self.connector.normalize_trade(raw_trade)
+
+        # Extraer campos normalizados
+        is_close = normalized_trade.get("is_close", False)
+        realized_pnl = normalized_trade.get("realized_pnl", 0.0)
+        reason = normalized_trade.get("close_reason")
 
         # Extraer fee
         fee_data = raw_trade.get("fee", {})

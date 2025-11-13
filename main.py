@@ -27,7 +27,21 @@ logging.basicConfig(
     format="%(asctime)s | %(name)s | %(levelname)s | %(message)s",
 )
 
+# Add file logging for debugging
+log_filename = f"logs/main_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
+Path("logs").mkdir(exist_ok=True)
+file_handler = logging.FileHandler(log_filename)
+file_handler.setLevel(logging.DEBUG)
+file_formatter = logging.Formatter("%(asctime)s | %(name)s | %(levelname)s | %(message)s")
+file_handler.setFormatter(file_formatter)
+
+# Add file handler to root logger
+root_logger = logging.getLogger()
+root_logger.addHandler(file_handler)
+root_logger.setLevel(logging.DEBUG)
+
 logger = logging.getLogger("Casino-V2")
+logger.info(f"📝 Logging to file: {log_filename}")
 
 # Available players
 PLAYERS = {
@@ -44,7 +58,7 @@ def parse_args():
     interval = None
     max_candles = None
     data_file = None
-    initial_balance = 10000.0
+    initial_balance = None  # Must be provided explicitly
     exchange = None
 
     for arg in sys.argv[1:]:
@@ -96,13 +110,13 @@ Options:
 
     --data=FILE              Data file path (for backtest mode)
                                 Default: tables/data/raw/BTCUSDT_1m__30d.csv
-    --initial-balance=AMOUNT Initial balance for BACKTEST ONLY (default: 10000.0)
-                                ⚠️ Demo/Live modes use REAL exchange balance
-                                Use this to match testing balance for validation
+    --initial-balance=AMOUNT Initial balance in USD (REQUIRED for backtest ONLY)
+                                ⚠️ Demo/Live modes: IGNORED (always uses exchange's real balance)
+                                🎯 Backtest mode: MANDATORY (no default to avoid hardcoded values)
 
 Examples:
-    # Backtest with Paroli
-    python main.py --mode=backtest --player=paroli --data=BTC_1h.csv
+    # Backtest with Paroli (initial-balance REQUIRED)
+    python main.py --mode=backtest --player=paroli --data=BTC_1h.csv --initial-balance=10000.0
 
     # Demo with Bybit Demo Trading
     python main.py --mode=demo --player=paroli --symbol=BTC/USDT:USDT --interval=1m
@@ -170,10 +184,21 @@ async def run_backtest(player_module, data_file, max_candles, initial_balance=No
     """
     Run backtest mode.
 
+    Args:
+        player_module: Player strategy module (paroli, kelly, etc.)
+        data_file: Path to CSV/Parquet file with historical data
+        max_candles: Maximum number of candles to process (None = all)
+        initial_balance: Starting balance in USD (REQUIRED - no default)
+
+    Raises:
+        ValueError: If initial_balance is None (must be provided explicitly)
+
     Note:
-        Symbols are automatically normalized (USDT/USDC/BUSD → USD) for
-        Gemini memory compatibility. Timeframe is forced to 1m to match
-        existing Gemini memory trained on 1m data.
+        - Symbols are automatically normalized (USDT/USDC/BUSD → USD) for
+          Gemini memory compatibility
+        - Timeframe is forced to 1m to match existing Gemini memory
+        - initial_balance MUST be provided via --initial-balance parameter
+          to avoid hardcoded defaults and ensure explicit balance control
     """
     logger.info("🎰 Starting BACKTEST mode")
 
@@ -183,12 +208,13 @@ async def run_backtest(player_module, data_file, max_candles, initial_balance=No
 
     logger.info(f"📁 Loading data from: {data_file}")
 
-    # Use provided initial_balance or default
-    if initial_balance is not None:
-        logger.info(f"💰 Using custom initial balance: ${initial_balance:,.2f}")
-    else:
-        initial_balance = 10000.0  # Default
-        logger.info(f"💰 Using default initial balance: ${initial_balance:,.2f}")
+    # Validate that initial_balance is provided for backtest mode
+    if initial_balance is None:
+        logger.error("❌ --initial-balance parameter is required for backtest mode")
+        logger.error("   Example: python main.py --mode=backtest --initial-balance=10000.0 --data=data.csv")
+        raise ValueError("initial_balance parameter is required for backtest mode")
+
+    logger.info(f"💰 Using initial balance: ${initial_balance:,.2f}")
 
     if data_file.endswith(".parquet"):
         source = BacktestDataSource.from_parquet(data_file, initial_balance=initial_balance)
@@ -260,8 +286,28 @@ async def run_backtest(player_module, data_file, max_candles, initial_balance=No
     )
 
 
-async def run_demo(player_module, symbol, interval, max_candles, exchange=None):
-    """Run demo mode (Exchange Demo Trading with real prices)."""
+async def run_demo(player_module, symbol, interval, max_candles, exchange=None, initial_balance=None):
+    """
+    Run demo mode (Exchange Demo Trading with real prices).
+
+    Args:
+        player_module: Player strategy module
+        symbol: Trading symbol (optional, uses exchange defaults)
+        interval: Candle interval (optional, uses exchange defaults)
+        max_candles: Maximum candles to process (None = unlimited)
+        exchange: Exchange name (optional, uses config default)
+        initial_balance: IGNORED - Demo mode ALWAYS uses exchange's real balance
+
+    Note:
+        - Demo mode ALWAYS uses the exchange's real balance (no override allowed)
+        - Uses exchange testnet/demo accounts with real price feeds
+        - The initial_balance parameter is ignored for safety
+    """
+
+    # SAFETY: Demo mode NEVER uses custom initial_balance
+    if initial_balance is not None:
+        logger.warning(f"⚠️ initial_balance={initial_balance} IGNORED in demo mode")
+        logger.warning("   Demo mode ALWAYS uses exchange's real balance for safety")
     # Use exchange from argument or fall back to config
     exchange_name = exchange.upper() if exchange else exchange_config.EXCHANGE
     logger.info(f"🎰 Starting DEMO mode (Exchange: {exchange_name})")
@@ -362,8 +408,27 @@ async def run_demo(player_module, symbol, interval, max_candles, exchange=None):
     )
 
 
-async def run_live(player_module, symbol, interval, max_candles):
-    """Run live mode (REAL MONEY)."""
+async def run_live(player_module, symbol, interval, max_candles, initial_balance=None):
+    """
+    Run live mode (REAL MONEY).
+
+    Args:
+        player_module: Player strategy module
+        symbol: Trading symbol (optional, defaults to BTC/USD)
+        interval: Candle interval (optional, defaults to 5m)
+        max_candles: Maximum candles to process (None = unlimited)
+        initial_balance: IGNORED - Live mode ALWAYS uses exchange's real balance
+
+    Note:
+        - Live mode ALWAYS uses the exchange's real balance (no override allowed)
+        - Uses real exchange accounts with REAL MONEY
+        - The initial_balance parameter is ignored for safety
+    """
+
+    # SAFETY: Live mode NEVER uses custom initial_balance
+    if initial_balance is not None:
+        logger.warning(f"⚠️ initial_balance={initial_balance} IGNORED in live mode")
+        logger.warning("   Live mode ALWAYS uses exchange's real balance for safety")
     logger.warning("⚠️" * 20)
     logger.warning("⚠️ LIVE MODE - REAL MONEY ⚠️")
     logger.warning("⚠️" * 20)
@@ -438,9 +503,9 @@ async def main():
         if mode == "backtest":
             await run_backtest(player_module, data_file, max_candles, initial_balance)
         elif mode == "demo":
-            await run_demo(player_module, symbol, interval, max_candles, exchange)
+            await run_demo(player_module, symbol, interval, max_candles, exchange, initial_balance)
         elif mode == "live":
-            await run_live(player_module, symbol, interval, max_candles)
+            await run_live(player_module, symbol, interval, max_candles, initial_balance)
         else:
             logger.error(f"❌ Unknown mode: {mode}")
             print_help()

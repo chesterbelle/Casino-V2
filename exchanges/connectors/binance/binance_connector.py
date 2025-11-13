@@ -19,6 +19,8 @@ Implementación de TP/SL (Binance-specific):
       * Stop Loss order (STOP_MARKET)
     - Binance NO soporta TP/SL en la misma orden como Bybit
     - Necesita crear 3 órdenes separadas (similar a Kraken)
+    - Comportamiento OCO: Usando timeInForce=GTE_GTC + closePosition=True,
+      cuando una orden (TP o SL) se ejecuta, la otra se cancela automáticamente
 
 🔄 TESTNET vs LIVE:
 ================================================================================
@@ -40,11 +42,13 @@ manualmente las URLs del testnet.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 from typing import Any, Dict, List, Literal, Optional
 
 import ccxt.async_support as ccxt_async
+import ccxt.pro as ccxtpro
 
 from ..connector_base import BaseConnector
 from .binance_constants import (
@@ -52,6 +56,7 @@ from .binance_constants import (
     BINANCE_DEFAULT_CONFIG,
     ORDER_TYPE_STOP_MARKET,
     ORDER_TYPE_TAKE_PROFIT_MARKET,
+    TIME_IN_FORCE_GTE_GTC,
     WORKING_TYPE_CONTRACT_PRICE,
 )
 from .binance_constants import denormalize_symbol as denormalize_binance_symbol
@@ -60,6 +65,87 @@ from .binance_constants import normalize_symbol as normalize_binance_symbol
 # =========================================================
 # 🔧 CUSTOM CCXT CLASS FOR TESTNET
 # =========================================================
+
+
+class BinanceTestnetPro(ccxtpro.binance):
+    """
+    Custom Binance Pro class for testnet WebSocket connections.
+
+    This class extends CCXT Pro to support Binance Futures testnet WebSocket streams.
+    """
+
+    def describe(self):
+        """Override describe() to force testnet URLs for WebSocket endpoints."""
+        testnet_base = "https://testnet.binancefuture.com"
+        testnet_ws_api = "wss://testnet.binancefuture.com/ws-fapi/v1"
+        testnet_ws_stream = "wss://stream.binancefuture.com/ws"
+
+        return self.deep_extend(
+            super().describe(),
+            {
+                "urls": {
+                    "api": {
+                        # Main endpoints - redirect to futures testnet
+                        "public": f"{testnet_base}/fapi/v1",
+                        "private": f"{testnet_base}/fapi/v1",
+                        # Futures endpoints
+                        "fapiPublic": f"{testnet_base}/fapi/v1",
+                        "fapiPrivate": f"{testnet_base}/fapi/v1",
+                        "fapiPublicV2": f"{testnet_base}/fapi/v2",
+                        "fapiPrivateV2": f"{testnet_base}/fapi/v2",
+                        # Delivery endpoints
+                        "dapiPublic": f"{testnet_base}/dapi/v1",
+                        "dapiPrivate": f"{testnet_base}/dapi/v1",
+                        # SAPI endpoints (spot/margin) - redirect to futures testnet
+                        "sapi": f"{testnet_base}/fapi/v1",
+                        "sapiV2": f"{testnet_base}/fapi/v2",
+                        "sapiV3": f"{testnet_base}/fapi/v1",
+                        # WebSocket endpoints
+                        "ws": {
+                            # API WebSocket (for orders, account data)
+                            "fapiPrivate": testnet_ws_api,
+                            # Stream WebSocket (for market data)
+                            "fapiPublic": testnet_ws_stream,
+                            # Other WebSocket streams - redirect to testnet
+                            "spot": testnet_ws_stream,
+                            "margin": testnet_ws_stream,
+                            "future": testnet_ws_stream,
+                            "delivery": testnet_ws_stream,
+                            "ws-api": {
+                                "spot": testnet_ws_api,
+                                "future": testnet_ws_api,
+                                "delivery": testnet_ws_api,
+                            },
+                        },
+                    }
+                }
+            },
+        )
+
+    async def load_markets(self, reload=False, params={}):
+        """Override load_markets to ONLY load futures markets."""
+        markets = self.markets
+        if not markets or reload:
+            # Only fetch futures markets, skip spot/margin
+            response = await self.fapiPublicGetExchangeInfo(params)
+            # Parse the response - use parent's parse_markets
+            markets = self.parse_markets(response["symbols"])
+            # Store in correct format
+            self.markets = self.index_by(markets, "symbol")
+            self.markets_by_id = self.index_by(markets, "id")
+            self.currencies_by_id = {}
+            self.currencies = {}
+        return markets
+
+    async def fetch_currencies(self, params={}):
+        """Override to avoid spot currency calls in futures testnet."""
+        # Return empty currencies for futures testnet
+        return {}
+
+    async def fetch_trading_fees(self, params={}):
+        """Override to avoid margin trading fees calls."""
+        # Return default futures fees
+        return {}
 
 
 class BinanceTestnet(ccxt_async.binance):
@@ -351,6 +437,17 @@ class BinanceTestnet(ccxt_async.binance):
             "info": response,
         }
 
+    async def fapiPrivateV3GetOrder(self, params={}):
+        """
+        Direct API call to get order details from Binance Futures API v3.
+        This method is used as a fallback when CCXT's fetch_order fails.
+        """
+        if "symbol" not in params or "orderId" not in params:
+            raise ValueError("fapiPrivateV3GetOrder requires 'symbol' and 'orderId' parameters")
+
+        # Use the private API endpoint directly
+        return await self.fapiPrivateGetOrder(params)
+
 
 class BinanceConnector(BaseConnector):
     """
@@ -374,7 +471,7 @@ class BinanceConnector(BaseConnector):
         api_key: Optional[str] = None,
         secret: Optional[str] = None,
         mode: Literal["testnet", "live"] = "testnet",
-        enable_websocket: bool = False,
+        enable_websocket: bool = True,
     ):
         """
         Initialize Binance connector.
@@ -383,7 +480,8 @@ class BinanceConnector(BaseConnector):
             api_key: Binance API key (optional, loaded from env if not provided)
             secret: Binance API secret (optional, loaded from env if not provided)
             mode: "testnet" for testnet (recommended), "live" for production
-            enable_websocket: Enable WebSocket (not implemented yet)
+            enable_websocket: Enable WebSocket + OCO manual monitoring
+                            (default: True, auto-enabled in testnet since OCO doesn't work automatically)
         """
         self.logger = logging.getLogger("BinanceConnector")
 
@@ -392,7 +490,15 @@ class BinanceConnector(BaseConnector):
 
         self._mode = mode
         self._testnet = mode == "testnet"
-        self.enable_websocket = enable_websocket
+
+        # Auto-enable WebSocket + OCO manual in testnet (OCO doesn't work automatically)
+        if self._testnet and not enable_websocket:
+            self.logger.info(
+                "🧪 Testnet detected - Auto-enabling WebSocket + OCO manual (OCO doesn't work automatically in testnet)"
+            )
+            self.enable_websocket = True
+        else:
+            self.enable_websocket = enable_websocket
 
         if mode == "live":
             self.logger.warning("=" * 60)
@@ -439,7 +545,39 @@ class BinanceConnector(BaseConnector):
 
         self._connected = False
         self._ready = False
+
+        # Initialize WebSocket (CCXT Pro) if enabled
+        self.ws_exchange = None
+        self._ws_connected = False
+        self._order_monitor_task = None
+        self._active_orders = {}  # Track TP/SL orders for OCO
+        self._oco_lock = asyncio.Lock()  # Prevent concurrent modifications (Hummingbot pattern)
+
+        # HUMMINGBOT CLOCK PATTERN: Central clock coordinates all tasks
+        self._clock_task = None
+        self._clock_running = False
+        self._last_tick = 0
+
+        # CCXT CONCURRENCY PROTECTION: Protect all CCXT calls from concurrent access
+        self._ccxt_lock = asyncio.Lock()  # Protect CCXT internal state
+
+        if self.enable_websocket:
+            self.logger.info("🔌 WebSocket enabled - will initialize on connect()")
+
         self.logger.info(f"✅ Binance connector initialized | Mode: {mode.upper()}")
+
+    # =========================================================
+    # 🔒 CCXT CONCURRENCY PROTECTION
+    # =========================================================
+
+    async def _safe_ccxt_call(self, method_name: str, *args, **kwargs):
+        """
+        Safely execute CCXT method with concurrency protection.
+        Prevents KeyError: 0 and other concurrency issues in CCXT internal state.
+        """
+        async with self._ccxt_lock:
+            method = getattr(self.exchange, method_name)
+            return await method(*args, **kwargs)
 
     # =========================================================
     # 📊 PROPERTIES
@@ -543,6 +681,22 @@ class BinanceConnector(BaseConnector):
 
             self._connected = True
             self._ready = True
+
+            # Start WebSocket monitoring if enabled
+            if self.enable_websocket:
+                # CORRECCIÓN CRÍTICA: Inicializar WebSocket ANTES de crear tasks
+                await self._init_websocket()
+
+                if self._ws_connected:  # Solo crear tasks si WebSocket está conectado
+                    self._ws_task = asyncio.create_task(self._monitor_orders())
+                    self.logger.info("👁️ Order monitoring started")
+                else:
+                    self.logger.warning("⚠️ WebSocket failed to connect, falling back to REST-only")
+
+                # OCO Manual INDEPENDIENTE del WebSocket (usa self._connected)
+                self._oco_task = asyncio.create_task(self._oco_monitor_loop())
+                self.logger.info("🎯 OCO Manual monitoring started (independent task)")
+
             self.logger.info(f"✅ Binance connector ready | Mode: {self._mode.upper()}")
 
         except Exception as e:
@@ -555,6 +709,10 @@ class BinanceConnector(BaseConnector):
     async def close(self) -> None:
         """Close connection to Binance exchange."""
         try:
+            # Close WebSocket connection if active
+            if self.ws_exchange:
+                await self._close_websocket()
+
             await self.exchange.close()
             self._connected = False
             self._ready = False
@@ -676,8 +834,9 @@ class BinanceConnector(BaseConnector):
             limits = market.get("limits", {})
             amount_limits = limits.get("amount", {})
 
-            min_amount = amount_limits.get("min", 0)
-            max_amount = amount_limits.get("max", float("inf"))
+            # Convert to float to handle string values from exchange
+            min_amount = float(amount_limits.get("min", 0)) if amount_limits.get("min") else 0
+            max_amount = float(amount_limits.get("max", float("inf"))) if amount_limits.get("max") else float("inf")
 
             # Get precision (can be decimals or step size)
             precision = market.get("precision", {})
@@ -757,6 +916,10 @@ class BinanceConnector(BaseConnector):
         try:
             # Normalize symbol to Binance format
             binance_symbol = self.normalize_symbol(symbol)
+
+            # Convert amount to float if it's a string (can happen from exchange responses)
+            if isinstance(amount, str):
+                amount = float(amount)
 
             # Validate amount
             if amount is None or amount <= 0:
@@ -887,10 +1050,18 @@ class BinanceConnector(BaseConnector):
             params=params,
         )
 
+        # CRITICAL: Wait for position to be updated on exchange before creating TP/SL
+        # Binance needs time to update position state for GTE_GTC orders
+        # Without this delay, we get error -4129: "GTE can only be used with open positions"
+        import asyncio
+
+        await asyncio.sleep(1)
+
         # Determine closing side (opposite of entry)
         close_side = "sell" if side == "buy" else "buy"
 
         # Create Take Profit order if specified
+        tp_order_id = None
         if tp_price:
             try:
                 # Round TP price to correct precision
@@ -901,20 +1072,23 @@ class BinanceConnector(BaseConnector):
                     "stopPrice": tp_price_rounded,
                     "workingType": WORKING_TYPE_CONTRACT_PRICE,
                     "positionSide": "BOTH",
+                    "timeInForce": TIME_IN_FORCE_GTE_GTC,  # Habilita OCO: cancela SL cuando TP se ejecuta
                 }
-                await self.exchange.create_order(
+                tp_order = await self.exchange.create_order(
                     symbol=binance_symbol,
                     type=ORDER_TYPE_TAKE_PROFIT_MARKET,
                     side=close_side,
                     amount=amount,
                     params=tp_params,
                 )
+                tp_order_id = tp_order.get("id")
                 self.logger.info(f"✅ Take Profit order created at {tp_price_rounded}")
             except Exception as e:
                 self.logger.error(f"❌ Failed to create TP order: {e}")
                 # Don't raise, main order is already created
 
         # Create Stop Loss order if specified
+        sl_order_id = None
         if sl_price:
             try:
                 # Round SL price to correct precision
@@ -925,18 +1099,44 @@ class BinanceConnector(BaseConnector):
                     "stopPrice": sl_price_rounded,
                     "workingType": WORKING_TYPE_CONTRACT_PRICE,
                     "positionSide": "BOTH",
+                    "timeInForce": TIME_IN_FORCE_GTE_GTC,  # Habilita OCO: cancela TP cuando SL se ejecuta
                 }
-                await self.exchange.create_order(
+                sl_order = await self.exchange.create_order(
                     symbol=binance_symbol,
                     type=ORDER_TYPE_STOP_MARKET,
                     side=close_side,
                     amount=amount,
                     params=sl_params,
                 )
+                sl_order_id = sl_order.get("id")
                 self.logger.info(f"✅ Stop Loss order created at {sl_price_rounded}")
             except Exception as e:
                 self.logger.error(f"❌ Failed to create SL order: {e}")
                 # Don't raise, main order is already created
+
+        # Register TP/SL for WebSocket OCO monitoring
+        # Note: Binance only allows ONE closing order per position (error -4130)
+        # So we register whichever order was created successfully
+        self.logger.info(
+            f"🔍 OCO Registration Debug: websocket={self.enable_websocket}, tp_id={tp_order_id}, sl_id={sl_order_id}"
+        )
+        if self.enable_websocket and (tp_order_id or sl_order_id):
+            if tp_order_id and sl_order_id:
+                # Both created - register for OCO monitoring
+                self.logger.info(f"📝 Registering TP/SL pair for OCO monitoring: TP={tp_order_id}, SL={sl_order_id}")
+                await self._register_tpsl_pair(symbol, tp_order_id, sl_order_id)
+            elif tp_order_id:
+                # Only TP created - register for monitoring
+                self.logger.info(f"📝 Registering single TP order for monitoring: {tp_order_id}")
+                await self._register_single_order(symbol, tp_order_id, "TP", sl_price)
+            elif sl_order_id:
+                # Only SL created - register for monitoring
+                self.logger.info(f"📝 Registering single SL order for monitoring: {sl_order_id}")
+                await self._register_single_order(symbol, sl_order_id, "SL", tp_price)
+        else:
+            self.logger.warning(
+                f"⚠️ OCO registration skipped: websocket={self.enable_websocket}, orders={tp_order_id or sl_order_id}"
+            )
 
         self.logger.info(
             f"✅ Order with TP/SL created | "
@@ -944,6 +1144,10 @@ class BinanceConnector(BaseConnector):
             f"TP: {tp_price or 'None'} | "
             f"SL: {sl_price or 'None'}"
         )
+
+        # Add TP/SL prices to result for backtest compatibility
+        main_order["tp_price"] = tp_price
+        main_order["sl_price"] = sl_price
 
         return main_order
 
@@ -1008,6 +1212,43 @@ class BinanceConnector(BaseConnector):
             return result
         except Exception as e:
             self.logger.error(f"❌ Error cancelling order: {e}")
+            raise
+
+    async def cancel_all_orders(self, symbol: str) -> List[Dict[str, Any]]:
+        """
+        Cancel all open orders for a symbol on Binance.
+
+        Args:
+            symbol: Trading pair symbol
+
+        Returns:
+            List of cancellation results
+        """
+        try:
+            binance_symbol = self.normalize_symbol(symbol)
+
+            # Get all open orders first
+            open_orders = await self.fetch_open_orders(symbol)
+
+            if not open_orders:
+                self.logger.info(f"ℹ️ No open orders to cancel for {symbol}")
+                return []
+
+            # Cancel each order
+            results = []
+            for order in open_orders:
+                try:
+                    result = await self.exchange.cancel_order(order["id"], binance_symbol)
+                    results.append(result)
+                    self.logger.info(f"✅ Order cancelled: {order['id']}")
+                except Exception as e:
+                    self.logger.warning(f"⚠️ Failed to cancel order {order['id']}: {e}")
+
+            self.logger.info(f"✅ Cancelled {len(results)}/{len(open_orders)} orders for {symbol}")
+            return results
+
+        except Exception as e:
+            self.logger.error(f"❌ Error cancelling all orders: {e}")
             raise
 
     # =========================================================
@@ -1108,6 +1349,51 @@ class BinanceConnector(BaseConnector):
             self.logger.error(f"❌ Error fetching trades: {e}")
             raise
 
+    def normalize_trade(self, raw_trade: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Normalize a Binance trade to detect position closes.
+
+        Binance-specific fields:
+            - info.realizedPnl: PnL realized from this trade (string, "0" if not a close)
+            - info.positionSide: "BOTH", "LONG", or "SHORT"
+            - info.side: "BUY" or "SELL"
+
+        A trade is a close if:
+            - realizedPnl != "0" (Binance returns string "0" for non-closes)
+
+        Args:
+            raw_trade: Raw trade from CCXT
+
+        Returns:
+            Normalized trade with is_close, realized_pnl, close_reason
+        """
+        info = raw_trade.get("info", {})
+
+        # Binance returns realizedPnl as string
+        realized_pnl_str = info.get("realizedPnl", "0")
+        realized_pnl = float(realized_pnl_str) if realized_pnl_str else 0.0
+
+        # A trade is a close if realizedPnl != 0
+        is_close = realized_pnl != 0.0
+
+        # Try to detect close reason from order type
+        close_reason = None
+        if is_close:
+            order_type = info.get("type", "").upper()
+            if "TAKE_PROFIT" in order_type:
+                close_reason = "TP"
+            elif "STOP" in order_type or "STOP_MARKET" in order_type:
+                close_reason = "SL"
+            else:
+                close_reason = "MANUAL"
+
+        return {
+            **raw_trade,
+            "is_close": is_close,
+            "realized_pnl": realized_pnl,
+            "close_reason": close_reason,
+        }
+
     async def fetch_trades(self, symbol: str, limit: int = 50) -> List[Dict[str, Any]]:
         """
         Fetch recent public trades from Binance.
@@ -1156,3 +1442,532 @@ class BinanceConnector(BaseConnector):
             Dictionary of timeframes
         """
         return self.exchange.timeframes if hasattr(self.exchange, "timeframes") else {}
+
+    # =========================================================
+    # 🔌 WEBSOCKET METHODS (CCXT Pro)
+    # =========================================================
+
+    async def _init_websocket(self) -> None:
+        """Initialize WebSocket connection using CCXT Pro."""
+        try:
+            self.logger.info("🔌 Initializing WebSocket connection...")
+
+            # Create CCXT Pro exchange instance
+            config = {
+                "apiKey": self._api_key,
+                "secret": self._secret,
+                "options": {
+                    "defaultType": "future",
+                    "recvWindow": 60000,
+                },
+            }
+
+            # Use custom class for testnet, standard for live
+            if self._testnet:
+                self.ws_exchange = BinanceTestnetPro(config)
+                self.logger.info("🧪 Using BinanceTestnetPro for WebSocket testnet")
+            else:
+                self.ws_exchange = ccxtpro.binance(config)
+
+            # Start order monitoring task
+            if not self._order_monitor_task or self._order_monitor_task.done():
+                self._order_monitor_task = asyncio.create_task(self._monitor_orders())
+
+            self._ws_connected = True
+            self.logger.info("✅ WebSocket connection initialized")
+
+        except Exception as e:
+            self.logger.error(f"❌ Failed to initialize WebSocket: {e}")
+            self.logger.warning("⚠️ Falling back to REST-only mode")
+            self.ws_exchange = None
+            self._ws_connected = False
+
+    async def _close_websocket(self) -> None:
+        """Close WebSocket connection."""
+        try:
+            # Cancel WebSocket task
+            if hasattr(self, "_ws_task") and self._ws_task:
+                self._ws_task.cancel()
+                try:
+                    await self._ws_task
+                except asyncio.CancelledError:
+                    pass
+
+            # Cancel OCO Manual task
+            if hasattr(self, "_oco_task") and self._oco_task:
+                self._oco_task.cancel()
+                try:
+                    await self._oco_task
+                except asyncio.CancelledError:
+                    pass
+
+            if self._order_monitor_task and not self._order_monitor_task.done():
+                self._order_monitor_task.cancel()
+                try:
+                    await self._order_monitor_task
+                except asyncio.CancelledError:
+                    pass
+
+            if self.ws_exchange:
+                await self.ws_exchange.close()
+                self.ws_exchange = None
+
+            self._ws_connected = False
+            self.logger.info("🔌 WebSocket connection closed")
+
+        except Exception as e:
+            self.logger.warning(f"⚠️ Error closing WebSocket: {e}")
+
+    async def _monitor_orders(self) -> None:
+        """Monitor order updates via WebSocket."""
+        try:
+            while self._ws_connected:
+                try:
+                    # Watch for order updates
+                    orders = await self.ws_exchange.watch_orders()
+
+                    for order in orders:
+                        await self._handle_order_update(order)
+
+                except Exception as e:
+                    self.logger.error(f"❌ WebSocket order monitoring error: {e}")
+                    await asyncio.sleep(1)
+
+        except Exception as e:
+            self.logger.error(f"❌ Order monitoring failed: {e}")
+        finally:
+            self._ws_connected = False
+
+    async def _oco_monitor_loop(self) -> None:
+        """
+        OCO Manual monitoring loop - INDEPENDIENTE del WebSocket.
+        Inspirado en Hummingbot Clock architecture.
+        Se ejecuta cada segundo independientemente del estado del WebSocket.
+        """
+        self.logger.info("🎯 OCO Manual: Starting independent monitoring loop")
+
+        try:
+            # CORRECCIÓN: OCO Manual independiente del WebSocket (usa self._connected)
+            while self._connected:  # Mientras el conector esté activo
+                try:
+                    # HUMMINGBOT CLOCK PATTERN: Use asyncio.Lock to prevent concurrent modifications
+                    async with self._oco_lock:
+                        # CLOCK TICK: Ejecutar OCO Manual cada segundo (como Hummingbot)
+                        await self._check_manual_tpsl_execution()
+
+                    # Esperar 1 segundo antes del próximo tick (como Hummingbot Clock)
+                    await asyncio.sleep(1.0)
+
+                except Exception as e:
+                    self.logger.error(f"❌ OCO Manual: Error in monitoring loop: {e}")
+                    await asyncio.sleep(1.0)  # Continue even on errors
+
+        except Exception as e:
+            self.logger.error(f"❌ OCO Manual: Monitoring loop failed: {e}")
+        finally:
+            self.logger.info("🎯 OCO Manual: Monitoring loop stopped")
+
+    async def _handle_order_update(self, order: Dict[str, Any]) -> None:
+        """Handle real-time order updates for OCO management."""
+        try:
+            order_id = order.get("id")
+            symbol = order.get("symbol")
+            status = order.get("status")
+            order_type = order.get("type", "")
+
+            # Only handle TP/SL orders
+            if not any(tp_sl in order_type.upper() for tp_sl in ["TAKE_PROFIT", "STOP"]):
+                return
+
+            self.logger.debug(f"📋 Order update: {order_id} {order_type} {status}")
+
+            # If TP/SL order was filled, cancel the opposite order
+            if status == "closed":
+                await self._handle_tpsl_execution(order_id, symbol, order_type)
+
+        except Exception as e:
+            self.logger.warning(f"⚠️ Error handling order update: {e}")
+
+    async def _handle_tpsl_execution(self, executed_order_id: str, symbol: str, order_type: str) -> None:
+        """Handle TP/SL execution and cancel opposite order (OCO behavior)."""
+        try:
+            self.logger.info(f"🎯 TP/SL executed: {order_type} for {symbol}")
+
+            # Find the opposite order to cancel
+            symbol_orders = self._active_orders.get(symbol, {})
+
+            for order_id, order_info in symbol_orders.items():
+                if order_id != executed_order_id:
+                    # This is the opposite order - cancel it
+                    try:
+                        await self.exchange.cancel_order(order_id, symbol)
+                        self.logger.info(f"✅ OCO: Cancelled opposite order {order_id}")
+                    except Exception as cancel_error:
+                        self.logger.warning(f"⚠️ Failed to cancel opposite order {order_id}: {cancel_error}")
+
+            # Clean up tracking - NOTE: This will be handled by caller to avoid dictionary iteration issues
+            # if symbol in self._active_orders:
+            #     del self._active_orders[symbol]
+
+        except Exception as e:
+            self.logger.error(f"❌ Error handling TP/SL execution: {e}")
+
+    async def _register_tpsl_pair(self, symbol: str, tp_order_id: str, sl_order_id: str) -> None:
+        """Register TP/SL order pair for OCO monitoring."""
+        async with self._oco_lock:
+            if symbol not in self._active_orders:
+                self._active_orders[symbol] = {}
+
+            self._active_orders[symbol][tp_order_id] = {"type": "TP", "opposite": sl_order_id}
+            self._active_orders[symbol][sl_order_id] = {"type": "SL", "opposite": tp_order_id}
+
+        self.logger.info(f"📝 Registered TP/SL pair for {symbol}: TP={tp_order_id}, SL={sl_order_id}")
+        self.logger.info(
+            f"📊 Active orders now: {len(self._active_orders)} symbols, {sum(len(orders) for orders in self._active_orders.values())} total orders"
+        )
+
+    async def _check_manual_tpsl_execution(self) -> None:
+        """Check if any TP/SL orders should be executed manually based on current price."""
+        if not self._active_orders:
+            self.logger.debug("🔍 OCO Manual: No active orders to check")
+            return
+
+        # Rate limiting removido - ahora se ejecuta cada segundo desde loop independiente
+        self.logger.debug(f"🔍 OCO Manual: Checking {len(self._active_orders)} symbols for execution")
+
+        try:
+            # Collect symbols to clean up after iteration (avoid dictionary changed size error)
+            symbols_to_cleanup = []
+
+            # Check each symbol's active orders
+            for symbol, orders in list(self._active_orders.items()):
+                self.logger.debug(f"🔍 OCO Manual: Checking symbol {symbol} with {len(orders)} orders")
+                try:
+                    # Get current price - PROTECTED: Prevent CCXT concurrent access
+                    ticker = await self._safe_ccxt_call("fetch_ticker", self.normalize_symbol(symbol))
+                    current_price = ticker.get("last", 0)
+
+                    if not current_price:
+                        self.logger.warning(f"⚠️ OCO Manual: No current price for {symbol}")
+                        continue
+
+                    self.logger.debug(f"💰 OCO Manual: Current price for {symbol}: ${current_price:.4f}")
+
+                    # Check each order
+                    orders_to_execute = []
+                    orders_to_remove = []
+                    for order_id, order_info in orders.items():
+                        self.logger.debug(
+                            f"🔍 OCO Manual: Checking order {order_id[:8]}... type={order_info.get('type')}"
+                        )
+                        try:
+                            # Get order details to check if it should be executed
+                            try:
+                                # WORKAROUND: Use direct API call instead of CCXT fetch_order
+                                # CCXT has issues parsing STOP_MARKET orders, but raw API works fine
+                                try:
+                                    # PROTECTED: Prevent CCXT concurrent access
+                                    order = await self._safe_ccxt_call(
+                                        "fetch_order", order_id, self.normalize_symbol(symbol)
+                                    )
+                                except Exception as ccxt_error:
+                                    self.logger.debug(
+                                        f"🔍 OCO Manual: CCXT fetch failed for {order_id[:8]}...: {ccxt_error}"
+                                    )
+                                    # Try direct API call as fallback
+                                    try:
+                                        # PROTECTED: Prevent CCXT concurrent access
+                                        raw_response = await self._safe_ccxt_call(
+                                            "fapiPrivateV3GetOrder",
+                                            {"symbol": self.normalize_symbol(symbol), "orderId": order_id},
+                                        )
+                                        # Convert raw response to CCXT format
+                                        raw_status = raw_response.get("status", "")
+                                        # Map Binance status to CCXT status
+                                        ccxt_status = "open" if raw_status == "NEW" else raw_status.lower()
+
+                                        order = {
+                                            "id": str(raw_response.get("orderId", "")),
+                                            "status": ccxt_status,
+                                            "type": raw_response.get("type", ""),
+                                            "side": raw_response.get("side", "").lower(),
+                                            "info": raw_response,
+                                        }
+                                        self.logger.debug(f"🔍 OCO Manual: Raw API success for {order_id[:8]}...")
+                                    except Exception as raw_error:
+                                        self.logger.debug(
+                                            f"🔍 OCO Manual: Raw API also failed for {order_id[:8]}...: {raw_error}"
+                                        )
+                                        continue
+
+                                if not order:
+                                    self.logger.warning(
+                                        f"⚠️ OCO Manual: Order {order_id[:8]}... not found, removing from tracking"
+                                    )
+                                    orders_to_remove.append(order_id)
+                                    continue
+                            except Exception as fetch_error:
+                                self.logger.debug(
+                                    f"🔍 OCO Manual: Could not fetch order {order_id[:8]}...: {fetch_error}"
+                                )
+                                self.logger.debug(
+                                    f"🔍 OCO Manual: Error type: {type(fetch_error).__name__}, args: {fetch_error.args}"
+                                )
+                                continue  # Skip this order for now, try again next tick
+
+                            order_status = order.get("status")
+                            order_type = order.get("type", "")
+
+                            # Múltiples formas de obtener stopPrice (inspirado en CCXT oficial + raw API)
+                            info = order.get("info", {})
+                            stop_price = (
+                                order.get("stopPrice")
+                                or order.get("triggerPrice")
+                                or info.get("stopPrice")
+                                or info.get("triggerPrice")
+                                or info.get("activatePrice")
+                            )
+
+                            # Convert string to float if needed (Binance API returns strings)
+                            if stop_price and isinstance(stop_price, str):
+                                try:
+                                    stop_price = float(stop_price)
+                                except (ValueError, TypeError):
+                                    stop_price = None
+
+                            self.logger.debug(
+                                f"📋 OCO Manual: Order {order_id[:8]}... status={order_status}, type={order_type}, stopPrice={stop_price}"
+                            )
+
+                            if order_status != "open":
+                                self.logger.debug(
+                                    f"⏭️ OCO Manual: Skipping order {order_id[:8]}... (status: {order_status})"
+                                )
+                                continue  # Skip if not open
+
+                            if not stop_price:
+                                self.logger.warning(
+                                    f"⚠️ OCO Manual: No stopPrice found for order {order_id[:8]}... (order: {order})"
+                                )
+                                continue
+
+                            stop_price = float(stop_price)
+                            self.logger.debug(f"🎯 OCO Manual: Order {order_id[:8]}... stopPrice=${stop_price:.4f}")
+
+                            # Get position side
+                            position_side = await self._get_position_side(symbol)
+                            self.logger.debug(f"📊 OCO Manual: Position side for {symbol}: {position_side}")
+
+                            # Check if price should trigger execution
+                            should_execute = False
+                            execution_reason = ""
+
+                            # Detección robusta de tipos de orden (inspirado en crypto-bot y CCXT)
+                            is_take_profit = (
+                                "take_profit" in order_type.lower()
+                                or "TAKE_PROFIT" in order_type
+                                or order_info.get("type") == "TP"
+                                or order_type in ["TAKE_PROFIT_MARKET", "TAKE_PROFIT_LIMIT"]
+                            )
+
+                            is_stop_loss = (
+                                "stop" in order_type.lower()
+                                or "STOP" in order_type
+                                or order_info.get("type") == "SL"
+                                or order_type in ["STOP_MARKET", "STOP_LOSS_MARKET", "STOP_LOSS_LIMIT"]
+                            )
+
+                            if is_take_profit:
+                                # TP logic: depends on position side
+                                if position_side == "short" and current_price <= stop_price:
+                                    should_execute = True
+                                    execution_reason = f"SHORT TP: price ${current_price:.4f} <= ${stop_price:.4f}"
+                                elif position_side == "long" and current_price >= stop_price:
+                                    should_execute = True
+                                    execution_reason = f"LONG TP: price ${current_price:.4f} >= ${stop_price:.4f}"
+                                else:
+                                    self.logger.debug(
+                                        f"🚫 OCO Manual: TP not triggered - {position_side} position, price ${current_price:.4f} vs ${stop_price:.4f}"
+                                    )
+
+                            elif is_stop_loss:
+                                # SL logic: depends on position side
+                                if position_side == "short" and current_price >= stop_price:
+                                    should_execute = True
+                                    execution_reason = f"SHORT SL: price ${current_price:.4f} >= ${stop_price:.4f}"
+                                elif position_side == "long" and current_price <= stop_price:
+                                    should_execute = True
+                                    execution_reason = f"LONG SL: price ${current_price:.4f} <= ${stop_price:.4f}"
+                                else:
+                                    self.logger.debug(
+                                        f"🚫 OCO Manual: SL not triggered - {position_side} position, price ${current_price:.4f} vs ${stop_price:.4f}"
+                                    )
+
+                            if should_execute:
+                                self.logger.info(f"🚨 OCO Manual: TRIGGER DETECTED! {execution_reason}")
+                                orders_to_execute.append((order_id, order_info, order, stop_price))
+                            else:
+                                self.logger.debug(f"⏸️ OCO Manual: Order {order_id[:8]}... not triggered")
+
+                        except Exception as e:
+                            self.logger.error(f"❌ OCO Manual: Error checking order {order_id[:8]}...: {e}")
+
+                    # Execute triggered orders
+                    if orders_to_execute:
+                        self.logger.info(f"⚡ OCO Manual: Executing {len(orders_to_execute)} triggered orders")
+                        for order_id, order_info, order, stop_price in orders_to_execute:
+                            await self._execute_tpsl_manually(
+                                symbol, order_id, order_info, order, current_price, stop_price
+                            )
+                            # Mark symbol for cleanup after execution
+                            if symbol not in symbols_to_cleanup:
+                                symbols_to_cleanup.append(symbol)
+                    else:
+                        self.logger.debug(f"⏸️ OCO Manual: No orders to execute for {symbol}")
+
+                except Exception as e:
+                    self.logger.error(f"❌ OCO Manual: Error checking symbol {symbol}: {e}")
+
+            # Clean up symbols after iteration is complete
+            for symbol in symbols_to_cleanup:
+                if symbol in self._active_orders:
+                    del self._active_orders[symbol]
+                    self.logger.debug(f"🧹 OCO Manual: Cleaned up tracking for {symbol}")
+
+        except Exception as e:
+            self.logger.error(f"❌ OCO Manual: Error in manual TP/SL check: {e}")
+
+    async def _get_position_side(self, symbol: str) -> str:
+        """Get the side of the current position for a symbol."""
+        try:
+            normalized_symbol = self.normalize_symbol(symbol)
+            self.logger.debug(f"🔍 OCO Manual: Fetching positions for {symbol} (normalized: {normalized_symbol})")
+
+            # PROTECTED: Prevent CCXT concurrent access
+            positions = await self._safe_ccxt_call("fetch_positions", [normalized_symbol])
+            self.logger.debug(f"📊 OCO Manual: Found {len(positions)} positions")
+
+            for pos in positions:
+                pos_symbol = pos.get("symbol")
+                contracts = pos.get("contracts", 0)
+                side = pos.get("side", "")
+
+                self.logger.debug(f"📊 OCO Manual: Position - symbol={pos_symbol}, contracts={contracts}, side={side}")
+
+                if pos_symbol == normalized_symbol and abs(contracts) > 0:
+                    self.logger.debug(
+                        f"✅ OCO Manual: Found active position for {symbol}: {side} with {contracts} contracts"
+                    )
+                    return side.lower()
+
+            self.logger.warning(f"⚠️ OCO Manual: No active position found for {symbol}")
+            return "unknown"
+        except Exception as e:
+            self.logger.error(f"❌ OCO Manual: Error getting position side for {symbol}: {e}")
+            return "unknown"
+
+    async def _execute_tpsl_manually(
+        self, symbol: str, order_id: str, order_info: dict, order: dict, current_price: float, trigger_price: float
+    ) -> None:
+        """Execute a TP/SL order manually by converting it to a market order."""
+        order_type = order_info.get("type", "unknown")
+        max_retries = 3
+
+        for attempt in range(max_retries):
+            try:
+                self.logger.info(
+                    f"🎯 Executing {order_type} manually (attempt {attempt + 1}/{max_retries}): {symbol} @ ${current_price:.2f} (trigger: ${trigger_price:.2f})"
+                )
+
+                # Step 1: Cancel the original TP/SL order (with retry)
+                for cancel_attempt in range(2):
+                    try:
+                        # PROTECTED: Prevent CCXT concurrent access
+                        await self._safe_ccxt_call("cancel_order", order_id, self.normalize_symbol(symbol))
+                        self.logger.debug(f"✅ OCO Manual: Cancelled original {order_type} order {order_id[:8]}...")
+                        # Order cancelled successfully
+                        break
+                    except Exception as cancel_error:
+                        if cancel_attempt == 0:
+                            self.logger.warning(
+                                f"⚠️ OCO Manual: Cancel attempt {cancel_attempt + 1} failed: {cancel_error}"
+                            )
+                            await asyncio.sleep(0.1)  # Brief pause before retry
+                        else:
+                            self.logger.error(f"❌ OCO Manual: Failed to cancel order after retries: {cancel_error}")
+
+                # Step 2: Create market order to close position
+                side = order.get("side", "")
+                amount = order.get("amount", 0)
+
+                if not side or amount <= 0:
+                    self.logger.error(f"❌ OCO Manual: Invalid order data - side: {side}, amount: {amount}")
+                    return
+
+                # Robust market order creation (inspired by Hummingbot + ChatGPT recommendations)
+                market_order_params = {
+                    "reduceOnly": True,  # Evita aperturas no deseadas
+                    "type": "MARKET",  # Explicit type for Binance
+                }
+
+                # PROTECTED: Prevent CCXT concurrent access
+                market_order = await self._safe_ccxt_call(
+                    "create_order",
+                    self.normalize_symbol(symbol),
+                    "market",
+                    side,
+                    amount,
+                    None,  # price
+                    market_order_params,
+                )
+
+                self.logger.info(f"✅ OCO Manual: {order_type} executed manually: {market_order.get('id')}")
+
+                # Step 3: Cancel opposite order (OCO behavior)
+                opposite_id = order_info.get("opposite")
+                if opposite_id and opposite_id in self._active_orders.get(symbol, {}):
+                    try:
+                        # PROTECTED: Prevent CCXT concurrent access
+                        await self._safe_ccxt_call("cancel_order", opposite_id, self.normalize_symbol(symbol))
+                        self.logger.info(f"✅ OCO Manual: Cancelled opposite order {opposite_id[:8]}...")
+                    except Exception as e:
+                        self.logger.warning(f"⚠️ OCO Manual: Failed to cancel opposite order: {e}")
+
+                # Step 4: Clean up tracking (inspired by crypto-bot cleanup)
+                # NOTE: Cleanup is handled by caller to avoid dictionary iteration issues
+                # if symbol in self._active_orders:
+                #     del self._active_orders[symbol]
+                #     self.logger.debug(f"🧹 OCO Manual: Cleaned up tracking for {symbol}")
+
+                # Success - exit retry loop
+                return
+
+            except Exception as e:
+                self.logger.error(f"❌ OCO Manual: Execution attempt {attempt + 1} failed: {e}")
+                if attempt < max_retries - 1:
+                    wait_time = (attempt + 1) * 0.5  # Exponential backoff
+                    self.logger.info(f"⏳ OCO Manual: Retrying in {wait_time}s...")
+                    await asyncio.sleep(wait_time)
+                else:
+                    self.logger.error(f"❌ OCO Manual: All {max_retries} attempts failed for {order_type}")
+                    # Emergency cleanup - remove from tracking even if execution failed
+                    # NOTE: Cleanup is handled by caller to avoid dictionary iteration issues
+                    # if symbol in self._active_orders:
+                    #     del self._active_orders[symbol]
+
+    async def _register_single_order(self, symbol: str, order_id: str, order_type: str, opposite_price: float) -> None:
+        """Register single TP or SL order for monitoring (when only one could be created)."""
+        async with self._oco_lock:
+            if symbol not in self._active_orders:
+                self._active_orders[symbol] = {}
+
+            self._active_orders[symbol][order_id] = {
+                "type": order_type,
+                "opposite_price": opposite_price,
+                "opposite": None,  # No opposite order exists yet
+            }
+
+        self.logger.info(
+            f"📝 Registered single {order_type} order for {symbol}: {order_id} (opposite price: {opposite_price})"
+        )
+        self.logger.info("🎯 OCO Manual: Will monitor price and create opposite order dynamically if needed")

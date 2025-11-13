@@ -650,6 +650,73 @@ class BaseConnector(ABC):
         pass
 
     # =========================================================
+    # 🔄 TRADE NORMALIZATION
+    # =========================================================
+
+    def normalize_trade(self, raw_trade: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Normalize a trade from the exchange to a standard format.
+
+        This method MUST be implemented by each connector to handle exchange-specific
+        trade formats and detect if a trade is a position close with realized PnL.
+
+        Args:
+            raw_trade: Raw trade data from the exchange (CCXT format)
+
+        Returns:
+            Normalized trade dictionary with additional fields:
+            ```python
+            {
+                **raw_trade,  # All original CCXT fields
+                'is_close': bool,  # True if this trade closes a position
+                'realized_pnl': float,  # Realized PnL if is_close=True
+                'close_reason': str | None,  # 'TP', 'SL', 'MANUAL', or None
+            }
+            ```
+
+        Implementation Guidelines:
+            - Binance: Check info.positionSide and info.realizedPnl
+            - Kraken: Check info.reduceOnly and info.realizedPnl
+            - Bybit: Check info.reduceOnly and info.closedPnl
+            - Each exchange has different fields for detecting closes
+
+        Example (Binance):
+            ```python
+            def normalize_trade(self, raw_trade: Dict[str, Any]) -> Dict[str, Any]:
+                info = raw_trade.get("info", {})
+                realized_pnl = float(info.get("realizedPnl", 0))
+
+                return {
+                    **raw_trade,
+                    'is_close': realized_pnl != 0,
+                    'realized_pnl': realized_pnl,
+                    'close_reason': self._detect_close_reason(info)
+                }
+            ```
+
+        Example (Kraken):
+            ```python
+            def normalize_trade(self, raw_trade: Dict[str, Any]) -> Dict[str, Any]:
+                info = raw_trade.get("info", {})
+
+                return {
+                    **raw_trade,
+                    'is_close': info.get("reduceOnly", False),
+                    'realized_pnl': float(info.get("realizedPnl", 0)),
+                    'close_reason': self._detect_close_reason(info)
+                }
+            ```
+        """
+        # Default implementation: assume no normalization needed
+        # Subclasses SHOULD override this to handle exchange-specific logic
+        return {
+            **raw_trade,
+            "is_close": False,
+            "realized_pnl": 0.0,
+            "close_reason": None,
+        }
+
+    # =========================================================
     # 📈 OPTIONAL: ADVANCED FEATURES
     # =========================================================
 

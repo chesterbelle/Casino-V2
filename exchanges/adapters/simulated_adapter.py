@@ -243,9 +243,9 @@ class SimulatedAdapter:
     # HELPER METHODS
     # =========================================================
 
-    def get_current_price(self, symbol: str = None) -> float:
+    async def get_current_price(self, symbol: str = None) -> float:
         """
-        Get current price.
+        Get current price (async for compatibility with CCXTAdapter).
 
         Args:
             symbol: Trading symbol (ignored in simulated mode, uses connector's current price)

@@ -11,7 +11,6 @@ Estos tests validan que:
 from unittest.mock import AsyncMock, Mock
 
 import pytest
-
 from tables.ccxt_adapter import CCXTAdapter
 from tables.connectors.kraken.kraken_connector import KrakenConnector
 from tables.exchange_state_sync import ExchangeStateSync

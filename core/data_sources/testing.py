@@ -43,7 +43,7 @@ class TestingDataSource(DataSource):
         symbol: str,
         timeframe: str,
         poll_interval: float = 5.0,
-        starting_balance: float = 10000.0,
+        starting_balance: float = None,  # DEPRECATED - will be ignored
     ):
         """
         Initialize testing data source.
@@ -53,18 +53,23 @@ class TestingDataSource(DataSource):
             symbol: Trading pair (e.g., "BTC/USD")
             timeframe: Candle interval (e.g., "5m", "1h")
             poll_interval: Seconds to wait between candle checks
-            starting_balance: Initial balance for testing
+            starting_balance: DEPRECATED - TestingDataSource always uses exchange's real balance
         """
-        # Create CCXTAdapter for exchange communication
+        # SAFETY: TestingDataSource NEVER uses custom starting_balance
+        if starting_balance is not None:
+            logger.warning(f"⚠️ starting_balance={starting_balance} IGNORED in TestingDataSource")
+            logger.warning("   TestingDataSource ALWAYS uses exchange's real balance for safety")
+
+        # Create CCXTAdapter for exchange communication (no starting_balance = uses exchange balance)
         self.adapter = CCXTAdapter(
             connector=connector,
             symbol=symbol,
             timeframe=timeframe,
-            starting_balance=starting_balance,
+            # starting_balance=None means use exchange's real balance
         )
 
-        # Create Croupier for order execution and portfolio management
-        self.croupier = Croupier(exchange_adapter=self.adapter, initial_balance=starting_balance)
+        # Create Croupier for order execution and portfolio management (no initial_balance = uses exchange balance)
+        self.croupier = Croupier(exchange_adapter=self.adapter)  # No initial_balance = uses exchange balance
 
         self.symbol = symbol
         self.timeframe = timeframe
@@ -72,6 +77,9 @@ class TestingDataSource(DataSource):
 
         self._connected = False
         self._last_candle_timestamp = 0
+
+        # Track open positions to detect closures
+        self._tracked_positions = {}  # {symbol: {side, amount, entry_price, timestamp}}
 
         logger.info(
             f"📊 TestingDataSource initialized | "
@@ -132,6 +140,9 @@ class TestingDataSource(DataSource):
             except Exception as e:
                 logger.debug(f"No positions to close or error fetching: {e}")
 
+            # Final check for any missed position closures
+            await self._final_position_check()
+
             await self.adapter.close()
             self._connected = False
             logger.info("🔌 Testing data source disconnected")
@@ -179,6 +190,9 @@ class TestingDataSource(DataSource):
                 self._last_candle_timestamp = timestamp
                 logger.info(f"✅ New candle received | ts={timestamp}")
 
+                # Check for closed positions (TP/SL executed)
+                await self._check_closed_positions()
+
                 # Get balance/equity from adapter
                 balance = self.adapter.balance_manager.balance
                 equity = self.adapter.balance_manager.equity
@@ -218,9 +232,9 @@ class TestingDataSource(DataSource):
             raise RuntimeError("Not connected. Call connect() first.")
 
         try:
-            # Execute through Croupier (synchronous call)
+            # Execute through Croupier (async call)
             # Croupier will validate, execute via adapter, and update portfolio
-            result = self.croupier.execute_order(order)
+            result = await self.croupier.execute_order(order)
 
             # Check if result is valid
             if result is None:
@@ -239,6 +253,23 @@ class TestingDataSource(DataSource):
                     f"{result.get('side', '?').upper()} "
                     f"{result.get('amount', 0):.4f} @ {result.get('entry_price', 0):.2f}"
                 )
+
+                # Track this position for closure detection
+                # CRITICAL: Use connector's normalized symbol, not the original order symbol
+                # This ensures consistency with fetch_positions() results
+                symbol = self.adapter.connector.normalize_symbol(self.adapter.symbol)
+                position_info = {
+                    "side": result.get("side"),
+                    "amount": result.get("amount"),
+                    "entry_price": result.get("entry_price"),
+                    "timestamp": result.get("timestamp", self._last_candle_timestamp),
+                }
+                self._tracked_positions[symbol] = position_info
+                logger.info(
+                    f"📍 POSITION TRACKING STARTED: {symbol} | {position_info['side'].upper()} {position_info['amount']:.4f} @ ${position_info['entry_price']:.2f}"
+                )
+                logger.debug(f"📍 Normalized symbol: '{symbol}' (original: '{self.adapter.symbol}')")
+
             elif status == "rejected":
                 logger.warning(f"⚠️ Order rejected: {result.get('reason', 'unknown')}")
             elif status == "error":
@@ -328,3 +359,147 @@ class TestingDataSource(DataSource):
                 "total_trades": 0,
                 "open_positions": 0,
             }
+
+    async def _check_closed_positions(self) -> None:
+        """
+        Check if any tracked positions have been closed (TP/SL executed).
+
+        This method compares tracked positions with actual exchange positions
+        to detect when Binance closes a position via TP/SL (OCO behavior).
+        """
+        if not self._tracked_positions:
+            logger.debug("🔍 No tracked positions to check")
+            return
+
+        try:
+            # Log current tracking state
+            logger.debug(
+                f"🔍 Checking {len(self._tracked_positions)} tracked positions: {list(self._tracked_positions.keys())}"
+            )
+
+            # Fetch current positions from exchange
+            current_positions = await self.adapter.connector.fetch_positions()
+            current_symbols = {p["symbol"] for p in current_positions if abs(float(p.get("contracts", 0))) > 0}
+
+            logger.debug(f"🔍 Current open positions on exchange: {current_symbols}")
+
+            # Check which tracked positions are no longer open
+            closed_symbols = []
+            for symbol in list(self._tracked_positions.keys()):
+                logger.debug(f"🔍 Checking tracked position: {symbol}")
+
+                if symbol not in current_symbols:
+                    # Position was closed!
+                    pos_info = self._tracked_positions[symbol]
+                    closed_symbols.append(symbol)
+                    logger.info(f"🎯 POSITION CLOSURE DETECTED: {symbol} no longer in exchange positions")
+
+                    # Get current price to calculate PnL and register the closure
+                    try:
+                        # Use the last known close price as the exit price
+                        current_price = self.adapter.get_current_price(symbol)
+                        if not current_price:
+                            # Fallback to fetching OHLCV if ticker fails
+                            candles = await self.adapter.connector.fetch_ohlcv(symbol, self.timeframe, limit=1)
+                            if candles:
+                                current_price = candles[0][4]  # Close price
+
+                        if not current_price:
+                            logger.error(f"❌ Could not determine exit price for {symbol}")
+                            continue  # Skip this closed position
+
+                        # Calculate PnL
+                        entry_price = pos_info["entry_price"]
+                        amount = pos_info["amount"]
+                        side = pos_info["side"]
+
+                        if side == "long":
+                            pnl = (current_price - entry_price) * amount
+                        else:  # short
+                            pnl = (entry_price - current_price) * amount
+
+                        logger.info(
+                            f"🎯 Position closure processed | "
+                            f"{symbol} {side.upper()} {amount:.4f} | "
+                            f"Entry: ${entry_price:.2f} | Exit: ${current_price:.2f} | "
+                            f"PnL: ${pnl:+.2f}"
+                        )
+
+                        # Notify position tracker about the closure
+                        self.adapter.position_tracker.confirm_close(
+                            symbol=symbol, realized_pnl=pnl, close_reason="TP_SL_EXECUTED"
+                        )
+                        logger.info(f"✅ Closure for {symbol} registered in PositionTracker.")
+
+                    except Exception as e:
+                        logger.error(f"❌ Error processing closed position {symbol}: {e}")
+                else:
+                    logger.debug(f"🔍 Position {symbol} still open on exchange")
+
+            # Remove closed positions from tracking
+            for symbol in closed_symbols:
+                del self._tracked_positions[symbol]
+
+        except Exception as e:
+            logger.error(f"❌ Error checking closed positions: {e}")
+
+    async def _final_position_check(self) -> None:
+        """
+        Final check for any positions that were closed but not detected.
+        Called during disconnect to ensure no trades are missed.
+        """
+        if not self._tracked_positions:
+            logger.debug("🔍 No tracked positions for final check")
+            return
+
+        logger.info(f"🔍 FINAL POSITION CHECK: {len(self._tracked_positions)} positions still tracked")
+
+        try:
+            # Fetch current positions from exchange
+            current_positions = await self.adapter.connector.fetch_positions()
+            current_symbols = {p["symbol"] for p in current_positions if abs(float(p.get("contracts", 0))) > 0}
+
+            logger.info(f"🔍 Final exchange positions: {current_symbols}")
+
+            # Check for any tracked positions that are no longer open
+            for symbol, pos_info in list(self._tracked_positions.items()):
+                if symbol not in current_symbols:
+                    logger.warning(f"⚠️ MISSED CLOSURE: Position {symbol} was closed but not detected during session")
+                    logger.info(
+                        f"🎯 Registering missed closure: {symbol} {pos_info['side'].upper()} {pos_info['amount']:.4f}"
+                    )
+
+                    try:
+                        # Get current price to calculate PnL
+                        current_price = await self.adapter.get_current_price(symbol)
+
+                        # Calculate PnL
+                        entry_price = pos_info["entry_price"]
+                        amount = pos_info["amount"]
+                        side = pos_info["side"]
+
+                        if side == "long":
+                            pnl = (current_price - entry_price) * amount
+                        else:  # short
+                            pnl = (entry_price - current_price) * amount
+
+                        logger.info(
+                            f"🎯 Missed closure PnL: Entry ${entry_price:.2f} → Exit ${current_price:.2f} = ${pnl:+.2f}"
+                        )
+
+                        # Register the missed closure
+                        try:
+                            self.adapter.position_tracker.confirm_close(
+                                symbol=symbol, realized_pnl=pnl, close_reason="MISSED_CLOSURE_DETECTED"
+                            )
+                            logger.info("✅ Missed closure registered successfully")
+                        except Exception as e:
+                            logger.error(f"❌ Failed to register missed closure: {e}")
+
+                    except Exception as e:
+                        logger.error(f"❌ Error processing missed closure for {symbol}: {e}")
+                else:
+                    logger.warning(f"⚠️ Position {symbol} still open at session end - may need manual cleanup")
+
+        except Exception as e:
+            logger.error(f"❌ Error in final position check: {e}")

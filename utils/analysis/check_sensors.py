@@ -22,7 +22,6 @@ def _ensure_project_root() -> None:
 _ensure_project_root()
 
 import config
-
 from sensors.sensor_manager import SENSOR_REGISTRY
 
 DEFAULT_MEAN_REVERSION = [
