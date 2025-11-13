@@ -30,6 +30,7 @@ Implementación de TP/SL (Kraken-specific):
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Any, Dict, List, Literal, Optional
 
@@ -122,6 +123,9 @@ class KrakenConnector(BaseConnector):
         # monitorear y cancelar órdenes manualmente
         self._oco_monitor: Optional[OCOOrderMonitor] = None
 
+        # CCXT CONCURRENCY PROTECTION: Protect all CCXT calls from concurrent access
+        self._ccxt_lock = asyncio.Lock()  # Protect CCXT internal state
+
         env = "DEMO" if self._testnet else "MAINNET"
         self.logger.info("🔧 KrakenConnector inicializado | modo=%s", env)
 
@@ -162,10 +166,12 @@ class KrakenConnector(BaseConnector):
             self.exchange = ccxt_async.krakenfutures(exchange_config)
 
             # Load markets
-            self._markets = await self.exchange.load_markets()
+            # PROTECTED: Prevent CCXT concurrent access
+            self._markets = await self._safe_ccxt_call("load_markets")
 
             # Validate connection by fetching balance
-            await self.exchange.fetch_balance()
+            # PROTECTED: Prevent CCXT concurrent access
+            await self._safe_ccxt_call("fetch_balance")
 
             self._connected = True
 
@@ -231,6 +237,19 @@ class KrakenConnector(BaseConnector):
                 self.logger.info("🔌 Conexión a Kraken cerrada")
             except Exception as e:
                 self.logger.warning(f"⚠️ Error cerrando conexión: {e}")
+
+    # =========================================================
+    # 🔒 CCXT CONCURRENCY PROTECTION
+    # =========================================================
+
+    async def _safe_ccxt_call(self, method_name: str, *args, **kwargs):
+        """
+        Safely execute CCXT method with concurrency protection.
+        Prevents KeyError: 0 and other concurrency issues in CCXT internal state.
+        """
+        async with self._ccxt_lock:
+            method = getattr(self.exchange, method_name)
+            return await method(*args, **kwargs)
 
     # =========================================================
     # 📊 MARKET DATA
@@ -315,7 +334,8 @@ class KrakenConnector(BaseConnector):
             raise RuntimeError("Not connected to Kraken. Call connect() first.")
 
         try:
-            balance = await self.exchange.fetch_balance()
+            # PROTECTED: Prevent CCXT concurrent access
+            balance = await self._safe_ccxt_call("fetch_balance")
 
             total = balance.get("total", {}) or {}
             free = balance.get("free", {}) or {}
@@ -368,7 +388,8 @@ class KrakenConnector(BaseConnector):
 
         try:
             # Fetch positions from Kraken
-            positions = await self.exchange.fetch_positions()
+            # PROTECTED: Prevent CCXT concurrent access
+            positions = await self._safe_ccxt_call("fetch_positions")
 
             # Normalize to standard format
             normalized = []
@@ -596,13 +617,15 @@ class KrakenConnector(BaseConnector):
             self.logger.info(f"📋 Clean params being sent: {clean_params}")
 
             # Create order on Kraken
-            order = await self.exchange.create_order(
-                symbol=kraken_symbol,
-                type=order_type,
-                side=side.lower(),
-                amount=amount,
-                price=price,
-                params=clean_params,
+            # PROTECTED: Prevent CCXT concurrent access
+            order = await self._safe_ccxt_call(
+                "create_order",
+                kraken_symbol,
+                order_type,
+                side.lower(),
+                amount,
+                price,
+                clean_params,
             )
 
             # Normalize response with safe conversion
@@ -702,13 +725,16 @@ class KrakenConnector(BaseConnector):
         # Crear orden Take Profit (limit con trigger)
         if tp_price:
             try:
-                tp_order = await self.exchange.create_order(
-                    symbol=self.normalize_symbol(symbol),
-                    type="limit",
-                    side=close_side,
-                    amount=amount,
-                    price=tp_price,
-                    params={"triggerPrice": tp_price, "reduceOnly": True},
+                # PROTECTED: Prevent CCXT concurrent access
+                tp_params = {"triggerPrice": tp_price, "reduceOnly": True}
+                tp_order = await self._safe_ccxt_call(
+                    "create_order",
+                    self.normalize_symbol(symbol),
+                    "limit",
+                    close_side,
+                    amount,
+                    tp_price,
+                    tp_params,
                 )
                 self.logger.info(f"✅ Orden Take Profit creada: {tp_order['id']}")
             except Exception as e:
@@ -717,13 +743,16 @@ class KrakenConnector(BaseConnector):
         # Crear orden Stop Loss (market con trigger)
         if sl_price:
             try:
-                sl_order = await self.exchange.create_order(
-                    symbol=self.normalize_symbol(symbol),
-                    type="market",
-                    side=close_side,
-                    amount=amount,
-                    price=None,
-                    params={"triggerPrice": sl_price, "reduceOnly": True},
+                # PROTECTED: Prevent CCXT concurrent access
+                sl_params = {"triggerPrice": sl_price, "reduceOnly": True}
+                sl_order = await self._safe_ccxt_call(
+                    "create_order",
+                    self.normalize_symbol(symbol),
+                    "market",
+                    close_side,
+                    amount,
+                    None,
+                    sl_params,
                 )
                 self.logger.info(f"✅ Orden Stop Loss creada: {sl_order['id']}")
             except Exception as e:
@@ -843,7 +872,8 @@ class KrakenConnector(BaseConnector):
 
         try:
             normalized_symbol = self.normalize_symbol(symbol)
-            ticker = await self.exchange.fetch_ticker(normalized_symbol)
+            # PROTECTED: Prevent CCXT concurrent access
+            ticker = await self._safe_ccxt_call("fetch_ticker", normalized_symbol)
             return ticker
         except Exception as e:
             self.logger.error(f"❌ Error fetching ticker for {symbol}: {e}")

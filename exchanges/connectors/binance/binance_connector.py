@@ -61,6 +61,7 @@ from .binance_constants import (
 )
 from .binance_constants import denormalize_symbol as denormalize_binance_symbol
 from .binance_constants import normalize_symbol as normalize_binance_symbol
+from .binance_constants import symbol_to_binance_api_format
 
 # =========================================================
 # 🔧 CUSTOM CCXT CLASS FOR TESTNET
@@ -663,7 +664,8 @@ class BinanceConnector(BaseConnector):
 
             # Try to load markets - if fails, continue anyway
             try:
-                await self.exchange.load_markets()
+                # PROTECTED: Prevent CCXT concurrent access
+                await self._safe_ccxt_call("load_markets")
                 self.logger.info(f"✅ Markets loaded | Count: {len(self.exchange.markets)}")
             except Exception as market_error:
                 self.logger.warning(f"⚠️  Could not load markets: {market_error}")
@@ -671,7 +673,8 @@ class BinanceConnector(BaseConnector):
 
             # Try to fetch balance to validate credentials
             try:
-                balance = await self.exchange.fetch_balance()
+                # PROTECTED: Prevent CCXT concurrent access
+                balance = await self._safe_ccxt_call("fetch_balance")
                 usdt_balance = balance.get("total", {}).get(BASE_CURRENCY, 0)
                 self.logger.info(f"✅ Balance fetched | {BASE_CURRENCY}: {usdt_balance}")
             except Exception as balance_error:
@@ -766,7 +769,8 @@ class BinanceConnector(BaseConnector):
         try:
             # IMPORTANTE: Usar fetch_balance con params para forzar solo futures
             # Esto evita que CCXT intente llamar endpoints de SPOT/MARGIN
-            balance = await self.exchange.fetch_balance(params={"type": "future"})
+            # PROTECTED: Prevent CCXT concurrent access
+            balance = await self._safe_ccxt_call("fetch_balance", params={"type": "future"})
             self.logger.debug(f"💰 Balance fetched: {balance.get('total', {}).get(BASE_CURRENCY, 0)} {BASE_CURRENCY}")
             return balance
         except Exception as e:
@@ -788,7 +792,8 @@ class BinanceConnector(BaseConnector):
         """
         try:
             # Call exchange method which uses our BinanceTestnet override
-            positions = await self.exchange.fetch_positions(symbols)
+            # PROTECTED: Prevent CCXT concurrent access
+            positions = await self._safe_ccxt_call("fetch_positions", symbols)
             # Filter out empty positions (contracts > 0)
             active_positions = [p for p in positions if abs(float(p.get("contracts", 0))) > 0]
             self.logger.debug(f"📊 Positions fetched: {len(active_positions)} active")
@@ -823,7 +828,8 @@ class BinanceConnector(BaseConnector):
         try:
             # Get market info
             if not self.exchange.markets:
-                await self.exchange.load_markets()
+                # PROTECTED: Prevent CCXT concurrent access
+                await self._safe_ccxt_call("load_markets")
 
             market = self.exchange.markets.get(symbol)
             if not market:
@@ -942,13 +948,15 @@ class BinanceConnector(BaseConnector):
                 clean_params["positionSide"] = "BOTH"  # One-way mode by default
 
             # Create order on Binance
-            order = await self.exchange.create_order(
-                symbol=binance_symbol,
-                type=order_type,
-                side=side.lower(),
-                amount=amount,
-                price=price,
-                params=clean_params,
+            # PROTECTED: Prevent CCXT concurrent access
+            order = await self._safe_ccxt_call(
+                "create_order",
+                binance_symbol,
+                order_type,
+                side.lower(),
+                amount,
+                price,
+                clean_params,
             )
 
             # Normalize response
@@ -1074,12 +1082,15 @@ class BinanceConnector(BaseConnector):
                     "positionSide": "BOTH",
                     "timeInForce": TIME_IN_FORCE_GTE_GTC,  # Habilita OCO: cancela SL cuando TP se ejecuta
                 }
-                tp_order = await self.exchange.create_order(
-                    symbol=binance_symbol,
-                    type=ORDER_TYPE_TAKE_PROFIT_MARKET,
-                    side=close_side,
-                    amount=amount,
-                    params=tp_params,
+                # PROTECTED: Prevent CCXT concurrent access
+                tp_order = await self._safe_ccxt_call(
+                    "create_order",
+                    binance_symbol,
+                    ORDER_TYPE_TAKE_PROFIT_MARKET,
+                    close_side,
+                    amount,
+                    None,
+                    tp_params,
                 )
                 tp_order_id = tp_order.get("id")
                 self.logger.info(f"✅ Take Profit order created at {tp_price_rounded}")
@@ -1101,12 +1112,15 @@ class BinanceConnector(BaseConnector):
                     "positionSide": "BOTH",
                     "timeInForce": TIME_IN_FORCE_GTE_GTC,  # Habilita OCO: cancela TP cuando SL se ejecuta
                 }
-                sl_order = await self.exchange.create_order(
-                    symbol=binance_symbol,
-                    type=ORDER_TYPE_STOP_MARKET,
-                    side=close_side,
-                    amount=amount,
-                    params=sl_params,
+                # PROTECTED: Prevent CCXT concurrent access
+                sl_order = await self._safe_ccxt_call(
+                    "create_order",
+                    binance_symbol,
+                    ORDER_TYPE_STOP_MARKET,
+                    close_side,
+                    amount,
+                    None,
+                    sl_params,
                 )
                 sl_order_id = sl_order.get("id")
                 self.logger.info(f"✅ Stop Loss order created at {sl_price_rounded}")
@@ -1168,7 +1182,8 @@ class BinanceConnector(BaseConnector):
         """
         try:
             binance_symbol = self.normalize_symbol(symbol)
-            order = await self.exchange.fetch_order(order_id, binance_symbol)
+            # PROTECTED: Prevent CCXT concurrent access
+            order = await self._safe_ccxt_call("fetch_order", order_id, binance_symbol)
             self.logger.debug(f"📊 Order fetched: {order_id}")
             return order
         except Exception as e:
@@ -1187,7 +1202,8 @@ class BinanceConnector(BaseConnector):
         """
         try:
             binance_symbol = self.normalize_symbol(symbol) if symbol else None
-            orders = await self.exchange.fetch_open_orders(binance_symbol)
+            # PROTECTED: Prevent CCXT concurrent access
+            orders = await self._safe_ccxt_call("fetch_open_orders", binance_symbol)
             self.logger.debug(f"📊 Open orders fetched: {len(orders)}")
             return orders
         except Exception as e:
@@ -1207,7 +1223,8 @@ class BinanceConnector(BaseConnector):
         """
         try:
             binance_symbol = self.normalize_symbol(symbol)
-            result = await self.exchange.cancel_order(order_id, binance_symbol)
+            # PROTECTED: Prevent CCXT concurrent access
+            result = await self._safe_ccxt_call("cancel_order", order_id, binance_symbol)
             self.logger.info(f"✅ Order cancelled: {order_id}")
             return result
         except Exception as e:
@@ -1238,7 +1255,8 @@ class BinanceConnector(BaseConnector):
             results = []
             for order in open_orders:
                 try:
-                    result = await self.exchange.cancel_order(order["id"], binance_symbol)
+                    # PROTECTED: Prevent CCXT concurrent access
+                    result = await self._safe_ccxt_call("cancel_order", order["id"], binance_symbol)
                     results.append(result)
                     self.logger.info(f"✅ Order cancelled: {order['id']}")
                 except Exception as e:
@@ -1271,7 +1289,8 @@ class BinanceConnector(BaseConnector):
         """
         try:
             binance_symbol = self.normalize_symbol(symbol)
-            ticker = await self.exchange.fetch_ticker(binance_symbol)
+            # PROTECTED: Prevent CCXT concurrent access
+            ticker = await self._safe_ccxt_call("fetch_ticker", binance_symbol)
             self.logger.debug(f"📊 Ticker fetched: {symbol} @ {ticker.get('last', 0)}")
             return ticker
         except Exception as e:
@@ -1295,7 +1314,8 @@ class BinanceConnector(BaseConnector):
         """
         try:
             binance_symbol = self.normalize_symbol(symbol)
-            ohlcv = await self.exchange.fetch_ohlcv(binance_symbol, timeframe, since, limit)
+            # PROTECTED: Prevent CCXT concurrent access
+            ohlcv = await self._safe_ccxt_call("fetch_ohlcv", binance_symbol, timeframe, since, limit)
             self.logger.debug(f"📊 OHLCV fetched: {symbol} {timeframe} ({len(ohlcv)} candles)")
             return ohlcv
         except Exception as e:
@@ -1600,7 +1620,8 @@ class BinanceConnector(BaseConnector):
                 if order_id != executed_order_id:
                     # This is the opposite order - cancel it
                     try:
-                        await self.exchange.cancel_order(order_id, symbol)
+                        # PROTECTED: Prevent CCXT concurrent access
+                        await self._safe_ccxt_call("cancel_order", order_id, symbol)
                         self.logger.info(f"✅ OCO: Cancelled opposite order {order_id}")
                     except Exception as cancel_error:
                         self.logger.warning(f"⚠️ Failed to cancel opposite order {order_id}: {cancel_error}")
@@ -1679,7 +1700,7 @@ class BinanceConnector(BaseConnector):
                                         # PROTECTED: Prevent CCXT concurrent access
                                         raw_response = await self._safe_ccxt_call(
                                             "fapiPrivateV3GetOrder",
-                                            {"symbol": self.normalize_symbol(symbol), "orderId": order_id},
+                                            {"symbol": symbol_to_binance_api_format(symbol), "orderId": order_id},
                                         )
                                         # Convert raw response to CCXT format
                                         raw_status = raw_response.get("status", "")

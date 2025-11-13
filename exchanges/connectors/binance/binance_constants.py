@@ -122,7 +122,39 @@ def denormalize_symbol(binance_symbol: str) -> str:
         return f"{base}/USD:USD"
 
     # If not USDT pair, return as is
-    return binance_symbol
+    return f"{binance_symbol}/USD:USD"
+
+
+def symbol_to_binance_api_format(symbol: str) -> str:
+    """
+    Convert symbol to Binance API format (no separators).
+
+    Args:
+        symbol: Symbol in any format (e.g., "LTC/USDT:USDT", "LTC/USD:USD")
+
+    Returns:
+        Symbol in Binance API format (e.g., "LTCUSDT")
+
+    Examples:
+        >>> symbol_to_binance_api_format("LTC/USDT:USDT")
+        'LTCUSDT'
+        >>> symbol_to_binance_api_format("BTC/USD:USD")
+        'BTCUSDT'
+    """
+    # First normalize to Binance format
+    normalized = normalize_symbol(symbol)
+
+    # Extract base currency from normalized format (e.g., "LTC/USDT:USDT" -> "LTC")
+    if "/" in normalized:
+        base = normalized.split("/")[0]
+        return f"{base}USDT"
+
+    # If already in API format, return as is
+    if normalized.endswith("USDT"):
+        return normalized
+
+    # Fallback: assume it's base currency only
+    return f"{normalized}USDT"
 
 
 # =========================================================

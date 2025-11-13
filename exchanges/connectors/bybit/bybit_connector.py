@@ -56,6 +56,7 @@ particularidad del exchange que se maneja internamente en el connector.
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import hmac
 import logging
@@ -211,6 +212,10 @@ class BybitConnector(BaseConnector):
             self.logger.info("  ⚠️  LIVE MODE - REAL MONEY")
         self._connected = False
         self._ready = False
+
+        # CCXT CONCURRENCY PROTECTION: Protect all CCXT calls from concurrent access
+        self._ccxt_lock = asyncio.Lock()  # Protect CCXT internal state
+
         self.logger.info(f"✅ Bybit connector initialized | Mode: {mode.upper()}")
 
     # =========================================================
@@ -275,6 +280,19 @@ class BybitConnector(BaseConnector):
             "apiKey": api_key or "",
             "secret": secret or "",
         }
+
+    # =========================================================
+    # 🔒 CCXT CONCURRENCY PROTECTION
+    # =========================================================
+
+    async def _safe_ccxt_call(self, method_name: str, *args, **kwargs):
+        """
+        Safely execute CCXT method with concurrency protection.
+        Prevents KeyError: 0 and other concurrency issues in CCXT internal state.
+        """
+        async with self._ccxt_lock:
+            method = getattr(self.exchange, method_name)
+            return await method(*args, **kwargs)
 
     # =========================================================
     # 🔧 DIRECT API CALLS (Demo Mode Only)
@@ -603,7 +621,8 @@ class BybitConnector(BaseConnector):
         try:
             # Get market info
             if not self.exchange.markets:
-                await self.exchange.load_markets()
+                # PROTECTED: Prevent CCXT concurrent access
+                await self._safe_ccxt_call("load_markets")
 
             market = self.exchange.markets.get(symbol)
             if not market:
@@ -709,13 +728,15 @@ class BybitConnector(BaseConnector):
                 clean_params["positionIdx"] = POSITION_MODE_ONE_WAY  # One-way mode by default
 
             # Create order on Bybit
-            order = await self.exchange.create_order(
-                symbol=bybit_symbol,
-                type=order_type,
-                side=side.lower(),
-                amount=amount,
-                price=price,
-                params=clean_params,
+            # PROTECTED: Prevent CCXT concurrent access
+            order = await self._safe_ccxt_call(
+                "create_order",
+                bybit_symbol,
+                order_type,
+                side.lower(),
+                amount,
+                price,
+                clean_params,
             )
 
             # Normalize response
@@ -883,7 +904,8 @@ class BybitConnector(BaseConnector):
         """
         try:
             bybit_symbol = self.normalize_symbol(symbol)
-            result = await self.exchange.cancel_order(order_id, bybit_symbol)
+            # PROTECTED: Prevent CCXT concurrent access
+            result = await self._safe_ccxt_call("cancel_order", order_id, bybit_symbol)
             self.logger.info(f"❌ Order canceled: {order_id}")
             return result
         except Exception as e:
