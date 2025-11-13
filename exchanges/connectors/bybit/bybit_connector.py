@@ -294,6 +294,15 @@ class BybitConnector(BaseConnector):
             method = getattr(self.exchange, method_name)
             return await method(*args, **kwargs)
 
+    async def _safe_ccxt_call_on_exchange(self, exchange_instance, method_name: str, *args, **kwargs):
+        """
+        Safely execute CCXT method on specific exchange instance with concurrency protection.
+        Used for dual exchange setup (public/private).
+        """
+        async with self._ccxt_lock:
+            method = getattr(exchange_instance, method_name)
+            return await method(*args, **kwargs)
+
     # =========================================================
     # 🔧 DIRECT API CALLS (Demo Mode Only)
     # =========================================================
@@ -496,11 +505,15 @@ class BybitConnector(BaseConnector):
         """Close connection to Bybit exchange."""
         try:
             # Close public exchange
-            await self.exchange_public.close()
+            # PROTECTED: Prevent CCXT concurrent access
+            if hasattr(self.exchange_public, "close"):
+                await self._safe_ccxt_call_on_exchange(self.exchange_public, "close")
 
             # In demo mode, also close private exchange if it's different
             if self._demo and self.exchange_private != self.exchange_public:
-                await self.exchange_private.close()
+                # PROTECTED: Prevent CCXT concurrent access
+                if hasattr(self.exchange_private, "close"):
+                    await self._safe_ccxt_call_on_exchange(self.exchange_private, "close")
 
             self._connected = False
             self._ready = False

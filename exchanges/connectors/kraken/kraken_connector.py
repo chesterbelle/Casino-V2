@@ -232,7 +232,8 @@ class KrakenConnector(BaseConnector):
         # Desconectar REST
         if self.exchange:
             try:
-                await self.exchange.close()
+                # PROTECTED: Prevent CCXT concurrent access
+                await self._safe_ccxt_call("close")
                 self._connected = False
                 self.logger.info("🔌 Conexión a Kraken cerrada")
             except Exception as e:

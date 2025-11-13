@@ -492,12 +492,14 @@ class BinanceConnector(BaseConnector):
         self._mode = mode
         self._testnet = mode == "testnet"
 
+        # TEMPORARY: Disable auto-enable WebSocket due to CCXT Pro concurrency issues
         # Auto-enable WebSocket + OCO manual in testnet (OCO doesn't work automatically)
         if self._testnet and not enable_websocket:
-            self.logger.info(
-                "🧪 Testnet detected - Auto-enabling WebSocket + OCO manual (OCO doesn't work automatically in testnet)"
+            self.logger.warning(
+                "🧪 Testnet detected - WebSocket DISABLED due to CCXT Pro concurrency issues (KeyError: 0)"
             )
-            self.enable_websocket = True
+            self.logger.warning("   OCO Manual will use REST polling instead of WebSocket")
+            self.enable_websocket = False  # TEMPORARY: Disable to avoid CCXT Pro bugs
         else:
             self.enable_websocket = enable_websocket
 
@@ -716,7 +718,8 @@ class BinanceConnector(BaseConnector):
             if self.ws_exchange:
                 await self._close_websocket()
 
-            await self.exchange.close()
+            # PROTECTED: Prevent CCXT concurrent access
+            await self._safe_ccxt_call("close")
             self._connected = False
             self._ready = False
             self.logger.info("🔌 Connection to Binance closed")

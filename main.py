@@ -232,7 +232,16 @@ async def run_backtest(player_module, data_file, max_candles, initial_balance=No
     session = TradingSession(source, player_module, max_candles)
 
     # Run
-    session_stats = await session.run()
+    try:
+        session_stats = await session.run()
+    finally:
+        # Cleanup: Close data source connection (backtest doesn't need it, but for consistency)
+        try:
+            if hasattr(source, "disconnect"):
+                await source.disconnect()
+                logger.info("🔌 Data source disconnected")
+        except Exception as e:
+            logger.warning(f"⚠️ Error closing data source: {e}")
 
     # Print stats - combine session stats with data source stats
     stats = source.get_stats()
@@ -363,7 +372,15 @@ async def run_demo(player_module, symbol, interval, max_candles, exchange=None, 
     session = TradingSession(source, player_module, max_candles)
 
     # Run
-    session_stats = await session.run()
+    try:
+        session_stats = await session.run()
+    finally:
+        # Cleanup: Close data source connection
+        try:
+            await source.disconnect()
+            logger.info("🔌 Data source disconnected")
+        except Exception as e:
+            logger.warning(f"⚠️ Error closing data source: {e}")
 
     # Show final stats - combine session stats with data source stats
     stats = await source.get_stats()
@@ -474,7 +491,15 @@ async def run_live(player_module, symbol, interval, max_candles, initial_balance
     session = TradingSession(source, player_module, max_candles)
 
     # Run
-    await session.run()
+    try:
+        await session.run()
+    finally:
+        # Cleanup: Close data source connection
+        try:
+            await source.disconnect()
+            logger.info("🔌 Data source disconnected")
+        except Exception as e:
+            logger.warning(f"⚠️ Error closing data source: {e}")
 
 
 async def main():
