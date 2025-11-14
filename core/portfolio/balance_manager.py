@@ -35,6 +35,15 @@ class BalanceManager:
         """
         return self.balance
 
+    def get_equity(self) -> float:
+        """
+        Obtiene el equity actual.
+
+        Returns:
+            Equity actual (balance + PnL no realizado)
+        """
+        return self.equity
+
     def set_balance(self, new_balance: float):
         """
         Actualiza el balance con un valor del exchange.

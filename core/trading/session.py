@@ -33,10 +33,27 @@ class SessionStats:
         self.wins = 0
         self.losses = 0
         self.total_pnl = 0.0
+        self.bets = 0
+        self.ghosts = 0
+        self.skips = 0
 
     def update(self, context: TradingContext) -> None:
         """Update stats from context."""
         self.candles_processed += 1
+
+        # Count decision actions when available
+        try:
+            verdict = getattr(context, "verdict", None)
+            if verdict:
+                action = verdict.get("action")
+                if action == "BET":
+                    self.bets += 1
+                elif action == "GHOST":
+                    self.ghosts += 1
+                elif action == "SKIP":
+                    self.skips += 1
+        except Exception:
+            pass
 
         if context.signals:
             self.signals_detected += len(context.signals)
@@ -71,6 +88,9 @@ class SessionStats:
             "wins": self.wins,
             "losses": self.losses,
             "total_pnl": self.total_pnl,
+            "bets": self.bets,
+            "ghosts": self.ghosts,
+            "skips": self.skips,
         }
 
 
@@ -247,6 +267,10 @@ class TradingSession:
                 )
 
         return self.stats.summary()
+
+    def get_stats(self) -> SessionStats:
+        """Return live SessionStats object (used by validator)."""
+        return self.stats
 
     def _prepare_player_state(self, equity: float) -> tuple:
         """

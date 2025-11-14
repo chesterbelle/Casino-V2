@@ -41,7 +41,7 @@ class TestingDataSource(DataSource):
         """
         self.croupier = croupier
         # The adapter and connector are accessed through the Croupier
-        self.adapter = croupier.exchange
+        self.adapter = croupier.exchange_adapter
         self.connector = self.adapter.connector
 
         self.symbol = symbol
@@ -78,8 +78,7 @@ class TestingDataSource(DataSource):
         if not self._connected:
             return
         try:
-            # The Croupier will be responsible for any final state checks or cleanup.
-            await self.adapter.close()
+            # Do not close the shared adapter here; validator/croupier manages lifecycle.
             self._connected = False
             logger.info("🔌 Testing data source disconnected")
         except Exception as e:
@@ -167,8 +166,20 @@ class TestingDataSource(DataSource):
         try:
             # The Croupier is the single source of truth for portfolio state.
             stats = self.croupier.get_portfolio_state()
-            stats["initial_balance"] = self.initial_balance
-            return stats
+            # Normalize keys expected by main.run_demo() printer
+            final_balance = float(stats.get("balance", 0.0))
+            final_equity = float(stats.get("equity", 0.0))
+            open_positions_count = int(stats.get("open_positions_count", 0))
+
+            normalized = {
+                "initial_balance": float(self.initial_balance),
+                "final_balance": final_balance,
+                "final_equity": final_equity,
+                "total_pnl": final_balance - float(self.initial_balance),
+                "total_trades": stats.get("total_trades", 0),
+                "open_positions": open_positions_count,
+            }
+            return normalized
         except Exception as e:
             logger.error(f"❌ Error getting stats from Croupier: {e}")
             return {

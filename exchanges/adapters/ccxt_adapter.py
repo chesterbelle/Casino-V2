@@ -101,7 +101,7 @@ Usage:
 from __future__ import annotations
 
 import logging
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 
 from exchanges.connectors.connector_base import BaseConnector
 
@@ -231,6 +231,17 @@ class CCXTAdapter(BaseTable):
         except Exception as e:
             self.logger.warning(f"⚠️ Error cerrando conexión: {e}")
 
+    async def disconnect(self) -> None:
+        """Alias de close() para compatibilidad con validadores/tests."""
+        await self.close()
+
+    async def register_oco_pair(self, symbol: str, tp_order_id: str, sl_order_id: str):
+        """
+        Registers an OCO pair with the underlying connector if supported.
+        """
+        if hasattr(self.connector, "register_oco_pair"):
+            await self.connector.register_oco_pair(symbol, tp_order_id, sl_order_id)
+
     # =========================================================
     # 📊 MARKET DATA
     # =========================================================
@@ -277,20 +288,33 @@ class CCXTAdapter(BaseTable):
                 order = order.copy()
                 order["side"] = "buy" if order["side"] == "LONG" else "sell"
 
-            # 2. Calcular precios absolutos de TP/SL (lógica de negocio que permanece aquí)
-            tp_price, sl_price = await self._calculate_tpsl_prices(order)
+            # 2. El Croupier agnóstico siempre pasa órdenes con TP/SL
+            # El adapter traduce a la implementación específica del exchange
+            has_tpsl = "take_profit" in order or "stop_loss" in order
 
-            # 3. Delegar ejecución al conector
-            result = await self.connector.create_order_with_tpsl(
-                symbol=order.get("symbol", self.symbol),
-                side=order["side"],
-                amount=order["amount"],
-                price=order.get("price"),
-                order_type=order.get("type", "market"),
-                tp_price=tp_price,
-                sl_price=sl_price,
-                params=order.get("params", {}),
-            )
+            if has_tpsl:
+                # Orden con TP/SL - usar create_order_with_tpsl (maneja todo internamente)
+                tp_price, sl_price = await self._calculate_tpsl_prices(order)
+                result = await self.connector.create_order_with_tpsl(
+                    symbol=order.get("symbol", self.symbol),
+                    side=order["side"],
+                    amount=order["amount"],
+                    price=order.get("price"),
+                    order_type=order.get("type", "market"),
+                    tp_price=tp_price,
+                    sl_price=sl_price,
+                    params=order.get("params", {}),
+                )
+            else:
+                # Orden simple sin TP/SL
+                result = await self.connector.create_order(
+                    symbol=order.get("symbol", self.symbol),
+                    side=order["side"],
+                    amount=order["amount"],
+                    price=order.get("price"),
+                    order_type=order.get("type", "market"),
+                    params=order.get("params", {}),
+                )
 
             if not isinstance(result, dict):
                 raise ValueError(f"El conector devolvió un resultado inválido: {result}")
@@ -304,6 +328,50 @@ class CCXTAdapter(BaseTable):
             self.logger.error(f"❌ Error en la ejecución de la orden: {e}")
             raise  # Propaga la excepción al Croupier
 
+    async def cancel_order(self, order_id: str, symbol: str = None) -> Dict:
+        """Cancel an order."""
+        if not self._connected:
+            raise RuntimeError("Not connected. Call connect() first.")
+
+        try:
+            result = await self.connector.cancel_order(order_id, symbol or self.symbol)
+            self.logger.info(f"✅ Orden cancelada | ID: {order_id}")
+            return result
+        except Exception as e:
+            self.logger.error(f"❌ Error cancelando orden {order_id}: {e}")
+            raise
+
+    async def fetch_order(self, order_id: str, symbol: str = None) -> Dict:
+        """Fetch order status."""
+        if not self._connected:
+            raise RuntimeError("Not connected. Call connect() first.")
+
+        try:
+            result = await self.connector.fetch_order(order_id, symbol or self.symbol)
+            return result
+        except Exception as e:
+            self.logger.error(f"❌ Error fetching order {order_id}: {e}")
+            raise
+
+    def normalize_trade(self, raw_trade: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Normaliza un trade usando la implementación específica del connector.
+
+        Args:
+            raw_trade: Trade en formato crudo del exchange
+
+        Returns:
+            Trade normalizado con campos adicionales:
+            - is_close: bool - Si es un cierre de posición
+            - realized_pnl: float - PnL realizado (si es cierre)
+            - close_reason: str - Razón del cierre ("TP", "SL", "MANUAL", etc.)
+        """
+        if hasattr(self.connector, "normalize_trade"):
+            return self.connector.normalize_trade(raw_trade)
+        else:
+            # Fallback agnóstico si el connector no implementa normalize_trade
+            return {**raw_trade, "is_close": False, "realized_pnl": 0.0, "close_reason": None}
+
     async def _calculate_tpsl_prices(self, order: Dict) -> tuple[Optional[float], Optional[float]]:
         """
         Calcula los precios absolutos de TP/SL a partir de multiplicadores.
@@ -316,17 +384,18 @@ class CCXTAdapter(BaseTable):
             tp_multiplier = float(order["take_profit"])
             sl_multiplier = float(order["stop_loss"])
 
-            # Lógica corregida para LONG/SHORT
+            # Lógica corregida para LONG/SHORT con margen de seguridad
+            safety_margin_factor = 0.0005  # 0.05% de margen para el SL
+
             if order.get("side") == "buy":  # LONG
-                # Para LONG, TP > entry, SL < entry. Multiplicadores: tp > 1, sl < 1
                 tp_price = current_price * tp_multiplier
-                sl_price = current_price * sl_multiplier
+                # Asegurarse de que el SL esté claramente por debajo del precio actual
+                sl_price = current_price * sl_multiplier * (1 - safety_margin_factor)
             else:  # SHORT
-                # Para SHORT, TP < entry, SL > entry. Los multiplicadores deben ser inversos.
-                # Asumimos que la orden llega con multiplicadores para LONG (tp > 1, sl < 1)
-                # por lo que los invertimos aquí.
-                tp_price = current_price * (1.0 / tp_multiplier)  # Invertir para que baje el precio
-                sl_price = current_price * (1.0 / sl_multiplier)  # Invertir para que suba el precio
+                # Para SHORT, el TP está por debajo y el SL por encima.
+                tp_price = current_price * (2.0 - tp_multiplier)
+                # Asegurarse de que el SL esté claramente por encima del precio actual
+                sl_price = current_price * (2.0 - sl_multiplier) * (1 + safety_margin_factor)
 
             return tp_price, sl_price
         except Exception as e:

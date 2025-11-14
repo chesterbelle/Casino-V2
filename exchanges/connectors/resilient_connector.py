@@ -33,6 +33,8 @@ import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
+from core.trading.clock import MasterClock
+
 from ..resilience import ConnectionManager, SessionState, StateRecovery
 from ..resilience.error_classifier import ErrorClassifier
 from ..resilience.order_tracker import OrderTracker
@@ -140,6 +142,18 @@ class ResilientConnector(BaseConnector):
         # Auto-save task
         self._auto_save_task: Optional[asyncio.Task] = None
 
+        # WS health loop
+        cfg = connection_config or {}
+        self._ws_health_task: Optional[asyncio.Task] = None
+        self._ws_backoff_base: float = float(cfg.get("ws_backoff_base", 2.0))
+        self._ws_backoff_max: float = float(cfg.get("ws_backoff_max", 60.0))
+
+        # Master Clock (Clock-Driven Architecture)
+        self._clock: Optional[MasterClock] = None
+        self._clock_enabled: bool = bool(cfg.get("clock_enabled", True))
+        self._clock_tick: float = float(cfg.get("clock_base_tick", 1.0))
+        self._clock_job_cfg: Dict[str, Any] = dict(cfg.get("clock_jobs", {}))
+
         self.logger.info(
             f"ResilientConnector inicializado | "
             f"connector={connector.__class__.__name__} | "
@@ -186,6 +200,18 @@ class ResilientConnector(BaseConnector):
             if self._state_recovery:
                 self._start_auto_save()
 
+            # Start WS maintenance via MasterClock when enabled, otherwise fallback to ws_health
+            if hasattr(self._connector, "ensure_websocket") and getattr(self._connector, "enable_websocket", False):
+                if self._clock_enabled:
+                    # Signal connector to avoid starting its own OCO loop
+                    try:
+                        setattr(self._connector, "_use_clock", True)
+                    except Exception:
+                        pass
+                    await self._start_clock()
+                else:
+                    self._start_ws_health()
+
         except Exception as e:
             self.logger.error(f"❌ Error conectando: {e}")
             raise
@@ -202,6 +228,21 @@ class ResilientConnector(BaseConnector):
             except asyncio.CancelledError:
                 pass
 
+        # Stop WS health loop
+        if self._ws_health_task:
+            self._ws_health_task.cancel()
+            try:
+                await self._ws_health_task
+            except asyncio.CancelledError:
+                pass
+
+        # Stop Master Clock
+        if self._clock is not None:
+            try:
+                await self._clock.stop()
+            except Exception:
+                pass
+
         # Save final state
         if self._state_recovery and self._session_state:
             await self._state_recovery.save_state(self._session_state)
@@ -209,6 +250,7 @@ class ResilientConnector(BaseConnector):
 
         # Close underlying connector
         await self._connector.close()
+        await asyncio.sleep(0.2)
         self._connected = False
         self._ready = False
         self.logger.info("✅ Conexión cerrada")
@@ -427,6 +469,14 @@ class ResilientConnector(BaseConnector):
         """Fetch balance (delegación simple)."""
         return await self._connector.fetch_balance()
 
+    async def fetch_open_orders(self, symbol: str = None) -> List[Dict[str, Any]]:
+        """Fetch open orders (delegación simple)."""
+        return await self._connector.fetch_open_orders(symbol)
+
+    async def fetch_order(self, order_id: str, symbol: str) -> Dict[str, Any]:
+        """Fetch order status (delegación simple)."""
+        return await self._connector.fetch_order(order_id, symbol)
+
     async def fetch_positions(self) -> List[Dict[str, Any]]:
         """Fetch positions (delegación simple)."""
         return await self._connector.fetch_positions()
@@ -618,6 +668,12 @@ class ResilientConnector(BaseConnector):
             self._auto_save_task = asyncio.create_task(self._auto_save_loop())
             self.logger.info("🔄 Auto-guardado iniciado")
 
+    def _start_ws_health(self):
+        """Inicia loop de salud del WebSocket con backoff exponencial."""
+        if self._ws_health_task is None or self._ws_health_task.done():
+            self._ws_health_task = asyncio.create_task(self._ws_health_loop())
+            self.logger.info("🔄 WS health loop iniciado")
+
     async def _auto_save_loop(self):
         """Loop de auto-guardado."""
         interval = self._state_recovery.auto_save_interval if self._state_recovery else 60.0
@@ -629,6 +685,55 @@ class ResilientConnector(BaseConnector):
                 await self.save_state()
             except Exception as e:
                 self.logger.error(f"❌ Error en auto-guardado: {e}")
+
+    async def _ws_health_loop(self):
+        """Loop que garantiza que el WebSocket se mantenga conectado con 'let it crash'."""
+        backoff = self._ws_backoff_base
+        while self._connected:
+            try:
+                await asyncio.sleep(0)  # yield
+                await self._connector.ensure_websocket()
+                # Healthy, reset backoff and sleep a bit antes de próximo check
+                backoff = self._ws_backoff_base
+                await asyncio.sleep(10.0)
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                # Fail fast up from connector, aquí decidimos reintentar con backoff
+                self.logger.warning(f"⚠️ WS ensure falló (reintento en {backoff:.1f}s): {e}")
+                await asyncio.sleep(backoff)
+                backoff = min(backoff * 2.0, self._ws_backoff_max)
+
+    async def _start_clock(self):
+        """Start MasterClock and register core maintenance jobs."""
+        if self._clock is None:
+            self._clock = MasterClock(base_tick=self._clock_tick, logger=logging.getLogger("MasterClock"))
+
+            async def ws_ensure_job():
+                try:
+                    await self._connector.ensure_websocket()
+                except Exception as e:
+                    # Let it crash upwards to the clock; already handled/logged there
+                    raise e
+
+            async def oco_monitor_job():
+                if hasattr(self._connector, "oco_monitor_tick"):
+                    try:
+                        await self._connector.oco_monitor_tick()
+                    except Exception as e:
+                        raise e
+
+            # Register jobs with configurable intervals/timeouts
+            ws_interval = float(self._clock_job_cfg.get("ws_ensure_interval", 5.0))
+            ws_timeout = float(self._clock_job_cfg.get("ws_ensure_timeout", 0.8))
+            oco_interval = float(self._clock_job_cfg.get("oco_interval", 2.0))
+            oco_timeout = float(self._clock_job_cfg.get("oco_timeout", 0.8))
+
+            self._clock.register_job("ws_ensure", ws_ensure_job, interval=ws_interval, timeout=ws_timeout)
+            self._clock.register_job("oco_monitor", oco_monitor_job, interval=oco_interval, timeout=oco_timeout)
+
+        await self._clock.start()
+        self.logger.info("🕒 MasterClock started with ws_ensure and oco_monitor jobs")
 
     # ========================================
     # Abstract methods delegation

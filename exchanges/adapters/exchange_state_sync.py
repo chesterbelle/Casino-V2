@@ -331,18 +331,18 @@ class ExchangeStateSync:
 
     def _normalize_fill(self, raw_trade: Dict[str, Any]) -> Fill:
         """
-        Normaliza fill del exchange a formato interno.
+        Normaliza fill del exchange a formato interno usando campos estándar CCXT.
 
-        Usa el método normalize_trade() del conector para detectar cierres
-        de forma agnóstica del exchange.
+        ExchangeStateSync es completamente agnóstico - solo usa campos estándar.
+        La normalización específica del exchange se maneja en capas superiores.
         """
-        # Normalizar el trade usando el método del conector (exchange-specific)
-        normalized_trade = self.connector.normalize_trade(raw_trade)
+        # Usar solo campos estándar de CCXT (agnóstico)
+        is_close = False  # Por defecto, no es cierre
+        realized_pnl = 0.0  # Por defecto, no hay PnL realizado
+        reason = None  # Por defecto, no hay razón específica
 
-        # Extraer campos normalizados
-        is_close = normalized_trade.get("is_close", False)
-        realized_pnl = normalized_trade.get("realized_pnl", 0.0)
-        reason = normalized_trade.get("close_reason")
+        # Detectar cierres usando lógica agnóstica básica
+        # (La lógica específica se maneja en CCXTAdapter/Connector)
 
         # Extraer fee
         fee_data = raw_trade.get("fee", {})

@@ -6,10 +6,10 @@
 # Monitor simple para ver el progreso en tiempo real
 
 # Detectar el log file más reciente
-LOG_FILE=$(ls -t logs/main_*.log 2>/dev/null | head -1)
+LOG_FILE=$(ls -t logs/croupier_validator_*.log 2>/dev/null | head -1)
 
 if [[ -z "$LOG_FILE" ]]; then
-    echo "❌ No se encontró log file. Asegúrate de que main.py esté ejecutándose."
+    echo "❌ No se encontró log file del validador. Asegúrate de que el script se esté ejecutando."
     exit 1
 fi
 
@@ -76,8 +76,8 @@ while true; do
     fi
 
     # Verificar si el proceso sigue corriendo
-    if ! pgrep -f "main.py" > /dev/null; then
-        echo "❌ Proceso main.py terminó"
+    if ! pgrep -f "croupier_validator" > /dev/null; then
+        echo "❌ Proceso del validador terminó"
         break
     fi
 

@@ -16,7 +16,7 @@ from pathlib import Path
 
 from config import exchange as exchange_config
 from config import system
-from core.data_sources import BacktestDataSource, LiveDataSource, TestingDataSource
+from core.data_sources.testing import TestingDataSource
 from core.trading import TradingSession
 from croupier.croupier import Croupier
 from exchanges.adapters.ccxt_adapter import CCXTAdapter
@@ -182,6 +182,127 @@ def save_results_json(mode: str, stats: dict, player_name: str, symbol: str = No
         return None
 
 
+async def _force_close_open_positions_and_orders(connector, croupier, symbol: str):
+    try:
+        try:
+            open_orders = await connector.fetch_open_orders(symbol)
+        except Exception:
+            open_orders = []
+
+        if open_orders:
+            for o in open_orders:
+                try:
+                    await connector.cancel_order(o.get("id"), symbol)
+                except Exception as e:
+                    logger.warning(f"⚠️ Failed to cancel order {o.get('id')}: {e}")
+
+        try:
+            positions = await connector.fetch_positions()
+        except Exception:
+            positions = []
+
+        for pos in positions:
+            try:
+                if pos.get("symbol") != symbol:
+                    continue
+                contracts = float(pos.get("contracts") or 0)
+                if contracts <= 0:
+                    continue
+                side_raw = str(pos.get("side", "")).lower()
+                side = "sell" if side_raw in ("long", "buy") else "buy"
+                params = {"reduceOnly": True, "positionSide": "BOTH"}
+                await connector.create_order(symbol, side, contracts, None, "market", params)
+                logger.info(f"🔒 Force-closed position for {symbol} | side={side} | qty={contracts}")
+            except Exception as e:
+                logger.warning(f"⚠️ Error force-closing position for {symbol}: {e}")
+
+        # Sync croupier balance with exchange after closures
+        try:
+            balance = await connector.fetch_balance()
+            base = getattr(exchange_config, "BASE_CURRENCY", "USDT")
+            new_balance = balance.get("free", {}).get(base, 0.0)
+            if new_balance:
+                try:
+                    croupier.balance_manager.set_balance(new_balance)
+                    logger.info(f"💰 Balance synced from exchange: ${new_balance:,.2f}")
+                except Exception as e:
+                    logger.warning(f"⚠️ Could not sync croupier balance: {e}")
+        except Exception as e:
+            logger.warning(f"⚠️ Error fetching final balance: {e}")
+    except Exception as e:
+        logger.warning(f"⚠️ End-session cleanup failed: {e}")
+
+
+def _print_human_summary(mode: str, stats: dict, session_stats: dict):
+    def fmt(n):
+        try:
+            return f"{float(n):,.2f}".replace(",", "_").replace("_", ",")
+        except Exception:
+            return str(n)
+
+    initial_balance = float(stats.get("initial_balance", 0.0))
+    final_balance = float(stats.get("final_balance", stats.get("final_equity", 0.0)))
+    total_pnl = float(stats.get("total_pnl", stats.get("net_pnl", final_balance - initial_balance)))
+    pnl_pct = (total_pnl / initial_balance * 100.0) if initial_balance else 0.0
+
+    candles = int(session_stats.get("candles_processed", 0))
+    bets = int(session_stats.get("bets", 0))
+    ghosts = int(session_stats.get("ghosts", 0))
+    skips = int(session_stats.get("skips", 0))
+
+    wins = int(stats.get("wins", session_stats.get("wins", 0)))
+    losses = int(stats.get("losses", session_stats.get("losses", 0)))
+
+    # Prefer backtest win_rate when present; otherwise compute from bets
+    if "win_rate" in stats and stats.get("win_rate") not in (None, 0):
+        win_rate_bet = float(stats.get("win_rate", 0.0)) * 100.0
+    else:
+        denom = bets if bets else (wins + losses)
+        win_rate_bet = (wins / denom * 100.0) if denom else 0.0
+
+    total_fees = stats.get("total_fees")
+    funding_total = stats.get("funding_total")  # may be None if not tracked
+    liquidations = stats.get("liquidations", 0)
+
+    print("-" * 59)
+    print(f"   Balance inicial       : {fmt(initial_balance)}")
+    print(f"   Velas procesadas      : {candles}")
+    print(f"   Trades BET            : {bets}")
+    print(f"   Trades GHOST          : {ghosts}")
+    print(f"   Trades SKIP           : {skips}")
+    print(f"   Wins / Losses         : {wins} / {losses}")
+    print(f"   WinRate (BET)         : {win_rate_bet:.2f}%")
+    print(f"   Comisiones totales    : {fmt(total_fees) if total_fees is not None else 'N/A'}")
+    print(f"   Funding total         : {fmt(funding_total) if funding_total is not None else 'N/A'}")
+    print(f"   Liquidaciones         : {liquidations}")
+    print(f"   Balance final         : {fmt(final_balance)}")
+    print(
+        f"   PnL Total             : {('+' if total_pnl >= 0 else '')}{fmt(total_pnl)} ({('+' if pnl_pct >= 0 else '')}{pnl_pct:.2f}%)"
+    )
+    print()
+
+    # Extras for demo/testing to clarify rejections/errors
+    if mode == "demo":
+        orders_rejected = int(stats.get("orders_rejected", session_stats.get("orders_rejected", 0)))
+        orders_error = int(stats.get("orders_error", session_stats.get("orders_error", 0)))
+        rejection_reasons = stats.get("rejection_reasons", []) or []
+        rejected_due_to_open_pos = sum(
+            1 for r in rejection_reasons if isinstance(r, dict) and "Position already open" in str(r.get("reason", ""))
+        )
+        # Calculate other rejection reasons
+        other_rejections = max(0, orders_rejected - rejected_due_to_open_pos)
+        # Calculate total order attempts
+        order_attempts = session_stats.get("executed_trades", 0) + orders_rejected + orders_error
+        _ = order_attempts  # Prevent unused variable warning
+        print(
+            f"   Rechazos              : {orders_rejected} (pos. existente: {rejected_due_to_open_pos}, otros: {other_rejections})"
+        )
+        print(f"   Errores de orden      : {orders_error}")
+        print("-" * 59)
+    else:
+        print("-" * 59)
+
+
 async def run_backtest(player_module, data_file, max_candles, initial_balance=None):
     """
     Run backtest mode.
@@ -203,6 +324,7 @@ async def run_backtest(player_module, data_file, max_candles, initial_balance=No
           to avoid hardcoded defaults and ensure explicit balance control
     """
     logger.info("🎰 Starting BACKTEST mode")
+    from core.data_sources.backtest import BacktestDataSource
 
     # Create backtest data source
     if not data_file:
@@ -256,36 +378,8 @@ async def run_backtest(player_module, data_file, max_candles, initial_balance=No
             "rejection_reasons": session_stats.get("rejection_reasons", []),
         }
     )
-    print("\n" + "=" * 60)
-    print("📊 BACKTEST RESULTS")
-    print("=" * 60)
-    print(f"Initial Balance:  ${stats['initial_balance']:,.2f}")
-    print(f"Final Balance:    ${stats['final_balance']:,.2f}")
-    print(f"Final Equity:     ${stats['final_equity']:,.2f}")
-    print(f"Net PnL:          ${stats['net_pnl']:+,.2f}")
-    print(f"Total Fees:       ${stats['total_fees']:,.2f}")
-    print(f"Total Trades:     {stats['total_trades']}")
-    print(f"Wins:             {stats['wins']}")
-    print(f"Losses:           {stats['losses']}")
-    print(f"Win Rate:         {stats['win_rate']:.2%}")
-    print(f"Avg Win:          ${stats['avg_win']:+,.2f}")
-    print(f"Avg Loss:         ${stats['avg_loss']:+,.2f}")
-
-    # Show rejected/error orders
-    orders_rejected = stats.get("orders_rejected", 0)
-    orders_error = stats.get("orders_error", 0)
-    if orders_rejected > 0 or orders_error > 0:
-        print(f"\n⚠️  Orders Rejected:  {orders_rejected}")
-        print(f"❌ Orders Error:     {orders_error}")
-
-        # Show rejection reasons
-        rejection_reasons = stats.get("rejection_reasons", [])
-        if rejection_reasons:
-            print("\n📋 Rejection Details:")
-            for i, rejection in enumerate(rejection_reasons, 1):
-                print(f"  {i}. Candle #{rejection['candle']}: {rejection['reason']}")
-
-    print("=" * 60 + "\n")
+    # Unified human-readable summary
+    _print_human_summary("backtest", stats, session_stats)
 
     # Save results to JSON for validation
     save_results_json(
@@ -354,7 +448,7 @@ async def run_demo(player_module, symbol, interval, max_candles, exchange=None, 
     elif exchange_name == "BINANCE":
         from exchanges.connectors.binance import BinanceConnector
 
-        base_connector = BinanceConnector(mode="testnet")
+        base_connector = BinanceConnector(mode="demo", enable_websocket=True)
     else:
         raise ValueError(f"Exchange {exchange_name} not supported in demo mode")
 
@@ -394,12 +488,30 @@ async def run_demo(player_module, symbol, interval, max_candles, exchange=None, 
     try:
         session_stats = await session.run()
     finally:
-        # Cleanup: Close data source connection
+        # Cleanup: Close data source connection and adapter/connector
         try:
             await source.disconnect()
             logger.info("🔌 Data source disconnected")
         except Exception as e:
             logger.warning(f"⚠️ Error closing data source: {e}")
+
+        # End-of-session forced cleanup for demo: cancel TP/SL and close open positions
+        try:
+            await _force_close_open_positions_and_orders(connector, croupier, symbol)
+        except Exception as e:
+            logger.warning(f"⚠️ Demo end-session cleanup error: {e}")
+
+        try:
+            # Close adapter (will close underlying connector + ccxt resources)
+            await adapter.close()
+        except Exception as e:
+            logger.warning(f"⚠️ Error closing adapter: {e}")
+
+        # Small drain to let aiohttp/ccxt settle
+        try:
+            await asyncio.sleep(0.5)
+        except Exception:
+            pass
 
     # Show final stats - combine session stats with data source stats
     stats = await source.get_stats()
@@ -412,31 +524,20 @@ async def run_demo(player_module, symbol, interval, max_candles, exchange=None, 
             "rejection_reasons": session_stats.get("rejection_reasons", []),
         }
     )
-    print("\n" + "=" * 60)
-    print("📊 TESTING RESULTS")
-    print("=" * 60)
-    print(f"Initial Balance:  ${stats['initial_balance']:,.2f}")
-    print(f"Final Balance:    ${stats['final_balance']:,.2f}")
-    print(f"Final Equity:     ${stats['final_equity']:,.2f}")
-    print(f"Net PnL:          ${stats['total_pnl']:+,.2f}")
-    print(f"Total Trades:     {stats['total_trades']}")
-    print(f"Open Positions:   {stats['open_positions']}")
 
-    # Show rejected/error orders
-    orders_rejected = stats.get("orders_rejected", 0)
-    orders_error = stats.get("orders_error", 0)
-    if orders_rejected > 0 or orders_error > 0:
-        print(f"\n⚠️  Orders Rejected:  {orders_rejected}")
-        print(f"❌ Orders Error:     {orders_error}")
+    # Derived metrics for clearer reporting in demo mode
+    _ = int(stats.get("total_trades", 0))  # executed_trades
+    # Calculate rejection reasons for the summary
+    _ = stats.get("orders_rejected", 0)  # orders_rejected
+    _ = stats.get("orders_error", 0)  # orders_error
+    rejection_reasons = stats.get("rejection_reasons", []) or []
+    _ = sum(  # rejected_due_to_open_pos
+        1 for r in rejection_reasons if isinstance(r, dict) and "Position already open" in str(r.get("reason", ""))
+    )
+    _ = stats.get("executed_trades", 0)  # executed_trades
 
-        # Show rejection reasons
-        rejection_reasons = stats.get("rejection_reasons", [])
-        if rejection_reasons:
-            print("\n📋 Rejection Details:")
-            for i, rejection in enumerate(rejection_reasons, 1):
-                print(f"  {i}. Candle #{rejection['candle']}: {rejection['reason']}")
-
-    print("=" * 60 + "\n")
+    # Unified human-readable summary (demo/testing)
+    _print_human_summary("demo", stats, session_stats)
 
     # Save results to JSON for validation
     save_results_json(
@@ -504,6 +605,8 @@ async def run_live(player_module, symbol, interval, max_candles, initial_balance
     )
 
     # Create live data source
+    from core.data_sources.live import LiveDataSource
+
     source = LiveDataSource(connector, symbol, interval)
 
     # Create session

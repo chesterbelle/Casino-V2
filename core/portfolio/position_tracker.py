@@ -118,6 +118,13 @@ class PositionTracker:
         """Calcula capital disponible (total - bloqueado)."""
         return max(0.0, total_equity - self.blocked_capital)
 
+    def get_position(self, trade_id: str) -> Optional["OpenPosition"]:
+        """Busca una posición por trade_id."""
+        for position in self.open_positions:
+            if position.trade_id == trade_id:
+                return position
+        return None
+
     def can_open_position(self, required_margin: float, available_equity: float) -> bool:
         """
         Verifica si se puede abrir una nueva posición.

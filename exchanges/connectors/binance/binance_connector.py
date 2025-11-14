@@ -9,7 +9,7 @@ Particularidades de Binance Futures:
     - TP/SL: Soporta stopPrice y stopLimitPrice en params
     - API: Moderna y bien documentada
     - Símbolos: "BTC/USD:USD" → "BTC/USDT:USDT"
-    - Testnet: testnet.binancefuture.com
+    - Testnet: demo.binancefuture.com
     - Live: fapi.binance.com
 
 Implementación de TP/SL (Binance-specific):
@@ -24,12 +24,12 @@ Implementación de TP/SL (Binance-specific):
 
 🔄 TESTNET vs LIVE:
 ================================================================================
-- Testnet: testnet.binancefuture.com (simulación con datos reales, sin riesgo)
+- Testnet: demo.binancefuture.com (simulación con datos reales, sin riesgo)
 - Live: fapi.binance.com (dinero real)
 
-El testnet de Binance Futures está activo y funcional.
-CCXT tiene un bug con la opción "testnet", pero se puede usar configurando
-manualmente las URLs del testnet.
+El demo de Binance Futures está activo y funcional.
+CCXT tiene un bug con la opción "demo", pero se puede usar configurando
+manualmente las URLs del demo.
 
 📚 Referencias:
     - Interface: exchanges/connectors/connector_base.py
@@ -64,8 +64,114 @@ from .binance_constants import normalize_symbol as normalize_binance_symbol
 from .binance_constants import symbol_to_binance_api_format
 
 # =========================================================
-# 🔧 CUSTOM CCXT CLASS FOR TESTNET
+# 🔧 CUSTOM CCXT CLASS FOR TESTNET WORKAROUND
 # =========================================================
+
+
+class BinanceTestnet(ccxt_async.binance):
+    """
+    Minimal workaround for Binance Futures Testnet.
+
+    The core issue is that CCXT's default binance class tries to call spot endpoints
+    which don't work with futures-only testnet API keys. This class simply redirects
+    all URLs to the testnet domain and disables problematic spot calls.
+    """
+
+    def describe(self):
+        """Override describe() to hard-code all API URLs to the testnet domain."""
+        return self.deep_extend(
+            super().describe(),
+            {
+                "urls": {
+                    "api": {
+                        # Main endpoints - redirect to futures
+                        "public": "https://testnet.binancefuture.com/fapi/v1",
+                        "private": "https://testnet.binancefuture.com/fapi/v1",
+                        # Futures endpoints
+                        "fapiPublic": "https://testnet.binancefuture.com/fapi/v1",
+                        "fapiPrivate": "https://testnet.binancefuture.com/fapi/v1",
+                        "fapiPublicV2": "https://testnet.binancefuture.com/fapi/v2",
+                        "fapiPrivateV2": "https://testnet.binancefuture.com/fapi/v2",
+                        "fapiPublicV3": "https://testnet.binancefuture.com/fapi/v3",
+                        "fapiPrivateV3": "https://testnet.binancefuture.com/fapi/v3",
+                        # Spot endpoints - redirect to futures to avoid auth errors
+                        "sapi": "https://testnet.binancefuture.com/fapi/v1",
+                        "sapiV2": "https://testnet.binancefuture.com/fapi/v2",
+                        "sapiV3": "https://testnet.binancefuture.com/fapi/v1",
+                        # Delivery endpoints - redirect to futures
+                        "dapiPublic": "https://testnet.binancefuture.com/fapi/v1",
+                        "dapiPrivate": "https://testnet.binancefuture.com/fapi/v1",
+                    }
+                }
+            },
+        )
+
+    async def fetch_currencies(self, params={}):
+        """Override to prevent failing calls to spot currency endpoints."""
+        return {}
+
+    async def fetch_markets(self, params={}):
+        """Override fetch_markets to ONLY fetch futures markets and avoid spot calls."""
+        try:
+            # Only fetch futures markets, skip spot/margin
+            response = await self.fapiPublicGetExchangeInfo(params)
+            markets = self.parse_markets(response["symbols"])
+            return markets
+        except Exception as e:
+            # If futures call fails, return empty to avoid cascading errors
+            print(f"⚠️ BinanceTestnet.fetch_markets failed: {e}")
+            return []
+
+    async def fetch_positions(self, symbols=None, params={}):
+        """Override fetch_positions to use futures endpoint and fix leverage parsing."""
+        await self.load_markets()
+        response = await self.fapiPrivateV2GetPositionRisk(params)
+
+        # Parse positions manually to ensure proper data types
+        positions = []
+        for position in response:
+            symbol_id = self.safe_string(position, "symbol")
+            # Find market by id
+            market = None
+            for s, m in self.markets.items():
+                if m["id"] == symbol_id:
+                    market = m
+                    break
+
+            if market is None:
+                continue
+
+            contracts = self.safe_number(position, "positionAmt")
+            if contracts == 0:
+                continue
+
+            # Ensure leverage is never None
+            leverage = self.safe_number(position, "leverage", 1.0)
+            if leverage is None or leverage == 0:
+                leverage = 1.0
+
+            positions.append(
+                {
+                    "info": position,
+                    "symbol": market["symbol"],
+                    "contracts": abs(contracts),
+                    "contractSize": self.safe_number(market, "contractSize", 1),
+                    "side": "long" if contracts > 0 else "short",
+                    "notional": self.safe_number(position, "notional"),
+                    "leverage": leverage,  # Ensure this is never None
+                    "unrealizedPnl": self.safe_number(position, "unRealizedProfit"),
+                    "percentage": None,
+                    "entryPrice": self.safe_number(position, "entryPrice"),
+                    "markPrice": self.safe_number(position, "markPrice"),
+                    "liquidationPrice": self.safe_number(position, "liquidationPrice"),
+                    "marginMode": self.safe_string_lower(position, "marginType"),
+                    "hedged": False,
+                    "timestamp": self.safe_integer(position, "updateTime"),
+                    "datetime": self.iso8601(self.safe_integer(position, "updateTime")),
+                }
+            )
+
+        return self.filter_by_array(positions, "symbol", symbols, False) if symbols else positions
 
 
 class BinanceTestnetPro(ccxtpro.binance):
@@ -74,6 +180,44 @@ class BinanceTestnetPro(ccxtpro.binance):
 
     This class extends CCXT Pro to support Binance Futures testnet WebSocket streams.
     """
+
+    def __init__(self, config={}):
+        """Initialize with currency setup to prevent KeyError issues."""
+        # CORRECCIÓN DE CONCURRENCIA: Asegurar config válido antes de super().__init__
+        if not isinstance(config, dict):
+            config = {}
+
+        # Validar credenciales ANTES de la inicialización
+        if not config.get("apiKey") or not config.get("secret"):
+            raise ValueError(
+                f"BinanceTestnetPro requires valid credentials. Got apiKey={bool(config.get('apiKey'))}, secret={bool(config.get('secret'))}"
+            )
+
+        super().__init__(config)
+
+        # CORRECCIÓN DE CONCURRENCIA: Deshabilitar snapshots automáticos que disparan
+        # llamadas REST (fetch_positions) desde ccxt.pro al iniciar WS
+        if hasattr(self, "options"):
+            self.options = self.deep_extend(
+                self.options or {},
+                {
+                    "watchPositions": {
+                        "fetchPositionsSnapshot": False,
+                        "awaitPositionsSnapshot": False,
+                    },
+                    # watchOrders usa set_positions_cache() que consulta opciones de watchPositions
+                    "watchOrders": {
+                        "fetchPositionsSnapshot": False,
+                        "awaitPositionsSnapshot": False,
+                    },
+                },
+            )
+
+        # Pre-populate currencies to prevent KeyError in currency_to_precision
+        self.currencies = {
+            "USDT": {"id": "USDT", "code": "USDT", "name": "Tether USD", "precision": 8, "type": "crypto"},
+            "BTC": {"id": "BTC", "code": "BTC", "name": "Bitcoin", "precision": 8, "type": "crypto"},
+        }
 
     def describe(self):
         """Override describe() to force testnet URLs for WebSocket endpoints."""
@@ -123,135 +267,60 @@ class BinanceTestnetPro(ccxtpro.binance):
             },
         )
 
+    async def fetch_currencies(self, params={}):
+        """Override to prevent failing calls to spot currency endpoints."""
+        # Retornar currencies básicas para evitar KeyError en WebSocket
+        return {
+            "USDT": {"id": "USDT", "code": "USDT", "name": "Tether USD", "precision": 8, "type": "crypto"},
+            "BTC": {"id": "BTC", "code": "BTC", "name": "Bitcoin", "precision": 8, "type": "crypto"},
+        }
+
     async def load_markets(self, reload=False, params={}):
         """Override load_markets to ONLY load futures markets."""
         markets = self.markets
         if not markets or reload:
             # Only fetch futures markets, skip spot/margin
             response = await self.fapiPublicGetExchangeInfo(params)
-            # Parse the response - use parent's parse_markets
             markets = self.parse_markets(response["symbols"])
-            # Store in correct format
             self.markets = self.index_by(markets, "symbol")
-            self.markets_by_id = self.index_by(markets, "id")
-            self.currencies_by_id = {}
-            self.currencies = {}
-        return markets
 
-    async def fetch_currencies(self, params={}):
-        """Override to avoid spot currency calls in futures testnet."""
-        # Return empty currencies for futures testnet
-        return {}
+            # Load currencies to prevent WebSocket KeyError
+            self.currencies = await self.fetch_currencies()
 
-    async def fetch_trading_fees(self, params={}):
-        """Override to avoid margin trading fees calls."""
-        # Return default futures fees
-        return {}
-
-
-class BinanceTestnet(ccxt_async.binance):
-    """
-    Custom Binance class that overrides URLs to point to testnet.
-
-    This is necessary because CCXT hardcodes URLs internally and ignores
-    the 'urls' config parameter for Binance Futures testnet.
-    """
-
-    def describe(self):
-        """Override describe() to force testnet URLs for ALL endpoints."""
-        testnet_base = "https://testnet.binancefuture.com"
-        return self.deep_extend(
-            super().describe(),
-            {
-                "urls": {
-                    "api": {
-                        # Main endpoints
-                        "public": f"{testnet_base}/fapi/v1",
-                        "private": f"{testnet_base}/fapi/v1",
-                        # Futures endpoints
-                        "fapiPublic": f"{testnet_base}/fapi/v1",
-                        "fapiPrivate": f"{testnet_base}/fapi/v1",
-                        "fapiPublicV2": f"{testnet_base}/fapi/v2",
-                        "fapiPrivateV2": f"{testnet_base}/fapi/v2",
-                        # Delivery endpoints
-                        "dapiPublic": f"{testnet_base}/dapi/v1",
-                        "dapiPrivate": f"{testnet_base}/dapi/v1",
-                        # SAPI endpoints (spot/margin) - redirect to futures testnet
-                        # These don't exist on testnet but we redirect to avoid errors
-                        "sapi": f"{testnet_base}/fapi/v1",
-                        "sapiV2": f"{testnet_base}/fapi/v2",
-                        "sapiV3": f"{testnet_base}/fapi/v1",
-                    }
-                }
-            },
-        )
+        return self.markets
 
     async def fetch_markets(self, params={}):
         """Override fetch_markets to ONLY fetch futures markets."""
-        # Only fetch futures markets, skip spot/margin
-        return await self.fapiPublicGetExchangeInfo(params)
-
-    async def load_markets(self, reload=False, params={}):
-        """Override load_markets to ONLY load futures markets."""
-        markets = self.markets
-        if not markets or reload:
-            response = await self.fetch_markets(params)
-            # Parse the response - use parent's parse_markets
+        try:
+            response = await self.fapiPublicGetExchangeInfo(params)
             markets = self.parse_markets(response["symbols"])
-            # Store in correct format
-            self.markets = self.index_by(markets, "symbol")
-            self.markets_by_id = self.index_by(markets, "id")
-            # Also store as list for safe_market lookups
-            self.symbols = [m["symbol"] for m in markets]
-            self.ids = [m["id"] for m in markets]
-            self.currencies_by_id = {}
-        return self.markets
-
-    async def fetch_balance(self, params={}):
-        """Override fetch_balance to ONLY call futures endpoints."""
-        # Direct call to futures balance endpoint
-        await self.load_markets()
-        response = await self.fapiPrivateV2GetAccount(params)
-
-        # Parse futures balance manually
-        result = {"info": response, "timestamp": None, "datetime": None}
-        balances = {}
-
-        if "assets" in response:
-            for asset in response["assets"]:
-                code = self.safe_currency_code(asset["asset"])
-                account = self.account()
-                account["free"] = self.safe_string(asset, "availableBalance")
-                account["used"] = self.safe_string(asset, "initialMargin")
-                account["total"] = self.safe_string(asset, "walletBalance")
-                balances[code] = account
-
-        result = self.safe_balance(self.extend(result, balances))
-        return result
+            return markets
+        except Exception as e:
+            print(f"⚠️ BinanceTestnetPro.fetch_markets failed: {e}")
+            return []
 
     async def fetch_positions(self, symbols=None, params={}):
-        """Override fetch_positions to use futures endpoint directly and parse manually."""
+        """Override fetch_positions to use futures V2 risk endpoint for testnet."""
         await self.load_markets()
+        # Use V2 endpoint which is stable on testnet
         response = await self.fapiPrivateV2GetPositionRisk(params)
 
-        # Parse positions manually to avoid safe_market KeyError
         positions = []
         for position in response:
             symbol_id = self.safe_string(position, "symbol")
-            # Find market by id
             market = None
             for s, m in self.markets.items():
                 if m["id"] == symbol_id:
                     market = m
                     break
-
             if market is None:
                 continue
-
             contracts = self.safe_number(position, "positionAmt")
             if contracts == 0:
                 continue
-
+            leverage = self.safe_number(position, "leverage", 1.0)
+            if leverage is None or leverage == 0:
+                leverage = 1.0
             positions.append(
                 {
                     "info": position,
@@ -260,7 +329,7 @@ class BinanceTestnet(ccxt_async.binance):
                     "contractSize": self.safe_number(market, "contractSize", 1),
                     "side": "long" if contracts > 0 else "short",
                     "notional": self.safe_number(position, "notional"),
-                    "leverage": self.safe_number(position, "leverage"),
+                    "leverage": leverage,
                     "unrealizedPnl": self.safe_number(position, "unRealizedProfit"),
                     "percentage": None,
                     "entryPrice": self.safe_number(position, "entryPrice"),
@@ -275,180 +344,6 @@ class BinanceTestnet(ccxt_async.binance):
 
         return self.filter_by_array(positions, "symbol", symbols, False) if symbols else positions
 
-    async def fetch_ticker(self, symbol, params={}):
-        """Override fetch_ticker to avoid safe_market issues."""
-        await self.load_markets()
-        market = self.market(symbol)
-        request = {"symbol": market["id"]}
-        response = await self.fapiPublicGetTicker24hr(self.extend(request, params))
-        # Parse manually to avoid safe_market KeyError
-        return {
-            "symbol": symbol,
-            "timestamp": self.safe_integer(response, "closeTime"),
-            "datetime": self.iso8601(self.safe_integer(response, "closeTime")),
-            "high": self.safe_number(response, "highPrice"),
-            "low": self.safe_number(response, "lowPrice"),
-            "bid": self.safe_number(response, "bidPrice"),
-            "ask": self.safe_number(response, "askPrice"),
-            "last": self.safe_number(response, "lastPrice"),
-            "close": self.safe_number(response, "lastPrice"),
-            "baseVolume": self.safe_number(response, "volume"),
-            "quoteVolume": self.safe_number(response, "quoteVolume"),
-            "info": response,
-        }
-
-    async def create_order(self, symbol, type, side, amount, price=None, params={}):
-        """Override create_order to avoid safe_market issues in parse_order."""
-        await self.load_markets()
-        market = self.market(symbol)
-
-        # Build request
-        request = {
-            "symbol": market["id"],
-            "side": side.upper(),
-            "type": type.upper(),
-        }
-
-        # Add quantity
-        request["quantity"] = self.amount_to_precision(symbol, amount)
-
-        # Add price for limit orders
-        if price is not None:
-            request["price"] = self.price_to_precision(symbol, price)
-
-        # Merge params
-        request = self.extend(request, params)
-
-        # Call appropriate endpoint
-        response = await self.fapiPrivatePostOrder(request)
-
-        # Parse manually to avoid safe_market KeyError
-        return {
-            "id": self.safe_string(response, "orderId"),
-            "clientOrderId": self.safe_string(response, "clientOrderId"),
-            "timestamp": self.safe_integer(response, "updateTime"),
-            "datetime": self.iso8601(self.safe_integer(response, "updateTime")),
-            "symbol": symbol,
-            "type": type,
-            "side": side,
-            "price": self.safe_number(response, "price"),
-            "amount": self.safe_number(response, "origQty"),
-            "filled": self.safe_number(response, "executedQty"),
-            "remaining": self.safe_number(response, "origQty") - self.safe_number(response, "executedQty"),
-            "status": self.parse_order_status(self.safe_string(response, "status")),
-            "info": response,
-        }
-
-    async def fetch_my_trades(self, symbol=None, since=None, limit=None, params={}):
-        """Override fetch_my_trades to avoid safe_market issues."""
-        await self.load_markets()
-        request = {}
-        market = None
-
-        if symbol is not None:
-            market = self.market(symbol)
-            request["symbol"] = market["id"]
-
-        if limit is not None:
-            request["limit"] = limit
-
-        if since is not None:
-            request["startTime"] = since
-
-        response = await self.fapiPrivateGetUserTrades(self.extend(request, params))
-
-        # Parse trades manually
-        trades = []
-        for trade in response:
-            trades.append(
-                {
-                    "id": self.safe_string(trade, "id"),
-                    "order": self.safe_string(trade, "orderId"),
-                    "timestamp": self.safe_integer(trade, "time"),
-                    "datetime": self.iso8601(self.safe_integer(trade, "time")),
-                    "symbol": symbol if symbol else self.safe_string(trade, "symbol"),
-                    "type": None,
-                    "side": self.safe_string_lower(trade, "side"),
-                    "price": self.safe_number(trade, "price"),
-                    "amount": self.safe_number(trade, "qty"),
-                    "cost": self.safe_number(trade, "quoteQty"),
-                    "fee": {
-                        "cost": self.safe_number(trade, "commission"),
-                        "currency": self.safe_string(trade, "commissionAsset"),
-                    },
-                    "info": trade,
-                }
-            )
-
-        return trades
-
-    async def fetch_open_orders(self, symbol=None, since=None, limit=None, params={}):
-        """Override fetch_open_orders to avoid safe_market issues."""
-        await self.load_markets()
-        request = {}
-
-        if symbol is not None:
-            market = self.market(symbol)
-            request["symbol"] = market["id"]
-
-        response = await self.fapiPrivateGetOpenOrders(self.extend(request, params))
-
-        # Parse orders manually
-        orders = []
-        for order in response:
-            orders.append(
-                {
-                    "id": self.safe_string(order, "orderId"),
-                    "clientOrderId": self.safe_string(order, "clientOrderId"),
-                    "timestamp": self.safe_integer(order, "time"),
-                    "datetime": self.iso8601(self.safe_integer(order, "time")),
-                    "symbol": symbol if symbol else self.safe_string(order, "symbol"),
-                    "type": self.safe_string_lower(order, "type"),
-                    "side": self.safe_string_lower(order, "side"),
-                    "price": self.safe_number(order, "price"),
-                    "amount": self.safe_number(order, "origQty"),
-                    "filled": self.safe_number(order, "executedQty"),
-                    "remaining": self.safe_number(order, "origQty") - self.safe_number(order, "executedQty"),
-                    "status": self.parse_order_status(self.safe_string(order, "status")),
-                    "info": order,
-                }
-            )
-
-        return orders
-
-    async def cancel_order(self, id, symbol=None, params={}):
-        """Override cancel_order to avoid safe_market issues."""
-        await self.load_markets()
-
-        if symbol is None:
-            raise ValueError("cancel_order() requires a symbol argument")
-
-        market = self.market(symbol)
-        request = {
-            "symbol": market["id"],
-            "orderId": id,
-        }
-
-        response = await self.fapiPrivateDeleteOrder(self.extend(request, params))
-
-        return {
-            "id": self.safe_string(response, "orderId"),
-            "symbol": symbol,
-            "status": "canceled",
-            "info": response,
-        }
-
-    async def fapiPrivateV3GetOrder(self, params={}):
-        """
-        Direct API call to get order details from Binance Futures API v3.
-        This method is used as a fallback when CCXT's fetch_order fails.
-        """
-        if "symbol" not in params or "orderId" not in params:
-            raise ValueError("fapiPrivateV3GetOrder requires 'symbol' and 'orderId' parameters")
-
-        # Use the private API endpoint directly
-        return await self.fapiPrivateGetOrder(params)
-
 
 class BinanceConnector(BaseConnector):
     """
@@ -458,20 +353,15 @@ class BinanceConnector(BaseConnector):
     including REST and WebSocket connections.
 
     Testnet vs Live:
-    - testnet: Binance Futures Testnet (simulated trading)
+    - demo: Binance Futures Testnet (simulated trading)
     - live: Binance Futures Production (real money)
-
-    TP/SL Implementation:
-    - Binance requires 3 separate orders (main + TP + SL)
-    - Similar to Kraken, but with different order types
-    - Uses TAKE_PROFIT_MARKET and STOP_MARKET order types
     """
 
     def __init__(
         self,
         api_key: Optional[str] = None,
         secret: Optional[str] = None,
-        mode: Literal["testnet", "live"] = "testnet",
+        mode: Literal["demo", "live", "testnet"] = "demo",
         enable_websocket: bool = True,
     ):
         """
@@ -480,28 +370,35 @@ class BinanceConnector(BaseConnector):
         Args:
             api_key: Binance API key (optional, loaded from env if not provided)
             secret: Binance API secret (optional, loaded from env if not provided)
-            mode: "testnet" for testnet (recommended), "live" for production
+            mode: "demo" for demo (recommended), "live" for production
             enable_websocket: Enable WebSocket + OCO manual monitoring
-                            (default: True, auto-enabled in testnet since OCO doesn't work automatically)
+                            (default: False, auto-enabled in demo since OCO doesn't work automatically)
         """
         self.logger = logging.getLogger("BinanceConnector")
 
-        if mode not in {"testnet", "live"}:
+        if mode not in {"demo", "live"}:
             raise ValueError(f"Invalid mode for BinanceConnector: {mode}")
 
         self._mode = mode
-        self._testnet = mode == "testnet"
+        self._demo = mode == "demo"
 
         # TEMPORARY: Disable auto-enable WebSocket due to CCXT Pro concurrency issues
         # Auto-enable WebSocket + OCO manual in testnet (OCO doesn't work automatically)
-        if self._testnet and not enable_websocket:
-            self.logger.warning(
-                "🧪 Testnet detected - WebSocket DISABLED due to CCXT Pro concurrency issues (KeyError: 0)"
+        if self._demo and not enable_websocket:
+            self.logger.info(
+                "🧪 Testnet detected - Auto-enabling WebSocket + OCO manual (OCO doesn't work automatically in testnet)"
             )
-            self.logger.warning("   OCO Manual will use REST polling instead of WebSocket")
-            self.enable_websocket = False  # TEMPORARY: Disable to avoid CCXT Pro bugs
+            self.enable_websocket = True
         else:
             self.enable_websocket = enable_websocket
+            if self.enable_websocket:
+                self.logger.info(
+                    "ℹ️ WebSocket habilitado: ccxt.pro puede tener bugs de concurrencia. Se aplicaron mitigaciones (pre-auth, sin snapshots, espejado de markets)."
+                )
+            else:
+                self.logger.info(
+                    "🔌 WebSocket está deshabilitado. Se usará sondeo REST para el monitoreo de órdenes OCO."
+                )
 
         if mode == "live":
             self.logger.warning("=" * 60)
@@ -518,7 +415,7 @@ class BinanceConnector(BaseConnector):
         if not api_key or not secret:
             raise ValueError(
                 "Binance API credentials not provided and not found in environment. "
-                "Set BINANCE_TESTNET_API_KEY and BINANCE_TESTNET_SECRET (or BINANCE_API_KEY/BINANCE_SECRET for live) "
+                "Set BINANCE_DEMO_API_KEY and BINANCE_DEMO_SECRET (or BINANCE_API_KEY/BINANCE_SECRET for live) "
                 "in your environment."
             )
 
@@ -533,18 +430,39 @@ class BinanceConnector(BaseConnector):
         config["secret"] = secret
 
         # CRÍTICO: Configurar opciones para evitar problemas de auth
-        config["options"]["fetchCurrencies"] = False
-        config["options"]["recvWindow"] = 60000
-        config["options"]["warnOnFetchOpenOrdersWithoutSymbol"] = False
+        # Set default type to future for all connections
+        config["options"]["defaultType"] = "future"
 
-        # Crear exchange - usar clase custom para testnet
-        if self._testnet:
-            # Usar BinanceTestnet que sobrescribe describe() para forzar URLs de testnet
+        # Initialize locks BEFORE creating the exchange instance
+        # This is critical because the monkey-patching code needs to reference these locks
+        self._markets_lock = asyncio.Lock()  # Prevent concurrent market loading
+        self._oco_lock = asyncio.Lock()  # Prevent concurrent modifications (Hummingbot pattern)
+        self._ccxt_lock = asyncio.Lock()  # Protect CCXT internal state
+
+        # Use the custom class for demo mode to apply the URL workaround
+        if self._demo:
+            self.logger.info("🧪 Testnet mode enabled. Using custom BinanceTestnet class.")
             self.exchange = BinanceTestnet(config)
-            self.logger.info("🧪 Testnet mode enabled with custom BinanceTestnet class")
         else:
-            # Usar clase estándar de CCXT para live
             self.exchange = ccxt_async.binance(config)
+
+        # MONKEY-PATCH: Override the ccxt instance's load_markets with a thread-safe version
+        # This is the canonical way to fix CCXT's concurrency issues.
+        # Since BinanceTestnet doesn't override load_markets, we can use the instance method for both
+        original_load_markets = self.exchange.load_markets
+
+        async def load_markets_safe(reload=False, params={}):
+            async with self._markets_lock:
+                if not reload and self.exchange.markets:
+                    return self.exchange.markets
+
+                # Call the original method normally
+                await original_load_markets(reload, params)
+
+            return self.exchange.markets
+
+        # Replace the instance method with our thread-safe version
+        self.exchange.load_markets = load_markets_safe
 
         self._connected = False
         self._ready = False
@@ -554,15 +472,15 @@ class BinanceConnector(BaseConnector):
         self._ws_connected = False
         self._order_monitor_task = None
         self._active_orders = {}  # Track TP/SL orders for OCO
-        self._oco_lock = asyncio.Lock()  # Prevent concurrent modifications (Hummingbot pattern)
+
+        # Concurrency locks
+        self._ccxt_lock = asyncio.Lock()
+        self._oco_lock = asyncio.Lock()
 
         # HUMMINGBOT CLOCK PATTERN: Central clock coordinates all tasks
         self._clock_task = None
         self._clock_running = False
         self._last_tick = 0
-
-        # CCXT CONCURRENCY PROTECTION: Protect all CCXT calls from concurrent access
-        self._ccxt_lock = asyncio.Lock()  # Protect CCXT internal state
 
         if self.enable_websocket:
             self.logger.info("🔌 WebSocket enabled - will initialize on connect()")
@@ -574,12 +492,13 @@ class BinanceConnector(BaseConnector):
     # =========================================================
 
     async def _safe_ccxt_call(self, method_name: str, *args, **kwargs):
-        """
-        Safely execute CCXT method with concurrency protection.
-        Prevents KeyError: 0 and other concurrency issues in CCXT internal state.
-        """
+        """Safely execute a method with concurrency protection."""
         async with self._ccxt_lock:
-            method = getattr(self.exchange, method_name)
+            # Try to get the method from the ccxt exchange instance first
+            method = getattr(self.exchange, method_name, None)
+            # If not found, try to get it from the connector instance itself
+            if method is None:
+                method = getattr(self, method_name)
             return await method(*args, **kwargs)
 
     # =========================================================
@@ -637,10 +556,10 @@ class BinanceConnector(BaseConnector):
         Returns:
             Dict with apiKey and secret
         """
-        if self._testnet:
-            # Load testnet credentials
-            api_key = os.getenv("BINANCE_TESTNET_API_KEY")
-            secret = os.getenv("BINANCE_TESTNET_SECRET")
+        if self._demo:
+            # Load demo credentials
+            api_key = os.getenv("BINANCE_DEMO_API_KEY") or os.getenv("BINANCE_TESTNET_API_KEY")
+            secret = os.getenv("BINANCE_DEMO_SECRET") or os.getenv("BINANCE_TESTNET_SECRET")
         else:
             # Load live credentials
             api_key = os.getenv("BINANCE_API_KEY") or os.getenv("BINANCE_FUTURES_API_KEY")
@@ -664,14 +583,9 @@ class BinanceConnector(BaseConnector):
         try:
             self.logger.info("🔌 Connecting to Binance Futures...")
 
-            # Try to load markets - if fails, continue anyway
-            try:
-                # PROTECTED: Prevent CCXT concurrent access
-                await self._safe_ccxt_call("load_markets")
-                self.logger.info(f"✅ Markets loaded | Count: {len(self.exchange.markets)}")
-            except Exception as market_error:
-                self.logger.warning(f"⚠️  Could not load markets: {market_error}")
-                self.logger.warning("⚠️  Continuing without market data (will fetch on demand)")
+            # Eager load markets to prevent race conditions
+            await self._safe_ccxt_call("load_markets")
+            self.logger.info(f"✅ Markets loaded | Count: {len(self.exchange.markets)}")
 
             # Try to fetch balance to validate credentials
             try:
@@ -680,27 +594,51 @@ class BinanceConnector(BaseConnector):
                 usdt_balance = balance.get("total", {}).get(BASE_CURRENCY, 0)
                 self.logger.info(f"✅ Balance fetched | {BASE_CURRENCY}: {usdt_balance}")
             except Exception as balance_error:
-                self.logger.warning(f"⚠️  Could not fetch balance: {balance_error}")
-                self.logger.warning("⚠️  API keys may need specific permissions enabled")
-                self.logger.warning("⚠️  Required: Enable Reading + Futures Trading permissions")
+                if "Invalid API-key" in str(balance_error):
+                    self.logger.error(f"❌ Invalid API credentials: {balance_error}")
+                    self.logger.error("🔑 Please check your API keys in .env file")
+                    self.logger.error("📝 Required permissions: Futures Trading + Reading")
+                    raise  # Re-raise authentication errors as they are critical
+                else:
+                    self.logger.warning(f"⚠️  Could not fetch balance: {balance_error}")
+                    self.logger.warning("⚠️  API keys may need specific permissions enabled")
+                    self.logger.warning("⚠️  Required: Enable Reading + Futures Trading permissions")
 
             self._connected = True
             self._ready = True
 
             # Start WebSocket monitoring if enabled
             if self.enable_websocket:
-                # CORRECCIÓN CRÍTICA: Inicializar WebSocket ANTES de crear tasks
-                await self._init_websocket()
+                try:
+                    # CORRECCIÓN DE CONCURRENCIA: Inicializar WebSocket de forma secuencial
+                    self.logger.info("🔌 Starting WebSocket initialization...")
 
-                if self._ws_connected:  # Solo crear tasks si WebSocket está conectado
-                    self._ws_task = asyncio.create_task(self._monitor_orders())
-                    self.logger.info("👁️ Order monitoring started")
-                else:
-                    self.logger.warning("⚠️ WebSocket failed to connect, falling back to REST-only")
+                    # Esperar un poco para asegurar que el REST exchange esté completamente listo
+                    await asyncio.sleep(0.1)
 
-                # OCO Manual INDEPENDIENTE del WebSocket (usa self._connected)
-                self._oco_task = asyncio.create_task(self._oco_monitor_loop())
-                self.logger.info("🎯 OCO Manual monitoring started (independent task)")
+                    await self._init_websocket()
+
+                    if self._ws_connected:  # Solo crear tasks si WebSocket está conectado
+                        self._ws_task = asyncio.create_task(self._monitor_orders())
+                        # Agregar callback para manejar excepciones no capturadas
+                        self._ws_task.add_done_callback(self._handle_task_exception)
+                        self.logger.info("👁️ Order monitoring started")
+                    else:
+                        self.logger.warning(
+                            "⚠️ WebSocket failed to connect, continuing without disabling WebSocket flag"
+                        )
+                except Exception as ws_error:
+                    self.logger.error(f"❌ WebSocket initialization failed: {ws_error}")
+                    self.logger.info("🔄 Continuing in REST mode while keeping WebSocket enabled for retries")
+
+                # Usar el bucle de sondeo REST para OCO solo si no hay reloj central
+                if not getattr(self, "_use_clock", False):
+                    try:
+                        self._oco_task = asyncio.create_task(self._oco_monitor_loop_rest())
+                        self._oco_task.add_done_callback(self._handle_task_exception)
+                        self.logger.info("🎯 OCO Manual monitoring started (independent task)")
+                    except Exception as oco_error:
+                        self.logger.error(f"❌ OCO task creation failed: {oco_error}")
 
             self.logger.info(f"✅ Binance connector ready | Mode: {self._mode.upper()}")
 
@@ -729,6 +667,119 @@ class BinanceConnector(BaseConnector):
     async def disconnect(self) -> None:
         """Alias for close() for compatibility."""
         await self.close()
+
+    async def _oco_monitor_loop_rest(self):
+        """
+        Monitors active TP/SL orders via REST polling for manual OCO execution.
+        This is a more stable alternative to the WebSocket-based monitor.
+        """
+        self.logger.info("🎯 OCO Manual (REST Polling): Starting monitoring loop")
+        while self._connected:
+            try:
+                await asyncio.sleep(5)  # Poll every 5 seconds
+
+                if not self._active_orders:
+                    continue
+
+                # Create a copy of symbols to check to avoid issues with concurrent modifications
+                symbols_to_check = list(self._active_orders.keys())
+
+                for symbol in symbols_to_check:
+                    if symbol not in self._active_orders:
+                        continue  # It might have been processed already
+
+                    # Fetch recent trades for the symbol
+                    trades = await self._safe_ccxt_call("fetch_my_trades", symbol=symbol, limit=10)
+                    if not trades:
+                        continue
+
+                    # Check if any of our active orders were filled
+                    filled_order_id = None
+                    for trade in trades:
+                        order_id = trade.get("order")
+                        if order_id in self._active_orders.get(symbol, {}):
+                            filled_order_id = order_id
+                            break
+
+                    if filled_order_id:
+                        await self._handle_oco_fill(symbol, filled_order_id)
+
+            except asyncio.CancelledError:
+                self.logger.info("🎯 OCO Manual (REST Polling): Monitoring loop cancelled.")
+                break
+            except Exception as e:
+                self.logger.error(f"❌ Error in OCO REST monitor: {e}")
+                await asyncio.sleep(20)  # Wait longer after an error
+
+        self.logger.info("🎯 OCO Manual (REST Polling): Monitoring loop stopped.")
+
+    async def _handle_oco_fill(self, symbol: str, filled_order_id: str):
+        """
+        Handles the fill of one order in an OCO pair by canceling the other.
+        """
+        async with self._oco_lock:
+            if symbol not in self._active_orders:
+                return
+
+            pair = self._active_orders[symbol]
+            other_order_id = None
+
+            if filled_order_id == pair.get("tp_id"):
+                other_order_id = pair.get("sl_id")
+                self.logger.info(f"✅ OCO: TP order {filled_order_id} filled for {symbol}.")
+            elif filled_order_id == pair.get("sl_id"):
+                other_order_id = pair.get("tp_id")
+                self.logger.info(f"✅ OCO: SL order {filled_order_id} filled for {symbol}.")
+
+            if other_order_id:
+                try:
+                    self.logger.info(f"Canceling sibling OCO order {other_order_id} for {symbol}...")
+                    await self._safe_ccxt_call("cancel_order", other_order_id, symbol)
+                    self.logger.info(f"✅ Sibling OCO order {other_order_id} canceled successfully.")
+                except Exception as e:
+                    # This can happen if the exchange already canceled it (race condition)
+                    self.logger.warning(f"⚠️  Could not cancel sibling OCO order {other_order_id}: {e}")
+
+            # Clean up the processed pair
+            del self._active_orders[symbol]
+            self.logger.info(f"🧹 OCO pair for {symbol} cleaned up.")
+
+    async def oco_monitor_tick(self) -> None:
+        """Single-pass OCO REST polling to be used by a central clock."""
+        if not self._connected:
+            return
+        if not self._active_orders:
+            return
+        symbols_to_check = list(self._active_orders.keys())
+        for symbol in symbols_to_check:
+            if symbol not in self._active_orders:
+                continue
+            try:
+                trades = await self._safe_ccxt_call("fetch_my_trades", symbol=symbol, limit=10)
+            except Exception:
+                continue
+            if not trades:
+                continue
+            filled_order_id = None
+            for trade in trades:
+                order_id = trade.get("order")
+                if order_id in self._active_orders.get(symbol, {}):
+                    filled_order_id = order_id
+                    break
+            if filled_order_id:
+                await self._handle_oco_fill(symbol, filled_order_id)
+
+    # =========================================================
+    # 🎯 OCO (ONE-CANCELS-THE-OTHER) MANAGEMENT
+    # =========================================================
+
+    async def register_oco_pair(self, symbol: str, tp_order_id: str, sl_order_id: str):
+        """
+        Registers a pair of TP/SL orders for manual OCO monitoring.
+        """
+        async with self._oco_lock:
+            self._active_orders[symbol] = {"tp_id": tp_order_id, "sl_id": sl_order_id}
+            self.logger.info(f"📝 OCO pair registered for {symbol}: TP={tp_order_id}, SL={sl_order_id}")
 
     # =========================================================
     # 🔄 SYMBOL NORMALIZATION
@@ -1051,6 +1102,9 @@ class BinanceConnector(BaseConnector):
             if sl_price and side == "sell" and sl_price <= price:
                 raise ValueError("SL must be greater than entry price for SELL orders")
 
+        # Debug logging for main order
+        self.logger.info(f"🔍 Creating main order: {order_type} {side} {amount} @ {price}")
+
         # Create main order
         main_order = await self.create_order(
             symbol=symbol,
@@ -1075,8 +1129,24 @@ class BinanceConnector(BaseConnector):
         tp_order_id = None
         if tp_price:
             try:
-                # Round TP price to correct precision
+                # Get fresh market data to avoid stale prices after delay
                 binance_symbol = self.normalize_symbol(symbol)
+                ticker = await self._safe_ccxt_call("fetch_ticker", binance_symbol)
+                current_price = ticker.get("last") or ticker.get("markPrice")
+
+                # Validate TP price against current market price
+                if side == "buy" and tp_price <= current_price * 1.001:  # 0.1% buffer
+                    self.logger.warning(
+                        f"⚠️ TP price too close to current price, adjusting: {tp_price} -> {current_price * 1.005}"
+                    )
+                    tp_price = current_price * 1.005
+                elif side == "sell" and tp_price >= current_price * 0.999:  # 0.1% buffer
+                    self.logger.warning(
+                        f"⚠️ TP price too close to current price, adjusting: {tp_price} -> {current_price * 0.995}"
+                    )
+                    tp_price = current_price * 0.995
+
+                # Round TP price to correct precision
                 tp_price_rounded = float(self.exchange.price_to_precision(binance_symbol, tp_price))
 
                 tp_params = {
@@ -1105,8 +1175,24 @@ class BinanceConnector(BaseConnector):
         sl_order_id = None
         if sl_price:
             try:
-                # Round SL price to correct precision
+                # Get fresh market data to avoid stale prices after delay
                 binance_symbol = self.normalize_symbol(symbol)
+                ticker = await self._safe_ccxt_call("fetch_ticker", binance_symbol)
+                current_price = ticker.get("last") or ticker.get("markPrice")
+
+                # Validate SL price against current market price
+                if side == "buy" and sl_price >= current_price * 0.999:  # 0.1% buffer
+                    self.logger.warning(
+                        f"⚠️ SL price too close to current price, adjusting: {sl_price} -> {current_price * 0.995}"
+                    )
+                    sl_price = current_price * 0.995
+                elif side == "sell" and sl_price <= current_price * 1.001:  # 0.1% buffer
+                    self.logger.warning(
+                        f"⚠️ SL price too close to current price, adjusting: {sl_price} -> {current_price * 1.005}"
+                    )
+                    sl_price = current_price * 1.005
+
+                # Round SL price to correct precision
                 sl_price_rounded = float(self.exchange.price_to_precision(binance_symbol, sl_price))
 
                 sl_params = {
@@ -1162,9 +1248,11 @@ class BinanceConnector(BaseConnector):
             f"SL: {sl_price or 'None'}"
         )
 
-        # Add TP/SL prices to result for backtest compatibility
+        # Add TP/SL prices and order IDs to result for backtest compatibility and position tracking
         main_order["tp_price"] = tp_price
         main_order["sl_price"] = sl_price
+        main_order["tp_order_id"] = tp_order_id
+        main_order["sl_order_id"] = sl_order_id
 
         return main_order
 
@@ -1213,13 +1301,14 @@ class BinanceConnector(BaseConnector):
             self.logger.error(f"❌ Error fetching open orders: {e}")
             raise
 
-    async def cancel_order(self, order_id: str, symbol: str) -> Dict[str, Any]:
+    async def cancel_order(self, order_id: str, symbol: str, params: Optional[Dict] = None) -> Dict[str, Any]:
         """
         Cancel an order on Binance.
 
         Args:
             order_id: Order ID
             symbol: Trading pair symbol
+            params: Additional parameters (optional)
 
         Returns:
             Cancellation result
@@ -1364,13 +1453,18 @@ class BinanceConnector(BaseConnector):
             List of trades
         """
         try:
-            binance_symbol = self.normalize_symbol(symbol) if symbol else None
+            # Si no se especifica symbol, retornar lista vacía en lugar de fallar
+            if symbol is None:
+                self.logger.debug("📊 No symbol specified for trades, returning empty list")
+                return []
+
+            binance_symbol = self.normalize_symbol(symbol)
             trades = await self.exchange.fetch_my_trades(binance_symbol, since=since, limit=limit)
             self.logger.debug(f"📊 Trades fetched: {len(trades)}")
             return trades
         except Exception as e:
             self.logger.error(f"❌ Error fetching trades: {e}")
-            raise
+            return []  # Retornar lista vacía en lugar de raise para no romper el flujo
 
     def normalize_trade(self, raw_trade: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -1475,22 +1569,43 @@ class BinanceConnector(BaseConnector):
         try:
             self.logger.info("🔌 Initializing WebSocket connection...")
 
-            # Create CCXT Pro exchange instance
-            config = {
-                "apiKey": self._api_key,
-                "secret": self._secret,
-                "options": {
-                    "defaultType": "future",
-                    "recvWindow": 60000,
-                },
-            }
+            # Create CCXT Pro exchange
+            config = BINANCE_DEFAULT_CONFIG.copy()
+            config["apiKey"] = self._api_key
+            config["secret"] = self._secret
+            config["options"]["defaultType"] = "future"
 
-            # Use custom class for testnet, standard for live
-            if self._testnet:
+            # CRÍTICO: Asegurar que las credenciales están presentes
+            if not config["apiKey"] or not config["secret"]:
+                raise ValueError("WebSocket requires valid API credentials")
+
+            # Use custom class for demo, standard for live
+            if self._demo:
                 self.ws_exchange = BinanceTestnetPro(config)
-                self.logger.info("🧪 Using BinanceTestnetPro for WebSocket testnet")
+                self.logger.info(f"🧪 Using BinanceTestnetPro for WebSocket demo (API: {config['apiKey'][:8]}...)")
             else:
                 self.ws_exchange = ccxtpro.binance(config)
+
+            # Evitar condiciones de carrera: reutilizar markets y currencies del REST
+            try:
+                if getattr(self.exchange, "markets", None):
+                    self.ws_exchange.markets = self.exchange.markets
+                    # Mirror derived CCXT indexes to avoid ccxt.pro trying to compute them concurrently
+                    if getattr(self.exchange, "markets_by_id", None):
+                        self.ws_exchange.markets_by_id = self.exchange.markets_by_id
+                    if getattr(self.exchange, "symbols", None):
+                        self.ws_exchange.symbols = self.exchange.symbols
+                if getattr(self.exchange, "currencies", None):
+                    self.ws_exchange.currencies = self.exchange.currencies
+            except Exception as e:
+                self.logger.warning(f"⚠️ Could not mirror markets/currencies to WS exchange: {e}")
+
+            # Pre-authenticate WS to provision listenKey and avoid internal snapshot/auth races
+            try:
+                await self.ws_exchange.authenticate({"type": "future"})
+                self.logger.info("🔑 WebSocket authenticated and listenKey provisioned (future)")
+            except Exception as auth_e:
+                self.logger.warning(f"⚠️ WS pre-authenticate failed (will retry on first watch): {auth_e}")
 
             # Start order monitoring task
             if not self._order_monitor_task or self._order_monitor_task.done():
@@ -1541,19 +1656,51 @@ class BinanceConnector(BaseConnector):
         except Exception as e:
             self.logger.warning(f"⚠️ Error closing WebSocket: {e}")
 
+    async def ensure_websocket(self) -> None:
+        """Public method to (re)initialize WebSocket if enabled but not connected.
+
+        Fail fast: raises on initialization failure so upper layers can decide recovery.
+        """
+        if not getattr(self, "enable_websocket", False):
+            return
+        # If already connected, nothing to do
+        if getattr(self, "_ws_connected", False) and self.ws_exchange is not None:
+            return
+        # Try to init WS
+        await self._init_websocket()
+
     async def _monitor_orders(self) -> None:
         """Monitor order updates via WebSocket."""
         try:
             while self._ws_connected:
                 try:
-                    # Watch for order updates
-                    orders = await self.ws_exchange.watch_orders()
+                    # Watch for order updates (explicitly use futures stream)
+                    orders = await self.ws_exchange.watch_orders(None, None, None, {"type": "future"})
+
+                    # Debug: Log what we received (use info for visibility)
+                    self.logger.info(
+                        f"🔍 watch_orders() returned: type={type(orders)}, length={len(orders) if isinstance(orders, list) else 'N/A'}"
+                    )
+
+                    # Validar que orders es una lista
+                    if not isinstance(orders, list):
+                        self.logger.warning(f"⚠️ watch_orders() returned non-list: {type(orders)}, data={orders}")
+                        continue
 
                     for order in orders:
+                        # Validar que order es un diccionario
+                        if not isinstance(order, dict):
+                            self.logger.warning(f"⚠️ Order is not a dict: {type(order)}, data={order}")
+                            continue
+
                         await self._handle_order_update(order)
 
                 except Exception as e:
                     self.logger.error(f"❌ WebSocket order monitoring error: {e}")
+                    # Log the full traceback for debugging
+                    import traceback
+
+                    self.logger.error(f"❌ Full traceback: {traceback.format_exc()}")
                     await asyncio.sleep(1)
 
         except Exception as e:
@@ -1593,13 +1740,23 @@ class BinanceConnector(BaseConnector):
     async def _handle_order_update(self, order: Dict[str, Any]) -> None:
         """Handle real-time order updates for OCO management."""
         try:
+            # Validar campos requeridos
+            if not isinstance(order, dict):
+                self.logger.warning(f"⚠️ Order is not a dict: {type(order)}")
+                return
+
             order_id = order.get("id")
             symbol = order.get("symbol")
             status = order.get("status")
             order_type = order.get("type", "")
 
+            # Validar que tenemos los campos mínimos
+            if not order_id or not symbol:
+                self.logger.debug(f"⚠️ Order missing required fields: id={order_id}, symbol={symbol}")
+                return
+
             # Only handle TP/SL orders
-            if not any(tp_sl in order_type.upper() for tp_sl in ["TAKE_PROFIT", "STOP"]):
+            if not order_type or not any(tp_sl in order_type.upper() for tp_sl in ["TAKE_PROFIT", "STOP"]):
                 return
 
             self.logger.debug(f"📋 Order update: {order_id} {order_type} {status}")
@@ -1635,6 +1792,16 @@ class BinanceConnector(BaseConnector):
 
         except Exception as e:
             self.logger.error(f"❌ Error handling TP/SL execution: {e}")
+
+    def _handle_task_exception(self, task: asyncio.Task) -> None:
+        """Handle exceptions from background tasks to prevent 'Future exception was never retrieved'."""
+        try:
+            if task.done() and not task.cancelled():
+                exception = task.exception()
+                if exception:
+                    self.logger.error(f"❌ Background task failed: {exception}")
+        except Exception as e:
+            self.logger.error(f"❌ Error handling task exception: {e}")
 
     async def _register_tpsl_pair(self, symbol: str, tp_order_id: str, sl_order_id: str) -> None:
         """Register TP/SL order pair for OCO monitoring."""

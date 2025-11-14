@@ -44,6 +44,9 @@ EXCHANGE_PROFILE = "kraken_futures_demo"
 SYMBOL = "BTC/USD"
 TIMEFRAME = "15m"
 
+# Moneda base para cálculos de balance y PnL
+BASE_CURRENCY = "USDT"
+
 
 # =====================================================
 # KRAKEN FUTURES — PARÁMETROS DEMO/LIVE
