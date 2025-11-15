@@ -295,6 +295,17 @@ class Croupier:
 
         try:
             entry_price = main_result.get("price", 0.0)
+
+            # Si entry_price es 0, obtener el precio actual del mercado
+            if not entry_price:
+                try:
+                    ticker = await self.exchange_adapter.fetch_ticker(order.get("symbol"))
+                    entry_price = ticker.get("last", 0.0)
+                    if entry_price:
+                        self.logger.info(f"📊 Using current market price as entry: ${entry_price:.2f}")
+                except Exception as e:
+                    self.logger.warning(f"⚠️ Could not get current price: {e}")
+
             if not entry_price:
                 self.logger.warning("⚠️ No entry price available for TP/SL calculation")
                 return None, None
