@@ -116,48 +116,18 @@ class SimulatedAdapter:
                 f"SL mult: {sl_mult} → {sl_price}"
             )
 
-            # 6. Execute main order via connector (call sync version for backtest)
+            # 6. Execute via connector (call sync version for backtest)
+            # NOTE: In backtest, we only create the main order
+            # TP/SL are handled by PositionTracker in "simulation" mode
             result = self.connector.create_order_sync(
                 symbol=order.get("symbol", self.symbol),
                 side=side,
                 amount=amount,
             )
 
-            # 7. Create TP/SL orders if specified (OCO Manual in backtest)
-            tp_order_id = None
-            sl_order_id = None
-
-            close_side = "sell" if side == "buy" else "buy"
-
-            if tp_price:
-                try:
-                    tp_result = self.connector.create_order_sync(
-                        symbol=order.get("symbol", self.symbol),
-                        side=close_side,
-                        amount=amount,
-                        order_type="limit",
-                        price=tp_price,
-                    )
-                    tp_order_id = tp_result.get("id")
-                    self.logger.debug(f"  TP order created: {tp_order_id} @ {tp_price:.2f}")
-                except Exception as e:
-                    self.logger.warning(f"  Failed to create TP order: {e}")
-
-            if sl_price:
-                try:
-                    sl_result = self.connector.create_order_sync(
-                        symbol=order.get("symbol", self.symbol),
-                        side=close_side,
-                        amount=amount,
-                        order_type="limit",
-                        price=sl_price,
-                    )
-                    sl_order_id = sl_result.get("id")
-                    self.logger.debug(f"  SL order created: {sl_order_id} @ {sl_price:.2f}")
-                except Exception as e:
-                    self.logger.warning(f"  Failed to create SL order: {e}")
-
-            # 8. Format result for Croupier
+            # 7. Format result for Croupier
+            # NOTE: tp_order_id and sl_order_id are None in backtest
+            # PositionTracker will handle TP/SL detection in simulation mode
             return {
                 "status": "opened",
                 "trade_id": order.get("trade_id"),
@@ -168,8 +138,8 @@ class SimulatedAdapter:
                 "fee": result["fee"]["cost"],
                 "tp_price": tp_price,
                 "sl_price": sl_price,
-                "tp_order_id": tp_order_id,
-                "sl_order_id": sl_order_id,
+                "tp_order_id": None,  # Not created in backtest
+                "sl_order_id": None,  # Not created in backtest
                 "timestamp": result["timestamp"],
             }
 
