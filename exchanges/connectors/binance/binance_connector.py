@@ -890,13 +890,21 @@ class BinanceConnector(BaseConnector):
             )
 
             # Normalize response
+            # For market orders, calculate price from cost/filled
+            order_price = float(order.get("price") or 0)
+            if order_price == 0 and order_type.lower() == "market":
+                filled = float(order.get("filled") or 0)
+                cost = float(order.get("cost") or 0)
+                if filled > 0 and cost > 0:
+                    order_price = cost / filled
+
             normalized = {
                 "id": order.get("id"),
                 "symbol": symbol,  # Return in bot format
                 "side": side.lower(),
                 "type": order_type,
                 "status": order.get("status"),
-                "price": float(order.get("price") or 0),
+                "price": order_price,
                 "amount": float(order.get("amount") or 0),
                 "filled": float(order.get("filled") or 0),
                 "remaining": float(order.get("remaining") or 0),
