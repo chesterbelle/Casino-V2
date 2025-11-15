@@ -571,11 +571,13 @@ class PositionTracker:
         self.blocked_capital -= position.margin_used
         self.total_trades_closed += 1
 
-        # Track wins/losses
-        if pnl > 0:
+        # Track wins/losses based on exit reason (TP = win, SL = loss)
+        # This measures if the prediction was correct, not if we made money
+        if exit_reason == "TP":
             self.total_wins += 1
-        else:
+        elif exit_reason == "SL":
             self.total_losses += 1
+        # Other reasons (MANUAL, IMMEDIATE_CLOSE, END_SESSION) don't count as wins/losses
 
         logger.info(
             f"✅ CONFIRMED CLOSE | {position.symbol} {position.side} | "
