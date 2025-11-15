@@ -114,6 +114,8 @@ class PositionTracker:
         self.max_concurrent_positions = max_concurrent_positions
         self.total_trades_opened = 0
         self.total_trades_closed = 0
+        self.total_wins = 0  # Track wins
+        self.total_losses = 0  # Track losses
 
         # NUEVO v1.9.1: Modo de operación
         self.mode = mode
@@ -569,6 +571,12 @@ class PositionTracker:
         self.blocked_capital -= position.margin_used
         self.total_trades_closed += 1
 
+        # Track wins/losses
+        if pnl > 0:
+            self.total_wins += 1
+        else:
+            self.total_losses += 1
+
         logger.info(
             f"✅ CONFIRMED CLOSE | {position.symbol} {position.side} | "
             f"Exit: {exit_price:.2f} ({exit_reason}) | "
@@ -584,6 +592,8 @@ class PositionTracker:
             "blocked_capital": self.blocked_capital,
             "total_opened": self.total_trades_opened,
             "total_closed": self.total_trades_closed,
+            "total_wins": self.total_wins,
+            "total_losses": self.total_losses,
             "max_concurrent": self.max_concurrent_positions,
         }
 

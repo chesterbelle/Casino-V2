@@ -106,6 +106,8 @@ class Croupier:
             "open_positions_count": len(self.get_open_positions()),
             "open_positions": self.get_open_positions(),
             "total_trades": tracker_stats.get("total_closed", 0),
+            "wins": tracker_stats.get("total_wins", 0),
+            "losses": tracker_stats.get("total_losses", 0),
         }
 
     # ========================================

@@ -170,6 +170,8 @@ class TestingDataSource(DataSource):
             final_balance = float(stats.get("balance", 0.0))
             final_equity = float(stats.get("equity", 0.0))
             open_positions_count = int(stats.get("open_positions_count", 0))
+            wins = int(stats.get("wins", 0))
+            losses = int(stats.get("losses", 0))
 
             normalized = {
                 "initial_balance": float(self.initial_balance),
@@ -177,6 +179,9 @@ class TestingDataSource(DataSource):
                 "final_equity": final_equity,
                 "total_pnl": final_balance - float(self.initial_balance),
                 "total_trades": stats.get("total_trades", 0),
+                "wins": wins,
+                "losses": losses,
+                "win_rate": wins / (wins + losses) if (wins + losses) > 0 else 0,
                 "open_positions": open_positions_count,
             }
             return normalized
@@ -188,5 +193,8 @@ class TestingDataSource(DataSource):
                 "final_equity": 0,
                 "total_pnl": 0,
                 "total_trades": 0,
+                "wins": 0,
+                "losses": 0,
+                "win_rate": 0,
                 "open_positions": 0,
             }
