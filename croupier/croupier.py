@@ -278,8 +278,11 @@ class Croupier:
         Responsable de:
         1. Detectar si hay TP/SL en la orden
         2. Calcular precios absolutos desde multiplicadores
-        3. Crear órdenes TP y SL
+        3. Crear órdenes TP y SL como órdenes limit separadas
         4. Retornar IDs de las órdenes
+
+        Nota: Croupier es agnóstico del exchange. Solo crea órdenes limit simples.
+        El exchange adapter/connector maneja los parámetros específicos de cada exchange.
 
         Args:
             order: Orden original con multiplicadores
@@ -325,7 +328,7 @@ class Croupier:
             # Determinar lado opuesto (para cerrar posición)
             close_side = "sell" if side == "LONG" else "buy"
 
-            # Crear TP order
+            # Crear TP order - usando TAKE_PROFIT_MARKET para mayor compatibilidad
             tp_order_id = None
             if tp_price:
                 try:
@@ -333,8 +336,11 @@ class Croupier:
                         "symbol": symbol,
                         "side": close_side,
                         "amount": amount,
-                        "price": tp_price,
                         "type": "TAKE_PROFIT_MARKET",
+                        "params": {
+                            "stopPrice": tp_price,
+                            "closePosition": True,
+                        },
                     }
                     tp_result = await self.exchange_adapter.execute_order(tp_order)
                     tp_order_id = tp_result.get("id")
@@ -342,7 +348,7 @@ class Croupier:
                 except Exception as e:
                     self.logger.error(f"❌ Failed to create TP order: {e}")
 
-            # Crear SL order
+            # Crear SL order - usando STOP_MARKET para mayor compatibilidad
             sl_order_id = None
             if sl_price:
                 try:
@@ -350,8 +356,11 @@ class Croupier:
                         "symbol": symbol,
                         "side": close_side,
                         "amount": amount,
-                        "price": sl_price,
                         "type": "STOP_MARKET",
+                        "params": {
+                            "stopPrice": sl_price,
+                            "closePosition": True,
+                        },
                     }
                     sl_result = await self.exchange_adapter.execute_order(sl_order)
                     sl_order_id = sl_result.get("id")
