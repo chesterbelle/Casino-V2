@@ -420,23 +420,66 @@ class Croupier:
 
                 # Usar CCXTAdapter para normalización específica del exchange
                 normalized_fill = self.exchange_adapter.normalize_trade(raw_trade)
-                realized_pnl = normalized_fill.get("realized_pnl", 0.0)
                 _ = normalized_fill.get("close_reason", "UNKNOWN")
 
                 for position in self.position_tracker.open_positions:
                     if fill.order_id == position.tp_order_id:
                         self.logger.info(f"🎯 HIT DE TAKE PROFIT DETECTADO para {position.symbol}")
                         await self._cancel_sibling_order(position.sl_order_id, "SL", position.symbol)
-                        self.position_tracker.confirm_close(position.trade_id, fill.price, "TP", realized_pnl, fill.fee)
+
+                        # Calcular PnL correctamente basado en la posición
+                        pnl = self._calculate_position_pnl(position, fill.price, fill.fee)
+                        self.position_tracker.confirm_close(position.trade_id, fill.price, "TP", pnl, fill.fee)
                         break
 
                     elif fill.order_id == position.sl_order_id:
                         self.logger.info(f"🛡️ HIT DE STOP LOSS DETECTADO para {position.symbol}")
                         await self._cancel_sibling_order(position.tp_order_id, "TP", position.symbol)
-                        self.position_tracker.confirm_close(position.trade_id, fill.price, "SL", realized_pnl, fill.fee)
+
+                        # Calcular PnL correctamente basado en la posición
+                        pnl = self._calculate_position_pnl(position, fill.price, fill.fee)
+                        self.position_tracker.confirm_close(position.trade_id, fill.price, "SL", pnl, fill.fee)
                         break
         except Exception as e:
             self.logger.error(f"❌ Error procesando fills para OCO: {e}", exc_info=True)
+
+    def _calculate_position_pnl(self, position, exit_price: float, fee: float) -> float:
+        """
+        Calcula el PnL de una posición cerrada.
+
+        Args:
+            position: OpenPosition object
+            exit_price: Precio de salida
+            fee: Fee de la transacción
+
+        Returns:
+            PnL en USD (positivo = ganancia, negativo = pérdida)
+        """
+        try:
+            # Calcular PnL basado en el lado de la posición
+            if position.side == "LONG":
+                # Para LONG: ganancia si exit_price > entry_price
+                pnl_pct = (exit_price - position.entry_price) / position.entry_price
+            else:  # SHORT
+                # Para SHORT: ganancia si exit_price < entry_price
+                pnl_pct = (position.entry_price - exit_price) / position.entry_price
+
+            # Convertir porcentaje a valor absoluto
+            pnl = position.notional * pnl_pct
+
+            # Restar fee
+            pnl -= fee
+
+            self.logger.debug(
+                f"📊 PnL Calc | {position.symbol} {position.side} | "
+                f"Entry: {position.entry_price:.2f} | Exit: {exit_price:.2f} | "
+                f"PnL: {pnl:+.2f} | Notional: {position.notional:.2f} | Fee: {fee:.2f}"
+            )
+
+            return pnl
+        except Exception as e:
+            self.logger.error(f"❌ Error calculating PnL: {e}")
+            return 0.0
 
     async def _cancel_sibling_order(self, order_id: Optional[str], order_type: str, symbol: str):
         """Cancela una orden hermana (TP o SL) si existe y está activa."""
