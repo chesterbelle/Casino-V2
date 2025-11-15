@@ -276,45 +276,29 @@ class CCXTAdapter(BaseTable):
 
     async def execute_order(self, order: Dict) -> Dict:
         """
-        Ejecuta una orden en el exchange. No valida balance ni gestiona estado.
-        Simplemente traduce y delega al conector.
+        Ejecuta una orden en el exchange.
+
+        Nota: OCO Manual es responsabilidad de Croupier.
+        Este adapter solo crea órdenes individuales.
         """
         if not self._connected:
             raise RuntimeError("Not connected. Call connect() first.")
 
         try:
-            # 1. Traducir formato de Croupier a CCXT si es necesario
+            # Traducir formato de Croupier a CCXT si es necesario
             if order.get("side") in ["LONG", "SHORT"]:
                 order = order.copy()
                 order["side"] = "buy" if order["side"] == "LONG" else "sell"
 
-            # 2. El Croupier agnóstico siempre pasa órdenes con TP/SL
-            # El adapter traduce a la implementación específica del exchange
-            has_tpsl = "take_profit" in order or "stop_loss" in order
-
-            if has_tpsl:
-                # Orden con TP/SL - usar create_order_with_tpsl (maneja todo internamente)
-                tp_price, sl_price = await self._calculate_tpsl_prices(order)
-                result = await self.connector.create_order_with_tpsl(
-                    symbol=order.get("symbol", self.symbol),
-                    side=order["side"],
-                    amount=order["amount"],
-                    price=order.get("price"),
-                    order_type=order.get("type", "market"),
-                    tp_price=tp_price,
-                    sl_price=sl_price,
-                    params=order.get("params", {}),
-                )
-            else:
-                # Orden simple sin TP/SL
-                result = await self.connector.create_order(
-                    symbol=order.get("symbol", self.symbol),
-                    side=order["side"],
-                    amount=order["amount"],
-                    price=order.get("price"),
-                    order_type=order.get("type", "market"),
-                    params=order.get("params", {}),
-                )
+            # Todas las órdenes van por el mismo camino
+            result = await self.connector.create_order(
+                symbol=order.get("symbol", self.symbol),
+                side=order["side"],
+                amount=order["amount"],
+                price=order.get("price"),
+                order_type=order.get("type", "market"),
+                params=order.get("params", {}),
+            )
 
             if not isinstance(result, dict):
                 raise ValueError(f"El conector devolvió un resultado inválido: {result}")

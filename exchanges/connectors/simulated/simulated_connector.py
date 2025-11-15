@@ -187,50 +187,6 @@ class SimulatedConnector(BaseConnector):
             "remaining": 0.0,
         }
 
-    async def create_order_with_tpsl(
-        self,
-        symbol: str,
-        side: str,
-        amount: float,
-        tp_price: Optional[float] = None,
-        sl_price: Optional[float] = None,
-        order_type: str = "market",
-        price: Optional[float] = None,
-    ) -> Dict:
-        """
-        Simulate order with TP/SL.
-
-        Args:
-            symbol: Trading pair
-            side: 'buy' or 'sell'
-            amount: Order amount
-            tp_price: Take profit price (absolute)
-            sl_price: Stop loss price (absolute)
-            order_type: 'market' or 'limit'
-            price: Limit price (optional)
-
-        Returns:
-            Order result with TP/SL info
-        """
-        # Create main order
-        result = await self.create_order(symbol, side, amount, order_type, price)
-
-        # Add TP/SL info (se verificarán en next_candle)
-        result["tp_price"] = tp_price
-        result["sl_price"] = sl_price
-
-        # Generate TP/SL order IDs for OCO tracking
-        # In simulation, we generate synthetic IDs
-        if tp_price:
-            result["tp_order_id"] = f"SIM_TP_{result.get('id')}_{int(tp_price)}"
-            self.logger.debug(f"  TP: {tp_price:.2f} (ID: {result['tp_order_id']})")
-
-        if sl_price:
-            result["sl_order_id"] = f"SIM_SL_{result.get('id')}_{int(sl_price)}"
-            self.logger.debug(f"  SL: {sl_price:.2f} (ID: {result['sl_order_id']})")
-
-        return result
-
     def create_order_sync(
         self,
         symbol: str,
@@ -303,45 +259,6 @@ class SimulatedConnector(BaseConnector):
             "filled": amount_rounded,
             "remaining": 0.0,
         }
-
-    def create_order_with_tpsl_sync(
-        self,
-        symbol: str,
-        side: str,
-        amount: float,
-        tp_price: Optional[float] = None,
-        sl_price: Optional[float] = None,
-        order_type: str = "market",
-        price: Optional[float] = None,
-    ) -> Dict:
-        """
-        Synchronous version of create_order_with_tpsl for backtest.
-
-        Args:
-            symbol: Trading pair
-            side: 'buy' or 'sell'
-            amount: Order amount
-            tp_price: Take profit price (absolute)
-            sl_price: Stop loss price (absolute)
-            order_type: 'market' or 'limit'
-            price: Limit price (optional)
-
-        Returns:
-            Order result with TP/SL info
-        """
-        # Create main order (synchronous)
-        result = self.create_order_sync(symbol, side, amount, order_type, price)
-
-        # Add TP/SL info
-        result["tp_price"] = tp_price
-        result["sl_price"] = sl_price
-
-        if tp_price:
-            self.logger.debug(f"  TP: {tp_price:.2f}")
-        if sl_price:
-            self.logger.debug(f"  SL: {sl_price:.2f}")
-
-        return result
 
     # =========================================================
     # MARKET DATA (Simulated)

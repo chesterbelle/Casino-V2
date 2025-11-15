@@ -133,6 +133,9 @@ class Croupier:
             self.logger.error(f"❌ Exchange execution failed: {e}")
             return self._execution_error_result(order, str(e))
 
+        # OCO Monitor: Crear órdenes TP/SL si es necesario
+        tp_order_id, sl_order_id = await self._setup_oco_orders(order, result)
+
         # Register position for both limit orders (open/opened) and market orders (closed)
         if result.get("status") in ["open", "opened", "closed"]:
             trade_id = self.position_tracker.open_position(
@@ -141,13 +144,11 @@ class Croupier:
                 entry_timestamp=result.get("timestamp", ""),
                 available_equity=self.get_equity(),
                 main_order_id=result.get("id"),  # ID de la orden principal
-                tp_order_id=result.get("tp_order_id"),
-                sl_order_id=result.get("sl_order_id"),
+                tp_order_id=tp_order_id,
+                sl_order_id=sl_order_id,
             )
 
             # Register TP/SL pair for OCO manual monitoring
-            tp_order_id = result.get("tp_order_id")
-            sl_order_id = result.get("sl_order_id")
             if tp_order_id and sl_order_id:
                 symbol = order.get("symbol", "")
                 self.position_tracker.register_tpsl_pair(symbol, tp_order_id, sl_order_id)
@@ -267,6 +268,89 @@ class Croupier:
         order_with_amount = dict(order)
         order_with_amount["amount"] = amount
         return order_with_amount
+
+    async def _setup_oco_orders(self, order: dict, main_result: dict) -> tuple:
+        """
+        OCO Monitor: Crea órdenes TP/SL después de la orden principal.
+
+        Responsable de:
+        1. Detectar si hay TP/SL en la orden
+        2. Calcular precios absolutos desde multiplicadores
+        3. Crear órdenes TP y SL
+        4. Retornar IDs de las órdenes
+
+        Args:
+            order: Orden original con multiplicadores
+            main_result: Resultado de la orden principal
+
+        Returns:
+            (tp_order_id, sl_order_id) o (None, None) si no hay TP/SL
+        """
+        # Detectar TP/SL
+        has_tpsl = "take_profit" in order or "stop_loss" in order
+        if not has_tpsl:
+            return None, None
+
+        try:
+            entry_price = main_result.get("price", 0.0)
+            if not entry_price:
+                self.logger.warning("⚠️ No entry price available for TP/SL calculation")
+                return None, None
+
+            tp_multiplier = order.get("take_profit", 1.0)
+            sl_multiplier = order.get("stop_loss", 1.0)
+            symbol = order.get("symbol")
+            amount = order.get("amount")
+            side = order.get("side")
+
+            # Calcular precios
+            tp_price = entry_price * tp_multiplier
+            sl_price = entry_price * sl_multiplier
+
+            self.logger.info(f"📊 OCO Monitor | Entry: ${entry_price:.2f} | TP: ${tp_price:.2f} | SL: ${sl_price:.2f}")
+
+            # Determinar lado opuesto (para cerrar posición)
+            close_side = "sell" if side == "LONG" else "buy"
+
+            # Crear TP order
+            tp_order_id = None
+            if tp_price:
+                try:
+                    tp_order = {
+                        "symbol": symbol,
+                        "side": close_side,
+                        "amount": amount,
+                        "price": tp_price,
+                        "type": "TAKE_PROFIT_MARKET",
+                    }
+                    tp_result = await self.exchange_adapter.execute_order(tp_order)
+                    tp_order_id = tp_result.get("id")
+                    self.logger.info(f"✅ TP order created: {tp_order_id} @ ${tp_price:.2f}")
+                except Exception as e:
+                    self.logger.error(f"❌ Failed to create TP order: {e}")
+
+            # Crear SL order
+            sl_order_id = None
+            if sl_price:
+                try:
+                    sl_order = {
+                        "symbol": symbol,
+                        "side": close_side,
+                        "amount": amount,
+                        "price": sl_price,
+                        "type": "STOP_MARKET",
+                    }
+                    sl_result = await self.exchange_adapter.execute_order(sl_order)
+                    sl_order_id = sl_result.get("id")
+                    self.logger.info(f"✅ SL order created: {sl_order_id} @ ${sl_price:.2f}")
+                except Exception as e:
+                    self.logger.error(f"❌ Failed to create SL order: {e}")
+
+            return tp_order_id, sl_order_id
+
+        except Exception as e:
+            self.logger.error(f"❌ OCO Monitor error: {e}")
+            return None, None
 
     async def _has_open_position(self, symbol: str) -> bool:
         try:

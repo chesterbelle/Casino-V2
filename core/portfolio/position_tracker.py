@@ -663,6 +663,17 @@ class PositionTracker:
     async def monitor_oco_execution(self) -> None:
         """
         Monitor active TP/SL orders and execute manual OCO if needed.
+
+        Esta función es responsable de:
+        1. Monitorear órdenes TP/SL registradas
+        2. Detectar ejecuciones (TP o SL)
+        3. Cancelar orden hermana cuando una se ejecuta
+        4. Cerrar la posición
+
+        Sigue el principio "Let it Crash":
+        - Falla rápido si hay errores
+        - Capas superiores (Croupier) manejan recuperación
+
         Should be called periodically from Croupier or a central clock.
         """
         if not self.adapter or not self._active_orders:
