@@ -199,6 +199,10 @@ class TradingSession:
                 ):
                     await self.data_source.croupier.sync_and_process_fills()
 
+                # STEP 1b: Monitor OCO manual execution (agnóstico del conector)
+                if hasattr(self.data_source, "croupier") and hasattr(self.data_source.croupier, "monitor_oco_manual"):
+                    await self.data_source.croupier.monitor_oco_manual()
+
                 # STEP 2: Prepare player state for this iteration
                 current_equity = self.data_source.get_equity()
                 self.player_state, player_meta = self._prepare_player_state(current_equity)

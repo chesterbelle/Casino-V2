@@ -219,10 +219,15 @@ class SimulatedConnector(BaseConnector):
         result["tp_price"] = tp_price
         result["sl_price"] = sl_price
 
+        # Generate TP/SL order IDs for OCO tracking
+        # In simulation, we generate synthetic IDs
         if tp_price:
-            self.logger.debug(f"  TP: {tp_price:.2f}")
+            result["tp_order_id"] = f"SIM_TP_{result.get('id')}_{int(tp_price)}"
+            self.logger.debug(f"  TP: {tp_price:.2f} (ID: {result['tp_order_id']})")
+
         if sl_price:
-            self.logger.debug(f"  SL: {sl_price:.2f}")
+            result["sl_order_id"] = f"SIM_SL_{result.get('id')}_{int(sl_price)}"
+            self.logger.debug(f"  SL: {sl_price:.2f} (ID: {result['sl_order_id']})")
 
         return result
 

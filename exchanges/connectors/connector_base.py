@@ -271,7 +271,7 @@ class BaseConnector(ABC):
         pass
 
     @abstractmethod
-    async def fetch_positions(self) -> List[Dict[str, Any]]:
+    async def fetch_positions(self, symbols: Optional[List[str]] = None) -> List[Dict[str, Any]]:
         """
         Fetch open positions from the exchange (for perpetual/futures markets).
 

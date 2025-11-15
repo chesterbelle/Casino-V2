@@ -374,9 +374,12 @@ class KrakenConnector(BaseConnector):
             self.logger.error(f"❌ Error fetching balance: {e}")
             raise
 
-    async def fetch_positions(self) -> List[Dict[str, Any]]:
+    async def fetch_positions(self, symbols: Optional[List[str]] = None) -> List[Dict[str, Any]]:
         """
         Fetch open positions from Kraken Futures.
+
+        Args:
+            symbols: Optional list of symbols to filter (ignored, Kraken returns all)
 
         Returns:
             List of normalized position dictionaries

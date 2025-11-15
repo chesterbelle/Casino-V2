@@ -477,9 +477,12 @@ class ResilientConnector(BaseConnector):
         """Fetch order status (delegación simple)."""
         return await self._connector.fetch_order(order_id, symbol)
 
-    async def fetch_positions(self) -> List[Dict[str, Any]]:
+    async def fetch_positions(self, symbols: Optional[List[str]] = None) -> List[Dict[str, Any]]:
         """Fetch positions (delegación simple)."""
-        return await self._connector.fetch_positions()
+        if symbols is None:
+            return await self._connector.fetch_positions()
+        else:
+            return await self._connector.fetch_positions(symbols)
 
     async def fetch_my_trades(
         self, symbol: Optional[str] = None, since: Optional[int] = None, limit: Optional[int] = None

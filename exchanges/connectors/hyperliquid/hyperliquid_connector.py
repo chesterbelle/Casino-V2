@@ -39,7 +39,7 @@ class HyperliquidConnector(BaseConnector):
     async def fetch_balance(self) -> Dict[str, Any]:
         raise NotImplementedError("HyperliquidConnector estará disponible en v2.1")
 
-    async def fetch_positions(self) -> List[Dict[str, Any]]:
+    async def fetch_positions(self, symbols: Optional[List[str]] = None) -> List[Dict[str, Any]]:
         raise NotImplementedError("HyperliquidConnector estará disponible en v2.1")
 
     async def create_order(

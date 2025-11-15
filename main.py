@@ -184,39 +184,82 @@ def save_results_json(mode: str, stats: dict, player_name: str, symbol: str = No
 
 async def _force_close_open_positions_and_orders(connector, croupier, symbol: str):
     try:
+        logger.info(f"🧹 Force closing positions and orders for {symbol}")
+
+        # Step 1: PRIMERO cerrar todas las posiciones abiertas
+        try:
+            positions = await connector.fetch_positions()
+            logger.info(f"📊 Found {len(positions)} total positions")
+        except Exception as e:
+            logger.warning(f"⚠️ Error fetching positions: {e}")
+            positions = []
+
+        closed_count = 0
+        for pos in positions:
+            try:
+                pos_symbol = pos.get("symbol", "")
+                contracts = float(pos.get("contracts") or 0)
+
+                logger.debug(f"🔍 Checking position: symbol={pos_symbol}, contracts={contracts}")
+
+                # Check if this position matches our symbol
+                # Handle multiple symbol formats:
+                # - LTC/USD:USD (our format)
+                # - LTC/USDT:USDT (CCXT format)
+                # - LTCUSDT (raw API format)
+                symbol_matches = (
+                    pos_symbol == symbol
+                    or pos_symbol.replace("USDT", "USD:USD") == symbol
+                    or pos_symbol.replace("/USDT:USDT", "") == symbol.replace("/USD:USD", "")
+                    or pos_symbol.replace("/", "").replace(":USDT", "") == symbol.replace("/", "").replace(":USD", "")
+                )
+
+                if not symbol_matches:
+                    logger.debug(f"⏭️ Symbol mismatch: {pos_symbol} != {symbol}")
+                    continue
+
+                if contracts <= 0:
+                    logger.debug(f"⏭️ Skipping position with {contracts} contracts")
+                    continue
+
+                side_raw = str(pos.get("side", "")).lower()
+                close_side = "sell" if side_raw in ("long", "buy") else "buy"
+
+                logger.info(f"🔒 Closing {side_raw} position: {pos_symbol} | qty={contracts}")
+
+                params = {"reduceOnly": True, "positionSide": "BOTH"}
+                result = await connector.create_order(symbol, close_side, contracts, None, "market", params)
+                logger.info(
+                    f"✅ Force-closed position | order_id={result.get('id')} | side={close_side} | qty={contracts}"
+                )
+                closed_count += 1
+            except Exception as e:
+                logger.warning(f"⚠️ Error force-closing position: {e}")
+
+        if closed_count > 0:
+            logger.info(f"✅ Closed {closed_count} position(s)")
+        else:
+            logger.info("ℹ️ No positions to close")
+
+        # Step 2: DESPUÉS cancelar todas las órdenes abiertas
         try:
             open_orders = await connector.fetch_open_orders(symbol)
-        except Exception:
+            logger.info(f"📋 Found {len(open_orders)} open orders")
+        except Exception as e:
+            logger.warning(f"⚠️ Error fetching open orders: {e}")
             open_orders = []
 
         if open_orders:
             for o in open_orders:
                 try:
-                    await connector.cancel_order(o.get("id"), symbol)
+                    order_id = o.get("id")
+                    logger.info(f"❌ Cancelling order {order_id}...")
+                    await connector.cancel_order(order_id, symbol)
+                    logger.info(f"✅ Cancelled order {order_id}")
                 except Exception as e:
                     logger.warning(f"⚠️ Failed to cancel order {o.get('id')}: {e}")
 
-        try:
-            positions = await connector.fetch_positions()
-        except Exception:
-            positions = []
-
-        for pos in positions:
-            try:
-                if pos.get("symbol") != symbol:
-                    continue
-                contracts = float(pos.get("contracts") or 0)
-                if contracts <= 0:
-                    continue
-                side_raw = str(pos.get("side", "")).lower()
-                side = "sell" if side_raw in ("long", "buy") else "buy"
-                params = {"reduceOnly": True, "positionSide": "BOTH"}
-                await connector.create_order(symbol, side, contracts, None, "market", params)
-                logger.info(f"🔒 Force-closed position for {symbol} | side={side} | qty={contracts}")
-            except Exception as e:
-                logger.warning(f"⚠️ Error force-closing position for {symbol}: {e}")
-
-        # Sync croupier balance with exchange after closures
+        # Step 3: Sync croupier balance with exchange after closures
         try:
             balance = await connector.fetch_balance()
             base = getattr(exchange_config, "BASE_CURRENCY", "USDT")
@@ -229,8 +272,9 @@ async def _force_close_open_positions_and_orders(connector, croupier, symbol: st
                     logger.warning(f"⚠️ Could not sync croupier balance: {e}")
         except Exception as e:
             logger.warning(f"⚠️ Error fetching final balance: {e}")
+
     except Exception as e:
-        logger.warning(f"⚠️ End-session cleanup failed: {e}")
+        logger.warning(f"⚠️ Force close cleanup failed: {e}")
 
 
 def _print_human_summary(mode: str, stats: dict, session_stats: dict):
@@ -478,7 +522,15 @@ async def run_demo(player_module, symbol, interval, max_candles, exchange=None, 
     # 3. Crear el Croupier (con estado)
     croupier = Croupier(exchange_adapter=adapter, initial_balance=initial_balance_real)
 
-    # 4. Crear el DataSource (que usa el Croupier para ejecutar órdenes)
+    # 4. CLEANUP: Cerrar cualquier posición abierta del trading anterior
+    logger.info("🧹 Cleaning up any open positions from previous sessions...")
+    try:
+        await _force_close_open_positions_and_orders(connector, croupier, symbol)
+        logger.info("✅ Cleanup completed")
+    except Exception as e:
+        logger.warning(f"⚠️ Cleanup error (continuing anyway): {e}")
+
+    # 5. Crear el DataSource (que usa el Croupier para ejecutar órdenes)
     source = TestingDataSource(croupier, symbol, interval)
 
     # Create session
@@ -496,8 +548,31 @@ async def run_demo(player_module, symbol, interval, max_candles, exchange=None, 
             logger.warning(f"⚠️ Error closing data source: {e}")
 
         # End-of-session forced cleanup for demo: cancel TP/SL and close open positions
+        logger.info("🧹 Final cleanup: Closing any remaining open positions and orders...")
         try:
             await _force_close_open_positions_and_orders(connector, croupier, symbol)
+            logger.info("✅ Final cleanup completed")
+
+            # Additional cleanup: Cancel any remaining orphaned orders
+            logger.info("🧹 Cleanup: Cancelling any remaining orphaned TP/SL orders...")
+            try:
+                open_orders = await connector.fetch_open_orders(symbol)
+                if open_orders:
+                    logger.info(f"📋 Found {len(open_orders)} remaining orders to cancel")
+                    for order in open_orders:
+                        try:
+                            order_id = order.get("id")
+                            order_type = order.get("type", "unknown")
+                            logger.info(f"❌ Cancelling orphaned {order_type} order {order_id}...")
+                            await connector.cancel_order(order_id, symbol)
+                            logger.info(f"✅ Cancelled orphaned order {order_id}")
+                        except Exception as e:
+                            logger.warning(f"⚠️ Failed to cancel orphaned order: {e}")
+                else:
+                    logger.info("ℹ️ No orphaned orders found")
+            except Exception as e:
+                logger.warning(f"⚠️ Error during orphaned orders cleanup: {e}")
+
         except Exception as e:
             logger.warning(f"⚠️ Demo end-session cleanup error: {e}")
 

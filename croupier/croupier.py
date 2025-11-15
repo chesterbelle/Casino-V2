@@ -71,11 +71,15 @@ class Croupier:
 
         # --- El Croupier ahora es dueño del estado ---
         self.balance_manager = BalanceManager(starting_balance=initial_balance)
-        self.position_tracker = PositionTracker(mode="hybrid")  # Modo recomendado
+        self.position_tracker = PositionTracker(
+            mode="hybrid",  # Modo recomendado
+            adapter=exchange_adapter,  # Pasar adapter para OCO manual
+        )
         self.state_sync = ExchangeStateSync(exchange_adapter.connector)
         # --------------------------------------------
 
         self.logger.info(f"🎯 Croupier initialized as State Owner | Balance: ${initial_balance:,.2f}")
+        self.logger.info("✅ OCO Manual enabled in PositionTracker")
 
     # ========================================
     # API Pública: Información del Portfolio
@@ -95,11 +99,13 @@ class Croupier:
         return position.__dict__ if position else None
 
     def get_portfolio_state(self) -> Dict:
+        tracker_stats = self.position_tracker.get_stats()
         return {
             "balance": self.get_balance(),
             "equity": self.get_equity(),
             "open_positions_count": len(self.get_open_positions()),
             "open_positions": self.get_open_positions(),
+            "total_trades": tracker_stats.get("total_closed", 0),
         }
 
     # ========================================
@@ -129,14 +135,42 @@ class Croupier:
 
         # Register position for both limit orders (open/opened) and market orders (closed)
         if result.get("status") in ["open", "opened", "closed"]:
-            self.position_tracker.open_position(
+            trade_id = self.position_tracker.open_position(
                 order=order,
                 entry_price=result.get("price", 0.0),
                 entry_timestamp=result.get("timestamp", ""),
                 available_equity=self.get_equity(),
+                main_order_id=result.get("id"),  # ID de la orden principal
                 tp_order_id=result.get("tp_order_id"),
                 sl_order_id=result.get("sl_order_id"),
             )
+
+            # Register TP/SL pair for OCO manual monitoring
+            tp_order_id = result.get("tp_order_id")
+            sl_order_id = result.get("sl_order_id")
+            if tp_order_id and sl_order_id:
+                symbol = order.get("symbol", "")
+                self.position_tracker.register_tpsl_pair(symbol, tp_order_id, sl_order_id)
+
+            # If order was immediately closed (e.g., market order or instant execution),
+            # register the close immediately
+            if result.get("status") == "closed" and trade_id:
+                exit_price = result.get("price") or result.get("entry_price") or 0.0
+                pnl = result.get("pnl") or 0.0
+                fee = result.get("fee") or 0.0
+                # Extract trade_id from OpenPosition object if needed
+                trade_id_str = trade_id.trade_id if hasattr(trade_id, "trade_id") else str(trade_id)
+                self.logger.info(f"✅ Order immediately closed | trade_id={trade_id_str} | PnL={pnl}")
+                try:
+                    self.position_tracker.confirm_close(
+                        trade_id=trade_id_str,
+                        exit_price=float(exit_price) if exit_price else 0.0,
+                        exit_reason="IMMEDIATE_CLOSE",
+                        pnl=float(pnl) if pnl else 0.0,
+                        fee=float(fee) if fee else 0.0,
+                    )
+                except Exception as e:
+                    self.logger.error(f"❌ Error confirming close: {e}")
 
         result["balance"] = self.get_balance()
         result["equity"] = self.get_equity()
@@ -346,4 +380,15 @@ class Croupier:
         except Exception as e:
             # Este bloque solo debería ejecutarse si hay un error real inesperado
             self.logger.error(f"❌ Error inesperado cancelando orden {order_type} {order_id}: {e}")
+
+    async def monitor_oco_manual(self) -> None:
+        """
+        Monitor OCO manual execution.
+        Should be called periodically from TradingSession or a central clock.
+        """
+        try:
+            self.logger.debug("🔍 Monitoring OCO manual execution...")
+            await self.position_tracker.monitor_oco_execution()
+        except Exception as e:
+            self.logger.error(f"❌ Error in OCO manual monitoring: {e}")
             # No re-raise para evitar fallar el cierre de posición)

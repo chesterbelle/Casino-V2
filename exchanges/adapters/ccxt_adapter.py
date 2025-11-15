@@ -353,6 +353,30 @@ class CCXTAdapter(BaseTable):
             self.logger.error(f"❌ Error fetching order {order_id}: {e}")
             raise
 
+    async def fetch_ticker(self, symbol: str = None) -> Dict:
+        """Fetch ticker data (price, volume, etc.)."""
+        if not self._connected:
+            raise RuntimeError("Not connected. Call connect() first.")
+
+        try:
+            result = await self.connector.fetch_ticker(symbol or self.symbol)
+            return result
+        except Exception as e:
+            self.logger.error(f"❌ Error fetching ticker for {symbol or self.symbol}: {e}")
+            raise
+
+    async def fetch_positions(self, symbols: list = None) -> list:
+        """Fetch open positions."""
+        if not self._connected:
+            raise RuntimeError("Not connected. Call connect() first.")
+
+        try:
+            result = await self.connector.fetch_positions(symbols or [self.symbol])
+            return result
+        except Exception as e:
+            self.logger.error(f"❌ Error fetching positions: {e}")
+            raise
+
     def normalize_trade(self, raw_trade: Dict[str, Any]) -> Dict[str, Any]:
         """
         Normaliza un trade usando la implementación específica del connector.
