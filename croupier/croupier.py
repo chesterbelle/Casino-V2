@@ -328,7 +328,7 @@ class Croupier:
             # Determinar lado opuesto (para cerrar posición)
             close_side = "sell" if side == "LONG" else "buy"
 
-            # Crear TP order - usando TAKE_PROFIT_MARKET para mayor compatibilidad
+            # Crear TP order - agnóstico del exchange
             tp_order_id = None
             if tp_price:
                 try:
@@ -336,10 +336,11 @@ class Croupier:
                         "symbol": symbol,
                         "side": close_side,
                         "amount": amount,
-                        "type": "TAKE_PROFIT_MARKET",
+                        "price": tp_price,
+                        "type": "limit",
                         "params": {
-                            "stopPrice": tp_price,
                             "closePosition": True,
+                            "timeInForce": "GTE_GTC",
                         },
                     }
                     tp_result = await self.exchange_adapter.execute_order(tp_order)
@@ -348,7 +349,7 @@ class Croupier:
                 except Exception as e:
                     self.logger.error(f"❌ Failed to create TP order: {e}")
 
-            # Crear SL order - usando STOP_MARKET para mayor compatibilidad
+            # Crear SL order - agnóstico del exchange
             sl_order_id = None
             if sl_price:
                 try:
@@ -356,10 +357,12 @@ class Croupier:
                         "symbol": symbol,
                         "side": close_side,
                         "amount": amount,
-                        "type": "STOP_MARKET",
+                        "price": sl_price,
+                        "type": "limit",
                         "params": {
                             "stopPrice": sl_price,
                             "closePosition": True,
+                            "timeInForce": "GTE_GTC",
                         },
                     }
                     sl_result = await self.exchange_adapter.execute_order(sl_order)

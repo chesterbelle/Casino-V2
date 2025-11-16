@@ -418,49 +418,6 @@ class ResilientConnector(BaseConnector):
             self.logger.error(f"❌ cancel_order falló | {order_id} | {e}")
             raise
 
-    async def create_order_with_tpsl(
-        self,
-        symbol: str,
-        side: str,
-        amount: float,
-        price: Optional[float] = None,
-        order_type: str = "market",
-        tp_price: Optional[float] = None,
-        sl_price: Optional[float] = None,
-        params: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
-        """
-        Crea orden con TP/SL (delegación al conector subyacente).
-
-        Args:
-            symbol: Trading pair
-            side: 'buy' or 'sell'
-            amount: Order amount
-            price: Limit price (optional)
-            order_type: Order type
-            tp_price: Take profit price (optional)
-            sl_price: Stop loss price (optional)
-            params: Additional parameters
-
-        Returns:
-            Order result from exchange
-        """
-        try:
-            order = await self._connector.create_order_with_tpsl(
-                symbol, side, amount, price, order_type, tp_price, sl_price, params
-            )
-
-            # Update session state
-            if self._session_state:
-                # TODO: Agregar orden a tracking
-                pass
-
-            return order
-
-        except Exception as e:
-            self.logger.error(f"❌ create_order_with_tpsl falló: {e}")
-            raise
-
     # =========================================================
     # 💰 ACCOUNT DATA (Delegación simple)
     # =========================================================
