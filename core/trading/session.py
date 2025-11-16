@@ -214,6 +214,23 @@ class TradingSession:
                     logger.info("🏁 No more candles available")
                     break
 
+                # STEP 3: Check for closed positions (critical for position tracking)
+                if hasattr(self.data_source, "croupier") and hasattr(self.data_source.croupier, "position_tracker"):
+                    # Convert candle to dict format expected by position tracker
+                    candle_dict = {
+                        "timestamp": candle.timestamp,
+                        "open": candle.open,
+                        "high": candle.high,
+                        "low": candle.low,
+                        "close": candle.close,
+                        "volume": candle.volume,
+                        "symbol": candle.symbol,
+                        "timeframe": candle.timeframe,
+                    }
+                    closed_positions = self.data_source.croupier.position_tracker.check_and_close_positions(candle_dict)
+                    if closed_positions:
+                        logger.info(f"📊 Position check results: {len(closed_positions)} positions processed")
+
                 # Create context with player metadata
                 context = TradingContext(
                     candle=candle,

@@ -316,7 +316,10 @@ class Croupier:
             tp_multiplier = order.get("take_profit", 1.0)
             sl_multiplier = order.get("stop_loss", 1.0)
             symbol = order.get("symbol")
-            amount = order.get("amount")
+            # IMPORTANTE: Obtener amount del RESULTADO de la orden principal, no de la orden original
+            # La orden original puede tener "size" pero no "amount"
+            # El "amount" se calcula en _execute_on_exchange() y se retorna en main_result
+            amount = main_result.get("amount") or order.get("amount")
             side = order.get("side")
 
             # Calcular precios
@@ -329,6 +332,8 @@ class Croupier:
             close_side = "sell" if side == "LONG" else "buy"
 
             # Crear TP order - agnóstico del exchange
+            # NOTA: Usar reduceOnly=True SOLO si la orden principal ya se ejecutó
+            # Si la orden está en estado "open", no podemos usar reduceOnly aún
             tp_order_id = None
             if tp_price:
                 try:
@@ -338,18 +343,21 @@ class Croupier:
                         "amount": amount,
                         "price": tp_price,
                         "type": "limit",
-                        "params": {
-                            "closePosition": True,
-                            "timeInForce": "GTE_GTC",
-                        },
+                        "params": {},
                     }
+                    # Usar reduceOnly=True solo si la orden principal ya se ejecutó
+                    if main_result.get("status") in ["closed", "filled"]:
+                        tp_order["params"]["reduceOnly"] = True
+
                     tp_result = await self.exchange_adapter.execute_order(tp_order)
                     tp_order_id = tp_result.get("id")
                     self.logger.info(f"✅ TP order created: {tp_order_id} @ ${tp_price:.2f}")
                 except Exception as e:
                     self.logger.error(f"❌ Failed to create TP order: {e}")
 
-            # Crear SL order - agnóstico del exchange
+            # Crear SL order - STOP_MARKET como lo hacen Freqtrade y bots profesionales
+            # NOTA: Usar reduceOnly=True SOLO si la orden principal ya se ejecutó
+            # Si la orden está en estado "open", no podemos usar reduceOnly aún
             sl_order_id = None
             if sl_price:
                 try:
@@ -358,13 +366,15 @@ class Croupier:
                         "side": close_side,
                         "amount": amount,
                         "price": sl_price,
-                        "type": "limit",
+                        "type": "stop_market",  # ← STOP_MARKET como Freqtrade
                         "params": {
-                            "stopPrice": sl_price,
-                            "closePosition": True,
-                            "timeInForce": "GTE_GTC",
+                            "stopPrice": sl_price,  # ← Precio de trigger para STOP_MARKET
                         },
                     }
+                    # Usar reduceOnly=True solo si la orden principal ya se ejecutó
+                    if main_result.get("status") in ["closed", "filled"]:
+                        sl_order["params"]["reduceOnly"] = True
+
                     sl_result = await self.exchange_adapter.execute_order(sl_order)
                     sl_order_id = sl_result.get("id")
                     self.logger.info(f"✅ SL order created: {sl_order_id} @ ${sl_price:.2f}")

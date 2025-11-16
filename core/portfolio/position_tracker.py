@@ -741,9 +741,19 @@ class PositionTracker:
                             if isinstance(stop_price, str):
                                 stop_price = float(stop_price)
 
-                            if order_status != "open" or not stop_price:
+                            # IMPORTANTE: Detectar órdenes EJECUTADAS (FILLED), no solo abiertas
+                            # Cuando TP/SL se ejecuta, status cambia a "FILLED"
+                            if order_status not in ["open", "filled", "closed"]:
                                 continue
 
+                            # IMPORTANTE: Si la orden ya está FILLED, procesarla inmediatamente
+                            # No necesitamos verificar el precio, ya se ejecutó en el exchange
+                            if order_status in ["filled", "closed"]:
+                                logger.info(f"🚨 OCO Manual: ORDER FILLED DETECTED for {symbol}: {order_id}")
+                                orders_to_execute.append((order_id, order_info, order, stop_price))
+                                continue
+
+                            # Para órdenes OPEN, verificar si el precio toca TP/SL
                             # Get position side
                             position_side = await self._get_position_side(symbol)
 
@@ -765,7 +775,7 @@ class PositionTracker:
                                     should_execute = True
 
                             if should_execute:
-                                logger.info(f"🚨 OCO Manual: TRIGGER DETECTED for {symbol}")
+                                logger.info(f"🚨 OCO Manual: PRICE TRIGGER DETECTED for {symbol}")
                                 orders_to_execute.append((order_id, order_info, order, stop_price))
 
                         except Exception as e:

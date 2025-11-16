@@ -603,6 +603,7 @@ class Gemini:
             "size": float(size_fraction),
             "take_profit": take_profit_mult,
             "stop_loss": stop_loss_mult,
+            "type": "market",  # ← MARKET order como lo hacen los bots profesionales
         }
         if timeframe and timeframe != "UNKNOWN":
             order["market"] = f"{symbol}@{timeframe}"
