@@ -31,6 +31,7 @@ Solución v1.9.1:
 from __future__ import annotations
 
 import asyncio
+import datetime
 import logging
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional
@@ -750,7 +751,10 @@ class PositionTracker:
                             # No necesitamos verificar el precio, ya se ejecutó en el exchange
                             if order_status in ["filled", "closed"]:
                                 logger.info(f"🚨 OCO Manual: ORDER FILLED DETECTED for {symbol}: {order_id}")
-                                orders_to_execute.append((order_id, order_info, order, stop_price))
+                                # Encontrar la posición correspondiente
+                                position = self._find_position_by_order_id(order_id)
+                                if position:
+                                    orders_to_execute.append((position, order_id))
                                 continue
 
                             # Para órdenes OPEN, verificar si el precio toca TP/SL
@@ -776,19 +780,20 @@ class PositionTracker:
 
                             if should_execute:
                                 logger.info(f"🚨 OCO Manual: PRICE TRIGGER DETECTED for {symbol}")
-                                orders_to_execute.append((order_id, order_info, order, stop_price))
+                                # Encontrar la posición correspondiente
+                                position = self._find_position_by_order_id(order_id)
+                                if position:
+                                    orders_to_execute.append((position, order_id))
 
                         except Exception as e:
                             logger.debug(f"⚠️ OCO Manual: Error checking order {order_id[:8]}...: {e}")
 
                     # Execute triggered orders
                     if orders_to_execute:
-                        for order_id, order_info, order, stop_price in orders_to_execute:
-                            await self._execute_tpsl_manually(
-                                symbol, order_id, order_info, order, current_price, stop_price
-                            )
-                            if symbol not in symbols_to_cleanup:
-                                symbols_to_cleanup.append(symbol)
+                        for position, executed_order_id in orders_to_execute:
+                            await self._execute_tpsl_manually(position, executed_order_id)
+                            if position.symbol not in symbols_to_cleanup:
+                                symbols_to_cleanup.append(position.symbol)
 
                 except Exception as e:
                     logger.error(f"❌ OCO Manual: Error checking symbol {symbol}: {e}")
@@ -801,6 +806,17 @@ class PositionTracker:
 
         except Exception as e:
             logger.error(f"❌ OCO Manual: Error in manual TP/SL check: {e}")
+
+    def _find_position_by_order_id(self, order_id: str) -> Optional[OpenPosition]:
+        """Find open position by any of its order IDs (main, TP, or SL)."""
+        for position in self.open_positions:
+            if (
+                position.main_order_id == order_id
+                or position.tp_order_id == order_id
+                or position.sl_order_id == order_id
+            ):
+                return position
+        return None
 
     async def _get_position_side(self, symbol: str) -> str:
         """Get the side of the current position for a symbol."""
@@ -816,121 +832,71 @@ class PositionTracker:
             logger.error(f"❌ OCO Manual: Error getting position side for {symbol}: {e}")
             return "unknown"
 
-    async def _execute_tpsl_manually(
-        self, symbol: str, order_id: str, order_info: dict, order: dict, current_price: float, trigger_price: float
-    ) -> None:
-        """Execute a TP/SL order manually by converting it to a market order."""
-        order_type = order_info.get("type", "unknown")
+    async def _execute_tpsl_manually(self, position: OpenPosition, executed_order_id: str) -> None:
+        """Execute OCO manually: cancel remaining orders and close position."""
         max_retries = 3
+
+        # Determinar tipo de orden ejecutada
+        if executed_order_id == position.tp_order_id:
+            order_type = "TP"
+        elif executed_order_id == position.sl_order_id:
+            order_type = "SL"
+        else:
+            order_type = "UNKNOWN"
 
         for attempt in range(max_retries):
             try:
                 logger.info(
-                    f"🎯 Executing {order_type} manually (attempt {attempt + 1}/{max_retries}): {symbol} @ ${current_price:.2f}"
+                    f"🎯 Executing {order_type} manually (attempt {attempt + 1}/{max_retries}): {position.symbol}"
                 )
 
-                # Step 0: Find the open position for this symbol
-                open_position = None
-                for pos in self.open_positions:
-                    if pos.symbol == symbol:
-                        open_position = pos
-                        break
-
-                if not open_position:
-                    logger.error(f"❌ OCO Manual: No open position found for {symbol}")
-                    return
-
-                trade_id = open_position.trade_id
-
-                # Step 1: Cancel the original TP/SL order
-                try:
-                    await self.adapter.cancel_order(order_id, symbol)
-                    logger.debug(f"✅ OCO Manual: Cancelled original {order_type} order {order_id[:8]}...")
-                except Exception as e:
-                    logger.warning(f"⚠️ OCO Manual: Failed to cancel order: {e}")
-
-                # Step 2: Get position side and amount
-                position_side = await self._get_position_side(symbol)
-                if position_side == "long":
-                    close_side = "sell"
-                elif position_side == "short":
-                    close_side = "buy"
-                else:
-                    logger.error(f"❌ OCO Manual: Unknown position side: {position_side}")
-                    return
-
-                # Get amount from position
-                try:
-                    positions = await self.adapter.fetch_positions([symbol])
-                    amount = 0
-                    for pos in positions:
-                        if pos.get("symbol") == symbol:
-                            amount = abs(pos.get("contracts", 0))
-                            break
-
-                    if amount <= 0:
-                        logger.error(f"❌ OCO Manual: No position found for {symbol}")
-                        return
-                except Exception as e:
-                    logger.error(f"❌ OCO Manual: Error fetching position: {e}")
-                    return
-
-                logger.info(f"🎯 OCO Manual: Closing {position_side} position with {close_side} {amount} contracts")
-
-                # Step 3: Create market order to close position
-                market_order = await self.adapter.create_order(
-                    symbol,
-                    "market",
-                    close_side,
-                    amount,
-                    None,
-                    {"reduceOnly": True},
+                # Step 1: Cancelar orden opuesta (TP/SL)
+                opposite_order_id = (
+                    position.tp_order_id if executed_order_id == position.sl_order_id else position.sl_order_id
                 )
-
-                close_order_id = market_order.get("id")
-                logger.info(f"✅ OCO Manual: {order_type} executed manually: {close_order_id}")
-
-                # Step 4: Cancel opposite order (OCO behavior)
-                opposite_id = order_info.get("opposite")
-                if opposite_id:
+                if opposite_order_id:
                     try:
-                        await self.adapter.cancel_order(opposite_id, symbol)
-                        logger.info(f"✅ OCO Manual: Cancelled opposite order {opposite_id[:8]}...")
+                        await self.adapter.cancel_order(opposite_order_id, position.symbol)
+                        logger.info(f"✅ OCO Manual: Cancelled opposite order {opposite_order_id[:8]}...")
                     except Exception as e:
                         logger.warning(f"⚠️ OCO Manual: Failed to cancel opposite order: {e}")
 
-                # Step 4b: Cancel main order (important for multi-asset trading)
-                # The main_order_id is the entry order that opened the position
-                # It must be cancelled to fully close the position
-                main_order_id = open_position.main_order_id
-                if main_order_id and main_order_id != order_id:  # Don't cancel if it's the same as the TP/SL
+                # Step 2: Cancelar orden principal si aún está abierta
+                if position.main_order_id and position.main_order_id != executed_order_id:
                     try:
-                        await self.adapter.cancel_order(main_order_id, symbol)
-                        logger.info(f"✅ OCO Manual: Cancelled main order {main_order_id[:8]}...")
+                        await self.adapter.cancel_order(position.main_order_id, position.symbol)
+                        logger.info(f"✅ OCO Manual: Cancelled main order {position.main_order_id[:8]}...")
                     except Exception as e:
                         logger.warning(f"⚠️ OCO Manual: Failed to cancel main order: {e}")
 
-                # Step 5: Confirm close in PositionTracker
-                # Calculate PnL based on entry and exit price
-                if position_side == "long":
-                    pnl = (current_price - open_position.entry_price) * amount
+                # Step 3: Obtener precio actual para PnL
+                ticker = await self.adapter.fetch_ticker(position.symbol)
+                current_price = ticker.get("last", position.entry_price)
+
+                # Step 4: Calcular PnL y cerrar posición
+                amount = position.notional / position.entry_price
+                if position.side == "long":
+                    pnl = (current_price - position.entry_price) * amount
                 else:  # short
-                    pnl = (open_position.entry_price - current_price) * amount
+                    pnl = (position.entry_price - current_price) * amount
 
                 self.confirm_close(
-                    trade_id=trade_id,
+                    trade_id=position.trade_id,
                     exit_price=current_price,
-                    exit_reason=order_type,  # "TP" or "SL"
+                    exit_reason=order_type,
                     pnl=pnl,
-                    fee=0.0,  # TODO: Get actual fee from market_order
+                    timestamp=datetime.now().isoformat(),
                 )
 
-                logger.info(f"✅ OCO Manual: Position {trade_id} closed | PnL: ${pnl:.2f}")
-
-                return
+                logger.info(
+                    f"✅ OCO Manual: Position closed | {position.symbol} {position.side} | "
+                    f"Exit: {current_price:.2f} ({order_type}) | PnL: {pnl:+.2f}"
+                )
+                break
 
             except Exception as e:
-                logger.error(f"❌ OCO Manual: Execution attempt {attempt + 1} failed: {e}")
-                if attempt < max_retries - 1:
-                    wait_time = (attempt + 1) * 0.5
-                    await asyncio.sleep(wait_time)
+                logger.error(f"❌ OCO Manual: Error executing {order_type} (attempt {attempt + 1}): {e}")
+                if attempt == max_retries - 1:
+                    logger.error(f"❌ OCO Manual: Failed to execute {order_type} after {max_retries} attempts")
+                else:
+                    await asyncio.sleep(1)  # Wait before retry

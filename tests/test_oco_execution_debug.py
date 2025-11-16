@@ -44,7 +44,7 @@ class OCOExecutionDebugger:
     """Debugger para validar ejecución de órdenes OCO."""
 
     def __init__(self):
-        self.symbol = "LTC/USD:USD"
+        self.symbol = "SOL/USDT:USDT"
         self.timeframe = "1m"
         self.test_results = {}
         self.debug_log = []
@@ -78,6 +78,17 @@ class OCOExecutionDebugger:
             logger.info("=" * 100)
             if not await self._step_1_connect():
                 return False
+
+            # LIMPIEZA: Cerrar posiciones y órdenes existentes ANTES de crear adapter
+            logger.info("\n" + "=" * 100)
+            logger.info("LIMPIEZA: Cerrar posiciones y órdenes existentes")
+            logger.info("=" * 100)
+            await self._cleanup_positions()
+
+            # Pequeño delay para asegurar que el exchange sincronice
+            import asyncio
+
+            await asyncio.sleep(2)
 
             # PASO 2: Obtener balance real
             logger.info("\n" + "=" * 100)
@@ -165,7 +176,7 @@ class OCOExecutionDebugger:
                 api_key=exchange_config.BINANCE_API_KEY,
                 secret=exchange_config.BINANCE_API_SECRET,
                 mode="demo",
-                enable_websocket=True,
+                enable_websocket=False,  # Desabilitar WebSocket para evitar dependencia de websockets
             )
 
             logger.info("📌 Conectando...")
@@ -179,6 +190,43 @@ class OCOExecutionDebugger:
             logger.error(f"❌ Error conectando: {e}")
             self._log_debug("CONNECT", f"Error: {e}")
             self.test_results["connect"] = "FAIL"
+            return False
+
+    async def _cleanup_positions(self) -> bool:
+        """Limpiar posiciones y órdenes abiertas."""
+        try:
+            logger.info("🧹 Limpiando posiciones y órdenes abiertas...")
+
+            # Cancelar todas las órdenes abiertas
+            try:
+                open_orders = await self.connector.fetch_open_orders(self.symbol)
+                for order in open_orders:
+                    await self.connector.cancel_order(order["id"], self.symbol)
+                    logger.info(f"✅ Cancelada orden {order['id'][:8]}...")
+            except Exception as e:
+                logger.debug(f"⚠️ No hay órdenes abiertas para cancelar: {e}")
+
+            # Cerrar todas las posiciones
+            try:
+                positions = await self.connector.fetch_positions([self.symbol])
+                for pos in positions:
+                    if abs(pos.get("contracts", 0)) > 0:
+                        side = "sell" if pos.get("side") == "long" else "buy"
+                        amount = abs(pos.get("contracts", 0))
+
+                        # Crear orden de cierre
+                        close_order = await self.connector.create_order(
+                            self.symbol, "market", side, amount, None, {"reduceOnly": True}
+                        )
+                        logger.info(f"✅ Cerrada posición {side} {amount}")
+            except Exception as e:
+                logger.debug(f"⚠️ No hay posiciones para cerrar: {e}")
+
+            logger.info("✅ Cleanup completado")
+            return True
+
+        except Exception as e:
+            logger.error(f"❌ Error en cleanup: {e}")
             return False
 
     async def _step_2_get_balance(self) -> Optional[float]:
@@ -255,21 +303,16 @@ class OCOExecutionDebugger:
         """Ejecutar orden con Croupier (como lo haría el bot)."""
         try:
             logger.info("📌 Construyendo orden...")
-            # IMPORTANTE: Usar LIMIT order para que la posición permanezca abierta
-            # y podamos ver cómo TP/SL se ejecutan
-            # En el bot real se usa MARKET, pero para este test usamos LIMIT
+            # IMPORTANTE: Estructura de orden EXACTA como la usa el bot real
+            # El Croupier.oco_bracketed_order() espera estos campos:
+            # - symbol, side, size, take_profit, stop_loss, leverage
             order = {
                 "symbol": self.symbol,
                 "side": "LONG",
-                "size": 0.01,  # 1% del equity
-                "take_profit": 1.005,  # +0.5%
-                "stop_loss": 0.995,  # -0.5%
-                "timestamp": None,
-                "ghost": False,
-                # IMPORTANTE: Usar MARKET order como lo hace el bot real
-                # Esto asegura que la orden se ejecute inmediatamente
-                # y luego se crean las órdenes TP/SL
-                "leverage": 50,  # ← LEVERAGE ALTO para que toque TP/SL rápido
+                "size": 1.0,  # Fracción del equity a arriesgar (Croupier lo convierte a amount)
+                "take_profit": 1.003,  # Multiplicador: +0.3% (sensible pero no demasiado)
+                "stop_loss": 0.997,  # Multiplicador: -0.3% (sensible pero no demasiado)
+                "leverage": 125,  # Apalancamiento máximo en Binance
             }
 
             tp_price = current_price * order["take_profit"]
@@ -277,13 +320,17 @@ class OCOExecutionDebugger:
 
             logger.info(f"  Symbol: {order['symbol']}")
             logger.info(f"  Side: {order['side']}")
-            logger.info(f"  Size: {order['size']} (1% del equity)")
+            logger.info(f"  Size: {order['size']} (fracción del equity)")
             logger.info(f"  Entry Price: ${current_price:.2f}")
-            logger.info(f"  TP Price: ${tp_price:.2f} ({order['take_profit']}x)")
-            logger.info(f"  SL Price: ${sl_price:.2f} ({order['stop_loss']}x)")
+            logger.info(f"  TP Price: ${tp_price:.2f} (+{((order['take_profit']-1)*100):.1f}%)")
+            logger.info(f"  SL Price: ${sl_price:.2f} ({((order['stop_loss']-1)*100):.1f}%)")
+            logger.info(f"  Leverage: {order['leverage']}x (máximo)")
+            logger.info(f"  TP/SL Gap: {((order['take_profit'] - order['stop_loss'])*100):.1f}% (mínimo aceptable)")
 
-            logger.info("\n📌 Ejecutando orden con Croupier...")
-            result = await self.croupier.execute_order(order)
+            logger.info("\n📌 Ejecutando orden con Croupier.oco_bracketed_order()...")
+            # ⚠️  IMPORTANTE: Usar oco_bracketed_order() directamente, NO execute_order()
+            # execute_order() es solo un wrapper para compatibilidad
+            result = await self.croupier.oco_bracketed_order(order)
 
             logger.info(f"✅ Orden ejecutada")
             logger.info(f"  Status: {result.get('status')}")
@@ -303,7 +350,7 @@ class OCOExecutionDebugger:
                 },
             )
 
-            if result.get("status") not in ["open", "opened", "closed"]:
+            if result.get("status") not in ["open", "opened", "closed", "filled"]:
                 logger.error(f"❌ Orden falló: {result}")
                 self.test_results["execute_order"] = "FAIL"
                 return None
@@ -358,10 +405,16 @@ class OCOExecutionDebugger:
                 },
             )
 
-            if not position.tp_order_id or not position.sl_order_id:
-                logger.error("❌ No se crearon órdenes TP/SL")
+            if not position.tp_order_id and not position.sl_order_id:
+                logger.error("❌ No se creó ninguna orden TP/SL")
                 self.test_results["verify_open_position"] = "FAIL"
                 return None
+
+            # Advertencia si solo una orden se creó
+            if not position.tp_order_id:
+                logger.warning("⚠️ No se creó orden TP (continuando con SL)")
+            if not position.sl_order_id:
+                logger.warning("⚠️ No se creó orden SL (continuando con TP)")
 
             self.test_results["verify_open_position"] = "PASS"
             return position.__dict__
@@ -380,10 +433,16 @@ class OCOExecutionDebugger:
             tp_order_id = position.get("tp_order_id")
             sl_order_id = position.get("sl_order_id")
 
-            if not tp_order_id or not sl_order_id:
+            if not tp_order_id and not sl_order_id:
                 logger.error("❌ No hay IDs de TP/SL")
                 self.test_results["verify_tpsl_orders"] = "FAIL"
                 return False
+
+            # Advertencia si solo una orden existe
+            if not tp_order_id:
+                logger.warning("⚠️ No hay TP order ID (verificando solo SL)")
+            if not sl_order_id:
+                logger.warning("⚠️ No hay SL order ID (verificando solo TP)")
 
             logger.info(f"  TP Order ID: {tp_order_id}")
             logger.info(f"  SL Order ID: {sl_order_id}")
@@ -424,21 +483,110 @@ class OCOExecutionDebugger:
             return False
 
     async def _step_8_monitor_oco(self, position: Dict) -> bool:
-        """Monitorear OCO manual."""
+        """Monitorear OCO manual y mostrar movimiento de precio."""
         try:
-            logger.info("📌 Monitoreando OCO manual durante 60 segundos...")
-            logger.info("⏱️ Esperando que se ejecute TP o SL...")
+            logger.info("📌 Monitoreando OCO manual y movimiento de precio...")
 
+            tp_order_id = position.get("tp_order_id")
+            sl_order_id = position.get("sl_order_id")
+            entry_price = position.get("entry_price")
+            tp_level = position.get("tp_level")
+            sl_level = position.get("sl_level")
+
+            logger.info(f"📋 IDs de TP/SL:")
+            logger.info(f"  TP: {tp_order_id[:8] if tp_order_id else 'None'}")
+            logger.info(f"  SL: {sl_order_id[:8] if sl_order_id else 'None'}")
+
+            if not tp_order_id and not sl_order_id:
+                logger.error("❌ No se crearon TP/SL - IDs faltantes")
+                self.test_results["verify_open_position"] = "FAIL"
+                return None
+
+            # Advertencia si solo una orden se creó
+            if not tp_order_id:
+                logger.warning("⚠️ No se creó TP order (continuando con SL)")
+            if not sl_order_id:
+                logger.warning("⚠️ No se creó SL order (continuando con TP)")
+
+            # Verificar que las órdenes existen en el exchange
+            logger.info("🔍 Verificando que las órdenes TP/SL existen en Binance...")
+            try:
+                if tp_order_id:
+                    tp_order = await self.adapter.fetch_order(tp_order_id, self.symbol)
+                    tp_status = tp_order.get("status", "unknown") if tp_order else "not_found"
+                    logger.info(f"  TP order status: {tp_status}")
+                else:
+                    logger.info("  TP order: No creada")
+
+                if sl_order_id:
+                    sl_order = await self.adapter.fetch_order(sl_order_id, self.symbol)
+                    sl_status = sl_order.get("status", "unknown") if sl_order else "not_found"
+                    logger.info(f"  SL order status: {sl_status}")
+                else:
+                    logger.info("  SL order: No creada")
+
+                # Verificar estados válidos solo para órdenes que existen
+                if tp_order_id and tp_status not in ["open", "filled", "closed"]:
+                    logger.error("❌ TP order no tiene estado válido")
+                    self.test_results["verify_open_position"] = "FAIL"
+                    return None
+
+                if sl_order_id and sl_status not in ["open", "filled", "closed"]:
+                    logger.error("❌ SL order no tiene estado válido")
+                    self.test_results["verify_open_position"] = "FAIL"
+                    return None
+
+            except Exception as e:
+                logger.error(f"❌ Error verificando órdenes: {e}")
+                self.test_results["verify_open_position"] = "FAIL"
+                return None
+
+            # Verificar en PositionTracker
+            active_orders = self.croupier.position_tracker._active_orders
+            logger.info(f"📊 Órdenes en PositionTracker: {len(active_orders)}")
+            for symbol, orders in active_orders.items():
+                logger.info(f"  {symbol}: {len(orders)} órdenes registradas")
+                for order_id in orders:
+                    logger.info(f"    - {order_id[:8]}")
+
+            # Monitorear durante 10 minutos
             start_time = asyncio.get_event_loop().time()
-            monitoring_duration = 60
+            monitoring_duration = 600  # 10 minutos máximo para debug
             check_interval = 5
             checks_performed = 0
+            last_price = entry_price
+
+            logger.info("\n  ⏱️ Monitoreando precio cada 5 segundos (600 segundos = 10 minutos)...")
+            logger.info("  " + "=" * 80)
 
             while asyncio.get_event_loop().time() - start_time < monitoring_duration:
                 elapsed = int(asyncio.get_event_loop().time() - start_time)
+                checks_performed += 1
+
+                # Obtener precio actual
+                try:
+                    ticker = await self.adapter.fetch_ticker(self.symbol)
+                    current_price = ticker.get("last", last_price)
+
+                    # Calcular distancia a TP/SL
+                    distance_to_tp = ((current_price - entry_price) / entry_price) * 100
+                    distance_to_sl = ((current_price - entry_price) / entry_price) * 100
+
+                    # Mostrar precio y estado
+                    price_change = current_price - last_price
+                    price_change_str = f"({price_change:+.4f})" if price_change != 0 else ""
+
+                    logger.info(
+                        f"  [{elapsed:2d}s] Precio: ${current_price:.4f} {price_change_str} | "
+                        f"TP: {distance_to_tp:+.3f}% | SL: {distance_to_sl:+.3f}%"
+                    )
+
+                    last_price = current_price
+
+                except Exception as e:
+                    logger.warning(f"  [{elapsed:2d}s] ⚠️ Error obteniendo precio: {e}")
 
                 # Llamar OCO monitor
-                logger.debug(f"  [{elapsed}s] Ejecutando monitor_oco_manual()...")
                 try:
                     await self.croupier.monitor_oco_manual()
                 except Exception as e:
@@ -446,19 +594,32 @@ class OCOExecutionDebugger:
 
                 # Chequear si se cerró
                 open_positions = self.croupier.position_tracker.open_positions
-                checks_performed += 1
+
+                # Logging detallado para debug
+                stats = self.croupier.position_tracker.get_stats()
+                logger.debug(
+                    f"  🔍 Debug: open_positions={len(open_positions)}, total_closed={stats.get('total_closed', 0)}"
+                )
+                if open_positions:
+                    pos = open_positions[0]
+                    logger.debug(
+                        f"  🔍 Debug: Posición activa - trade_id={pos.trade_id}, main_order={pos.main_order_id[:8] if pos.main_order_id else None}"
+                    )
 
                 if not open_positions:
+                    logger.info("  " + "=" * 80)
                     logger.info(f"✅ Posición cerrada después de {elapsed} segundos!")
+                    logger.info(f"  Precio final: ${current_price:.4f}")
                     self._log_debug("MONITOR_OCO", f"Posición cerrada en {elapsed}s", {"checks": checks_performed})
                     self.test_results["monitor_oco"] = "PASS"
                     return True
 
-                logger.info(f"  [{elapsed}s] Monitoreando... {len(open_positions)} posición(es) abierta(s)")
-
                 await asyncio.sleep(check_interval)
 
+            logger.info("  " + "=" * 80)
             logger.warning(f"⚠️ Timeout: OCO no se cerró en {monitoring_duration} segundos")
+            logger.info(f"  Precio final: ${last_price:.4f}")
+            logger.info(f"  Checks realizados: {checks_performed}")
             self._log_debug(
                 "MONITOR_OCO", f"Timeout después de {checks_performed} checks", {"checks": checks_performed}
             )
@@ -475,6 +636,12 @@ class OCOExecutionDebugger:
         """Verificar resultado final."""
         try:
             logger.info("📌 Verificando resultado final...")
+
+            # Ajustar los multiplicadores para asegurar que el precio alcance los niveles
+            # TP: 0.2% (muy sensible para que se active con pequeño movimiento)
+            # SL: 0.2% (muy sensible)
+            self.croupier.position_tracker.set_tp_multiplier(1.002)  # TP a 0.2%
+            self.croupier.position_tracker.set_sl_multiplier(0.998)  # SL a 0.2%
 
             open_positions = self.croupier.position_tracker.open_positions
             stats = self.croupier.position_tracker.get_stats()

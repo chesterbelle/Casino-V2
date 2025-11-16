@@ -52,6 +52,24 @@ from core.portfolio.position_tracker import PositionTracker
 from exchanges.adapters.exchange_state_sync import ExchangeStateSync
 
 
+class TPOrderCreationError(Exception):
+    """Error al crear orden Take Profit"""
+
+    pass
+
+
+class SLOrderCreationError(Exception):
+    """Error al crear orden Stop Loss"""
+
+    pass
+
+
+class OCOConfigurationError(Exception):
+    """Error en configuración OCO"""
+
+    pass
+
+
 class Croupier:
     """
     Cerebro central del sistema de trading. Es el dueño del estado del portfolio
@@ -115,70 +133,139 @@ class Croupier:
     # ========================================
 
     async def execute_order(self, order: dict) -> dict:
-        self._validate_order(order)
+        """
+        Wrapper para mantener compatibilidad con código existente.
+        Delega a oco_bracketed_order que es el método principal.
+        """
+        return await self.oco_bracketed_order(order)
 
-        if await self._has_open_position(order.get("symbol")):
-            self.logger.warning(f"⚠️ Ya hay posición abierta para {order.get('symbol')}, rechazando orden")
-            return {
-                "status": "rejected",
-                "reason": "Position already open for this symbol",
-                "order": order,
+    async def oco_bracketed_order(self, order: dict) -> dict:
+        """
+        Método principal para ejecutar órdenes con TP/SL.
+
+        Args:
+            order: {
+                "symbol": "BTC/USDT",
+                "side": "LONG" | "SHORT",
+                "size": 0.1,           # fracción del equity a arriesgar
+                "take_profit": 1.05,   # multiplicador (ej: 1.05 = +5%)
+                "stop_loss": 0.98,     # multiplicador (ej: 0.98 = -2%)
+                "leverage": 10,        # apalancamiento (opcional)
+                "ghost": False         # si es True, no ejecuta órdenes reales
             }
 
-        required_margin = self.get_equity() * order.get("size", 0.0)
-        if not self.balance_manager.can_open_position(required_margin):
-            return self._insufficient_funds_result(order)
-
+        Returns:
+            {
+                "status": "filled" | "rejected" | "error",
+                "main_order_id": str,
+                "tp_order_id": str,
+                "sl_order_id": str,
+                "reason": str  # en caso de error o rechazo
+            }
+        """
         try:
-            result = await self._execute_on_exchange(order)
-        except Exception as e:
-            self.logger.error(f"❌ Exchange execution failed: {e}")
-            return self._execution_error_result(order, str(e))
+            # 1. Validar orden (incluye TP/SL requeridos)
+            self._validate_order(order)
+            symbol = order["symbol"]
 
-        # OCO Monitor: Crear órdenes TP/SL si es necesario
-        tp_order_id, sl_order_id = await self._setup_oco_orders(order, result)
+            # 2. Verificar si ya hay posición abierta
+            if await self._has_open_position(symbol):
+                msg = f"Ya hay una posición abierta para {symbol}"
+                self.logger.warning(f"⚠️ {msg}")
+                return {
+                    "status": "rejected",
+                    "reason": msg,
+                    "main_order_id": None,
+                    "tp_order_id": None,
+                    "sl_order_id": None,
+                }
 
-        # Register position for both limit orders (open/opened) and market orders (closed)
-        if result.get("status") in ["open", "opened", "closed"]:
-            trade_id = self.position_tracker.open_position(
+            # 3. Verificar fondos
+            required_margin = self.get_equity() * order.get("size", 0.0)
+            if not self.balance_manager.can_open_position(required_margin):
+                return self._insufficient_funds_result(order)
+
+            # 4. Ejecutar orden principal
+            main_order = await self._execute_on_exchange(
+                {
+                    "symbol": symbol,
+                    "side": "buy" if order["side"] == "LONG" else "sell",
+                    "type": "market",
+                    "amount": order["size"],
+                    "leverage": order.get("leverage", 1),
+                    "params": {"reduceOnly": False},
+                }
+            )
+
+            if not main_order or not main_order.get("id"):
+                raise Exception("No se pudo ejecutar la orden principal")
+
+            # 5. Configurar TP/SL (siempre se configuran)
+            try:
+                tp_order_id, sl_order_id = await self._setup_oco_orders(order, main_order)
+            except (TPOrderCreationError, SLOrderCreationError, OCOConfigurationError) as e:
+                self.logger.error(f"❌ Error crítico en OCO: {e}")
+                self.logger.error(f"❌ Cancelando orden principal {main_order['id']} por fallo en TP/SL")
+
+                # Cancelar orden principal ya que no podemos tener TP/SL
+                try:
+                    await self.exchange_adapter.cancel_order(main_order["id"], symbol)
+                    self.logger.info(f"✅ Orden principal {main_order['id']} cancelada")
+                except Exception as cancel_error:
+                    self.logger.error(f"❌ Error cancelando orden principal: {cancel_error}")
+
+                return {
+                    "status": "rejected",
+                    "reason": f"OCO setup failed: {str(e)}",
+                    "main_order_id": main_order["id"],
+                    "tp_order_id": None,
+                    "sl_order_id": None,
+                }
+
+            # 6. Registrar posición
+            self.position_tracker.open_position(
                 order=order,
-                entry_price=result.get("price", 0.0),
-                entry_timestamp=result.get("timestamp", ""),
+                entry_price=main_order.get("price", 0.0),
+                entry_timestamp=main_order.get("timestamp", ""),
                 available_equity=self.get_equity(),
-                main_order_id=result.get("id"),  # ID de la orden principal
+                main_order_id=main_order["id"],
                 tp_order_id=tp_order_id,
                 sl_order_id=sl_order_id,
             )
 
-            # Register TP/SL pair for OCO manual monitoring
-            if tp_order_id and sl_order_id:
-                symbol = order.get("symbol", "")
-                self.position_tracker.register_tpsl_pair(symbol, tp_order_id, sl_order_id)
+            # 7. Registrar par TP/SL para monitoreo OCO
+            self.position_tracker.register_tpsl_pair(symbol, tp_order_id, sl_order_id)
 
-            # If order was immediately closed (e.g., market order or instant execution),
-            # register the close immediately
-            if result.get("status") == "closed" and trade_id:
-                exit_price = result.get("price") or result.get("entry_price") or 0.0
-                pnl = result.get("pnl") or 0.0
-                fee = result.get("fee") or 0.0
-                # Extract trade_id from OpenPosition object if needed
-                trade_id_str = trade_id.trade_id if hasattr(trade_id, "trade_id") else str(trade_id)
-                self.logger.info(f"✅ Order immediately closed | trade_id={trade_id_str} | PnL={pnl}")
-                try:
-                    self.position_tracker.confirm_close(
-                        trade_id=trade_id_str,
-                        exit_price=float(exit_price) if exit_price else 0.0,
-                        exit_reason="IMMEDIATE_CLOSE",
-                        pnl=float(pnl) if pnl else 0.0,
-                        fee=float(fee) if fee else 0.0,
-                    )
-                except Exception as e:
-                    self.logger.error(f"❌ Error confirming close: {e}")
+            # 8. NO cerrar inmediatamente - dejar que TP/SL se ejecuten
+            # La posición debe permanecer abierta para que TP/SL puedan cerrarse
+            # El cierre se hará cuando TP o SL se ejecute (monitoreado por PositionTracker)
 
-        result["balance"] = self.get_balance()
-        result["equity"] = self.get_equity()
-        self._log_execution(order, result)
-        return result
+            # 9. Retornar resultado
+            result = {
+                "status": "filled",
+                "id": main_order["id"],
+                "price": main_order.get("price", 0.0),
+                "amount": main_order.get("amount", 0.0),
+                "balance": self.get_balance(),
+                "equity": self.get_equity(),
+                "main_order_id": main_order["id"],
+                "tp_order_id": tp_order_id,
+                "sl_order_id": sl_order_id,
+                "reason": None,
+            }
+
+            self._log_execution(order, result)
+            return result
+
+        except Exception as e:
+            self.logger.error(f"❌ Error en oco_bracketed_order: {e}", exc_info=True)
+            return {
+                "status": "error",
+                "main_order_id": None,
+                "tp_order_id": None,
+                "sl_order_id": None,
+                "reason": str(e),
+            }
 
     async def close_position(self, trade_id: str) -> dict:
         self.logger.info(f"Intentando cerrar manualmente la posición: {trade_id}")
@@ -296,96 +383,77 @@ class Croupier:
         if not has_tpsl:
             return None, None
 
-        try:
-            entry_price = main_result.get("price", 0.0)
+        entry_price = main_result.get("price", 0.0)
 
-            # Si entry_price es 0, obtener el precio actual del mercado
-            if not entry_price:
-                try:
-                    ticker = await self.exchange_adapter.fetch_ticker(order.get("symbol"))
-                    entry_price = ticker.get("last", 0.0)
-                    if entry_price:
-                        self.logger.info(f"📊 Using current market price as entry: ${entry_price:.2f}")
-                except Exception as e:
-                    self.logger.warning(f"⚠️ Could not get current price: {e}")
+        # Si entry_price es 0, obtener el precio actual del mercado
+        if not entry_price:
+            ticker = await self.exchange_adapter.fetch_ticker(order.get("symbol"))
+            entry_price = ticker.get("last", 0.0)
+            if entry_price:
+                self.logger.info(f"📊 Using current market price as entry: ${entry_price:.2f}")
 
-            if not entry_price:
-                self.logger.warning("⚠️ No entry price available for TP/SL calculation")
-                return None, None
+        if not entry_price:
+            raise OCOConfigurationError("No entry price available for TP/SL calculation")
 
-            tp_multiplier = order.get("take_profit", 1.0)
-            sl_multiplier = order.get("stop_loss", 1.0)
-            symbol = order.get("symbol")
-            # IMPORTANTE: Obtener amount del RESULTADO de la orden principal, no de la orden original
-            # La orden original puede tener "size" pero no "amount"
-            # El "amount" se calcula en _execute_on_exchange() y se retorna en main_result
-            amount = main_result.get("amount") or order.get("amount")
-            side = order.get("side")
+        tp_multiplier = order.get("take_profit", 1.0)
+        sl_multiplier = order.get("stop_loss", 1.0)
+        symbol = order.get("symbol")
+        # IMPORTANTE: Obtener amount del RESULTADO de la orden principal, no de la orden original
+        # La orden original puede tener "size" pero no "amount"
+        # El "amount" se calcula en _execute_on_exchange() y se retorna en main_result
+        amount = main_result.get("amount") or order.get("amount")
+        side = order.get("side")
 
-            # Calcular precios
-            tp_price = entry_price * tp_multiplier
-            sl_price = entry_price * sl_multiplier
+        # Calcular precios
+        tp_price = entry_price * tp_multiplier
+        sl_price = entry_price * sl_multiplier
 
-            self.logger.info(f"📊 OCO Monitor | Entry: ${entry_price:.2f} | TP: ${tp_price:.2f} | SL: ${sl_price:.2f}")
+        self.logger.info(f"📊 OCO Monitor | Entry: ${entry_price:.2f} | TP: ${tp_price:.2f} | SL: ${sl_price:.2f}")
 
-            # Determinar lado opuesto (para cerrar posición)
-            close_side = "sell" if side == "LONG" else "buy"
+        # Determinar lado opuesto (para cerrar posición)
+        close_side = "sell" if side == "LONG" else "buy"
 
-            # Crear TP order - agnóstico del exchange
-            # NOTA: Usar reduceOnly=True SOLO si la orden principal ya se ejecutó
-            # Si la orden está en estado "open", no podemos usar reduceOnly aún
-            tp_order_id = None
-            if tp_price:
-                try:
-                    tp_order = {
-                        "symbol": symbol,
-                        "side": close_side,
-                        "amount": amount,
-                        "price": tp_price,
-                        "type": "limit",
-                        "params": {},
-                    }
-                    # Usar reduceOnly=True solo si la orden principal ya se ejecutó
-                    if main_result.get("status") in ["closed", "filled"]:
-                        tp_order["params"]["reduceOnly"] = True
+        # Crear TP order - TAKE_PROFIT_MARKET (según documentación oficial CCXT)
+        # https://github.com/ccxt/ccxt/blob/master/examples/py/binance-stop-loss-take-profit.py
+        tp_order_id = None
+        if tp_price:
+            tp_order = {
+                "symbol": symbol,
+                "side": close_side,
+                "amount": amount,
+                "type": "take_profit_market",  # ← TAKE_PROFIT_MARKET (no LIMIT)
+                "params": {
+                    "stopPrice": tp_price,  # ← stopPrice para TP
+                },
+            }
 
-                    tp_result = await self.exchange_adapter.execute_order(tp_order)
-                    tp_order_id = tp_result.get("id")
-                    self.logger.info(f"✅ TP order created: {tp_order_id} @ ${tp_price:.2f}")
-                except Exception as e:
-                    self.logger.error(f"❌ Failed to create TP order: {e}")
+            tp_result = await self.exchange_adapter.execute_order(tp_order)
+            tp_order_id = tp_result.get("id")
+            self.logger.info(f"✅ TP order created: {tp_order_id} @ ${tp_price:.2f}")
+        else:
+            raise OCOConfigurationError("TP price is zero or invalid")
 
-            # Crear SL order - STOP_MARKET como lo hacen Freqtrade y bots profesionales
-            # NOTA: Usar reduceOnly=True SOLO si la orden principal ya se ejecutó
-            # Si la orden está en estado "open", no podemos usar reduceOnly aún
-            sl_order_id = None
-            if sl_price:
-                try:
-                    sl_order = {
-                        "symbol": symbol,
-                        "side": close_side,
-                        "amount": amount,
-                        "price": sl_price,
-                        "type": "stop_market",  # ← STOP_MARKET como Freqtrade
-                        "params": {
-                            "stopPrice": sl_price,  # ← Precio de trigger para STOP_MARKET
-                        },
-                    }
-                    # Usar reduceOnly=True solo si la orden principal ya se ejecutó
-                    if main_result.get("status") in ["closed", "filled"]:
-                        sl_order["params"]["reduceOnly"] = True
+        # Crear SL order - STOP_MARKET (según documentación oficial CCXT)
+        # https://github.com/ccxt/ccxt/blob/master/examples/py/binance-stop-loss-take-profit.py
+        sl_order_id = None
+        if sl_price:
+            sl_order = {
+                "symbol": symbol,
+                "side": close_side,
+                "amount": amount,
+                "type": "stop_market",  # ← STOP_MARKET
+                "params": {
+                    "stopPrice": sl_price,  # ← stopPrice para SL
+                },
+            }
 
-                    sl_result = await self.exchange_adapter.execute_order(sl_order)
-                    sl_order_id = sl_result.get("id")
-                    self.logger.info(f"✅ SL order created: {sl_order_id} @ ${sl_price:.2f}")
-                except Exception as e:
-                    self.logger.error(f"❌ Failed to create SL order: {e}")
+            sl_result = await self.exchange_adapter.execute_order(sl_order)
+            sl_order_id = sl_result.get("id")
+            self.logger.info(f"✅ SL order created: {sl_order_id} @ ${sl_price:.2f}")
+        else:
+            raise OCOConfigurationError("SL price is zero or invalid")
 
-            return tp_order_id, sl_order_id
-
-        except Exception as e:
-            self.logger.error(f"❌ OCO Monitor error: {e}")
-            return None, None
+        return tp_order_id, sl_order_id
 
     async def _has_open_position(self, symbol: str) -> bool:
         try:
