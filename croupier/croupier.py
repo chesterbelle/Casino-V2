@@ -240,9 +240,20 @@ class Croupier:
             # La posición debe permanecer abierta para que TP/SL puedan cerrarse
             # El cierre se hará cuando TP o SL se ejecute (monitoreado por PositionTracker)
 
-            # 9. Retornar resultado
+            # 9. Validar status de la orden principal
+            main_status = main_order.get("status")
+            if main_status not in ["open", "opened", "closed"]:
+                error_msg = (
+                    f"❌ Status inválido en orden principal: '{main_status}'. "
+                    f"Se esperaba 'open', 'opened' o 'closed'. "
+                    f"Orden: {main_order}"
+                )
+                self.logger.error(error_msg)
+                raise ValueError(error_msg)
+
+            # 10. Retornar resultado con status real del exchange
             result = {
-                "status": "filled",
+                "status": main_status,  # Status validado del exchange
                 "id": main_order["id"],
                 "price": main_order.get("price", 0.0),
                 "amount": main_order.get("amount", 0.0),
@@ -322,9 +333,15 @@ class Croupier:
         result = await self.exchange_adapter.execute_order(order)
 
         # Accept both limit orders (open/opened) and market orders (closed)
-        if result.get("status") not in ["open", "opened", "closed"]:
-            self.logger.error(f"❌ La orden falló: {result}")
-            return result
+        status = result.get("status")
+        if status not in ["open", "opened", "closed"]:
+            error_msg = (
+                f"❌ Status de orden inválido: '{status}'. "
+                f"Se esperaba 'open', 'opened' o 'closed'. "
+                f"Orden completa: {result}"
+            )
+            self.logger.error(error_msg)
+            raise ValueError(error_msg)
 
         self.logger.info(f"✅ Orden ejecutada: {result.get('id')}")
         return result
