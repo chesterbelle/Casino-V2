@@ -233,9 +233,6 @@ class Croupier:
                 sl_order_id=sl_order_id,
             )
 
-            # 7. Registrar par TP/SL para monitoreo OCO
-            self.position_tracker.register_tpsl_pair(symbol, tp_order_id, sl_order_id)
-
             # 8. NO cerrar inmediatamente - dejar que TP/SL se ejecuten
             # La posición debe permanecer abierta para que TP/SL puedan cerrarse
             # El cierre se hará cuando TP o SL se ejecute (monitoreado por PositionTracker)
@@ -512,55 +509,6 @@ class Croupier:
         else:
             self.logger.debug(f"🃏 Exec | {symbol} {side} | status={status}")
 
-    async def sync_and_process_fills(self):
-        self.logger.debug("🔄 Sincronizando fills para lógica OCO...")
-        try:
-            # Obtener fills básicos (agnósticos) del ExchangeStateSync
-            recent_fills = await self.state_sync.sync_fills()
-
-            for fill in recent_fills:
-                if not fill.order_id:
-                    continue
-
-                # Normalizar el fill usando CCXTAdapter para obtener datos específicos del exchange
-                raw_trade = {
-                    "id": fill.trade_id,
-                    "order": fill.order_id,
-                    "symbol": fill.symbol,
-                    "side": fill.side,
-                    "price": fill.price,
-                    "amount": fill.amount,
-                    "cost": fill.cost,
-                    "fee": {"cost": fill.fee, "currency": fill.fee_currency},
-                    "timestamp": fill.timestamp,
-                    "datetime": fill.datetime,
-                }
-
-                # Usar CCXTAdapter para normalización específica del exchange
-                normalized_fill = self.exchange_adapter.normalize_trade(raw_trade)
-                _ = normalized_fill.get("close_reason", "UNKNOWN")
-
-                for position in self.position_tracker.open_positions:
-                    if fill.order_id == position.tp_order_id:
-                        self.logger.info(f"🎯 HIT DE TAKE PROFIT DETECTADO para {position.symbol}")
-                        await self._cancel_sibling_order(position.sl_order_id, "SL", position.symbol)
-
-                        # Calcular PnL correctamente basado en la posición
-                        pnl = self._calculate_position_pnl(position, fill.price, fill.fee)
-                        self.position_tracker.confirm_close(position.trade_id, fill.price, "TP", pnl, fill.fee)
-                        break
-
-                    elif fill.order_id == position.sl_order_id:
-                        self.logger.info(f"🛡️ HIT DE STOP LOSS DETECTADO para {position.symbol}")
-                        await self._cancel_sibling_order(position.tp_order_id, "TP", position.symbol)
-
-                        # Calcular PnL correctamente basado en la posición
-                        pnl = self._calculate_position_pnl(position, fill.price, fill.fee)
-                        self.position_tracker.confirm_close(position.trade_id, fill.price, "SL", pnl, fill.fee)
-                        break
-        except Exception as e:
-            self.logger.error(f"❌ Error procesando fills para OCO: {e}", exc_info=True)
-
     def _calculate_position_pnl(self, position, exit_price: float, fee: float) -> float:
         """
         Calcula el PnL de una posición cerrada.
@@ -628,14 +576,94 @@ class Croupier:
             # Este bloque solo debería ejecutarse si hay un error real inesperado
             self.logger.error(f"❌ Error inesperado cancelando orden {order_type} {order_id}: {e}")
 
-    async def monitor_oco_manual(self) -> None:
+    async def monitor_positions(self) -> None:
         """
-        Monitor OCO manual execution.
-        Should be called periodically from TradingSession or a central clock.
+        Método centralizado para monitorear posiciones abiertas y emular OCO.
+
+        Responsabilidades:
+        1. Iterar sobre posiciones abiertas.
+        2. Verificar estado de órdenes TP/SL.
+        3. Si una se ejecuta, cancelar la otra y confirmar el cierre.
+        4. Si ambas órdenes desaparecen, cerrar la posición para evitar posiciones huérfanas.
         """
+        self.logger.debug("🔍 Monitoring open positions...")
+        # Usar una copia de la lista para poder modificarla durante la iteración
+        for position in list(self.position_tracker.open_positions):
+            try:
+                tp_order = await self._fetch_order_safely(position.tp_order_id, position.symbol)
+                sl_order = await self._fetch_order_safely(position.sl_order_id, position.symbol)
+
+                # Escenario 1: TP ejecutado
+                if tp_order and tp_order.get("status") in ["closed", "filled"]:
+                    self.logger.info(f"🎯 TAKE PROFIT DETECTED for {position.symbol}")
+                    await self._handle_position_closure(position, tp_order, "TP", sl_order)
+                    continue  # Mover a la siguiente posición
+
+                # Escenario 2: SL ejecutado
+                if sl_order and sl_order.get("status") in ["closed", "filled"]:
+                    self.logger.info(f"🛡️ STOP LOSS DETECTED for {position.symbol}")
+                    await self._handle_position_closure(position, sl_order, "SL", tp_order)
+                    continue
+
+                # Escenario 3: Ambas órdenes TP/SL han desaparecido (canceladas o no encontradas)
+                if not tp_order and not sl_order:
+                    self.logger.warning(f"⚠️ Both TP/SL orders for {position.symbol} are gone. Closing position.")
+                    await self._close_position_without_orders(position)
+
+            except Exception as e:
+                self.logger.error(f"❌ Error monitoring position {position.trade_id}: {e}", exc_info=True)
+
+    async def _fetch_order_safely(self, order_id: Optional[str], symbol: str) -> Optional[Dict]:
+        """Obtiene una orden de forma segura, devolviendo None si no se encuentra."""
+        if not order_id:
+            return None
         try:
-            self.logger.debug("🔍 Monitoring OCO manual execution...")
-            await self.position_tracker.monitor_oco_execution()
+            return await self.exchange_adapter.fetch_order(order_id, symbol)
+        except Exception:
+            # Si fetch_order falla (ej. orden no encontrada), asumimos que no existe.
+            return None
+
+    async def _handle_position_closure(
+        self, position, executed_order: Dict, reason: str, sibling_order: Optional[Dict]
+    ):
+        """Maneja el cierre de una posición, cancelando la orden hermana y confirmando."""
+        # Cancelar la orden hermana si todavía existe y está abierta
+        if sibling_order and sibling_order.get("status") == "open":
+            await self._cancel_sibling_order(sibling_order["id"], "sibling", position.symbol)
+
+        # Calcular PnL y confirmar el cierre
+        exit_price = executed_order.get("price", position.entry_price)
+        fee = executed_order.get("fee", {}).get("cost", 0.0)
+        pnl = self._calculate_position_pnl(position, exit_price, fee)
+
+        self.position_tracker.confirm_close(position.trade_id, exit_price, reason, pnl, fee)
+
+    async def _close_position_without_orders(self, position):
+        """Cierra una posición cuando sus órdenes TP/SL han desaparecido."""
+        self.logger.info(f"Attempting to close {position.symbol} at market price.")
+        try:
+            # Crear una orden de mercado para cerrar la posición
+            close_side = "sell" if position.side == "LONG" else "buy"
+            amount = position.notional / position.entry_price
+            market_close_order = await self.exchange_adapter.execute_order(
+                {
+                    "symbol": position.symbol,
+                    "side": close_side,
+                    "amount": amount,
+                    "type": "market",
+                    "params": {"reduceOnly": True},
+                }
+            )
+
+            exit_price = market_close_order.get("price", position.entry_price)
+            fee = market_close_order.get("fee", {}).get("cost", 0.0)
+            pnl = self._calculate_position_pnl(position, exit_price, fee)
+
+            self.position_tracker.confirm_close(position.trade_id, exit_price, "ORPHANED", pnl, fee)
+            self.logger.info(f"✅ Position {position.symbol} closed successfully.")
+
         except Exception as e:
-            self.logger.error(f"❌ Error in OCO manual monitoring: {e}")
-            # No re-raise para evitar fallar el cierre de posición)
+            self.logger.error(f"❌ Failed to close orphaned position {position.symbol}: {e}")
+            # Como último recurso, se cierra internamente para evitar que el capital quede bloqueado
+            pnl = self._calculate_position_pnl(position, position.entry_price, 0.0)  # PnL cero
+            self.position_tracker.confirm_close(position.trade_id, position.entry_price, "ORPHANED_FAIL", pnl, 0.0)

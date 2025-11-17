@@ -193,15 +193,9 @@ class TradingSession:
                     logger.info(f"🏁 Max candles reached: {self.max_candles}")
                     break
 
-                # STEP 1: Sincronizar fills y procesar lógica OCO (si aplica)
-                if hasattr(self.data_source, "croupier") and hasattr(
-                    self.data_source.croupier, "sync_and_process_fills"
-                ):
-                    await self.data_source.croupier.sync_and_process_fills()
-
-                # STEP 1b: Monitor OCO manual execution (agnóstico del conector)
-                if hasattr(self.data_source, "croupier") and hasattr(self.data_source.croupier, "monitor_oco_manual"):
-                    await self.data_source.croupier.monitor_oco_manual()
+                # STEP 1: Monitorear posiciones abiertas y gestionar OCO
+                if hasattr(self.data_source, "croupier") and hasattr(self.data_source.croupier, "monitor_positions"):
+                    await self.data_source.croupier.monitor_positions()
 
                 # STEP 2: Prepare player state for this iteration
                 current_equity = self.data_source.get_equity()
