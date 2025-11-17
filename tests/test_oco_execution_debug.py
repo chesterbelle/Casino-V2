@@ -157,9 +157,16 @@ class OCOExecutionDebugger:
 
             return True
 
+        except KeyboardInterrupt:
+            logger.warning("\n⚠️ Test interrumpido por usuario (Ctrl+C)")
+            logger.info("📁 Guardando debug log parcial...")
+            self._step_10_generate_report()
+            return False
         except Exception as e:
             logger.error(f"❌ Error: {e}", exc_info=True)
             self._log_debug("ERROR", str(e))
+            logger.info("📁 Guardando debug log con error...")
+            self._step_10_generate_report()
             return False
 
         finally:
@@ -309,9 +316,9 @@ class OCOExecutionDebugger:
             order = {
                 "symbol": self.symbol,
                 "side": "LONG",
-                "size": 1.0,  # Fracción del equity a arriesgar (Croupier lo convierte a amount)
-                "take_profit": 1.003,  # Multiplicador: +0.3% (sensible pero no demasiado)
-                "stop_loss": 0.997,  # Multiplicador: -0.3% (sensible pero no demasiado)
+                "size": 1.0,  # Fracción del equity a arriesgar
+                "take_profit": 1.003,  # Multiplicador: +0.3%
+                "stop_loss": 0.997,  # Multiplicador: -0.3%
                 "leverage": 125,  # Apalancamiento máximo en Binance
             }
 
@@ -453,7 +460,8 @@ class OCOExecutionDebugger:
                 tp_order = await self.adapter.fetch_order(tp_order_id, self.symbol)
                 logger.info(f"    ✅ TP Order encontrada:")
                 logger.info(f"      Status: {tp_order.get('status')}")
-                logger.info(f"      Price: ${tp_order.get('price', 0):.2f}")
+                tp_price = tp_order.get("price", 0) or 0
+                logger.info(f"      Price: ${tp_price:.2f}")
                 logger.info(f"      Amount: {tp_order.get('amount', 0)}")
                 self._log_debug("VERIFY_TPSL_ORDERS", "TP order verificada", {"tp_order": tp_order})
             except Exception as e:
@@ -466,7 +474,8 @@ class OCOExecutionDebugger:
                 sl_order = await self.adapter.fetch_order(sl_order_id, self.symbol)
                 logger.info(f"    ✅ SL Order encontrada:")
                 logger.info(f"      Status: {sl_order.get('status')}")
-                logger.info(f"      Price: ${sl_order.get('price', 0):.2f}")
+                sl_price = sl_order.get("price", 0) or 0
+                logger.info(f"      Price: ${sl_price:.2f}")
                 logger.info(f"      Amount: {sl_order.get('amount', 0)}")
                 self._log_debug("VERIFY_TPSL_ORDERS", "SL order verificada", {"sl_order": sl_order})
             except Exception as e:
@@ -555,74 +564,108 @@ class OCOExecutionDebugger:
             check_interval = 5
             checks_performed = 0
             last_price = entry_price
+            min_price = entry_price
+            max_price = entry_price
 
             logger.info("\n  ⏱️ Monitoreando precio cada 5 segundos (600 segundos = 10 minutos)...")
             logger.info("  " + "=" * 80)
 
             while asyncio.get_event_loop().time() - start_time < monitoring_duration:
-                elapsed = int(asyncio.get_event_loop().time() - start_time)
-                checks_performed += 1
-
-                # Obtener precio actual
                 try:
-                    ticker = await self.adapter.fetch_ticker(self.symbol)
-                    current_price = ticker.get("last", last_price)
+                    elapsed = int(asyncio.get_event_loop().time() - start_time)
+                    checks_performed += 1
 
-                    # Calcular distancia a TP/SL
-                    distance_to_tp = ((current_price - entry_price) / entry_price) * 100
-                    distance_to_sl = ((current_price - entry_price) / entry_price) * 100
+                    # Obtener precio actual
+                    try:
+                        ticker = await self.adapter.fetch_ticker(self.symbol)
+                        current_price = ticker.get("last", last_price)
 
-                    # Mostrar precio y estado
-                    price_change = current_price - last_price
-                    price_change_str = f"({price_change:+.4f})" if price_change != 0 else ""
+                        # Actualizar min/max
+                        min_price = min(min_price, current_price)
+                        max_price = max(max_price, current_price)
 
-                    logger.info(
-                        f"  [{elapsed:2d}s] Precio: ${current_price:.4f} {price_change_str} | "
-                        f"TP: {distance_to_tp:+.3f}% | SL: {distance_to_sl:+.3f}%"
-                    )
+                        # Calcular distancia a TP/SL
+                        distance_to_tp = ((current_price - entry_price) / entry_price) * 100
+                        distance_to_sl = ((current_price - entry_price) / entry_price) * 100
 
-                    last_price = current_price
+                        # Mostrar precio y estado
+                        price_change = current_price - last_price
+                        price_change_str = f"({price_change:+.4f})" if price_change != 0 else ""
 
-                except Exception as e:
-                    logger.warning(f"  [{elapsed:2d}s] ⚠️ Error obteniendo precio: {e}")
+                        logger.info(
+                            f"  [{elapsed:2d}s] Precio: ${current_price:.4f} {price_change_str} | "
+                            f"TP: {distance_to_tp:+.3f}% | SL: {distance_to_sl:+.3f}%"
+                        )
 
-                # Llamar OCO monitor
-                try:
-                    await self.croupier.monitor_oco_manual()
-                except Exception as e:
-                    logger.warning(f"  ⚠️ Error en monitor_oco_manual: {e}")
+                        last_price = current_price
 
-                # Chequear si se cerró
-                open_positions = self.croupier.position_tracker.open_positions
+                    except Exception as e:
+                        logger.warning(f"  [{elapsed:2d}s] ⚠️ Error obteniendo precio: {e}")
 
-                # Logging detallado para debug
-                stats = self.croupier.position_tracker.get_stats()
-                logger.debug(
-                    f"  🔍 Debug: open_positions={len(open_positions)}, total_closed={stats.get('total_closed', 0)}"
-                )
-                if open_positions:
-                    pos = open_positions[0]
+                    # Llamar OCO monitor
+                    try:
+                        await self.croupier.monitor_oco_manual()
+                    except Exception as e:
+                        logger.warning(f"  ⚠️ Error en monitor_oco_manual: {e}")
+
+                    # Chequear si se cerró
+                    open_positions = self.croupier.position_tracker.open_positions
+
+                    # Logging detallado para debug
+                    stats = self.croupier.position_tracker.get_stats()
                     logger.debug(
-                        f"  🔍 Debug: Posición activa - trade_id={pos.trade_id}, main_order={pos.main_order_id[:8] if pos.main_order_id else None}"
+                        f"  🔍 Debug: open_positions={len(open_positions)}, total_closed={stats.get('total_closed', 0)}"
                     )
+                    if open_positions:
+                        pos = open_positions[0]
+                        logger.debug(
+                            f"  🔍 Debug: Posición activa - trade_id={pos.trade_id}, main_order={pos.main_order_id[:8] if pos.main_order_id else None}"
+                        )
 
-                if not open_positions:
-                    logger.info("  " + "=" * 80)
-                    logger.info(f"✅ Posición cerrada después de {elapsed} segundos!")
-                    logger.info(f"  Precio final: ${current_price:.4f}")
-                    self._log_debug("MONITOR_OCO", f"Posición cerrada en {elapsed}s", {"checks": checks_performed})
-                    self.test_results["monitor_oco"] = "PASS"
-                    return True
+                    if not open_positions:
+                        logger.info("  " + "=" * 80)
+                        logger.info(f"✅ Posición cerrada después de {elapsed} segundos!")
+                        logger.info(f"  Precio final: ${current_price:.4f}")
+                        self._log_debug("MONITOR_OCO", f"Posición cerrada en {elapsed}s", {"checks": checks_performed})
+                        self.test_results["monitor_oco"] = "PASS"
+                        return True
 
-                await asyncio.sleep(check_interval)
+                    await asyncio.sleep(check_interval)
+
+                except KeyboardInterrupt:
+                    logger.warning("\n⚠️ Monitoreo interrumpido por usuario (Ctrl+C)")
+                    logger.info("📁 Guardando estado actual...")
+                    self._log_debug(
+                        "MONITOR_OCO",
+                        f"Interrumpido después de {checks_performed} checks",
+                        {"checks": checks_performed},
+                    )
+                    self.test_results["monitor_oco"] = "INTERRUPTED"
+                    return False
 
             logger.info("  " + "=" * 80)
             logger.warning(f"⚠️ Timeout: OCO no se cerró en {monitoring_duration} segundos")
+            logger.info(f"  Precio inicial: ${entry_price:.4f}")
+            logger.info(f"  Precio mínimo: ${min_price:.4f}")
+            logger.info(f"  Precio máximo: ${max_price:.4f}")
             logger.info(f"  Precio final: ${last_price:.4f}")
+            logger.info(f"  Rango: ${max_price - min_price:.4f} ({((max_price - min_price) / entry_price * 100):.3f}%)")
             logger.info(f"  Checks realizados: {checks_performed}")
             self._log_debug(
-                "MONITOR_OCO", f"Timeout después de {checks_performed} checks", {"checks": checks_performed}
+                "MONITOR_OCO",
+                f"Timeout después de {checks_performed} checks",
+                {
+                    "checks": checks_performed,
+                    "entry_price": entry_price,
+                    "min_price": min_price,
+                    "max_price": max_price,
+                    "final_price": last_price,
+                    "price_range": max_price - min_price,
+                    "price_range_percent": ((max_price - min_price) / entry_price * 100),
+                },
             )
+            logger.info("📁 Guardando debug log por timeout...")
+            self._step_10_generate_report()
             self.test_results["monitor_oco"] = "TIMEOUT"
             return False
 

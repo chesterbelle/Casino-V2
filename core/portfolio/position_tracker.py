@@ -690,9 +690,13 @@ class PositionTracker:
         Should be called periodically from Croupier or a central clock.
         """
         if not self.adapter or not self._active_orders:
+            logger.debug(
+                f"🔍 OCO Manual: No active orders to monitor. adapter={bool(self.adapter)}, active_orders={len(self._active_orders) if self._active_orders else 0}"
+            )
             return
 
         try:
+            logger.debug(f"🔍 OCO Manual: Monitoring {len(self._active_orders)} symbols with active orders")
             await self._check_manual_tpsl_execution()
         except Exception as e:
             logger.error(f"❌ OCO Manual: Error in monitoring: {e}")
@@ -708,6 +712,8 @@ class PositionTracker:
             # Check each symbol's active orders
             for symbol, orders in list(self._active_orders.items()):
                 try:
+                    logger.debug(f"🔍 OCO Manual: Checking symbol {symbol} with {len(orders)} orders")
+
                     # Get current price
                     ticker = await self.adapter.fetch_ticker(symbol)
                     current_price = ticker.get("last", 0)
@@ -720,15 +726,27 @@ class PositionTracker:
 
                     # Check each order
                     orders_to_execute = []
+                    orders_to_remove = []  # Track cancelled orders to remove
+
                     for order_id, order_info in orders.items():
                         try:
+                            logger.debug(
+                                f"🔍 OCO Manual: Checking order {order_id[:8]}... (type: {order_info.get('type', 'unknown')})"
+                            )
+
                             # Get order details
                             order = await self.adapter.fetch_order(order_id, symbol)
                             if not order:
+                                logger.warning(f"⚠️ OCO Manual: Order {order_id[:8]}... not found (likely cancelled)")
+                                # Marcar para eliminación del seguimiento
+                                orders_to_remove.append(order_id)
                                 continue
 
                             order_status = order.get("status")
                             order_type = order.get("type", "")
+                            logger.debug(
+                                f"🔍 OCO Manual: Order {order_id[:8]}... status={order_status}, type={order_type}"
+                            )
 
                             # Get stopPrice
                             info = order.get("info", {})
@@ -745,6 +763,9 @@ class PositionTracker:
                             # IMPORTANTE: Detectar órdenes EJECUTADAS (FILLED), no solo abiertas
                             # Cuando TP/SL se ejecuta, status cambia a "FILLED"
                             if order_status not in ["open", "filled", "closed"]:
+                                logger.debug(
+                                    f"🔍 OCO Manual: Order {order_id[:8]}... status '{order_status}' - skipping"
+                                )
                                 continue
 
                             # IMPORTANTE: Si la orden ya está FILLED, procesarla inmediatamente
@@ -755,16 +776,23 @@ class PositionTracker:
                                 position = self._find_position_by_order_id(order_id)
                                 if position:
                                     orders_to_execute.append((position, order_id))
+                                else:
+                                    logger.warning(f"⚠️ OCO Manual: No position found for order {order_id[:8]}...")
                                 continue
 
                             # Para órdenes OPEN, verificar si el precio toca TP/SL
                             # Get position side
                             position_side = await self._get_position_side(symbol)
+                            logger.debug(f"🔍 OCO Manual: Position side for {symbol}: {position_side}")
 
                             # Check if price should trigger execution
                             should_execute = False
                             is_take_profit = "take_profit" in order_type.lower() or order_info.get("type") == "TP"
                             is_stop_loss = "stop" in order_type.lower() or order_info.get("type") == "SL"
+
+                            logger.debug(
+                                f"🔍 OCO Manual: Order {order_id[:8]}... - TP={is_take_profit}, SL={is_stop_loss}, stop_price=${stop_price:.4f}"
+                            )
 
                             if is_take_profit:
                                 if position_side == "short" and current_price <= stop_price:
@@ -778,12 +806,16 @@ class PositionTracker:
                                 elif position_side == "long" and current_price <= stop_price:
                                     should_execute = True
 
+                            logger.debug(f"🔍 OCO Manual: Order {order_id[:8]}... - should_execute={should_execute}")
+
                             if should_execute:
                                 logger.info(f"🚨 OCO Manual: PRICE TRIGGER DETECTED for {symbol}")
                                 # Encontrar la posición correspondiente
                                 position = self._find_position_by_order_id(order_id)
                                 if position:
                                     orders_to_execute.append((position, order_id))
+                                else:
+                                    logger.warning(f"⚠️ OCO Manual: No position found for order {order_id[:8]}...")
 
                         except Exception as e:
                             logger.debug(f"⚠️ OCO Manual: Error checking order {order_id[:8]}...: {e}")
@@ -794,6 +826,28 @@ class PositionTracker:
                             await self._execute_tpsl_manually(position, executed_order_id)
                             if position.symbol not in symbols_to_cleanup:
                                 symbols_to_cleanup.append(position.symbol)
+
+                    # Remove cancelled orders from tracking
+                    if orders_to_remove:
+                        logger.info(f"🧹 OCO Manual: Removing {len(orders_to_remove)} cancelled orders from tracking")
+                        for order_id in orders_to_remove:
+                            if order_id in self._active_orders.get(symbol, {}):
+                                del self._active_orders[symbol][order_id]
+                                logger.debug(f"🧹 OCO Manual: Removed cancelled order {order_id[:8]}... from tracking")
+
+                        # If no orders left for this symbol, check if we need to close position
+                        if not self._active_orders.get(symbol, {}):
+                            logger.warning(f"⚠️ OCO Manual: No active TP/SL orders left for {symbol}")
+                            # Find position and close it since TP/SL are gone
+                            for position in self.open_positions:
+                                if position.symbol == symbol:
+                                    logger.warning(
+                                        f"🔴 OCO Manual: Closing position {position.trade_id} - TP/SL orders cancelled"
+                                    )
+                                    await self._close_position_without_orders(position)
+                                    if symbol not in symbols_to_cleanup:
+                                        symbols_to_cleanup.append(symbol)
+                                    break
 
                 except Exception as e:
                     logger.error(f"❌ OCO Manual: Error checking symbol {symbol}: {e}")
@@ -817,6 +871,42 @@ class PositionTracker:
             ):
                 return position
         return None
+
+    async def _close_position_without_orders(self, position: OpenPosition) -> None:
+        """Close position when TP/SL orders are cancelled/missing."""
+        try:
+            logger.info(f"🔴 Closing position {position.trade_id} without TP/SL orders")
+
+            # Remove from open positions
+            if position in self.open_positions:
+                self.open_positions.remove(position)
+                logger.info(f"✅ Position {position.trade_id} removed from open_positions")
+
+            # Update statistics
+            self.total_trades_opened += 1
+            self.total_trades_closed += 1
+
+            # Add to closed history (as a loss since TP/SL failed)
+            pnl = -0.01  # Small loss for failed TP/SL
+            self.closed_trades.append(
+                {
+                    "trade_id": position.trade_id,
+                    "symbol": position.symbol,
+                    "side": position.side,
+                    "entry_price": position.entry_price,
+                    "exit_price": position.entry_price * (1 + pnl),
+                    "pnl": pnl,
+                    "pnl_percent": pnl * 100,
+                    "exit_reason": "TP_SL_CANCELLED",
+                    "exit_timestamp": datetime.now().isoformat(),
+                    "duration_minutes": 0,
+                }
+            )
+
+            logger.info(f"✅ Position {position.trade_id} closed - TP/SL orders cancelled")
+
+        except Exception as e:
+            logger.error(f"❌ Error closing position {position.trade_id}: {e}")
 
     async def _get_position_side(self, symbol: str) -> str:
         """Get the side of the current position for a symbol."""
