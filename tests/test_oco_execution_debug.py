@@ -79,17 +79,6 @@ class OCOExecutionDebugger:
             if not await self._step_1_connect():
                 return False
 
-            # LIMPIEZA: Cerrar posiciones y órdenes existentes ANTES de crear adapter
-            logger.info("\n" + "=" * 100)
-            logger.info("LIMPIEZA: Cerrar posiciones y órdenes existentes")
-            logger.info("=" * 100)
-            await self._cleanup_positions()
-
-            # Pequeño delay para asegurar que el exchange sincronice
-            import asyncio
-
-            await asyncio.sleep(2)
-
             # PASO 2: Obtener balance real
             logger.info("\n" + "=" * 100)
             logger.info("PASO 2: Obtener balance real del exchange")
@@ -104,6 +93,14 @@ class OCOExecutionDebugger:
             logger.info("=" * 100)
             if not await self._step_3_create_adapter_croupier(initial_balance):
                 return False
+
+            # LIMPIEZA: Usar el método centralizado del Croupier
+            logger.info("\n" + "=" * 100)
+            logger.info("LIMPIEZA: Usando croupier.cleanup_symbol()")
+            logger.info("=" * 100)
+            logger.info("  Asegurando que el conector esté activo...")
+            await self.connector.connect()  # Reconectar por si acaso
+            await self.croupier.cleanup_symbol(self.symbol)
 
             # PASO 4: Obtener precio actual
             logger.info("\n" + "=" * 100)
@@ -142,12 +139,6 @@ class OCOExecutionDebugger:
             logger.info("=" * 100)
             if not await self._step_8_monitor_oco(open_position):
                 return False
-
-            # PASO 9: Verificar resultado final
-            logger.info("\n" + "=" * 100)
-            logger.info("PASO 9: Verificar resultado final")
-            logger.info("=" * 100)
-            await self._step_9_verify_final_result()
 
             # PASO 10: Generar reporte
             logger.info("\n" + "=" * 100)
@@ -200,41 +191,8 @@ class OCOExecutionDebugger:
             return False
 
     async def _cleanup_positions(self) -> bool:
-        """Limpiar posiciones y órdenes abiertas."""
-        try:
-            logger.info("🧹 Limpiando posiciones y órdenes abiertas...")
-
-            # Cancelar todas las órdenes abiertas
-            try:
-                open_orders = await self.connector.fetch_open_orders(self.symbol)
-                for order in open_orders:
-                    await self.connector.cancel_order(order["id"], self.symbol)
-                    logger.info(f"✅ Cancelada orden {order['id'][:8]}...")
-            except Exception as e:
-                logger.debug(f"⚠️ No hay órdenes abiertas para cancelar: {e}")
-
-            # Cerrar todas las posiciones
-            try:
-                positions = await self.connector.fetch_positions([self.symbol])
-                for pos in positions:
-                    if abs(pos.get("contracts", 0)) > 0:
-                        side = "sell" if pos.get("side") == "long" else "buy"
-                        amount = abs(pos.get("contracts", 0))
-
-                        # Crear orden de cierre
-                        close_order = await self.connector.create_order(
-                            self.symbol, "market", side, amount, None, {"reduceOnly": True}
-                        )
-                        logger.info(f"✅ Cerrada posición {side} {amount}")
-            except Exception as e:
-                logger.debug(f"⚠️ No hay posiciones para cerrar: {e}")
-
-            logger.info("✅ Cleanup completado")
-            return True
-
-        except Exception as e:
-            logger.error(f"❌ Error en cleanup: {e}")
-            return False
+        """DEPRECATED: La limpieza ahora la hace el Croupier."""
+        pass
 
     async def _step_2_get_balance(self) -> Optional[float]:
         """Obtener balance real del exchange."""
@@ -288,9 +246,6 @@ class OCOExecutionDebugger:
         try:
             logger.info("📌 Obteniendo precio actual...")
             # Conectar adapter si no está conectado
-            if not hasattr(self.adapter, "_connected") or not self.adapter._connected:
-                logger.info("  📌 Conectando adapter...")
-                await self.adapter.connect()
 
             ticker = await self.adapter.fetch_ticker(self.symbol)
             current_price = ticker.get("last", 0.0)
@@ -317,8 +272,8 @@ class OCOExecutionDebugger:
                 "symbol": self.symbol,
                 "side": "LONG",
                 "size": 1.0,  # Fracción del equity a arriesgar
-                "take_profit": 1.003,  # Multiplicador: +0.3%
-                "stop_loss": 0.997,  # Multiplicador: -0.3%
+                "take_profit": 1.0005,  # Multiplicador ultra sensible: +0.05%
+                "stop_loss": 0.9995,  # Multiplicador ultra sensible: -0.05%
                 "leverage": 125,  # Apalancamiento máximo en Binance
             }
 
@@ -550,14 +505,6 @@ class OCOExecutionDebugger:
                 self.test_results["verify_open_position"] = "FAIL"
                 return None
 
-            # Verificar en PositionTracker
-            active_orders = self.croupier.position_tracker._active_orders
-            logger.info(f"📊 Órdenes en PositionTracker: {len(active_orders)}")
-            for symbol, orders in active_orders.items():
-                logger.info(f"  {symbol}: {len(orders)} órdenes registradas")
-                for order_id in orders:
-                    logger.info(f"    - {order_id[:8]}")
-
             # Monitorear durante 10 minutos
             start_time = asyncio.get_event_loop().time()
             monitoring_duration = 600  # 10 minutos máximo para debug
@@ -567,7 +514,10 @@ class OCOExecutionDebugger:
             min_price = entry_price
             max_price = entry_price
 
-            logger.info("\n  ⏱️ Monitoreando precio cada 5 segundos (600 segundos = 10 minutos)...")
+            logger.info(
+                "\n  ⏱️ Monitoreando precio cada 5 segundos (600 segundos = 10 minutos)..."
+                + "(con TP/SL ultra sensibles, debería cerrarse en segundos)"
+            )
             logger.info("  " + "=" * 80)
 
             while asyncio.get_event_loop().time() - start_time < monitoring_duration:
@@ -602,11 +552,11 @@ class OCOExecutionDebugger:
                     except Exception as e:
                         logger.warning(f"  [{elapsed:2d}s] ⚠️ Error obteniendo precio: {e}")
 
-                    # Llamar OCO monitor
+                    # Llamar al nuevo monitor centralizado en Croupier
                     try:
-                        await self.croupier.monitor_oco_manual()
+                        await self.croupier.monitor_positions()
                     except Exception as e:
-                        logger.warning(f"  ⚠️ Error en monitor_oco_manual: {e}")
+                        logger.error(f"  ❌ Error en monitor_positions: {e}", exc_info=True)
 
                     # Chequear si se cerró
                     open_positions = self.croupier.position_tracker.open_positions
@@ -675,44 +625,6 @@ class OCOExecutionDebugger:
             self.test_results["monitor_oco"] = "FAIL"
             return False
 
-    async def _step_9_verify_final_result(self):
-        """Verificar resultado final."""
-        try:
-            logger.info("📌 Verificando resultado final...")
-
-            # Ajustar los multiplicadores para asegurar que el precio alcance los niveles
-            # TP: 0.2% (muy sensible para que se active con pequeño movimiento)
-            # SL: 0.2% (muy sensible)
-            self.croupier.position_tracker.set_tp_multiplier(1.002)  # TP a 0.2%
-            self.croupier.position_tracker.set_sl_multiplier(0.998)  # SL a 0.2%
-
-            open_positions = self.croupier.position_tracker.open_positions
-            stats = self.croupier.position_tracker.get_stats()
-
-            logger.info(f"✅ Estadísticas finales:")
-            logger.info(f"  Posiciones abiertas: {len(open_positions)}")
-            logger.info(f"  Total cerrados: {stats.get('total_closed', 0)}")
-            logger.info(f"  Wins: {stats.get('total_wins', 0)}")
-            logger.info(f"  Losses: {stats.get('total_losses', 0)}")
-
-            self._log_debug(
-                "VERIFY_FINAL_RESULT",
-                "Resultado final verificado",
-                {
-                    "open_positions": len(open_positions),
-                    "total_closed": stats.get("total_closed", 0),
-                    "wins": stats.get("total_wins", 0),
-                    "losses": stats.get("total_losses", 0),
-                },
-            )
-
-            self.test_results["verify_final_result"] = "PASS"
-
-        except Exception as e:
-            logger.error(f"❌ Error verificando resultado final: {e}")
-            self._log_debug("VERIFY_FINAL_RESULT", f"Error: {e}")
-            self.test_results["verify_final_result"] = "FAIL"
-
     def _step_10_generate_report(self):
         """Generar reporte de debug."""
         try:
@@ -750,13 +662,6 @@ class OCOExecutionDebugger:
                     logger.info("✅ Conector desconectado")
                 except Exception as e:
                     logger.warning(f"⚠️ Error desconectando: {e}")
-
-            if self.adapter:
-                try:
-                    await self.adapter.close()
-                    logger.info("✅ Adapter cerrado")
-                except Exception as e:
-                    logger.warning(f"⚠️ Error cerrando adapter: {e}")
 
         except Exception as e:
             logger.error(f"❌ Error en cleanup: {e}")

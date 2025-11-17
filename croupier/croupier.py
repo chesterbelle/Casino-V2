@@ -44,6 +44,7 @@ Contrato de la orden:
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Dict, List, Optional
 
@@ -275,6 +276,60 @@ class Croupier:
                 "reason": str(e),
             }
 
+    async def cleanup_symbol(self, symbol: str):
+        """Método público para forzar la limpieza de un símbolo."""
+        self.logger.info(f"🧹 Ejecutando limpieza robusta para {symbol}...")
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                # 1. Cancelar todas las órdenes abiertas
+                open_orders = await self.exchange_adapter.connector.fetch_open_orders(symbol)
+                if open_orders:
+                    for order in open_orders:
+                        await self.exchange_adapter.cancel_order(order["id"], symbol)
+
+                # 2. Cerrar posición si existe
+                positions = await self.exchange_adapter.connector.fetch_positions([symbol])
+                pos_found = any(p and abs(p.get("contracts", 0)) > 0 for p in positions)
+                if pos_found:
+                    for pos in positions:
+                        if pos and abs(pos.get("contracts", 0)) > 0:
+                            side = "sell" if pos.get("side") == "long" else "buy"
+                            amount = abs(pos.get("contracts", 0))
+                            await self.exchange_adapter.execute_order(
+                                {
+                                    "symbol": symbol,
+                                    "type": "market",
+                                    "side": side,
+                                    "amount": amount,
+                                    "params": {"reduceOnly": True},
+                                }
+                            )
+                            await asyncio.sleep(2)  # Esperar a que se procese
+
+                # 3. Sincronizar y limpiar estado interno
+                await self.state_sync.sync_positions()
+                for p in list(self.position_tracker.open_positions):
+                    if p.symbol == symbol:
+                        self.position_tracker.open_positions.remove(p)
+
+                # 4. Verificación final
+                final_orders = await self.exchange_adapter.connector.fetch_open_orders(symbol)
+                final_positions = await self.exchange_adapter.connector.fetch_positions([symbol])
+                has_pos = any(p and abs(p.get("contracts", 0)) > 0 for p in final_positions)
+
+                if not final_orders and not has_pos:
+                    self.logger.info(f"✅ Limpieza para {symbol} completada.")
+                    return
+
+            except Exception as e:
+                self.logger.error(f"Error en limpieza (intento {attempt + 1}): {e}")
+
+            self.logger.warning(f"Limpieza fallida en intento {attempt + 1}. Reintentando...")
+            await asyncio.sleep(2)
+
+        raise RuntimeError(f"No se pudo limpiar el símbolo {symbol} después de {max_retries} intentos.")
+
     async def close_position(self, trade_id: str) -> dict:
         self.logger.info(f"Intentando cerrar manualmente la posición: {trade_id}")
         position_to_close = self.position_tracker.get_position(trade_id)
@@ -417,10 +472,14 @@ class Croupier:
         # El "amount" se calcula en _execute_on_exchange() y se retorna en main_result
         amount = main_result.get("amount") or order.get("amount")
         side = order.get("side")
+        safety_margin_factor = 0.0005  # 0.05%
 
-        # Calcular precios
-        tp_price = entry_price * tp_multiplier
-        sl_price = entry_price * sl_multiplier
+        if side == "LONG":
+            tp_price = entry_price * tp_multiplier
+            sl_price = entry_price * sl_multiplier * (1 - safety_margin_factor)
+        else:  # SHORT
+            tp_price = entry_price * (2.0 - tp_multiplier)
+            sl_price = entry_price * (2.0 - sl_multiplier) * (1 + safety_margin_factor)
 
         self.logger.info(f"📊 OCO Monitor | Entry: ${entry_price:.2f} | TP: ${tp_price:.2f} | SL: ${sl_price:.2f}")
 
@@ -633,7 +692,8 @@ class Croupier:
 
         # Calcular PnL y confirmar el cierre
         exit_price = executed_order.get("price", position.entry_price)
-        fee = executed_order.get("fee", {}).get("cost", 0.0)
+        fee_info = executed_order.get("fee") or {}
+        fee = fee_info.get("cost", 0.0)
         pnl = self._calculate_position_pnl(position, exit_price, fee)
 
         self.position_tracker.confirm_close(position.trade_id, exit_price, reason, pnl, fee)

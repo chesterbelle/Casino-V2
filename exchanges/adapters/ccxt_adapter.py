@@ -152,36 +152,12 @@ class CCXTAdapter(BaseTable):
         self.symbol = symbol
         self.timeframe = timeframe
 
-        # Estado de conexión
-        self._connected = False
-        self._last_candle: Optional[Dict] = None
-        self.exchange = None
+        # El adapter es sin estado, solo delega. La instancia de exchange se obtiene del conector.
+        self.exchange = getattr(self.connector, "exchange", None)
+        if not self.exchange:
+            raise ValueError("El conector debe tener una instancia `exchange` de ccxt inicializada.")
 
         self.logger.info(f"Stateless CCXTAdapter initialized | Symbol: {self.symbol} | Timeframe: {self.timeframe}")
-
-    # =========================================================
-    # 🔌 CONNECTION MANAGEMENT
-    # =========================================================
-
-    async def connect(self) -> None:
-        """
-        Conecta al exchange a través del conector.
-        Falla rápido si la conexión no se puede establecer.
-        """
-        try:
-            self.logger.info(f"🔌 Conectando a {self.connector.exchange_name}...")
-            await self.connector.connect()
-            self.exchange = getattr(self.connector, "exchange", None)
-
-            # Prueba de conexión simple para asegurar que la API responde
-            await self.connector.fetch_ticker(self.symbol)
-
-            self._connected = True
-            self.logger.info(f"✅ Conectado a {self.connector.exchange_name}")
-
-        except Exception as e:
-            self.logger.error(f"❌ Error conectando: {e}")
-            raise  # Propaga la excepción al Croupier
 
     async def get_current_price(self, symbol: str = None) -> float:
         """
@@ -197,9 +173,6 @@ class CCXTAdapter(BaseTable):
             RuntimeError: If not connected
             ValueError: If price cannot be obtained
         """
-        if not self._connected:
-            raise RuntimeError("Not connected. Call connect() first.")
-
         symbol = symbol or self.symbol
         self.logger.info(f"🔍 get_current_price | requested_symbol={symbol} | adapter_symbol={self.symbol}")
 
@@ -218,23 +191,6 @@ class CCXTAdapter(BaseTable):
             self.logger.error(f"❌ Error getting current price for {symbol}: {e}")
             raise ValueError(f"Cannot get current price for {symbol}: {e}")
 
-    async def close(self) -> None:
-        """
-        Close connection to the exchange.
-
-        Closes the connector and cleans up resources.
-        """
-        try:
-            await self.connector.close()
-            self._connected = False
-            self.logger.info("🔌 Conexión cerrada")
-        except Exception as e:
-            self.logger.warning(f"⚠️ Error cerrando conexión: {e}")
-
-    async def disconnect(self) -> None:
-        """Alias de close() para compatibilidad con validadores/tests."""
-        await self.close()
-
     async def register_oco_pair(self, symbol: str, tp_order_id: str, sl_order_id: str):
         """
         Registers an OCO pair with the underlying connector if supported.
@@ -251,9 +207,6 @@ class CCXTAdapter(BaseTable):
         Obtiene la siguiente vela del exchange. No gestiona estado.
         Falla rápido si el conector no devuelve datos.
         """
-        if not self._connected:
-            raise RuntimeError("Not connected. Call connect() first.")
-
         candles = await self.connector.fetch_ohlcv(self.symbol, self.timeframe, limit=1)
         if not candles:
             return None
@@ -281,9 +234,6 @@ class CCXTAdapter(BaseTable):
         Nota: OCO Manual es responsabilidad de Croupier.
         Este adapter solo crea órdenes individuales.
         """
-        if not self._connected:
-            raise RuntimeError("Not connected. Call connect() first.")
-
         try:
             # Traducir formato de Croupier a CCXT si es necesario
             if order.get("side") in ["LONG", "SHORT"]:
@@ -314,9 +264,6 @@ class CCXTAdapter(BaseTable):
 
     async def cancel_order(self, order_id: str, symbol: str = None) -> Dict:
         """Cancel an order."""
-        if not self._connected:
-            raise RuntimeError("Not connected. Call connect() first.")
-
         try:
             result = await self.connector.cancel_order(order_id, symbol or self.symbol)
             self.logger.info(f"✅ Orden cancelada | ID: {order_id}")
@@ -327,9 +274,6 @@ class CCXTAdapter(BaseTable):
 
     async def fetch_order(self, order_id: str, symbol: str = None) -> Dict:
         """Fetch order status."""
-        if not self._connected:
-            raise RuntimeError("Not connected. Call connect() first.")
-
         try:
             result = await self.connector.fetch_order(order_id, symbol or self.symbol)
             return result
@@ -339,9 +283,6 @@ class CCXTAdapter(BaseTable):
 
     async def fetch_ticker(self, symbol: str = None) -> Dict:
         """Fetch ticker data (price, volume, etc.)."""
-        if not self._connected:
-            raise RuntimeError("Not connected. Call connect() first.")
-
         try:
             result = await self.connector.fetch_ticker(symbol or self.symbol)
             return result
@@ -351,9 +292,6 @@ class CCXTAdapter(BaseTable):
 
     async def fetch_positions(self, symbols: list = None) -> list:
         """Fetch open positions."""
-        if not self._connected:
-            raise RuntimeError("Not connected. Call connect() first.")
-
         try:
             result = await self.connector.fetch_positions(symbols or [self.symbol])
             return result
@@ -413,11 +351,6 @@ class CCXTAdapter(BaseTable):
     # =========================================================
     # 📊 PROPERTIES
     # =========================================================
-
-    @property
-    def is_connected(self) -> bool:
-        """Check if connected to exchange."""
-        return self._connected
 
     @property
     def exchange_name(self) -> str:
