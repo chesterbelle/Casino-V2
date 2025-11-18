@@ -129,6 +129,7 @@ class SimulatedAdapter:
             # NOTE: tp_order_id and sl_order_id are None in backtest
             # PositionTracker will handle TP/SL detection in simulation mode
             return {
+                "id": result["id"],
                 "status": "opened",
                 "trade_id": order.get("trade_id"),
                 "symbol": result["symbol"],

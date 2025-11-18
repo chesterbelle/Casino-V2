@@ -508,42 +508,16 @@ class Croupier:
         # El "amount" se calcula en _execute_on_exchange() y se retorna en main_result
         amount = main_result.get("amount") or order.get("amount")
         side = order.get("side")
-        safety_margin_factor = 0.005  # 0.5% - Margen de seguridad más robusto
-
-        # Obtener precio actual para validar distancia mínima
-        try:
-            current_price = await self.exchange_adapter.get_current_price(symbol)
-        except Exception as e:
-            self.logger.warning(f"⚠️ Could not get current price: {e}. Using entry_price as reference.")
-            current_price = entry_price
+        safety_margin_factor = 0.0005  # 0.05%
 
         if side == "LONG":
             tp_price = entry_price * tp_multiplier
             sl_price = entry_price * sl_multiplier * (1 - safety_margin_factor)
-            # Asegurar que TP esté por encima del precio actual
-            min_tp_price = current_price * (1 + safety_margin_factor)
-            if tp_price < min_tp_price:
-                self.logger.warning(
-                    f"⚠️ TP price ({tp_price:.2f}) too close to current price ({current_price:.2f}). "
-                    f"Adjusting to {min_tp_price:.2f}"
-                )
-                tp_price = min_tp_price
         else:  # SHORT
             tp_price = entry_price * (2.0 - tp_multiplier)
             sl_price = entry_price * (2.0 - sl_multiplier) * (1 + safety_margin_factor)
-            # Asegurar que TP esté por debajo del precio actual
-            max_tp_price = current_price * (1 - safety_margin_factor)
-            if tp_price > max_tp_price:
-                self.logger.warning(
-                    f"⚠️ TP price ({tp_price:.2f}) too close to current price ({current_price:.2f}). "
-                    f"Adjusting to {max_tp_price:.2f}"
-                )
-                tp_price = max_tp_price
 
-        self.logger.info(
-            f"📊 OCO Monitor | Entry: ${entry_price:.2f} | Current: ${current_price:.2f} | "
-            f"TP: ${tp_price:.2f} | SL: ${sl_price:.2f}"
-        )
+        self.logger.info(f"📊 OCO Monitor | Entry: ${entry_price:.2f} | TP: ${tp_price:.2f} | SL: ${sl_price:.2f}")
 
         # Determinar lado opuesto (para cerrar posición)
         close_side = "sell" if side == "LONG" else "buy"
@@ -751,6 +725,10 @@ class Croupier:
         # Cancelar la orden hermana si todavía existe y está abierta
         if sibling_order and sibling_order.get("status") == "open":
             await self._cancel_sibling_order(sibling_order["id"], "sibling", position.symbol)
+
+        # Cancelar el main_order_id si todavía existe y está abierta
+        if position.main_order_id:
+            await self._cancel_sibling_order(position.main_order_id, "main_order", position.symbol)
 
         # Calcular PnL y confirmar el cierre
         exit_price = executed_order.get("price", position.entry_price)

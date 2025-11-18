@@ -77,7 +77,7 @@ def parse_args():
         elif arg.startswith("--data="):
             data_file = arg.split("=")[1]
         elif arg.startswith("--initial-balance="):
-            initial_balance = float(arg.split("=")[1])
+            initial_balance = float(arg.split("=")[1].rstrip("~"))
         elif arg.startswith("--exchange="):
             exchange = arg.split("=")[1].lower()
         elif arg in ["--help", "-h"]:
