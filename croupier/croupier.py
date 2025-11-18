@@ -181,18 +181,54 @@ class Croupier:
                     "sl_order_id": None,
                 }
 
-            # 3. Verificar fondos
-            required_margin = self.get_equity() * order.get("size", 0.0)
+            # 3. Obtener precio actual y convertir fracción a cantidad real de contratos
+            try:
+                current_price = await self.exchange_adapter.get_current_price(symbol)
+            except Exception as e:
+                self.logger.error(f"❌ Error obteniendo precio actual: {e}")
+                return {
+                    "status": "error",
+                    "reason": f"Could not get current price: {str(e)}",
+                    "main_order_id": None,
+                    "tp_order_id": None,
+                    "sl_order_id": None,
+                }
+
+            # Convertir fracción del equity a notional en USDT
+            size_fraction = order.get("size", 0.0)
+            notional_desired = self.get_equity() * size_fraction
+
+            # Calcular cantidad real de contratos
+            amount = notional_desired / current_price if current_price > 0 else 0
+
+            # Validar mínimo de notional (Binance requiere 5 USDT)
+            MIN_NOTIONAL = 5.0
+            if notional_desired < MIN_NOTIONAL:
+                self.logger.warning(
+                    f"⚠️ Notional ({notional_desired:.2f} USDT) menor que mínimo ({MIN_NOTIONAL} USDT). "
+                    f"Ajustando al mínimo."
+                )
+                amount = MIN_NOTIONAL / current_price
+                notional_desired = MIN_NOTIONAL
+
+            self.logger.info(
+                f"📊 Orden convertida | Fracción: {size_fraction:.4f} | "
+                f"Notional: {notional_desired:.2f} USDT | Precio: {current_price:.2f} | "
+                f"Cantidad: {amount:.6f} contratos"
+            )
+
+            # 4. Verificar fondos
+            required_margin = notional_desired
             if not self.balance_manager.can_open_position(required_margin):
                 return self._insufficient_funds_result(order)
 
-            # 4. Ejecutar orden principal
+            # 5. Ejecutar orden principal
             main_order = await self._execute_on_exchange(
                 {
                     "symbol": symbol,
                     "side": "buy" if order["side"] == "LONG" else "sell",
                     "type": "market",
-                    "amount": order["size"],
+                    "amount": amount,
                     "leverage": order.get("leverage", 1),
                     "params": {"reduceOnly": False},
                 }
@@ -201,7 +237,7 @@ class Croupier:
             if not main_order or not main_order.get("id"):
                 raise Exception("No se pudo ejecutar la orden principal")
 
-            # 5. Configurar TP/SL (siempre se configuran)
+            # 6. Configurar TP/SL (siempre se configuran)
             try:
                 tp_order_id, sl_order_id = await self._setup_oco_orders(order, main_order)
             except (TPOrderCreationError, SLOrderCreationError, OCOConfigurationError) as e:
@@ -223,7 +259,7 @@ class Croupier:
                     "sl_order_id": None,
                 }
 
-            # 6. Registrar posición
+            # 7. Registrar posición
             self.position_tracker.open_position(
                 order=order,
                 entry_price=main_order.get("price", 0.0),
