@@ -161,6 +161,10 @@ class ResilientConnector(BaseConnector):
             f"state_recovery={enable_state_recovery}"
         )
 
+    def __getattr__(self, name):
+        """Delega el acceso a atributos al conector subyacente."""
+        return getattr(self._connector, name)
+
     # =========================================================
     # 🔌 CONNECTION MANAGEMENT
     # =========================================================

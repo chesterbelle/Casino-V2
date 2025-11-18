@@ -637,8 +637,10 @@ class BinanceConnector(BaseConnector):
             if self.ws_exchange:
                 await self._close_websocket()
 
-            # PROTECTED: Prevent CCXT concurrent access
-            await self._safe_ccxt_call("close")
+            # Close the underlying ccxt exchange instance explicitly
+            if self.exchange:
+                await self.exchange.close()
+
             self._connected = False
             self._ready = False
             self.logger.info("🔌 Connection to Binance closed")

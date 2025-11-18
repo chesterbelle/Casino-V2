@@ -403,13 +403,7 @@ async def run_backtest(player_module, data_file, max_candles, initial_balance=No
     try:
         session_stats = await session.run()
     finally:
-        # Cleanup: Close data source connection (backtest doesn't need it, but for consistency)
-        try:
-            if hasattr(source, "disconnect"):
-                await source.disconnect()
-                logger.info("🔌 Data source disconnected")
-        except Exception as e:
-            logger.warning(f"⚠️ Error closing data source: {e}")
+        pass
 
     # Print stats - combine session stats with data source stats
     stats = source.get_stats()
@@ -505,6 +499,9 @@ async def run_demo(player_module, symbol, interval, max_candles, exchange=None, 
         },
     )
 
+    # Conectar al exchange ANTES de crear los componentes dependientes
+    await connector.connect()
+
     # --- Nueva Arquitectura: Croupier como Cerebro ---
     # 1. Obtener balance inicial REAL del exchange
     logger.info("Obteniendo balance inicial real del exchange...")
@@ -540,12 +537,6 @@ async def run_demo(player_module, symbol, interval, max_candles, exchange=None, 
     try:
         session_stats = await session.run()
     finally:
-        # Cleanup: Close data source connection and adapter/connector
-        try:
-            await source.disconnect()
-            logger.info("🔌 Data source disconnected")
-        except Exception as e:
-            logger.warning(f"⚠️ Error closing data source: {e}")
 
         # End-of-session forced cleanup for demo: cancel TP/SL and close open positions
         logger.info("🧹 Final cleanup: Closing any remaining open positions and orders...")
@@ -577,10 +568,11 @@ async def run_demo(player_module, symbol, interval, max_candles, exchange=None, 
             logger.warning(f"⚠️ Demo end-session cleanup error: {e}")
 
         try:
-            # Close adapter (will close underlying connector + ccxt resources)
-            await adapter.close()
+            # Close the main connector
+            await connector.close()
+            logger.info("🔌 Connector closed")
         except Exception as e:
-            logger.warning(f"⚠️ Error closing adapter: {e}")
+            logger.warning(f"⚠️ Error closing connector: {e}")
 
         # Small drain to let aiohttp/ccxt settle
         try:

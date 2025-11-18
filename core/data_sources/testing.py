@@ -7,11 +7,24 @@ Delegates all order execution and state management to the Croupier.
 
 import asyncio
 import logging
+import time
 from typing import Dict, Optional
 
 from croupier.croupier import Croupier
 
 from .base import Candle, DataSource
+
+
+def timeframe_to_seconds(tf: str) -> int:
+    """Convierte un timeframe string (e.g., '1m', '5m', '1h') a segundos."""
+    if tf.endswith("m"):
+        return int(tf[:-1]) * 60
+    if tf.endswith("h"):
+        return int(tf[:-1]) * 3600
+    if tf.endswith("d"):
+        return int(tf[:-1]) * 86400
+    raise ValueError(f"Timeframe no soportado: {tf}")
+
 
 logger = logging.getLogger(__name__)
 
@@ -48,9 +61,9 @@ class TestingDataSource(DataSource):
         self.timeframe = timeframe
         self.poll_interval = poll_interval
 
-        self._connected = False
         self._last_candle_timestamp = 0
-        self.initial_balance = 0.0  # Will be set on connect
+        # El balance inicial se obtiene directamente del Croupier, que ya está inicializado.
+        self.initial_balance = self.croupier.get_balance()
 
         logger.info(
             f"📊 TestingDataSource initialized | "
@@ -60,37 +73,17 @@ class TestingDataSource(DataSource):
         )
 
     async def connect(self) -> None:
-        """Connects to the exchange via the adapter held by the Croupier."""
-        if self._connected:
-            return
-        try:
-            await self.adapter.connect()
-            self._connected = True
-            # Save initial balance for stats, obtained from the Croupier
-            self.initial_balance = self.croupier.get_balance()
-            logger.info("✅ Testing data source connected")
-        except Exception as e:
-            logger.error(f"❌ Failed to connect testing data source: {e}")
-            raise
+        """Método de conexión requerido por la clase base. No realiza ninguna acción."""
+        pass
 
     async def disconnect(self) -> None:
-        """Disconnects from the exchange via the adapter."""
-        if not self._connected:
-            return
-        try:
-            # Do not close the shared adapter here; validator/croupier manages lifecycle.
-            self._connected = False
-            logger.info("🔌 Testing data source disconnected")
-        except Exception as e:
-            logger.warning(f"⚠️ Error disconnecting testing data source: {e}")
+        """Método de desconexión requerido por la clase base. No realiza ninguna acción."""
+        pass
 
     async def next_candle(self) -> Optional[Candle]:
         """
         Gets the next candle from the exchange and enriches it with portfolio data from the Croupier.
         """
-        if not self._connected:
-            raise RuntimeError("Not connected. Call connect() first.")
-
         while True:
             try:
                 candle_data = await self.adapter.next_candle()
@@ -113,7 +106,7 @@ class TestingDataSource(DataSource):
                 balance = self.croupier.get_balance()
                 equity = self.croupier.get_equity()
 
-                return Candle(
+                candle = Candle(
                     timestamp=timestamp,
                     open=float(candle_data["open"]),
                     high=float(candle_data["high"]),
@@ -127,6 +120,18 @@ class TestingDataSource(DataSource):
                     unrealized_pnl=equity - balance,
                 )
 
+                # Esperar hasta la siguiente vela para simular tiempo real
+                timeframe_seconds = timeframe_to_seconds(self.timeframe)
+                now = time.time()  # Tiempo actual en segundos desde epoch
+                next_candle_start = (timestamp / 1000) + timeframe_seconds  # timestamp está en milisegundos
+                wait_time = next_candle_start - now
+
+                if wait_time > 0:
+                    logger.info(f"⏳ Waiting {wait_time:.1f}s for next candle...")
+                    await asyncio.sleep(wait_time)
+
+                return candle
+
             except Exception as e:
                 logger.error(f"❌ Error fetching candle: {e}")
                 await asyncio.sleep(self.poll_interval)
@@ -136,9 +141,6 @@ class TestingDataSource(DataSource):
         """
         Delegates order execution directly to the Croupier.
         """
-        if not self._connected:
-            raise RuntimeError("Not connected. Call connect() first.")
-
         try:
             # Croupier is the single point of execution
             result = await self.croupier.execute_order(order)
