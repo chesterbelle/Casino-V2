@@ -722,12 +722,16 @@ class Croupier:
         self, position, executed_order: Dict, reason: str, sibling_order: Optional[Dict]
     ):
         """Maneja el cierre de una posición, cancelando la orden hermana y confirmando."""
+        self.logger.info(f"📋 Closing position | Symbol: {position.symbol} | Reason: {reason}")
+
         # Cancelar la orden hermana si todavía existe y está abierta
         if sibling_order and sibling_order.get("status") == "open":
+            self.logger.info(f"🔄 Cancelling sibling order ({reason} counterpart)")
             await self._cancel_sibling_order(sibling_order["id"], "sibling", position.symbol)
 
         # Cancelar el main_order_id si todavía existe y está abierta
         if position.main_order_id:
+            self.logger.info(f"🔄 Cancelling main_order_id: {position.main_order_id}")
             await self._cancel_sibling_order(position.main_order_id, "main_order", position.symbol)
 
         # Calcular PnL y confirmar el cierre
@@ -735,6 +739,12 @@ class Croupier:
         fee_info = executed_order.get("fee") or {}
         fee = fee_info.get("cost", 0.0)
         pnl = self._calculate_position_pnl(position, exit_price, fee)
+
+        self.logger.info(
+            f"✅ CONFIRMED CLOSE | {position.symbol} {position.side} | "
+            f"Entry: {position.entry_price:.2f} | Exit: {exit_price:.2f} ({reason}) | "
+            f"PnL: {pnl:+.2f} | Fee: {fee:.2f}"
+        )
 
         self.position_tracker.confirm_close(position.trade_id, exit_price, reason, pnl, fee)
 
