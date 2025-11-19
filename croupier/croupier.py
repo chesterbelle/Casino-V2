@@ -238,23 +238,45 @@ class Croupier:
                 raise Exception("No se pudo ejecutar la orden principal")
 
             # 6. Configurar TP/SL (siempre se configuran)
+            tp_order_id = None
+            sl_order_id = None
             try:
                 tp_order_id, sl_order_id = await self._setup_oco_orders(order, main_order)
             except (TPOrderCreationError, SLOrderCreationError, OCOConfigurationError) as e:
                 self.logger.error(f"❌ Error crítico en OCO: {e}")
-                self.logger.error(f"❌ Cancelando orden principal {main_order['id']} por fallo en TP/SL")
+                self.logger.error("❌ Cancelando todas las órdenes por fallo en TP/SL")
 
-                # Cancelar orden principal ya que no podemos tener TP/SL
-                try:
-                    await self.exchange_adapter.cancel_order(main_order["id"], symbol)
-                    self.logger.info(f"✅ Orden principal {main_order['id']} cancelada")
-                except Exception as cancel_error:
-                    self.logger.error(f"❌ Error cancelando orden principal: {cancel_error}")
+                # Cancelar TODAS las órdenes que se hayan creado
+                await self._cancel_all_orders(
+                    symbol=symbol,
+                    main_order_id=main_order.get("id"),
+                    tp_order_id=tp_order_id,
+                    sl_order_id=sl_order_id,
+                )
 
                 return {
                     "status": "rejected",
                     "reason": f"OCO setup failed: {str(e)}",
-                    "main_order_id": main_order["id"],
+                    "main_order_id": None,
+                    "tp_order_id": None,
+                    "sl_order_id": None,
+                }
+            except Exception as e:
+                self.logger.error(f"❌ Error inesperado en OCO: {e}", exc_info=True)
+                self.logger.error("❌ Cancelando todas las órdenes por error inesperado")
+
+                # Cancelar TODAS las órdenes que se hayan creado
+                await self._cancel_all_orders(
+                    symbol=symbol,
+                    main_order_id=main_order.get("id"),
+                    tp_order_id=tp_order_id,
+                    sl_order_id=sl_order_id,
+                )
+
+                return {
+                    "status": "error",
+                    "reason": f"Unexpected error in OCO setup: {str(e)}",
+                    "main_order_id": None,
                     "tp_order_id": None,
                     "sl_order_id": None,
                 }
@@ -508,13 +530,17 @@ class Croupier:
         # El "amount" se calcula en _execute_on_exchange() y se retorna en main_result
         amount = main_result.get("amount") or order.get("amount")
         side = order.get("side")
-        safety_margin_factor = 0.0005  # 0.05%
+        # Aumentar margen de seguridad para evitar "Order would immediately trigger"
+        # Binance requiere que el SL esté suficientemente lejos del precio actual
+        safety_margin_factor = 0.002  # 0.2% (aumentado de 0.05%)
 
         if side == "LONG":
             tp_price = entry_price * tp_multiplier
+            # Para LONG: SL debe estar DEBAJO del entry_price, así que restamos el margen
             sl_price = entry_price * sl_multiplier * (1 - safety_margin_factor)
         else:  # SHORT
             tp_price = entry_price * (2.0 - tp_multiplier)
+            # Para SHORT: SL debe estar ARRIBA del entry_price, así que sumamos el margen
             sl_price = entry_price * (2.0 - sl_multiplier) * (1 + safety_margin_factor)
 
         self.logger.info(f"📊 OCO Monitor | Entry: ${entry_price:.2f} | TP: ${tp_price:.2f} | SL: ${sl_price:.2f}")
@@ -536,9 +562,18 @@ class Croupier:
                 },
             }
 
-            tp_result = await self.exchange_adapter.execute_order(tp_order)
-            tp_order_id = tp_result.get("id")
-            self.logger.info(f"✅ TP order created: {tp_order_id} @ ${tp_price:.2f}")
+            try:
+                tp_result = await self.exchange_adapter.execute_order(tp_order)
+                tp_order_id = tp_result.get("id")
+                self.logger.info(f"✅ TP order created: {tp_order_id} @ ${tp_price:.2f}")
+            except Exception as e:
+                error_msg = str(e)
+                if "immediately trigger" in error_msg.lower():
+                    raise OCOConfigurationError(
+                        f"TP order would immediately trigger. Entry: ${entry_price:.2f}, TP: ${tp_price:.2f}. "
+                        f"Increase TP margin or reduce position size."
+                    )
+                raise
         else:
             raise OCOConfigurationError("TP price is zero or invalid")
 
@@ -556,9 +591,28 @@ class Croupier:
                 },
             }
 
-            sl_result = await self.exchange_adapter.execute_order(sl_order)
-            sl_order_id = sl_result.get("id")
-            self.logger.info(f"✅ SL order created: {sl_order_id} @ ${sl_price:.2f}")
+            try:
+                sl_result = await self.exchange_adapter.execute_order(sl_order)
+                sl_order_id = sl_result.get("id")
+                self.logger.info(f"✅ SL order created: {sl_order_id} @ ${sl_price:.2f}")
+            except Exception as e:
+                error_msg = str(e)
+                self.logger.error(f"❌ Failed to create SL order: {error_msg}")
+
+                # Cancelar TP order si ya fue creada
+                if tp_order_id:
+                    try:
+                        await self.exchange_adapter.cancel_order(tp_order_id, symbol)
+                        self.logger.info(f"🔄 Cancelled TP order {tp_order_id} due to SL error")
+                    except Exception as cancel_error:
+                        self.logger.error(f"❌ Failed to cancel TP order: {cancel_error}")
+
+                if "immediately trigger" in error_msg.lower():
+                    raise OCOConfigurationError(
+                        f"SL order would immediately trigger. Entry: ${entry_price:.2f}, SL: ${sl_price:.2f}. "
+                        f"Increase SL margin or reduce position size."
+                    )
+                raise OCOConfigurationError(f"Failed to create SL order: {error_msg}")
         else:
             raise OCOConfigurationError("SL price is zero or invalid")
 
@@ -747,6 +801,28 @@ class Croupier:
         )
 
         self.position_tracker.confirm_close(position.trade_id, exit_price, reason, pnl, fee)
+
+    async def _cancel_all_orders(
+        self,
+        symbol: str,
+        main_order_id: Optional[str] = None,
+        tp_order_id: Optional[str] = None,
+        sl_order_id: Optional[str] = None,
+    ):
+        """Cancela todas las órdenes de forma segura (main, TP, SL)."""
+        orders_to_cancel = [
+            (main_order_id, "main"),
+            (tp_order_id, "TP"),
+            (sl_order_id, "SL"),
+        ]
+
+        for order_id, order_type in orders_to_cancel:
+            if order_id:
+                try:
+                    await self.exchange_adapter.cancel_order(order_id, symbol)
+                    self.logger.info(f"✅ Cancelled {order_type} order {order_id}")
+                except Exception as e:
+                    self.logger.error(f"❌ Failed to cancel {order_type} order {order_id}: {e}")
 
     async def _close_position_without_orders(self, position):
         """Cierra una posición cuando sus órdenes TP/SL han desaparecido."""
