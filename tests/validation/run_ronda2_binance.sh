@@ -7,8 +7,8 @@ cd "$ROOT_DIR"
 
 echo "[ronda2] Iniciando Ronda 2 (Binance)"
 
-# Run demo (30 minutes approx -> 30 velas 1m)
-./.venv/bin/python main.py --mode=demo --player=paroli --duration=30m --symbol=BTC/USDT --interval=1m || true
+# Run demo using uniform flags (30 velas)
+./.venv/bin/python main.py --mode=demo --exchange=binance --player=paroli --symbol=LTC/USDT:USDT --interval=1m --max-candles=30 || true
 
 # Download historical data
 python tests/validation/download_historical_data.py --exchange binance --symbol BTC/USDT --interval 1m --limit 200 --out data/validation/historical_ronda2.csv || echo "[ronda2] download failed"

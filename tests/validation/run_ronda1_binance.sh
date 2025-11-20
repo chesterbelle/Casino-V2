@@ -18,10 +18,9 @@ HIST_DATA="data/validation/historical_ronda1.csv"
 BACKTEST_LOGS_DIR="logs"
 COMPARISON_LOG="logs/comparison_ronda1.txt"
 
-# 1) Ejecutar demo trading (espera que exista un script demo runner o main.py con modo demo)
-# Aquí asumimos que `main.py --mode=demo --duration=10m --symbol=BTC/USDT` o script equivalente está disponible.
+# 1) Ejecutar demo trading con los flags indicados por el usuario
 echo "[ronda1] Ejecutando demo trading (10 velas)"
-./.venv/bin/python main.py --mode=demo --player=paroli --duration=10m --symbol=BTC/USDT --interval=1m || true
+./.venv/bin/python main.py --mode=demo --exchange=binance --player=paroli --symbol=LTC/USDT:USDT --interval=1m --max-candles=10 || true
 
 # Intenta detectar el último demo log generado
 DEMO_LOG=$(ls -t ${DEMO_LOGS_DIR}/demo_*.json 2>/dev/null | head -n1 || true)
