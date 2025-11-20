@@ -172,12 +172,18 @@ class Croupier:
     # API Pública: Ejecución de Órdenes
     # ========================================
 
-    async def execute_order(self, order: dict) -> dict:
+    async def execute_order(self, order: dict, wait_for_fill_confirmation: bool = True) -> dict:
         """
         Wrapper para mantener compatibilidad con código existente.
         Delega a oco_bracketed_order que es el método principal.
+
+        Args:
+            order: diccionario de orden (ver contrato)
+            wait_for_fill_confirmation: si True, solicitar al adaptador que espere
+            la confirmación de fill/avgPrice vía WebSocket antes de proceder
+            con la creación de TP/SL. Por defecto True (nuevo flujo market-first).
         """
-        return await self.oco_bracketed_order(order)
+        return await self.oco_bracketed_order(order, wait_for_fill_confirmation=wait_for_fill_confirmation)
 
     async def oco_bracketed_order(self, order: dict) -> dict:
         """
@@ -262,16 +268,22 @@ class Croupier:
                 return self._insufficient_funds_result(order)
 
             # 5. Ejecutar orden principal
-            main_order = await self._execute_on_exchange(
-                {
-                    "symbol": symbol,
-                    "side": "buy" if order["side"] == "LONG" else "sell",
-                    "type": "market",
-                    "amount": amount,
-                    "leverage": order.get("leverage", 1),
-                    "params": {"reduceOnly": False},
-                }
-            )
+            main_order_payload = {
+                "symbol": symbol,
+                "side": "buy" if order["side"] == "LONG" else "sell",
+                "type": "market",
+                "amount": amount,
+                "leverage": order.get("leverage", 1),
+                "params": {"reduceOnly": False},
+            }
+
+            # Always use WS-first confirmation semantics for the main order
+            main_order_payload["confirm_with_ws"] = True
+            # Permitir especificar timeout por orden (ms)
+            if "ws_timeout_ms" in order:
+                main_order_payload["ws_timeout_ms"] = order.get("ws_timeout_ms")
+
+            main_order = await self._execute_on_exchange(main_order_payload)
 
             if not main_order or not main_order.get("id"):
                 raise Exception("No se pudo ejecutar la orden principal")
@@ -391,6 +403,27 @@ class Croupier:
                 "sl_order_id": sl_order_id,
                 "reason": None,
             }
+
+            # Instrumentation: propagate order timing/confirm flags if present
+            try:
+                if isinstance(main_order, dict):
+                    if "order_create_ts" in main_order:
+                        result["order_create_ts"] = main_order.get("order_create_ts")
+                    if "ws_confirm_ts" in main_order:
+                        result["ws_confirm_ts"] = main_order.get("ws_confirm_ts")
+                    if "used_ws_confirm" in main_order:
+                        result["used_ws_confirm"] = bool(main_order.get("used_ws_confirm"))
+                    if "used_rest_fallback" in main_order:
+                        result["used_rest_fallback"] = bool(main_order.get("used_rest_fallback"))
+                    # compute latency if possible
+                    if result.get("order_create_ts") and result.get("ws_confirm_ts"):
+                        try:
+                            result["ws_latency_ms"] = int(result["ws_confirm_ts"] - result["order_create_ts"])
+                        except Exception:
+                            pass
+            except Exception:
+                # Non-critical: do not fail order flow due to instrumentation
+                pass
 
             self._log_execution(order, result)
             return result
@@ -581,51 +614,22 @@ class Croupier:
         if not has_tpsl:
             return None, None
 
-        # Para órdenes MARKET, Binance devuelve price=0 (no hay precio límite)
-        # El precio real de ejecución está en avgPrice
-        entry_price = main_result.get("price", 0.0)
-        self.logger.debug(f"🔍 Entry price from main_result['price']: {entry_price}")
-
+        # Forzar uso del precio de ejecución real
+        entry_price = main_result.get("price")
         if not entry_price or entry_price <= 0:
-            # Intentar con avgPrice (para órdenes MARKET)
-            entry_price = main_result.get("avgPrice", 0.0)
-            self.logger.debug(f"🔍 Entry price from main_result['avgPrice']: {entry_price}")
-
-            if not entry_price or entry_price <= 0:
-                self.logger.warning("⚠️ avgPrice not available, retrying fetch_order to get execution price")
-                # Reintentar obtener la orden del exchange para obtener avgPrice
-                try:
-                    order_id = main_result.get("id")
-                    if order_id:
-                        fetched_order = await self.exchange_adapter.connector.fetch_order(order_id, order.get("symbol"))
-                        entry_price = fetched_order.get("average") or fetched_order.get("avgPrice", 0.0)
-                        self.logger.debug(f"🔍 Entry price from fetch_order: {entry_price}")
-                        if entry_price and entry_price > 0:
-                            self.logger.info(f"✅ Got avgPrice from fetch_order: ${entry_price:.8f}")
-                except Exception as e:
-                    self.logger.warning(f"⚠️ Could not fetch order details: {e}")
-
-        # Si aún no hay precio, usar el precio de la vela actual (fallback para demo mode)
-        self.logger.debug(f"🔍 Before candle_close check: entry_price={entry_price}, type={type(entry_price)}")
+            entry_price = main_result.get("avgPrice")
         if not entry_price or entry_price <= 0:
-            candle_close = order.get("candle_close", 0.0)
-            self.logger.debug(f"🔍 candle_close from order: {candle_close}")
-            if candle_close and candle_close > 0:
-                entry_price = candle_close
-                self.logger.info(f"📊 Using candle close price as entry: ${entry_price:.8f}")
-
-        # Si aún no hay precio, obtener del mercado
-        if not entry_price or entry_price <= 0:
+            # Intentar obtener de fetch_order si el exchange lo soporta
             try:
-                # Usar get_current_price que tiene fallback chain (last → close → bid)
-                entry_price = await self.exchange_adapter.get_current_price(order.get("symbol"))
-                self.logger.info(f"📊 Using current market price as entry: ${entry_price:.8f}")
+                order_id = main_result.get("id")
+                if order_id:
+                    fetched_order = await self.exchange_adapter.connector.fetch_order(order_id, order.get("symbol"))
+                    entry_price = fetched_order.get("average") or fetched_order.get("avgPrice")
             except Exception as e:
-                self.logger.error(f"❌ Failed to get entry price from market: {e}")
-                raise OCOConfigurationError(f"No entry price available for TP/SL calculation: {e}")
-
+                self.logger.warning(f"⚠️ Could not fetch order details: {e}")
+        # Si aún no hay precio, fallar claramente
         if not entry_price or entry_price <= 0:
-            raise OCOConfigurationError(f"Invalid entry price: {entry_price}")
+            raise OCOConfigurationError(f"No valid execution price for TP/SL calculation. Got: {entry_price}")
 
         tp_multiplier = order.get("take_profit", 1.0)
         sl_multiplier = order.get("stop_loss", 1.0)
@@ -668,73 +672,87 @@ class Croupier:
         # Determinar lado opuesto (para cerrar posición)
         close_side = "sell" if side == "LONG" else "buy"
 
-        # Crear TP order - TAKE_PROFIT_MARKET (según documentación oficial CCXT)
-        # https://github.com/ccxt/ccxt/blob/master/examples/py/binance-stop-loss-take-profit.py
+        # Implement retry logic for creating TP and SL orders. If after retries we
+        # cannot create both protective orders, we consider this a critical failure
+        # and the caller (Croupier) should cancel created orders and close the main
+        # position to avoid leaving an unprotected position open.
+
+        MAX_RETRIES = 3
         tp_order_id = None
+        sl_order_id = None
+        tp_attempts = []
+        sl_attempts = []
+
+        # Helper to create order with retries
+        async def _attempt_create(payload, attempts_list):
+            for attempt in range(1, MAX_RETRIES + 1):
+                try:
+                    t0 = time.time()
+                    res = await self.exchange_adapter.execute_order(payload)
+                    t1 = time.time()
+                    attempts_list.append({"attempt": attempt, "ok": True, "duration_ms": int((t1 - t0) * 1000)})
+                    return res
+                except Exception as e:
+                    t1 = time.time()
+                    attempts_list.append(
+                        {"attempt": attempt, "ok": False, "error": str(e), "duration_ms": int((t1 - t0) * 1000)}
+                    )
+                    await asyncio.sleep(0.2 * attempt)
+            return None
+
+        # Create TP order (take profit market)
         if tp_price:
-            tp_order = {
+            tp_payload = {
                 "symbol": symbol,
                 "side": close_side,
                 "amount": amount,
-                "type": "take_profit_market",  # ← TAKE_PROFIT_MARKET (no LIMIT)
-                "params": {
-                    "stopPrice": tp_price,  # ← stopPrice para TP
-                },
+                "type": "take_profit_market",
+                "params": {"stopPrice": tp_price},
             }
 
-            try:
-                tp_result = await self.exchange_adapter.execute_order(tp_order)
-                tp_order_id = tp_result.get("id")
+            tp_res = await _attempt_create(tp_payload, tp_attempts)
+            if tp_res:
+                tp_order_id = tp_res.get("id")
                 self.logger.info(f"✅ TP order created: {tp_order_id} @ ${tp_price:.8f}")
-            except Exception as e:
-                error_msg = str(e)
-                if "immediately trigger" in error_msg.lower():
-                    raise OCOConfigurationError(
-                        f"TP order would immediately trigger. Entry: ${entry_price:.8f}, TP: ${tp_price:.8f}, Market: ${current_market_price:.8f}. "
-                        f"Increase TP margin or reduce position size."
-                    )
-                raise
+            else:
+                # If TP couldn't be created after retries, raise to trigger failure handling
+                self.logger.error(f"❌ Failed to create TP after {MAX_RETRIES} attempts: {tp_attempts}")
+                raise TPOrderCreationError(f"Failed to create TP after {MAX_RETRIES} attempts")
         else:
             raise OCOConfigurationError("TP price is zero or invalid")
 
-        # Crear SL order - STOP_MARKET (según documentación oficial CCXT)
-        # https://github.com/ccxt/ccxt/blob/master/examples/py/binance-stop-loss-take-profit.py
-        sl_order_id = None
+        # Create SL order (stop market)
         if sl_price:
-            sl_order = {
+            sl_payload = {
                 "symbol": symbol,
                 "side": close_side,
                 "amount": amount,
-                "type": "stop_market",  # ← STOP_MARKET
-                "params": {
-                    "stopPrice": sl_price,  # ← stopPrice para SL
-                },
+                "type": "stop_market",
+                "params": {"stopPrice": sl_price},
             }
 
-            try:
-                sl_result = await self.exchange_adapter.execute_order(sl_order)
-                sl_order_id = sl_result.get("id")
+            sl_res = await _attempt_create(sl_payload, sl_attempts)
+            if sl_res:
+                sl_order_id = sl_res.get("id")
                 self.logger.info(f"✅ SL order created: {sl_order_id} @ ${sl_price:.2f}")
-            except Exception as e:
-                error_msg = str(e)
-                self.logger.error(f"❌ Failed to create SL order: {error_msg}")
-
-                # Cancelar TP order si ya fue creada
+            else:
+                # Cancel TP if SL creation failed
+                self.logger.error(f"❌ Failed to create SL after {MAX_RETRIES} attempts: {sl_attempts}")
                 if tp_order_id:
                     try:
                         await self.exchange_adapter.cancel_order(tp_order_id, symbol)
-                        self.logger.info(f"🔄 Cancelled TP order {tp_order_id} due to SL error")
+                        self.logger.info(f"🔄 Cancelled TP order {tp_order_id} due to SL creation failure")
                     except Exception as cancel_error:
                         self.logger.error(f"❌ Failed to cancel TP order: {cancel_error}")
-
-                if "immediately trigger" in error_msg.lower():
-                    raise OCOConfigurationError(
-                        f"SL order would immediately trigger. Entry: ${entry_price:.2f}, SL: ${sl_price:.2f}. "
-                        f"Increase SL margin or reduce position size."
-                    )
-                raise OCOConfigurationError(f"Failed to create SL order: {error_msg}")
+                raise SLOrderCreationError(f"Failed to create SL after {MAX_RETRIES} attempts")
         else:
             raise OCOConfigurationError("SL price is zero or invalid")
+
+        # Attach attempt metadata to logs (non-critical)
+        try:
+            self.logger.debug({"tp_attempts": tp_attempts, "sl_attempts": sl_attempts})
+        except Exception:
+            pass
 
         return tp_order_id, sl_order_id
 

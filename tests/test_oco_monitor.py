@@ -13,7 +13,8 @@ import logging
 import os
 import sys
 from pathlib import Path
-from typing import Optional
+
+# ...existing code...
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -22,10 +23,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 os.environ["PYTHONPATH"] = str(Path(__file__).parent.parent)
 
 # Import after path is set
+
 from config import exchange as exchange_config
-from croupier.croupier import Croupier
-from exchanges.adapters.ccxt_adapter import CCXTAdapter
-from exchanges.connectors.binance import BinanceConnector
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -35,9 +34,9 @@ class OCOMonitorTest:
     """Test para validar OCO Monitor en demo mode"""
 
     def __init__(self):
-        self.connector: Optional[BinanceConnector] = None
-        self.adapter: Optional[CCXTAdapter] = None
-        self.croupier: Optional[Croupier] = None
+        self.connector = None
+        self.adapter = None
+        self.croupier = None
         self.symbol = "LTC/USD:USD"
         self.timeframe = "1m"
 
@@ -47,6 +46,11 @@ class OCOMonitorTest:
         logger.info("=" * 80)
         logger.info("🧪 OCO MONITOR TEST - Setup")
         logger.info("=" * 80)
+
+        # Importar aquí para evitar importación circular
+        from croupier.croupier import Croupier
+        from exchanges.adapters.ccxt_adapter import CCXTAdapter
+        from exchanges.connectors.binance import BinanceConnector
 
         # Crear conector
         self.connector = BinanceConnector(

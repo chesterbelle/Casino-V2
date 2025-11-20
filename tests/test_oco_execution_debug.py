@@ -290,9 +290,8 @@ class OCOExecutionDebugger:
             logger.info(f"  TP/SL Gap: {((order['take_profit'] - order['stop_loss'])*100):.1f}% (mínimo aceptable)")
 
             logger.info("\n📌 Ejecutando orden con Croupier.oco_bracketed_order()...")
-            # ⚠️  IMPORTANTE: Usar oco_bracketed_order() directamente, NO execute_order()
-            # execute_order() es solo un wrapper para compatibilidad
-            result = await self.croupier.oco_bracketed_order(order)
+            # Usar execute_order() que ahora implementa el flujo market-first por defecto
+            result = await self.croupier.execute_order(order)
 
             logger.info(f"✅ Orden ejecutada")
             logger.info(f"  Status: {result.get('status')}")

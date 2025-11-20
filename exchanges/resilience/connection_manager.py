@@ -439,6 +439,85 @@ class ConnectionManager:
 
         raise RuntimeError("No hay conexión disponible")
 
+    # ----------------------------
+    # New WS-first helper APIs (stubs / safe defaults)
+    # ----------------------------
+    async def ensure_ws_connected(self) -> bool:
+        """
+        Garantiza que exista una conexión WebSocket activa.
+
+        Si ya está conectada, retorna True. Si no, intenta conectar via
+        WebSocket y retorna True/False según el resultado.
+        """
+        if self.state == ConnectionState.CONNECTED_WS and self.ws_exchange:
+            return True
+
+        # Try to connect via websocket
+        ok = await self._connect_websocket()
+        if ok:
+            self.state = ConnectionState.CONNECTED_WS
+            self._start_health_check()
+            return True
+
+        return False
+
+    async def watch_orders(
+        self,
+        symbol: Optional[str] = None,
+        since: Optional[int] = None,
+        limit: Optional[int] = None,
+        params: Optional[Dict[str, Any]] = None,
+    ):
+        """
+        Wrapper para `ws_exchange.watch_orders(...)`.
+
+        Retorna la lista de órdenes/actualizaciones desde el WebSocket si está
+        disponible; si no está, levanta RuntimeError para que el caller use
+        fallback REST.
+        """
+        if not (self.state == ConnectionState.CONNECTED_WS and self.ws_exchange):
+            raise RuntimeError("WebSocket no conectado; no es posible watch_orders")
+
+        # Default params
+        params = params or {}
+
+        # Delegate to ccxt.pro implementation
+        try:
+            return await self.ws_exchange.watch_orders(symbol, since, limit, params)
+        except Exception as e:
+            self.logger.warning(f"⚠️ watch_orders error: {e}")
+            self.metrics.ws_errors += 1
+            raise
+
+    async def watch_my_trades(
+        self,
+        symbol: Optional[str] = None,
+        since: Optional[int] = None,
+        limit: Optional[int] = None,
+        params: Optional[Dict[str, Any]] = None,
+    ):
+        """
+        Wrapper para `ws_exchange.watch_my_trades(...)`.
+
+        Provee las actualizaciones de trades del usuario (fills) vía WebSocket.
+        """
+        if not (self.state == ConnectionState.CONNECTED_WS and self.ws_exchange):
+            raise RuntimeError("WebSocket no conectado; no es posible watch_my_trades")
+
+        params = params or {}
+        try:
+            return await self.ws_exchange.watch_my_trades(symbol, since, limit, params)
+        except Exception as e:
+            self.logger.warning(f"⚠️ watch_my_trades error: {e}")
+            self.metrics.ws_errors += 1
+            raise
+
+    def is_ws_primary(self) -> bool:
+        """
+        Indica si la conexión primaria actualmente es WebSocket.
+        """
+        return self.state == ConnectionState.CONNECTED_WS and self.ws_exchange is not None
+
     def get_metrics(self) -> Dict[str, Any]:
         """Retorna métricas de conexión."""
         return {

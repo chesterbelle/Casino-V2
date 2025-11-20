@@ -45,6 +45,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import time
 from typing import Any, Dict, List, Literal, Optional
 
 import ccxt.async_support as ccxt_async
@@ -898,6 +899,8 @@ class BinanceConnector(BaseConnector):
         price: Optional[float] = None,
         order_type: str = "market",
         params: Optional[Dict[str, Any]] = None,
+        confirm_with_ws: bool = False,
+        ws_timeout_ms: Optional[int] = None,
     ) -> Dict[str, Any]:
         """
         Create an order on Binance.
@@ -961,6 +964,7 @@ class BinanceConnector(BaseConnector):
                 pass
 
             # Create order on Binance
+            order_create_ts = time.time()
             # PROTECTED: Prevent CCXT concurrent access
             order = await self._safe_ccxt_call(
                 "create_order",
@@ -1000,11 +1004,94 @@ class BinanceConnector(BaseConnector):
                 "fee": order.get("fee", {}),
                 "timestamp": order.get("timestamp"),
                 "trades": order.get("trades", []),
+                # Instrumentation fields
+                "order_create_ts": int(order_create_ts * 1000),
+                "ws_confirm_ts": None,
+                "used_ws_confirm": False,
+                "used_rest_fallback": False,
             }
 
             self.logger.info(
                 f"✅ Order created | {symbol} {side.upper()} {amount} @ {price or 'market'} | avgPrice: {avg_price}"
             )
+
+            # If requested, wait for WebSocket confirmation (avgPrice/fill)
+            if confirm_with_ws and (avg_price == 0.0 or normalized.get("filled", 0) == 0):
+                # Determine timeout
+                timeout_ms = int(ws_timeout_ms) if ws_timeout_ms is not None else 2000
+                deadline = time.time() + (timeout_ms / 1000.0)
+
+                # Try to wait for WS confirmation if WS is connected
+                ws_order = None
+                try:
+                    if getattr(self, "_ws_connected", False) and self.ws_exchange:
+                        # Keep calling watch_orders until we find our order or timeout
+                        while time.time() < deadline:
+                            remaining = max(0.1, deadline - time.time())
+                            try:
+                                orders = await asyncio.wait_for(
+                                    self.ws_exchange.watch_orders(None, None, None, {"type": "future"}),
+                                    timeout=remaining,
+                                )
+                            except asyncio.TimeoutError:
+                                continue
+
+                            if not isinstance(orders, list):
+                                continue
+
+                            for o in orders:
+                                try:
+                                    if not isinstance(o, dict):
+                                        continue
+                                    # Match by exchange id or clientOrderId
+                                    if o.get("id") == normalized.get("id") or o.get("clientOrderId") == normalized.get(
+                                        "clientOrderId"
+                                    ):
+                                        ws_order = o
+                                        break
+                                except Exception:
+                                    continue
+
+                            if ws_order:
+                                break
+
+                except Exception as e:
+                    self.logger.debug(f"⚠️ WS confirmation attempt failed: {e}")
+
+                # If WS didn't provide confirmation, fallback to REST fetch_order once
+                if not ws_order:
+                    try:
+                        fetched = await self._safe_ccxt_call(
+                            "fetch_order", normalized.get("id"), self.normalize_symbol(symbol)
+                        )
+                        # Update avgPrice if available
+                        fetched_avg = fetched.get("avgPrice") or fetched.get("average") or fetched.get("price")
+                        if fetched_avg:
+                            try:
+                                normalized["avgPrice"] = float(fetched_avg)
+                                normalized["used_rest_fallback"] = True
+                                normalized["ws_confirm_ts"] = int(time.time() * 1000)
+                            except Exception:
+                                pass
+                    except Exception:
+                        # Best-effort: do not raise to avoid blocking callers
+                        self.logger.debug("ℹ️ fetch_order fallback did not return avgPrice")
+
+                else:
+                    # Update normalized using ws_order fields
+                    try:
+                        ws_avg = ws_order.get("avgPrice") or ws_order.get("average") or ws_order.get("price")
+                        if ws_avg:
+                            normalized["avgPrice"] = float(ws_avg)
+                        normalized["used_ws_confirm"] = True
+                        normalized["ws_confirm_ts"] = int(time.time() * 1000)
+                        # Update filled/cost if present
+                        if ws_order.get("filled") is not None:
+                            normalized["filled"] = float(ws_order.get("filled") or 0)
+                        if ws_order.get("cost") is not None:
+                            normalized["cost"] = float(ws_order.get("cost") or 0)
+                    except Exception:
+                        pass
 
             return normalized
 
@@ -1486,3 +1573,27 @@ class BinanceConnector(BaseConnector):
     # - _register_single_order()
     #
     # See: core/portfolio/position_tracker.py for the new implementation
+
+    def _handle_task_exception(self, task: "asyncio.Task") -> None:
+        """
+        Callback for asyncio.Task.done() to surface exceptions instead of
+        letting them be silently ignored. Added to prevent WebSocket init
+        from crashing when the callback is missing.
+
+        Args:
+            task: The completed asyncio.Task
+        """
+        try:
+            # task.exception() will re-raise the exception if one occurred
+            exc = None
+            try:
+                exc = task.exception()
+            except asyncio.CancelledError:
+                # Task was cancelled intentionally
+                return
+
+            if exc:
+                self.logger.error(f"❌ Background task raised: {exc}", exc_info=True)
+        except Exception as e:
+            # Defensive: ensure callback never raises
+            self.logger.error(f"❌ _handle_task_exception failed: {e}", exc_info=True)

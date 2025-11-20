@@ -31,7 +31,7 @@ async def main():
     try:
         from utils.croupier_validator import CroupierValidator
 
-        validator = CroupierValidator(exchange="binance", symbol="LTC/USDT:USDT", timeframe="1m")
+        validator = CroupierValidator(exchange="binance", symbol="1000PEPE/USDT:USDT", timeframe="1m")
 
         # Ejecutar tests básicos
         print("✅ Ejecutando 12 tests básicos...")

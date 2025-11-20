@@ -18,7 +18,7 @@ refer to exact files and patterns in the codebase.
 
 2) Critical files & where to look
 - Entry point: `main.py` — run modes, CLI flags, and result saving.
-- Core logging & utilities: `core/logger.py`, `core/config.py` (legacy reexports).
+Core logging & utilities: `core/logger.py`, `core/config.py`.
 - State & control: `croupier/croupier.py` (central business logic),
   `core/portfolio/balance_manager.py`, `core/portfolio/position_tracker.py`.
 - Connectors & adapters: `exchanges/adapters/` and `exchanges/connectors/` —

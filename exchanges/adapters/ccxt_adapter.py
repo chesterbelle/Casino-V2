@@ -249,6 +249,10 @@ class CCXTAdapter(BaseTable):
                 order["side"] = "buy" if order["side"] == "LONG" else "sell"
 
             # Todas las órdenes van por el mismo camino
+            # Support optional WS-confirmation flags passed in the order dict
+            confirm_with_ws = bool(order.get("confirm_with_ws", False))
+            ws_timeout_ms = order.get("ws_timeout_ms")
+
             result = await self.connector.create_order(
                 symbol=order.get("symbol", self.symbol),
                 side=order["side"],
@@ -256,6 +260,8 @@ class CCXTAdapter(BaseTable):
                 price=order.get("price"),
                 order_type=order.get("type", "market"),
                 params=order.get("params", {}),
+                confirm_with_ws=confirm_with_ws,
+                ws_timeout_ms=ws_timeout_ms,
             )
 
             if not isinstance(result, dict):
