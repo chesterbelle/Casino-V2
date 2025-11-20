@@ -309,6 +309,29 @@ class SimulatedConnector(BaseConnector):
         if order_type and ("stop" in order_type or "take_profit" in order_type):
             order_obj["status"] = "open"
             order_obj["stopPrice"] = (params or {}).get("stopPrice")
+            # If caller didn't provide a parent mapping, try to infer the
+            # parent (main) order: choose the last non-conditional order for
+            # the same symbol.
+            if not (params or {}).get("parent"):
+                parent_id = None
+                candidates = sorted(
+                    [o for o in self._orders.values() if o.get("symbol") == symbol],
+                    key=lambda x: x.get("timestamp", 0),
+                    reverse=True,
+                )
+                for cand in candidates:
+                    ctype = (cand.get("type") or "").lower()
+                    if ctype and ("stop" in ctype or "take_profit" in ctype):
+                        # skip conditional orders
+                        continue
+                    # accept market/limit orders as parent
+                    parent_id = cand.get("id")
+                    break
+                if parent_id:
+                    order_obj["parent"] = parent_id
+            else:
+                order_obj["parent"] = (params or {}).get("parent")
+
             order_obj["filled"] = 0.0
             self._orders[order_id] = order_obj
             self.logger.info(
