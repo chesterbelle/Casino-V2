@@ -46,6 +46,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import time
 from typing import Dict, List, Optional
 
 from core.portfolio.balance_manager import BalanceManager
@@ -76,6 +77,44 @@ class Croupier:
     Cerebro central del sistema de trading. Es el dueño del estado del portfolio
     y el único responsable de la lógica de negocio y la recuperación de errores.
     """
+
+    async def cleanup_orphaned_positions(self, symbol: str):
+        """
+        Detecta y cierra posiciones huérfanas para un símbolo específico.
+        Se debe llamar en cada vela antes de ejecutar la estrategia.
+        """
+        try:
+            # 1. Obtener posiciones del exchange
+            exchange_positions = await self.state_sync.sync_positions()
+
+            # 2. Obtener posiciones del tracker interno
+            tracker_positions = self.position_tracker.open_positions
+            tracker_map = {p.symbol: p for p in tracker_positions}
+
+            for ex_pos in exchange_positions:
+                if ex_pos.symbol == symbol and ex_pos.size != 0:
+                    tracker_pos = tracker_map.get(ex_pos.symbol)
+
+                    # Si no hay posición en el tracker, o si la del tracker es incompleta, es huérfana
+                    is_orphaned = not tracker_pos or not (
+                        tracker_pos.main_order_id and tracker_pos.tp_order_id and tracker_pos.sl_order_id
+                    )
+
+                    if is_orphaned:
+                        self.logger.warning(f"🧹 Found orphaned position for {symbol} during cleanup. Closing it.")
+                        # Usar una estructura de posición temporal para el cierre
+                        temp_position_for_closure = ex_pos
+                        if tracker_pos:  # Usar datos del tracker si existen
+                            temp_position_for_closure.trade_id = tracker_pos.trade_id
+                            temp_position_for_closure.side = tracker_pos.side
+                        else:  # Estimar datos si no hay tracker
+                            temp_position_for_closure.trade_id = f"ORPHAN_{int(time.time())}"
+                            temp_position_for_closure.side = "LONG" if ex_pos.size > 0 else "SHORT"
+
+                        await self._close_orphaned_position(temp_position_for_closure)
+
+        except Exception as e:
+            self.logger.error(f"❌ Error during orphaned position cleanup for {symbol}: {e}", exc_info=True)
 
     def __init__(self, exchange_adapter, initial_balance: float):
         """
@@ -213,7 +252,7 @@ class Croupier:
 
             self.logger.info(
                 f"📊 Orden convertida | Fracción: {size_fraction:.4f} | "
-                f"Notional: {notional_desired:.2f} USDT | Precio: {current_price:.2f} | "
+                f"Notional: {notional_desired:.2f} USDT | Precio: {current_price:.8f} | "
                 f"Cantidad: {amount:.6f} contratos"
             )
 
@@ -244,7 +283,7 @@ class Croupier:
                 tp_order_id, sl_order_id = await self._setup_oco_orders(order, main_order)
             except (TPOrderCreationError, SLOrderCreationError, OCOConfigurationError) as e:
                 self.logger.error(f"❌ Error crítico en OCO: {e}")
-                self.logger.error("❌ Cancelando todas las órdenes por fallo en TP/SL")
+                self.logger.error("❌ Cancelando todas las órdenes y cerrando posición por fallo en TP/SL")
 
                 # Cancelar TODAS las órdenes que se hayan creado
                 await self._cancel_all_orders(
@@ -253,6 +292,22 @@ class Croupier:
                     tp_order_id=tp_order_id,
                     sl_order_id=sl_order_id,
                 )
+
+                # Cerrar la posición abierta para evitar órdenes huérfanas
+                try:
+                    close_side = "sell" if order["side"] == "LONG" else "buy"
+                    await self.exchange_adapter.execute_order(
+                        {
+                            "symbol": symbol,
+                            "side": close_side,
+                            "amount": main_order.get("amount", 0),
+                            "type": "market",
+                            "params": {"reduceOnly": True},
+                        }
+                    )
+                    self.logger.info("✅ Posición cerrada por fallo en OCO")
+                except Exception as close_error:
+                    self.logger.error(f"❌ Failed to close position after OCO error: {close_error}")
 
                 return {
                     "status": "rejected",
@@ -263,7 +318,7 @@ class Croupier:
                 }
             except Exception as e:
                 self.logger.error(f"❌ Error inesperado en OCO: {e}", exc_info=True)
-                self.logger.error("❌ Cancelando todas las órdenes por error inesperado")
+                self.logger.error("❌ Cancelando todas las órdenes y cerrando posición por error inesperado")
 
                 # Cancelar TODAS las órdenes que se hayan creado
                 await self._cancel_all_orders(
@@ -272,6 +327,22 @@ class Croupier:
                     tp_order_id=tp_order_id,
                     sl_order_id=sl_order_id,
                 )
+
+                # Cerrar la posición abierta para evitar órdenes huérfanas
+                try:
+                    close_side = "sell" if order["side"] == "LONG" else "buy"
+                    await self.exchange_adapter.execute_order(
+                        {
+                            "symbol": symbol,
+                            "side": close_side,
+                            "amount": main_order.get("amount", 0),
+                            "type": "market",
+                            "params": {"reduceOnly": True},
+                        }
+                    )
+                    self.logger.info("✅ Posición cerrada por error inesperado en OCO")
+                except Exception as close_error:
+                    self.logger.error(f"❌ Failed to close position after unexpected error: {close_error}")
 
                 return {
                     "status": "error",
@@ -510,17 +581,25 @@ class Croupier:
         if not has_tpsl:
             return None, None
 
+        # Para órdenes MARKET, Binance devuelve price=0 (no hay precio límite)
+        # El precio real de ejecución está en avgPrice
         entry_price = main_result.get("price", 0.0)
+        if not entry_price or entry_price <= 0:
+            # Intentar con avgPrice (para órdenes MARKET)
+            entry_price = main_result.get("avgPrice", 0.0)
 
-        # Si entry_price es 0, obtener el precio actual del mercado
-        if not entry_price:
-            ticker = await self.exchange_adapter.fetch_ticker(order.get("symbol"))
-            entry_price = ticker.get("last", 0.0)
-            if entry_price:
-                self.logger.info(f"📊 Using current market price as entry: ${entry_price:.2f}")
+        # Si aún no hay precio, obtener del mercado
+        if not entry_price or entry_price <= 0:
+            try:
+                # Usar get_current_price que tiene fallback chain (last → close → bid)
+                entry_price = await self.exchange_adapter.get_current_price(order.get("symbol"))
+                self.logger.info(f"📊 Using current market price as entry: ${entry_price:.8f}")
+            except Exception as e:
+                self.logger.error(f"❌ Failed to get entry price from market: {e}")
+                raise OCOConfigurationError(f"No entry price available for TP/SL calculation: {e}")
 
-        if not entry_price:
-            raise OCOConfigurationError("No entry price available for TP/SL calculation")
+        if not entry_price or entry_price <= 0:
+            raise OCOConfigurationError(f"Invalid entry price: {entry_price}")
 
         tp_multiplier = order.get("take_profit", 1.0)
         sl_multiplier = order.get("stop_loss", 1.0)
@@ -619,17 +698,74 @@ class Croupier:
         return tp_order_id, sl_order_id
 
     async def _has_open_position(self, symbol: str) -> bool:
+        """
+        Verifica si existe una posición VÁLIDA (con main, TP y SL) para el símbolo.
+        """
         try:
-            positions = await self.state_sync.sync_positions()
-            for position in positions:
-                if position.symbol == symbol and position.size > 0:
-                    self.logger.info(f"📊 Posición encontrada: {position.symbol} con {position.size} contratos")
-                    return True
+            # Usamos el tracker interno que es la fuente de verdad del bot
+            open_positions = self.position_tracker.open_positions
+            for position in open_positions:
+                if position.symbol == symbol:
+                    # Una posición válida debe tener las 3 órdenes
+                    if position.main_order_id and position.tp_order_id and position.sl_order_id:
+                        self.logger.info(f"📊 Posición válida encontrada en tracker para {symbol}")
+                        return True
+
+            # Si no está en el tracker, no debería haber posición
             return False
         except Exception as e:
-            self.logger.error(f"❌ CRITICAL: Error verifying open positions: {e}", exc_info=True)
+            self.logger.error(f"❌ CRITICAL: Error verifying open positions from tracker: {e}", exc_info=True)
             self.logger.warning("🛡️ SAFETY FIRST: Rejecting order to prevent duplicate positions.")
             return True
+
+    async def _close_orphaned_position(self, position) -> None:
+        """
+        Cierra una posición huérfana detectada durante el trading.
+        Se ejecuta automáticamente cuando se detecta una posición sin TP/SL.
+        """
+        try:
+            self.logger.error(
+                f"🚨 ORPHANED POSITION DETECTED: {position.symbol} | Size: {position.size} | "
+                f"Entry: ${position.entry_price:.8f}"
+            )
+
+            # Determinar lado opuesto para cerrar
+            close_side = "sell" if position.side == "LONG" else "buy"
+
+            # Cerrar con orden MARKET
+            close_order = await self.exchange_adapter.execute_order(
+                {
+                    "symbol": position.symbol,
+                    "side": close_side,
+                    "amount": abs(position.size),
+                    "type": "market",
+                    "params": {"reduceOnly": True},
+                }
+            )
+
+            # Calcular PnL
+            exit_price = close_order.get("price", position.entry_price)
+            fee = close_order.get("fee", {}).get("cost", 0.0)
+            pnl = self._calculate_position_pnl(position, exit_price, fee)
+
+            # Registrar cierre
+            self.position_tracker.confirm_close(position.trade_id, exit_price, "ORPHANED_AUTO_CLOSE", pnl, fee)
+
+            self.logger.info(
+                f"✅ ORPHANED POSITION CLOSED: {position.symbol} | " f"Exit: ${exit_price:.8f} | PnL: ${pnl:.8f}"
+            )
+
+        except Exception as e:
+            self.logger.error(f"❌ FAILED TO CLOSE ORPHANED POSITION: {position.symbol} | Error: {e}")
+            # Intentar cerrar internamente como último recurso
+            try:
+                pnl = self._calculate_position_pnl(position, position.entry_price, 0.0)
+                self.position_tracker.confirm_close(
+                    position.trade_id, position.entry_price, "ORPHANED_INTERNAL_CLOSE", pnl, 0.0
+                )
+                self.logger.warning(f"⚠️ ORPHANED POSITION CLOSED INTERNALLY: {position.symbol}")
+            except Exception as internal_error:
+                self.logger.error(f"❌ CRITICAL: Could not close orphaned position internally: {internal_error}")
 
     def _insufficient_funds_result(self, order: dict) -> dict:
         return {

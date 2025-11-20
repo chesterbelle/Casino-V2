@@ -61,6 +61,13 @@ class SimulatedConnector(BaseConnector):
         self._ready = True
         self._connected = False
 
+        # Internal order book to emulate exchange OCO behaviour
+        # order_id -> order_dict (status: 'open'|'closed'|'canceled')
+        self._orders: Dict[str, Dict] = {}
+        # Simple sequence to ensure unique order IDs when multiple orders
+        # are created at the same timestamp with same side/amount
+        self._order_seq = 0
+
         self.logger.info(
             f"🎮 SimulatedConnector initialized | "
             f"Fee: {fee_rate*100:.2f}% | "
@@ -164,14 +171,11 @@ class SimulatedConnector(BaseConnector):
 
         # 6. Generate order ID
         timestamp = self.data_source._get_current_timestamp()
-        order_id = f"sim_{timestamp}_{side}_{amount_rounded}"
+        self._order_seq += 1
+        order_id = f"sim_{timestamp}_{side}_{amount_rounded}_{self._order_seq}"
 
-        self.logger.info(
-            f"📝 Order simulated | " f"{side.upper()} {amount_rounded} @ {entry_price:.2f} | " f"Fee: {fee_cost:.4f}"
-        )
-
-        # 7. Return result (formato compatible con CCXT)
-        return {
+        # Build order object (store in internal order book)
+        order_obj = {
             "id": order_id,
             "symbol": symbol,
             "side": side.lower(),
@@ -182,10 +186,58 @@ class SimulatedConnector(BaseConnector):
             "fee": {"cost": fee_cost, "currency": self.base_currency, "rate": self.fee_rate},
             "timestamp": timestamp,
             "datetime": str(timestamp),
-            "status": "closed",  # Market orders se ejecutan instantáneamente
-            "filled": amount_rounded,
-            "remaining": 0.0,
+            "params": params or {},
         }
+
+        # For STOP / TAKE orders we keep them OPEN until the market hits stopPrice
+        if order_type and ("stop" in order_type or "take_profit" in order_type):
+            order_obj["status"] = "open"
+            # store stopPrice if provided
+            order_obj["stopPrice"] = (params or {}).get("stopPrice")
+            # If caller didn't provide a parent mapping, try to infer the
+            # parent (main) order: choose the last non-conditional order for
+            # the same symbol.
+            if not (params or {}).get("parent"):
+                parent_id = None
+                # find candidate orders ordered by timestamp descending
+                candidates = sorted(
+                    [o for o in self._orders.values() if o.get("symbol") == symbol],
+                    key=lambda x: x.get("timestamp", 0),
+                    reverse=True,
+                )
+                for cand in candidates:
+                    ctype = (cand.get("type") or "").lower()
+                    if ctype and ("stop" in ctype or "take_profit" in ctype):
+                        # skip conditional orders
+                        continue
+                    # accept market/limit orders as parent
+                    parent_id = cand.get("id")
+                    break
+                if parent_id:
+                    order_obj["parent"] = parent_id
+            else:
+                order_obj["parent"] = (params or {}).get("parent")
+            order_obj["filled"] = 0.0
+            self._orders[order_id] = order_obj
+            self.logger.info(
+                f"📝 Conditional order created | {order_obj['type']} {amount_rounded} @ stop={order_obj.get('stopPrice')} | id={order_id}"
+            )
+            return order_obj
+
+        # By default market/limit orders execute instantly (closed)
+        order_obj["status"] = "closed"
+        order_obj["filled"] = amount_rounded
+
+        self._orders[order_id] = order_obj
+
+        self.logger.info(
+            f"📝 Order simulated | "
+            f"{side.upper()} {amount_rounded} @ {entry_price:.2f} | "
+            f"Fee: {fee_cost:.4f} | id={order_id}"
+        )
+
+        # 7. Return result (formato compatible con CCXT)
+        return order_obj
 
     def create_order_sync(
         self,
@@ -237,14 +289,10 @@ class SimulatedConnector(BaseConnector):
 
         # 5. Generate order ID
         timestamp = self.data_source._get_current_timestamp()
-        order_id = f"sim_{timestamp}_{side}_{amount_rounded}"
+        self._order_seq += 1
+        order_id = f"sim_{timestamp}_{side}_{amount_rounded}_{self._order_seq}"
 
-        self.logger.info(
-            f"📝 Order simulated | " f"{side.upper()} {amount_rounded} @ {entry_price:.2f} | " f"Fee: {fee_cost:.4f}"
-        )
-
-        # 6. Return result
-        return {
+        order_obj = {
             "id": order_id,
             "symbol": symbol,
             "side": side.lower(),
@@ -255,10 +303,30 @@ class SimulatedConnector(BaseConnector):
             "fee": {"cost": fee_cost, "currency": self.base_currency, "rate": self.fee_rate},
             "timestamp": timestamp,
             "datetime": str(timestamp),
-            "status": "closed",
-            "filled": amount_rounded,
-            "remaining": 0.0,
+            "params": params or {},
         }
+
+        if order_type and ("stop" in order_type or "take_profit" in order_type):
+            order_obj["status"] = "open"
+            order_obj["stopPrice"] = (params or {}).get("stopPrice")
+            order_obj["filled"] = 0.0
+            self._orders[order_id] = order_obj
+            self.logger.info(
+                f"📝 Conditional order created | {order_obj['type']} {amount_rounded} @ stop={order_obj.get('stopPrice')} | id={order_id}"
+            )
+            return order_obj
+
+        order_obj["status"] = "closed"
+        order_obj["filled"] = amount_rounded
+        self._orders[order_id] = order_obj
+
+        self.logger.info(
+            f"📝 Order simulated | "
+            f"{side.upper()} {amount_rounded} @ {entry_price:.2f} | "
+            f"Fee: {fee_cost:.4f} | id={order_id}"
+        )
+
+        return order_obj
 
     # =========================================================
     # MARKET DATA (Simulated)
@@ -285,6 +353,36 @@ class SimulatedConnector(BaseConnector):
         """
         # Delegate to data source
         return self.data_source._get_ohlcv(limit or 1)
+
+    async def fetch_order(self, order_id: str, symbol: Optional[str] = None) -> Optional[Dict]:
+        """
+        Return a stored order by id.
+        """
+        return self._orders.get(order_id)
+
+    async def fetch_open_orders(self, symbol: Optional[str] = None) -> List[Dict]:
+        """
+        Return all open conditional orders for a symbol.
+        """
+        orders = [o for o in self._orders.values() if o.get("status") == "open"]
+        if symbol:
+            orders = [o for o in orders if o.get("symbol") == symbol]
+        return orders
+
+    async def cancel_order(self, order_id: str, symbol: Optional[str] = None) -> Dict:
+        """
+        Cancel an open order and return the updated order.
+        """
+        order = self._orders.get(order_id)
+        if not order:
+            raise ValueError(f"Order {order_id} not found")
+        if order.get("status") != "open":
+            return order
+        order["status"] = "canceled"
+        order["canceled_timestamp"] = self.data_source._get_current_timestamp()
+        self._orders[order_id] = order
+        self.logger.info(f"🛑 Order canceled | id={order_id}")
+        return order
 
     async def fetch_ticker(self, symbol: str) -> Dict:
         """
@@ -399,6 +497,90 @@ class SimulatedConnector(BaseConnector):
             return float(self.data_source.data.iloc[self.data_source.index - 1]["close"])
         else:
             return float(self.data_source.data.iloc[0]["close"])
+
+    def _mark_orders_for_position_closure(self, position: Dict, exit_price: float, exit_reason: str) -> None:
+        """
+        Called when a position is closed by the data source.
+        This method will mark matching TP/SL orders as closed and cancel siblings.
+
+        Matching strategy: look for open orders with same symbol and amount
+        and whose stopPrice is close to the TP/SL level derived from position.
+        """
+        try:
+            symbol = position.get("symbol")
+            amount = position.get("amount")
+            entry = position.get("entry_price")
+
+            # Compute expected TP/SL absolute prices if provided
+            tp_mult = position.get("take_profit")
+            sl_mult = position.get("stop_loss")
+            tp_price = entry * tp_mult if tp_mult else None
+            sl_price = entry * sl_mult if sl_mult else None
+
+            # First, try to match by parent main_order_id if present in position
+            parent_id = position.get("main_order_id")
+            if parent_id:
+                for oid, o in list(self._orders.items()):
+                    if o.get("status") != "open":
+                        continue
+                    if o.get("parent") == parent_id:
+                        # mark filled
+                        o["status"] = "closed"
+                        o["filled"] = o.get("amount")
+                        o["price"] = exit_price
+                        o["closed_timestamp"] = self.data_source._get_current_timestamp()
+                        self.logger.info(f"✅ Conditional order filled by parent (sim) | id={oid} @ {exit_price}")
+                        # cancel siblings
+                        for soid, so in list(self._orders.items()):
+                            if soid == oid:
+                                continue
+                            if so.get("status") == "open" and so.get("parent") == parent_id:
+                                so["status"] = "canceled"
+                                so["canceled_timestamp"] = self.data_source._get_current_timestamp()
+                                self.logger.info(f"🔄 Sibling order canceled (sim) | id={soid}")
+                return
+
+            # Fallback to price heuristics if no parent mapping
+            for oid, o in list(self._orders.items()):
+                if o.get("status") != "open":
+                    continue
+                if o.get("symbol") != symbol:
+                    continue
+
+                stop = o.get("stopPrice")
+                # If stop is very close to tp_price or sl_price, mark closed
+                if tp_price and stop and abs(stop - tp_price) / tp_price < 0.001:
+                    # mark filled
+                    o["status"] = "closed"
+                    o["filled"] = o.get("amount")
+                    o["price"] = exit_price
+                    o["closed_timestamp"] = self.data_source._get_current_timestamp()
+                    self.logger.info(f"✅ TP order filled (sim) | id={oid} @ {exit_price}")
+                    # Cancel sibling orders for same position
+                    # sibling: other open orders with same symbol and amount
+                    for soid, so in list(self._orders.items()):
+                        if soid == oid:
+                            continue
+                        if so.get("status") == "open" and so.get("symbol") == symbol and so.get("amount") == amount:
+                            so["status"] = "canceled"
+                            so["canceled_timestamp"] = self.data_source._get_current_timestamp()
+                            self.logger.info(f"🔄 Sibling order canceled (sim) | id={soid}")
+
+                if sl_price and stop and abs(stop - sl_price) / sl_price < 0.001:
+                    o["status"] = "closed"
+                    o["filled"] = o.get("amount")
+                    o["price"] = exit_price
+                    o["closed_timestamp"] = self.data_source._get_current_timestamp()
+                    self.logger.info(f"✅ SL order filled (sim) | id={oid} @ {exit_price}")
+                    for soid, so in list(self._orders.items()):
+                        if soid == oid:
+                            continue
+                        if so.get("status") == "open" and so.get("symbol") == symbol and so.get("amount") == amount:
+                            so["status"] = "canceled"
+                            so["canceled_timestamp"] = self.data_source._get_current_timestamp()
+                            self.logger.info(f"🔄 Sibling order canceled (sim) | id={soid}")
+        except Exception as e:
+            self.logger.error(f"❌ Error marking orders for position closure: {e}")
 
     def _calculate_unrealized_pnl(self, position: Dict) -> float:
         """Calculate unrealized PnL for a position."""

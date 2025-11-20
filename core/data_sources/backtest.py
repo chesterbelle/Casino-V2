@@ -363,18 +363,31 @@ class BacktestDataSource(DataSource):
             # If order was opened, track position for TP/SL simulation
             if result.get("status") == "opened":
                 # Add position to tracking (for TP/SL checks in next_candle)
+                # Be tolerant: some adapters return 'entry_price', others use 'price'
+                entry_price = (
+                    result.get("entry_price") if result.get("entry_price") is not None else result.get("price")
+                )
+
                 position = {
-                    "trade_id": result.get("trade_id"),
-                    "symbol": result.get("symbol"),
-                    "side": result.get("side"),
+                    "trade_id": result.get("trade_id") or order.get("trade_id"),
+                    "symbol": result.get("symbol") or order.get("symbol") or self.symbol,
+                    "side": result.get("side") or order.get("side"),
                     "amount": result.get("amount"),
-                    "entry_price": result.get("entry_price"),
-                    "notional": result.get("amount") * result.get("entry_price"),
+                    "entry_price": entry_price,
+                    "notional": (result.get("amount") or 0) * (entry_price or 0),
                     "fee": result.get("fee", 0),
+                    "main_order_id": result.get("id") or result.get("main_order_id"),
+                    # Prefer explicit prices from result if available, otherwise use order multipliers
                     "take_profit": (
-                        result.get("tp_price") / result.get("entry_price") if result.get("tp_price") else None
+                        (result.get("tp_price") / entry_price)
+                        if (result.get("tp_price") and entry_price)
+                        else order.get("take_profit")
                     ),
-                    "stop_loss": result.get("sl_price") / result.get("entry_price") if result.get("sl_price") else None,
+                    "stop_loss": (
+                        (result.get("sl_price") / entry_price)
+                        if (result.get("sl_price") and entry_price)
+                        else order.get("stop_loss")
+                    ),
                     "timestamp": result.get("timestamp", self._get_current_timestamp()),
                 }
                 self.open_positions.append(position)
@@ -548,6 +561,18 @@ class BacktestDataSource(DataSource):
         }
 
         self.closed_trades.append(closed_trade)
+        # Notify connector so conditional orders (TP/SL) are updated
+        try:
+            if hasattr(self, "connector") and hasattr(self.connector, "_mark_orders_for_position_closure"):
+                # update simulated connector orders to reflect position closure
+                try:
+                    self.connector._mark_orders_for_position_closure(position, exit_price, exit_reason)
+                except Exception as _e:
+                    logger.debug(f"⚠️ SimulatedConnector order sync failed: {_e}")
+        except Exception:
+            # ignore any errors in connector sync to avoid breaking backtest closure
+            pass
+
         self.open_positions.remove(position)
 
         logger.info(

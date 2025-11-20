@@ -181,11 +181,19 @@ class CCXTAdapter(BaseTable):
             ticker = await self.connector.fetch_ticker(symbol)
             current_price = ticker.get("last")
 
-            if current_price is None:
-                raise ValueError(f"No price data available for {symbol}")
+            # Validar que el precio sea válido (no None, no 0, no negativo)
+            if current_price is None or current_price == 0 or current_price < 0:
+                # Intentar con "close" como fallback
+                current_price = ticker.get("close")
+                if current_price is None or current_price == 0 or current_price < 0:
+                    # Intentar con "bid" como último recurso
+                    current_price = ticker.get("bid")
+                    if current_price is None or current_price == 0 or current_price < 0:
+                        raise ValueError(f"No valid price data available for {symbol}. Ticker: {ticker}")
 
+            current_price = float(current_price)
             self.logger.info(f"💰 Current price for {symbol}: {current_price}")
-            return float(current_price)
+            return current_price
 
         except Exception as e:
             self.logger.error(f"❌ Error getting current price for {symbol}: {e}")

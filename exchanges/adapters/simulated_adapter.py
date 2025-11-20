@@ -117,17 +117,30 @@ class SimulatedAdapter:
             )
 
             # 6. Execute via connector (call sync version for backtest)
-            # NOTE: In backtest, we only create the main order
-            # TP/SL are handled by PositionTracker in "simulation" mode
+            # If this is a conditional order (TP/SL) the caller (Croupier)
+            # will pass `type` and `params`. Forward them to the connector
+            # so the simulated connector can create an open conditional order.
+            order_type = order.get("type", "market")
+            params = order.get("params")
+
             result = self.connector.create_order_sync(
                 symbol=order.get("symbol", self.symbol),
                 side=side,
                 amount=amount,
+                order_type=order_type,
+                price=order.get("price"),
+                params=params,
             )
 
+            # If the connector returned an open conditional order, simply return it
+            # so Croupier can extract the order id (tp/sl creation path).
+            if result.get("status") == "open":
+                return result
+
             # 7. Format result for Croupier
-            # NOTE: tp_order_id and sl_order_id are None in backtest
-            # PositionTracker will handle TP/SL detection in simulation mode
+            # For market/limit main orders we emulate an 'opened' response
+            # (the BacktestDataSource will track the position). For conditional
+            # orders the connector already returned the order object.
             return {
                 "id": result["id"],
                 "status": "opened",
@@ -136,11 +149,12 @@ class SimulatedAdapter:
                 "side": order["side"],  # Keep original format (LONG/SHORT)
                 "amount": result["amount"],
                 "entry_price": result["price"],
+                "price": result["price"],
                 "fee": result["fee"]["cost"],
                 "tp_price": tp_price,
                 "sl_price": sl_price,
-                "tp_order_id": None,  # Not created in backtest
-                "sl_order_id": None,  # Not created in backtest
+                "tp_order_id": None,
+                "sl_order_id": None,
                 "timestamp": result["timestamp"],
             }
 
@@ -243,6 +257,19 @@ class SimulatedAdapter:
             List of trade dicts
         """
         return await self.connector.fetch_my_trades(symbol, limit=limit)
+
+    # =========================================================
+    # Order helpers delegated to connector
+    # =========================================================
+
+    async def fetch_order(self, order_id: str, symbol: Optional[str] = None) -> Optional[Dict]:
+        return await self.connector.fetch_order(order_id, symbol)
+
+    async def fetch_open_orders(self, symbol: Optional[str] = None) -> list:
+        return await self.connector.fetch_open_orders(symbol)
+
+    async def cancel_order(self, order_id: str, symbol: Optional[str] = None) -> Dict:
+        return await self.connector.cancel_order(order_id, symbol)
 
     # =========================================================
     # HELPER METHODS

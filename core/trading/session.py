@@ -188,6 +188,14 @@ class TradingSession:
 
             # Main loop
             while True:
+                # STEP 0: Limpiar posiciones huérfanas ANTES de cualquier otra cosa
+                if hasattr(self.data_source, "croupier") and hasattr(
+                    self.data_source.croupier, "cleanup_orphaned_positions"
+                ):
+                    try:
+                        await self.data_source.croupier.cleanup_orphaned_positions(self.data_source.symbol)
+                    except Exception as cleanup_error:
+                        logger.error(f"❌ Error during proactive cleanup: {cleanup_error}")
                 # Check max candles limit
                 if self.max_candles and self.stats.candles_processed >= self.max_candles:
                     logger.info(f"🏁 Max candles reached: {self.max_candles}")

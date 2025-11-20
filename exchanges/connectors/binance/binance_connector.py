@@ -900,6 +900,10 @@ class BinanceConnector(BaseConnector):
                 if filled > 0 and cost > 0:
                     order_price = cost / filled
 
+            # Convertir avgPrice a float (puede venir como string de Binance)
+            avg_price_raw = order.get("avgPrice")
+            avg_price = float(avg_price_raw) if avg_price_raw else 0.0
+
             normalized = {
                 "id": order.get("id"),
                 "symbol": symbol,  # Return in bot format
@@ -907,6 +911,7 @@ class BinanceConnector(BaseConnector):
                 "type": order_type,
                 "status": order.get("status"),
                 "price": order_price,
+                "avgPrice": avg_price,  # ← avgPrice para MARKET orders
                 "amount": float(order.get("amount") or 0),
                 "filled": float(order.get("filled") or 0),
                 "remaining": float(order.get("remaining") or 0),
@@ -916,7 +921,9 @@ class BinanceConnector(BaseConnector):
                 "trades": order.get("trades", []),
             }
 
-            self.logger.info(f"✅ Order created | {symbol} {side.upper()} {amount} @ {price or 'market'}")
+            self.logger.info(
+                f"✅ Order created | {symbol} {side.upper()} {amount} @ {price or 'market'} | avgPrice: {avg_price}"
+            )
 
             return normalized
 
