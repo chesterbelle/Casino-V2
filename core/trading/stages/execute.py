@@ -45,6 +45,12 @@ class ExecuteStage(Stage):
             logger.debug("⏭️ No order to execute")
             return context
 
+        # Add current candle price as fallback for entry price calculation
+        # This is critical for demo mode where avgPrice may not be available immediately
+        if context.candle:
+            order["candle_close"] = context.candle.close
+            logger.debug(f"📊 Added candle price to order: ${context.candle.close:.8f}")
+
         # Execute through data source
         try:
             result = await self.data_source.execute_order(order)

@@ -824,6 +824,68 @@ class BinanceConnector(BaseConnector):
             self.logger.warning(f"⚠️ Error during validation: {e}, skipping validation")
             return round(amount, 8)
 
+    async def _ensure_stop_price_safe(self, binance_symbol: str, side: str, stop_price: float) -> float:
+        """
+        Ensure a stop/take-profit price won't "immediately trigger" on Binance by
+        comparing against current market price and adjusting by one tick if needed.
+
+        This is a conservative safeguard to avoid the ccxt/binance error "Order would
+        immediately trigger" (-2021) without performing any forced closes.
+        """
+        try:
+            # Load markets if needed
+            if not self.exchange.markets:
+                await self._safe_ccxt_call("load_markets")
+
+            market = self.exchange.markets.get(binance_symbol)
+            current_ticker = await self.fetch_ticker(self.denormalize_symbol(binance_symbol))
+            last_price = float(current_ticker.get("last") or current_ticker.get("close") or 0)
+
+            # Determine tick/price precision
+            tick = None
+            if market:
+                precision = market.get("precision") or {}
+                price_prec = precision.get("price")
+                if isinstance(price_prec, int):
+                    tick = 10 ** (-price_prec)
+                else:
+                    # Fallback to limits.price.min
+                    limits = market.get("limits", {})
+                    price_limits = limits.get("price", {})
+                    min_price = price_limits.get("min")
+                    try:
+                        tick = float(min_price) if min_price else None
+                    except Exception:
+                        tick = None
+
+            # Final fallback tick
+            if tick is None or tick == 0:
+                tick = max(0.0001, abs(last_price) * 1e-6)
+
+            # For buy side (long), a TAKE_PROFIT stopPrice must be strictly greater than last_price
+            # For sell side (short), TAKE_PROFIT stopPrice must be strictly lower than last_price
+            side_lower = side.lower()
+            adjusted = float(stop_price)
+
+            if side_lower == "buy":
+                if adjusted <= last_price:
+                    adjusted = float(last_price) + tick
+                    self.logger.warning(
+                        f"⚠️ Adjusting stopPrice from {stop_price} -> {adjusted} to avoid immediate-trigger (last={last_price})"
+                    )
+            else:
+                if adjusted >= last_price:
+                    adjusted = float(last_price) - tick
+                    self.logger.warning(
+                        f"⚠️ Adjusting stopPrice from {stop_price} -> {adjusted} to avoid immediate-trigger (last={last_price})"
+                    )
+
+            return adjusted
+        except Exception as e:
+            # If anything fails, don't block order creation — return original value
+            self.logger.debug(f"ℹ️ _ensure_stop_price_safe fallback due to: {e}")
+            return float(stop_price)
+
     # =========================================================
     # 📝 ORDER CREATION
     # =========================================================
@@ -878,6 +940,25 @@ class BinanceConnector(BaseConnector):
             # Add Binance-specific params
             if "positionSide" not in clean_params:
                 clean_params["positionSide"] = "BOTH"  # One-way mode by default
+
+            # If this is a TP/SL style order, ensure stopPrice won't immediately trigger
+            try:
+                order_type_upper = (order_type or "").upper()
+                # Binance-specific order types that use stopPrice
+                tp_sl_types = {"TAKE_PROFIT_MARKET", "STOP_MARKET", "TAKE_PROFIT", "STOP"}
+                if ("stopPrice" in clean_params) or (order_type_upper in tp_sl_types):
+                    sp = clean_params.get("stopPrice")
+                    if sp is not None:
+                        try:
+                            adjusted_sp = await self._ensure_stop_price_safe(binance_symbol, side, float(sp))
+                            clean_params["stopPrice"] = adjusted_sp
+                        except Exception:
+                            # If safety check fails, continue with original stopPrice
+                            pass
+
+            except Exception:
+                # Defensive: never block order creation due to safety check
+                pass
 
             # Create order on Binance
             # PROTECTED: Prevent CCXT concurrent access

@@ -87,8 +87,32 @@ class TestingDataSource(DataSource):
         while True:
             try:
                 candle_data = await self.adapter.next_candle()
+                logger.debug(
+                    "📥 Raw candle received | data=%s",
+                    {
+                        "timestamp": candle_data.get("timestamp") if isinstance(candle_data, dict) else None,
+                        "open": candle_data.get("open") if isinstance(candle_data, dict) else None,
+                        "high": candle_data.get("high") if isinstance(candle_data, dict) else None,
+                        "low": candle_data.get("low") if isinstance(candle_data, dict) else None,
+                        "close": candle_data.get("close") if isinstance(candle_data, dict) else None,
+                        "volume": candle_data.get("volume") if isinstance(candle_data, dict) else None,
+                        "type": type(candle_data).__name__,
+                    },
+                )
                 if not candle_data:
                     logger.warning("⚠️ No candles received, retrying...")
+                    await asyncio.sleep(self.poll_interval)
+                    continue
+
+                if not isinstance(candle_data, dict):
+                    logger.error(f"❌ Invalid candle payload type: {type(candle_data)} | value={candle_data}")
+                    await asyncio.sleep(self.poll_interval)
+                    continue
+
+                required_fields = ["timestamp", "open", "high", "low", "close", "volume"]
+                missing_fields = [field for field in required_fields if field not in candle_data]
+                if missing_fields:
+                    logger.error(f"❌ Candle missing fields: {missing_fields} | payload={candle_data}")
                     await asyncio.sleep(self.poll_interval)
                     continue
 
@@ -139,10 +163,21 @@ class TestingDataSource(DataSource):
 
     async def execute_order(self, order: Dict) -> Dict:
         """
-        Delegates order execution directly to the Croupier.
+        Adjunta el campo candle_close a la orden antes de delegarla al Croupier.
         """
+        # Usar el último precio de cierre conocido si no está presente
+        if "candle_close" not in order or not order.get("candle_close"):
+            # Buscar el último precio de cierre de la vela actual
+            # Si hay una vela procesada, usar su close
+            if hasattr(self, "_last_candle_timestamp") and self._last_candle_timestamp:
+                # Intentar obtener el precio de cierre desde el adapter
+                try:
+                    candle = await self.adapter.get_candle_by_timestamp(self._last_candle_timestamp)
+                    if candle and isinstance(candle, dict) and "close" in candle:
+                        order["candle_close"] = float(candle["close"])
+                except Exception:
+                    pass
         try:
-            # Croupier is the single point of execution
             result = await self.croupier.execute_order(order)
             return result
         except Exception as e:

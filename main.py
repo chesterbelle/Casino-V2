@@ -400,10 +400,46 @@ async def run_backtest(player_module, data_file, max_candles, initial_balance=No
     session = TradingSession(source, player_module, max_candles)
 
     # Run
+    session_stats = None
     try:
         session_stats = await session.run()
-    finally:
-        pass
+    except (KeyboardInterrupt, asyncio.CancelledError):
+        logger.info("⚠️ Backtest interrupted by user - finalizing stats and saving results...")
+
+        # Try to collect best-effort stats from source and session
+        try:
+            stats = source.get_stats()
+        except Exception:
+            stats = {}
+
+        try:
+            session_stats = session.get_stats().summary() if hasattr(session, "get_stats") else {}
+        except Exception:
+            session_stats = {}
+
+        # Merge session stats (orders_rejected, orders_error, rejection_reasons)
+        stats.update(
+            {
+                "orders_rejected": session_stats.get("orders_rejected", 0),
+                "orders_error": session_stats.get("orders_error", 0),
+                "rejection_reasons": session_stats.get("rejection_reasons", []),
+            }
+        )
+
+        # Ensure we save a results JSON so the run is recorded for validation
+        try:
+            save_results_json(
+                mode="backtest",
+                stats=stats,
+                player_name=player_module.__name__.split(".")[-1],
+                symbol=source.symbol,
+                timeframe=source.timeframe,
+            )
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to save interrupted backtest results: {e}")
+
+        # Re-raise to allow upper-level handlers to log/exit as before
+        raise
 
     # Print stats - combine session stats with data source stats
     stats = source.get_stats()
@@ -536,6 +572,13 @@ async def run_demo(player_module, symbol, interval, max_candles, exchange=None, 
     # Run
     try:
         session_stats = await session.run()
+    except (KeyboardInterrupt, asyncio.CancelledError):
+        logger.info("⚠️ Demo interrupted by user - finalizing stats and will save results after cleanup...")
+        # let finally run to perform cleanup, then we'll re-raise after saving
+        interrupted = True
+        session_stats = None
+    else:
+        interrupted = False
     finally:
 
         # End-of-session forced cleanup for demo: cancel TP/SL and close open positions
@@ -583,6 +626,13 @@ async def run_demo(player_module, symbol, interval, max_candles, exchange=None, 
     # Show final stats - combine session stats with data source stats
     stats = await source.get_stats()
 
+    # Ensure we have a session_stats dict (best-effort if interrupted)
+    if session_stats is None:
+        try:
+            session_stats = session.get_stats().summary() if hasattr(session, "get_stats") else {}
+        except Exception:
+            session_stats = {}
+
     # Merge session stats (orders_rejected, orders_error, rejection_reasons)
     stats.update(
         {
@@ -610,6 +660,10 @@ async def run_demo(player_module, symbol, interval, max_candles, exchange=None, 
     save_results_json(
         mode="demo", stats=stats, player_name=player_module.__name__.split(".")[-1], symbol=symbol, timeframe=interval
     )
+
+    if interrupted:
+        # If the demo was interrupted by user, re-raise to let outer handlers/loggers know
+        raise KeyboardInterrupt()
 
 
 async def run_live(player_module, symbol, interval, max_candles, initial_balance=None):

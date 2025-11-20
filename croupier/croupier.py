@@ -584,9 +584,35 @@ class Croupier:
         # Para órdenes MARKET, Binance devuelve price=0 (no hay precio límite)
         # El precio real de ejecución está en avgPrice
         entry_price = main_result.get("price", 0.0)
+        self.logger.debug(f"🔍 Entry price from main_result['price']: {entry_price}")
+
         if not entry_price or entry_price <= 0:
             # Intentar con avgPrice (para órdenes MARKET)
             entry_price = main_result.get("avgPrice", 0.0)
+            self.logger.debug(f"🔍 Entry price from main_result['avgPrice']: {entry_price}")
+
+            if not entry_price or entry_price <= 0:
+                self.logger.warning("⚠️ avgPrice not available, retrying fetch_order to get execution price")
+                # Reintentar obtener la orden del exchange para obtener avgPrice
+                try:
+                    order_id = main_result.get("id")
+                    if order_id:
+                        fetched_order = await self.exchange_adapter.connector.fetch_order(order_id, order.get("symbol"))
+                        entry_price = fetched_order.get("average") or fetched_order.get("avgPrice", 0.0)
+                        self.logger.debug(f"🔍 Entry price from fetch_order: {entry_price}")
+                        if entry_price and entry_price > 0:
+                            self.logger.info(f"✅ Got avgPrice from fetch_order: ${entry_price:.8f}")
+                except Exception as e:
+                    self.logger.warning(f"⚠️ Could not fetch order details: {e}")
+
+        # Si aún no hay precio, usar el precio de la vela actual (fallback para demo mode)
+        self.logger.debug(f"🔍 Before candle_close check: entry_price={entry_price}, type={type(entry_price)}")
+        if not entry_price or entry_price <= 0:
+            candle_close = order.get("candle_close", 0.0)
+            self.logger.debug(f"🔍 candle_close from order: {candle_close}")
+            if candle_close and candle_close > 0:
+                entry_price = candle_close
+                self.logger.info(f"📊 Using candle close price as entry: ${entry_price:.8f}")
 
         # Si aún no hay precio, obtener del mercado
         if not entry_price or entry_price <= 0:
@@ -609,9 +635,16 @@ class Croupier:
         # El "amount" se calcula en _execute_on_exchange() y se retorna en main_result
         amount = main_result.get("amount") or order.get("amount")
         side = order.get("side")
+
         # Aumentar margen de seguridad para evitar "Order would immediately trigger"
         # Binance requiere que el SL esté suficientemente lejos del precio actual
-        safety_margin_factor = 0.002  # 0.2% (aumentado de 0.05%)
+        # Para precios muy pequeños (como 0.004), necesitamos un margen mayor
+        if entry_price < 0.01:
+            safety_margin_factor = 0.01  # 1% para precios muy pequeños
+        elif entry_price < 0.1:
+            safety_margin_factor = 0.005  # 0.5% para precios pequeños
+        else:
+            safety_margin_factor = 0.002  # 0.2% para precios normales
 
         if side == "LONG":
             tp_price = entry_price * tp_multiplier
@@ -622,7 +655,15 @@ class Croupier:
             # Para SHORT: SL debe estar ARRIBA del entry_price, así que sumamos el margen
             sl_price = entry_price * (2.0 - sl_multiplier) * (1 + safety_margin_factor)
 
-        self.logger.info(f"📊 OCO Monitor | Entry: ${entry_price:.2f} | TP: ${tp_price:.2f} | SL: ${sl_price:.2f}")
+        self.logger.info(f"📊 OCO Monitor | Entry: ${entry_price:.8f} | TP: ${tp_price:.8f} | SL: ${sl_price:.8f}")
+
+        # Obtener precio actual del mercado para validar TP/SL
+        try:
+            current_market_price = await self.exchange_adapter.get_current_price(symbol)
+            self.logger.debug(f"🔍 Current market price: ${current_market_price:.8f}")
+        except Exception as e:
+            self.logger.warning(f"⚠️ Could not get current market price: {e}")
+            current_market_price = entry_price
 
         # Determinar lado opuesto (para cerrar posición)
         close_side = "sell" if side == "LONG" else "buy"
@@ -644,12 +685,12 @@ class Croupier:
             try:
                 tp_result = await self.exchange_adapter.execute_order(tp_order)
                 tp_order_id = tp_result.get("id")
-                self.logger.info(f"✅ TP order created: {tp_order_id} @ ${tp_price:.2f}")
+                self.logger.info(f"✅ TP order created: {tp_order_id} @ ${tp_price:.8f}")
             except Exception as e:
                 error_msg = str(e)
                 if "immediately trigger" in error_msg.lower():
                     raise OCOConfigurationError(
-                        f"TP order would immediately trigger. Entry: ${entry_price:.2f}, TP: ${tp_price:.2f}. "
+                        f"TP order would immediately trigger. Entry: ${entry_price:.8f}, TP: ${tp_price:.8f}, Market: ${current_market_price:.8f}. "
                         f"Increase TP margin or reduce position size."
                     )
                 raise

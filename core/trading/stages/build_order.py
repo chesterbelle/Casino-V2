@@ -55,6 +55,9 @@ class BuildOrderStage(Stage):
         """
         verdict = context.verdict
 
+        # Debug: log the full verdict to diagnose missing 'side' issues
+        logger.debug(f"BuildOrderStage verdict: {verdict}")
+
         if not verdict:
             logger.debug("⏭️ No verdict to process")
             return context
