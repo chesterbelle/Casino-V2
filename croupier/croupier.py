@@ -185,7 +185,7 @@ class Croupier:
         """
         return await self.oco_bracketed_order(order, wait_for_fill_confirmation=wait_for_fill_confirmation)
 
-    async def oco_bracketed_order(self, order: dict) -> dict:
+    async def oco_bracketed_order(self, order: dict, wait_for_fill_confirmation: bool = True) -> dict:
         """
         Método principal para ejecutar órdenes con TP/SL.
 
@@ -277,8 +277,10 @@ class Croupier:
                 "params": {"reduceOnly": False},
             }
 
-            # Always use WS-first confirmation semantics for the main order
-            main_order_payload["confirm_with_ws"] = True
+            # Respect caller preference whether to wait for WS fill confirmation
+            # If True, adapters/connectors may prefer WebSocket confirmation before
+            # proceeding to create TP/SL. Default is True to preserve new websocket-first behavior.
+            main_order_payload["confirm_with_ws"] = bool(wait_for_fill_confirmation)
             # Permitir especificar timeout por orden (ms)
             if "ws_timeout_ms" in order:
                 main_order_payload["ws_timeout_ms"] = order.get("ws_timeout_ms")
