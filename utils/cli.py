@@ -11,6 +11,7 @@ Examples:
 from __future__ import annotations
 
 import argparse
+import logging
 import os
 import subprocess
 import sys
@@ -18,6 +19,8 @@ import textwrap
 from datetime import datetime
 from pathlib import Path
 from typing import Iterable, List, Optional
+
+logger = logging.getLogger(__name__)
 
 from .analysis import analyze_memory, check_sensors
 
@@ -72,27 +75,27 @@ def run_download_training_data(
     output_dir = ROOT / "tables" / "data" / "raw"
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    print("==================================")
-    print("📥 DESCARGA DE DATOS PARA ENTRENAMIENTO")
-    print("==================================\n")
-    print("📋 Configuración:")
-    print(f"  Símbolos: {' '.join(symbols)}")
-    print(f"  Intervalo: {interval}")
-    print(f"  Días: {days}")
-    print(f"  Tag: {tag}")
-    print("")
+    logger.info("==================================")
+    logger.info("📥 DESCARGA DE DATOS PARA ENTRENAMIENTO")
+    logger.info("==================================\n")
+    logger.info("📋 Configuración:")
+    logger.info(f"  Símbolos: {' '.join(symbols)}")
+    logger.info(f"  Intervalo: {interval}")
+    logger.info(f"  Días: {days}")
+    logger.info(f"  Tag: {tag}")
+    logger.info("")
 
     script_path = ROOT / "utils" / "download_kline_dataset.py"
     if not script_path.exists():
-        print("❌ Error: utils/download_kline_dataset.py no encontrado")
-        print("   Asegúrate de correr desde la raíz del proyecto.")
+        logger.error("❌ Error: utils/download_kline_dataset.py no encontrado")
+        logger.info("   Asegúrate de correr desde la raíz del proyecto.")
         return False
 
     total = len(symbols)
     failed = 0
 
     for idx, symbol in enumerate(symbols, 1):
-        print(f"[{idx}/{total}] Descargando {symbol}...")
+        logger.info(f"[{idx}/{total}] Descargando {symbol}...")
         command = [
             PYTHON,
             str(script_path),
@@ -107,33 +110,33 @@ def run_download_training_data(
         ]
         return_code = _stream_subprocess(command)
         if return_code == 0:
-            print(f"  ✅ {symbol} descargado exitosamente\n")
+            logger.info(f"  ✅ {symbol} descargado exitosamente\n")
         else:
-            print(f"  ❌ Error descargando {symbol}\n")
+            logger.error(f"  ❌ Error descargando {symbol}\n")
             failed += 1
 
-    print("==================================")
-    print("📊 RESUMEN DE DESCARGAS")
-    print("==================================")
-    print(f"  Total símbolos: {total}")
-    print(f"  Exitosos: {total - failed}")
-    print(f"  Fallidos: {failed}\n")
+    logger.info("==================================")
+    logger.info("📊 RESUMEN DE DESCARGAS")
+    logger.info("==================================")
+    logger.info(f"  Total símbolos: {total}")
+    logger.info(f"  Exitosos: {total - failed}")
+    logger.info(f"  Fallidos: {failed}\n")
 
     if failed == 0:
-        print("✅ ¡Todas las descargas completadas!\n")
+        logger.info("✅ ¡Todas las descargas completadas!\n")
         generated = sorted(output_dir.glob(f"*_{interval}_{tag}.csv"))
         if generated:
-            print("📁 Archivos generados:")
+            logger.info("📁 Archivos generados:")
             for path in generated:
-                print(f"   - {path.relative_to(ROOT)}")
+                logger.info(f"   - {path.relative_to(ROOT)}")
         else:
-            print(f"📁 No se encontraron archivos con tag '{tag}'.")
-        print("\n🎯 Próximo paso:")
-        print("   python3 -m utils.cli train-memory")
+            logger.info(f"📁 No se encontraron archivos con tag '{tag}'.")
+        logger.info("\n🎯 Próximo paso:")
+        logger.info("   python3 -m utils.cli train-memory")
     else:
-        print("⚠️  Algunas descargas fallaron, revisa los mensajes anteriores.")
+        logger.warning("⚠️  Algunas descargas fallaron, revisa los mensajes anteriores.")
 
-    print("==================================")
+    logger.info("==================================")
     return failed == 0
 
 
@@ -190,22 +193,22 @@ def run_train_memory(pattern: str) -> bool:
         print("\n💡 Ejecuta primero:\n   python3 -m utils.cli download-training-data")
         return False
 
-    print("==================================")
-    print("🧠 ENTRENAMIENTO DE MEMORIA (GHOST MODE)")
-    print("==================================\n")
+    logger.info("==================================")
+    logger.info("🧠 ENTRENAMIENTO DE MEMORIA (GHOST MODE)")
+    logger.info("==================================\n")
 
-    print(f"📊 Datasets encontrados: {len(datasets)}")
+    logger.info(f"📊 Datasets encontrados: {len(datasets)}")
     for ds in datasets:
         try:
             label = ds.relative_to(ROOT)
         except ValueError:
             label = ds
-        print(f"  - {label}")
-    print("")
+        logger.info(f"  - {label}")
+    logger.info("")
 
     config_training_path = ROOT / "config_training.py"
     config_training_path.write_text(TRAINING_CONFIG_TEMPLATE, encoding="utf-8")
-    print("⚙️  Configuración temporal creada en config_training.py\n")
+    logger.info("⚙️  Configuración temporal creada en config_training.py\n")
 
     logs_dir = ROOT / "logs"
     logs_dir.mkdir(parents=True, exist_ok=True)
@@ -226,7 +229,7 @@ def run_train_memory(pattern: str) -> bool:
 
             log_path = logs_dir / f"training_{dataset.stem}.log"
 
-            print(f"[{idx}/{total}] Entrenando con: {dataset_str}")
+            logger.info(f"[{idx}/{total}] Entrenando con: {dataset_str}")
             command = [
                 PYTHON,
                 "-c",
@@ -242,34 +245,34 @@ import main  # noqa: F401
             ]
             return_code = _stream_subprocess(command, env=env, log_path=log_path)
             if return_code == 0:
-                print("  ✅ Entrenamiento completado\n")
+                logger.info("  ✅ Entrenamiento completado\n")
             else:
-                print("  ❌ Error en entrenamiento\n")
+                logger.error("  ❌ Error en entrenamiento\n")
                 failed += 1
     finally:
         if config_training_path.exists():
             config_training_path.unlink()
 
-    print("==================================")
-    print("📊 RESUMEN DE ENTRENAMIENTO")
-    print("==================================")
-    print(f"  Datasets procesados: {total}")
-    print(f"  Exitosos: {total - failed}")
-    print(f"  Fallidos: {failed}\n")
+    logger.info("==================================")
+    logger.info("📊 RESUMEN DE ENTRENAMIENTO")
+    logger.info("==================================")
+    logger.info(f"  Datasets procesados: {total}")
+    logger.info(f"  Exitosos: {total - failed}")
+    logger.info(f"  Fallidos: {failed}\n")
 
     if failed == 0:
-        print("✅ ¡Entrenamiento completado!\n")
-        print("📁 Memoria guardada en:")
-        print("   gemini/data/memory_log.csv")
-        print("   gemini/data/memory_state.json\n")
-        print("📊 Revisar estadísticas:")
-        print("   python3 -m utils.cli analyze-memory\n")
-        print("🎯 Próximo paso:")
-        print("   python3 -m utils.cli validate-strategies")
+        logger.info("✅ ¡Entrenamiento completado!\n")
+        logger.info("📁 Memoria guardada en:")
+        logger.info("   gemini/data/memory_log.csv")
+        logger.info("   gemini/data/memory_state.json\n")
+        logger.info("📊 Revisar estadísticas:")
+        logger.info("   python3 -m utils.cli analyze-memory\n")
+        logger.info("🎯 Próximo paso:")
+        logger.info("   python3 -m utils.cli validate-strategies")
     else:
-        print("⚠️  Algunos entrenamientos fallaron")
-        print("   Revisa los logs en: logs/")
-    print("==================================")
+        logger.warning("⚠️  Algunos entrenamientos fallaron")
+        logger.info("   Revisa los logs en: logs/")
+    logger.info("==================================")
     return failed == 0
 
 
@@ -277,35 +280,35 @@ def run_validate_strategies(pattern: str, limit: int, starting_balance: float) -
     data_dir = ROOT / "tables" / "data" / "raw"
     datasets = sorted(data_dir.glob(pattern))[:limit]
     if not datasets:
-        print(f"❌ No se encontraron datasets con patrón: {pattern}")
+        logger.error(f"❌ No se encontraron datasets con patrón: {pattern}")
         return False
 
     memory_path = analyze_memory.DEFAULT_MEMORY_PATH
     if not memory_path.exists():
-        print("❌ No se encontró memoria entrenada")
-        print("   Ejecuta primero: python3 -m utils.cli train-memory")
+        logger.error("❌ No se encontró memoria entrenada")
+        logger.info("   Ejecuta primero: python3 -m utils.cli train-memory")
         return False
 
-    print("==================================")
-    print("✅ VALIDACIÓN DE ESTRATEGIAS")
-    print("==================================\n")
+    logger.info("==================================")
+    logger.info("✅ VALIDACIÓN DE ESTRATEGIAS")
+    logger.info("==================================\n")
 
-    print("📊 Datasets de validación:")
+    logger.info("📊 Datasets de validación:")
     for ds in datasets:
         try:
             label = ds.relative_to(ROOT)
         except ValueError:
             label = ds
-        print(f"  - {label}")
+        logger.info(f"  - {label}")
     print("")
 
     state = analyze_memory.load_memory(memory_path)
     if state:
         strategies = state.get("strategies", {})
         approved = [name for name, data in strategies.items() if data.get("wins", 0) + data.get("losses", 0) >= 500]
-        print("🧠 Memoria encontrada:")
-        print(f"  Total estrategias: {len(strategies)}")
-        print(f"  Estrategias aprobadas (>=500 trades): {len(approved)}\n")
+        logger.info("🧠 Memoria encontrada:")
+        logger.info(f"  Total estrategias: {len(strategies)}")
+        logger.info(f"  Estrategias aprobadas (>=500 trades): {len(approved)}\n")
 
         sorted_strats = sorted(
             [(name, strategies[name].get("winrate", 0)) for name in approved],
@@ -313,9 +316,9 @@ def run_validate_strategies(pattern: str, limit: int, starting_balance: float) -
             reverse=True,
         )[:5]
         if sorted_strats:
-            print("  Top 5 por winrate:")
+            logger.info("  Top 5 por winrate:")
             for name, winrate in sorted_strats:
-                print(f"    - {name[:50]:50s}: {winrate:.2%}")
+                logger.info(f"    - {name[:50]:50s}: {winrate:.2%}")
             print("")
 
     results_dir = ROOT / "results" / f"validation_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
@@ -335,7 +338,7 @@ def run_validate_strategies(pattern: str, limit: int, starting_balance: float) -
             dataset_str = str(dataset)
 
         out_file = results_dir / f"validation_{dataset.stem}.txt"
-        print(f"[{idx}/{total}] Validando con: {dataset_str}")
+        logger.info(f"[{idx}/{total}] Validando con: {dataset_str}")
 
         command = [
             PYTHON,
@@ -355,34 +358,34 @@ import main  # noqa: F401
 
         return_code = _stream_subprocess(command, env=env, log_path=out_file)
         if return_code == 0:
-            print("  ✅ Validación completada\n")
+            logger.info("  ✅ Validación completada\n")
         else:
-            print("  ❌ Error en validación\n")
+            logger.error("  ❌ Error en validación\n")
             failed += 1
 
-    print("==================================")
-    print("📊 VALIDACIÓN COMPLETADA")
-    print("==================================\n")
-    print("📁 Resultados guardados en:")
-    print(f"   {results_dir.relative_to(ROOT)}\n")
-    print("🎯 Analizar resultados:")
-    print("   python3 -m utils.cli analyze-memory")
-    print("   tail -n 40", results_dir.relative_to(ROOT) / "*.txt")
-    print("==================================")
+    logger.info("==================================")
+    logger.info("📊 VALIDACIÓN COMPLETADA")
+    logger.info("==================================\n")
+    logger.info("📁 Resultados guardados en:")
+    logger.info(f"   {results_dir.relative_to(ROOT)}\n")
+    logger.info("🎯 Analizar resultados:")
+    logger.info("   python3 -m utils.cli analyze-memory")
+    logger.info("   tail -n 40 %s", results_dir.relative_to(ROOT) / "*.txt")
+    logger.info("==================================")
     return failed == 0
 
 
 def run_full_pipeline(args) -> bool:
     start_time = datetime.now()
 
-    print("")
-    print("╔════════════════════════════════════════════════════════════════╗")
-    print("║                                                                ║")
-    print("║     🎰 CASINO V2 - PIPELINE COMPLETO DE ENTRENAMIENTO         ║")
-    print("║                                                                ║")
-    print("╚════════════════════════════════════════════════════════════════╝")
-    print("")
-    print(f"⏰ Inicio: {start_time:%Y-%m-%d %H:%M:%S}\n")
+    logger.info("")
+    logger.info("╔════════════════════════════════════════════════════════════════╗")
+    logger.info("║                                                                ║")
+    logger.info("║     🎰 CASINO V2 - PIPELINE COMPLETO DE ENTRENAMIENTO         ║")
+    logger.info("║                                                                ║")
+    logger.info("╚════════════════════════════════════════════════════════════════╝")
+    logger.info("")
+    logger.info(f"⏰ Inicio: {start_time:%Y-%m-%d %H:%M:%S}\n")
 
     ok = run_download_training_data(
         symbols=args.symbols or [],
@@ -391,27 +394,27 @@ def run_full_pipeline(args) -> bool:
         tag=args.tag,
     )
     if not ok:
-        print("❌ Error en Fase 1 (download-training-data)")
+        logger.error("❌ Error en Fase 1 (download-training-data)")
         return False
 
     if not args.non_interactive:
         input("⏸️  Presiona ENTER para continuar con Fase 2...")
-        print("")
+        logger.info("")
 
     ok = run_train_memory(pattern=args.pattern)
     if not ok:
-        print("❌ Error en Fase 2 (train-memory)")
+        logger.error("❌ Error en Fase 2 (train-memory)")
         return False
 
     if not args.non_interactive:
         input("⏸️  Presiona ENTER para continuar con Fase 3...")
-        print("")
+        logger.info("")
 
     analyze_memory.main()
 
     if not args.non_interactive:
         input("⏸️  Presiona ENTER para continuar con Fase 4...")
-        print("")
+        logger.info("")
 
     ok = run_validate_strategies(
         pattern=args.validation_pattern,
@@ -419,7 +422,7 @@ def run_full_pipeline(args) -> bool:
         starting_balance=args.starting_balance,
     )
     if not ok:
-        print("❌ Error en Fase 4 (validate-strategies)")
+        logger.error("❌ Error en Fase 4 (validate-strategies)")
         return False
 
     end_time = datetime.now()
@@ -427,22 +430,22 @@ def run_full_pipeline(args) -> bool:
     hours, remainder = divmod(duration.total_seconds(), 3600)
     minutes, seconds = divmod(remainder, 60)
 
-    print("")
-    print("╔════════════════════════════════════════════════════════════════╗")
-    print("║                                                                ║")
-    print("║     ✅ PIPELINE COMPLETADO EXITOSAMENTE                        ║")
-    print("║                                                                ║")
-    print("╚════════════════════════════════════════════════════════════════╝")
-    print("")
-    print(f"⏱️  Tiempo total: {int(hours)}h {int(minutes)}m {int(seconds)}s\n")
-    print("📁 Archivos generados:")
-    print("   - Memoria: gemini/data/memory_state.json")
-    print("   - Logs: logs/")
-    print("   - Resultados: results/\n")
-    print("🎯 Próximos pasos:")
-    print("   1. Revisar análisis de memoria")
-    print("   2. Revisar resultados de validación")
-    print("   3. Configurar live/paper trading si todo está correcto\n")
+    logger.info("")
+    logger.info("╔════════════════════════════════════════════════════════════════╗")
+    logger.info("║                                                                ║")
+    logger.info("║     ✅ PIPELINE COMPLETADO EXITOSAMENTE                        ║")
+    logger.info("║                                                                ║")
+    logger.info("╚════════════════════════════════════════════════════════════════╝")
+    logger.info("")
+    logger.info(f"⏱️  Tiempo total: {int(hours)}h {int(minutes)}m {int(seconds)}s\n")
+    logger.info("📁 Archivos generados:")
+    logger.info("   - Memoria: gemini/data/memory_state.json")
+    logger.info("   - Logs: logs/")
+    logger.info("   - Resultados: results/\n")
+    logger.info("🎯 Próximos pasos:")
+    logger.info("   1. Revisar análisis de memoria")
+    logger.info("   2. Revisar resultados de validación")
+    logger.info("   3. Configurar live/paper trading si todo está correcto\n")
 
     return True
 

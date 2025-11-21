@@ -109,6 +109,63 @@ from .table_base import BaseTable
 
 
 class CCXTAdapter(BaseTable):
+    async def fetch_positions(self, symbols: list = None) -> list:
+        """
+        Fetch open positions, preferring WS if enabled and available.
+        """
+        cond1 = self.prefer_ws
+        cond2 = hasattr(self.connector, "watch_positions")
+        cond3 = getattr(self.connector, "enable_websocket", False)
+        self.logger.debug(f"prefer_ws={self.prefer_ws} (type={type(self.prefer_ws)})")
+        self.logger.debug(f"cond1 (prefer_ws): {cond1}")
+        self.logger.debug(f"cond2 (has_watch_positions): {cond2}")
+        self.logger.debug(f"cond3 (enable_websocket): {cond3}")
+        self.logger.debug(f"connector.watch_positions={self.connector.watch_positions}")
+        # Detect WebSocket availability: prefer_ws flag + connector support
+        has_ws_api = cond2 and cond3
+        ws_available = bool(cond1 and has_ws_api)
+        self.logger.debug(
+            f"has_ws_api={has_ws_api} (watch_positions and enable_websocket) | ws_available={ws_available}"
+        )
+
+        # If symbols is a list of one, pass as string (ccxt.pro expects symbol: str)
+        ws_arg = symbols
+        if isinstance(symbols, list) and len(symbols) == 1:
+            ws_arg = symbols[0]
+
+        self.logger.debug(f"fetch_positions called with symbols={symbols}")
+        self.logger.debug(f"ws_arg computed as: {ws_arg} (type={type(ws_arg)})")
+
+        if ws_available:
+            try:
+                self.logger.debug("Trying WS positions...")
+                self.logger.info("Trying WS positions...")
+                if ws_arg is None:
+                    self.logger.debug("Calling connector.watch_positions() with no symbols")
+                    result = await self.connector.watch_positions()
+                else:
+                    self.logger.debug(f"Calling connector.watch_positions({ws_arg})")
+                    result = await self.connector.watch_positions(ws_arg)
+                self.logger.debug(f"Result from WS: {result}")
+                return result
+            except NotImplementedError:
+                self.logger.debug("NotImplementedError in WS positions, falling back to REST")
+                self.logger.info("WS positions not available, falling back to REST.")
+                self.logger.debug(f"Calling connector.fetch_positions({symbols or [self.symbol]})")
+                result = await self.connector.fetch_positions(symbols or [self.symbol])
+                self.logger.debug(f"Result from REST: {result}")
+                return result
+            except Exception as e:
+                self.logger.debug(f"Exception in WS positions: {e}")
+                self.logger.error(f"WS positions error (no fallback): {e}")
+                raise
+        self.logger.debug("Using REST positions.")
+        self.logger.info("Using REST positions.")
+        self.logger.debug(f"Calling connector.fetch_positions({symbols or [self.symbol]})")
+        result = await self.connector.fetch_positions(symbols or [self.symbol])
+        self.logger.debug(f"Result from REST: {result}")
+        return result
+
     """
     Adaptador CCXT que envuelve lógica de negocio y delega comunicación a conectores.
 
@@ -117,47 +174,66 @@ class CCXTAdapter(BaseTable):
     delega la comunicación con el exchange a conectores específicos (KrakenConnector, etc.).
 
     Arquitectura:
-        DataSource (Mesa) usa → CCXTAdapter (este) usa → Conector (KrakenConnector)
-
-    Responsabilidades:
-        - Balance management (BalanceManager)
-        - Position tracking (PositionTracker)
-        - Order validation
-        - TP/SL logic
-        - Exchange state sync (ExchangeStateSync)
-        - Logging
+        DataSource (Mesa) usa -> CCXTAdapter (este) usa -> Conector (KrakenConnector)
     """
+
+    async def fetch_balance(self) -> dict:
+        """
+        Fetch account balance, preferring WS if enabled and available.
+        """
+        if self.prefer_ws and hasattr(self.connector, "watch_balance"):
+            try:
+                return await self.connector.watch_balance()
+            except NotImplementedError:
+                self.logger.info("WS balance not available, falling back to REST.")
+            except Exception as e:
+                self.logger.error(f"WS balance error: {e}, falling back to REST.")
+        return await self.connector.fetch_balance()
 
     def __init__(
         self,
         connector: BaseConnector,
         symbol: str,
         timeframe: str = "1m",
+        prefer_ws: bool = False,
     ):
         """
-        Inicializa el CCXTAdapter sin estado.
-
-        Args:
-            connector: Conector específico del exchange (p. ej., BinanceConnector).
-            symbol: Símbolo de trading por defecto.
-            timeframe: Timeframe de las velas por defecto.
+        Inicializa el adaptador CCXT con el conector y configuración.
         """
         super().__init__()
-        self.logger = logging.getLogger("CCXTAdapter")
-
         # El conector es la única dependencia.
         self.connector = connector
 
         # Configuración básica de operación
         self.symbol = symbol
         self.timeframe = timeframe
+        self.prefer_ws = prefer_ws
+
+        # Logger setup
+        self.logger = logging.getLogger(__name__)
+        self.logger.setLevel(logging.INFO)
+        self.logger.info(f"Stateless CCXTAdapter initialized | Symbol: {self.symbol} | Timeframe: {self.timeframe}")
 
         # El adapter es sin estado, solo delega. La instancia de exchange se obtiene del conector.
         self.exchange = getattr(self.connector, "exchange", None)
         if not self.exchange:
             raise ValueError("El conector debe tener una instancia `exchange` de ccxt inicializada.")
 
-        self.logger.info(f"Stateless CCXTAdapter initialized | Symbol: {self.symbol} | Timeframe: {self.timeframe}")
+    # duplicate fetch_positions block removed
+
+    async def fetch_order_book(self, symbol: str = None, limit: int = 20) -> Dict[str, Any]:
+        """
+        Fetch order book, preferring WS if enabled and available.
+        """
+        symbol = symbol or self.symbol
+        if self.prefer_ws and hasattr(self.connector, "watch_order_book"):
+            try:
+                return await self.connector.watch_order_book(symbol, limit)
+            except NotImplementedError:
+                self.logger.info("WS order book not available, falling back to REST.")
+            except Exception as e:
+                self.logger.error(f"WS order book error: {e}, falling back to REST.")
+        return await self.connector.fetch_order_book(symbol, limit)
 
     async def get_current_price(self, symbol: str = None) -> float:
         """
@@ -249,68 +325,13 @@ class CCXTAdapter(BaseTable):
                 order["side"] = "buy" if order["side"] == "LONG" else "sell"
 
             # Todas las órdenes van por el mismo camino
-            # Support optional WS-confirmation flags passed in the order dict
-            confirm_with_ws = bool(order.get("confirm_with_ws", False))
-            ws_timeout_ms = order.get("ws_timeout_ms")
-
-            result = await self.connector.create_order(
-                symbol=order.get("symbol", self.symbol),
-                side=order["side"],
-                amount=order["amount"],
-                price=order.get("price"),
-                order_type=order.get("type", "market"),
-                params=order.get("params", {}),
-                confirm_with_ws=confirm_with_ws,
-                ws_timeout_ms=ws_timeout_ms,
-            )
-
-            if not isinstance(result, dict):
-                raise ValueError(f"El conector devolvió un resultado inválido: {result}")
-
-            self.logger.info(
-                f"✅ Orden delegada al conector | {result.get('symbol')} {result.get('side', '').upper()} {result.get('amount')}"
-            )
-            return result
-
-        except Exception as e:
-            self.logger.error(f"❌ Error en la ejecución de la orden: {e}")
-            raise  # Propaga la excepción al Croupier
-
-    async def cancel_order(self, order_id: str, symbol: str = None) -> Dict:
-        """Cancel an order."""
-        try:
-            result = await self.connector.cancel_order(order_id, symbol or self.symbol)
-            self.logger.info(f"✅ Orden cancelada | ID: {order_id}")
+            # Execute order via connector
+            # Note: optional WS-confirmation flags may be present in `order` but
+            # are not used by the generic adapter implementation.
+            result = await self.connector.create_order(**order)
             return result
         except Exception as e:
-            self.logger.error(f"❌ Error cancelando orden {order_id}: {e}")
-            raise
-
-    async def fetch_order(self, order_id: str, symbol: str = None) -> Dict:
-        """Fetch order status."""
-        try:
-            result = await self.connector.fetch_order(order_id, symbol or self.symbol)
-            return result
-        except Exception as e:
-            self.logger.error(f"❌ Error fetching order {order_id}: {e}")
-            raise
-
-    async def fetch_ticker(self, symbol: str = None) -> Dict:
-        """Fetch ticker data (price, volume, etc.)."""
-        try:
-            result = await self.connector.fetch_ticker(symbol or self.symbol)
-            return result
-        except Exception as e:
-            self.logger.error(f"❌ Error fetching ticker for {symbol or self.symbol}: {e}")
-            raise
-
-    async def fetch_positions(self, symbols: list = None) -> list:
-        """Fetch open positions."""
-        try:
-            result = await self.connector.fetch_positions(symbols or [self.symbol])
-            return result
-        except Exception as e:
-            self.logger.error(f"❌ Error fetching positions: {e}")
+            self.logger.error(f"❌ Error executing order: {e}")
             raise
 
     def normalize_trade(self, raw_trade: Dict[str, Any]) -> Dict[str, Any]:
@@ -370,3 +391,6 @@ class CCXTAdapter(BaseTable):
     def exchange_name(self) -> str:
         """Get exchange name."""
         return self.connector.exchange_name
+
+    """
+    """

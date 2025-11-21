@@ -4,8 +4,11 @@
 from __future__ import annotations
 
 import csv
+import logging
 import os
 from collections import Counter, defaultdict
+
+logger = logging.getLogger(__name__)
 
 # Construct an absolute path to the results file relative to this script's location
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -74,32 +77,32 @@ def main() -> None:
             reader = csv.DictReader(f)
             metrics, exit_breakdown = analyze_results_in_single_pass(reader)
     except FileNotFoundError:
-        print(f"⚠️ No existe el archivo {RESULTS_PATH}. Corre primero un backtest para generarlo.")
+        logger.warning(f"⚠️ No existe el archivo {RESULTS_PATH}. Corre primero un backtest para generarlo.")
         return
     except Exception as e:
-        print(f"❌ Ocurrió un error inesperado al procesar el archivo: {e}")
+        logger.error(f"❌ Ocurrió un error inesperado al procesar el archivo: {e}")
         return
 
-    print("Resumen general (solo BET):")
+    logger.info("Resumen general (solo BET):")
     if metrics["total"] == 0:
-        print("  No se encontraron trades de tipo 'BET' en el archivo.")
+        logger.info("  No se encontraron trades de tipo 'BET' en el archivo.")
         return
 
-    print(f"  Trades totales : {metrics['total']}")
-    print(f"  Wins / Losses  : {metrics['wins']} / {metrics['losses']}")
+    logger.info(f"  Trades totales : {metrics['total']}")
+    logger.info(f"  Wins / Losses  : {metrics['wins']} / {metrics['losses']}")
     winrate = (metrics["wins"] / metrics["total"] * 100) if metrics["total"] else 0.0
-    print(f"  Winrate        : {winrate:.2f}%")
-    print(f"  Avg. velas     : {metrics['avg_bars']:.2f}")
-    print(f"  Avg. pnl_pct   : {metrics['avg_pnl_pct']:.4f}")
-    print()
+    logger.info(f"  Winrate        : {winrate:.2f}%")
+    logger.info(f"  Avg. velas     : {metrics['avg_bars']:.2f}")
+    logger.info(f"  Avg. pnl_pct   : {metrics['avg_pnl_pct']:.4f}")
+    logger.info("")
 
-    print("Breakdown por exit_reason:")
+    logger.info("Breakdown por exit_reason:")
     for reason, data in sorted(exit_breakdown.items(), key=lambda x: x[0]):
         total = data["total"]
         win = data["wins"]
         loss = data["losses"]
         wr = (win / total * 100) if total else 0.0
-        print(f"  {reason:<15} -> total={total:5d} | wins={win:4d} | losses={loss:4d} | winrate={wr:5.2f}%")
+        logger.info(f"  {reason:<15} -> total={total:5d} | wins={win:4d} | losses={loss:4d} | winrate={wr:5.2f}%")
 
 
 if __name__ == "__main__":

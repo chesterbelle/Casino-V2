@@ -7,8 +7,11 @@ de los tamaños de apuesta recomendados por el Kelly fraccional.
 from __future__ import annotations
 
 import csv
+import logging
 import os
 from collections import Counter, defaultdict
+
+logger = logging.getLogger(__name__)
 
 # --- Configuración ---
 # Límite a comparar (el MAX_POSITION_SIZE actual)
@@ -26,8 +29,8 @@ def analyze_decisions():
     decisions_path = os.path.join(project_root, "gemini", "data", "gemini_decisions.csv")
 
     if not os.path.exists(decisions_path):
-        print(f"⚠️ No se encontró el archivo de decisiones en: {decisions_path}")
-        print("Asegúrate de haber corrido un backtest para generarlo.")
+        logger.warning(f"⚠️ No se encontró el archivo de decisiones en: {decisions_path}")
+        logger.info("Asegúrate de haber corrido un backtest para generarlo.")
         return
 
     # Agrupamos los kelly por trade_id para encontrar el min_kelly que se usó para la decisión
@@ -40,7 +43,7 @@ def analyze_decisions():
                 or "kelly" not in reader.fieldnames
                 or "trade_id" not in reader.fieldnames
             ):
-                print("❌ El archivo CSV no contiene las columnas 'action', 'kelly' y 'trade_id' requeridas.")
+                logger.error("❌ El archivo CSV no contiene las columnas 'action', 'kelly' y 'trade_id' requeridas.")
                 return
 
             for row in reader:
@@ -52,11 +55,11 @@ def analyze_decisions():
                     except (ValueError, TypeError):
                         continue
     except Exception as e:
-        print(f"❌ Ocurrió un error al leer el archivo: {e}")
+        logger.error(f"❌ Ocurrió un error al leer el archivo: {e}")
         return
 
     if not trades:
-        print("ℹ️ No se encontraron valores de Kelly válidos para operaciones 'BET'.")
+        logger.info("ℹ️ No se encontraron valores de Kelly válidos para operaciones 'BET'.")
         return
 
     # Ahora obtenemos el valor de kelly que realmente se usó para cada apuesta (el mínimo de los participantes)
@@ -66,7 +69,7 @@ def analyze_decisions():
             min_kelly_values.append(min(kelly_list))
 
     if not min_kelly_values:
-        print("ℹ️ No se pudieron extraer los valores de Kelly para el análisis.")
+        logger.info("ℹ️ No se pudieron extraer los valores de Kelly para el análisis.")
         return
 
     # --- Calculations ---
@@ -92,24 +95,26 @@ def analyze_decisions():
                 break
 
     # --- Print Results ---
-    print("=" * 60)
-    print("Análisis de Recomendaciones de Apuesta de Kelly (Fraccional)")
-    print("=" * 60)
-    print(f"Analizando {len(min_kelly_values)} decisiones de apuesta ('BET') únicas.")
-    print(f"Límite MAX_POSITION_SIZE actual para la comparación: {LIMIT_TO_CHECK:.2%}\n")
+    logger.info("=" * 60)
+    logger.info("Análisis de Recomendaciones de Apuesta de Kelly (Fraccional)")
+    logger.info("=" * 60)
+    logger.info(f"Analizando {len(min_kelly_values)} decisiones de apuesta ('BET') únicas.")
+    logger.info(f"Límite MAX_POSITION_SIZE actual para la comparación: {LIMIT_TO_CHECK:.2%}\n")
 
-    print(f"  - Apuesta Promedio Recomendada: {avg_kelly:.4%}")
-    print(f"  - Apuesta Máxima Recomendada:   {max_kelly:.4%}\n")
+    logger.info(f"  - Apuesta Promedio Recomendada: {avg_kelly:.4%}")
+    logger.info(f"  - Apuesta Máxima Recomendada:   {max_kelly:.4%}\n")
 
-    print(f"El límite de {LIMIT_TO_CHECK:.2%} fue superado en {times_capped} de {len(min_kelly_values)} ocasiones.")
-    print(f"➡️  El {percent_capped:.2f}% de las veces, MAX_POSITION_SIZE está limitando la apuesta.\n")
+    logger.info(
+        f"El límite de {LIMIT_TO_CHECK:.2%} fue superado en {times_capped} de {len(min_kelly_values)} ocasiones."
+    )
+    logger.info(f"➡️  El {percent_capped:.2f}% de las veces, MAX_POSITION_SIZE está limitando la apuesta.\n")
 
-    print("Distribución de las Apuestas Recomendadas por Kelly:")
+    logger.info("Distribución de las Apuestas Recomendadas por Kelly:")
     sorted_dist = sorted(distribution.items(), key=lambda item: list(bins.keys()).index(item[0]))
     for label, count in sorted_dist:
         percentage = (count / len(min_kelly_values)) * 100
-        print(f"  - {label:<5}: {count:>5} veces ({percentage:.2f}%)")
-    print("=" * 60)
+        logger.info(f"  - {label:<5}: {count:>5} veces ({percentage:.2f}%)")
+    logger.info("=" * 60)
 
 
 if __name__ == "__main__":

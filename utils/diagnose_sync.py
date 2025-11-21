@@ -271,23 +271,23 @@ class SyncDiagnostics:
             logger.warning("No hay resultados para reportar. Ejecuta run_diagnostics() primero.")
             return
 
-        print("\n" + "=" * 60)
-        print("📋 REPORTE DE SINCRONIZACIÓN")
-        print("=" * 60)
-        print(f"\n🕐 Timestamp: {self.results['timestamp']}")
-        print(f"🎯 Estado: {self.results['sync_status']}")
+        logger.info("\n" + "=" * 60)
+        logger.info("📋 REPORTE DE SINCRONIZACIÓN")
+        logger.info("=" * 60)
+        logger.info(f"\n🕐 Timestamp: {self.results['timestamp']}")
+        logger.info(f"🎯 Estado: {self.results['sync_status']}")
 
-        print("\n📊 Diferencias:")
+        logger.info("\n📊 Diferencias:")
         diffs = self.results["diffs"]
-        print(f"  • Balance:     {diffs['balance_diff']:.2f} ({diffs['balance_diff_pct']:.2f}%)")
-        print(f"  • Equity:      {diffs['equity_diff']:.2f} ({diffs['equity_diff_pct']:.2f}%)")
-        print(f"  • Posiciones:  {diffs['position_count_diff']}")
+        logger.info(f"  • Balance:     {diffs['balance_diff']:.2f} ({diffs['balance_diff_pct']:.2f}%)")
+        logger.info(f"  • Equity:      {diffs['equity_diff']:.2f} ({diffs['equity_diff_pct']:.2f}%)")
+        logger.info(f"  • Posiciones:  {diffs['position_count_diff']}")
 
-        print("\n💡 Recomendaciones:")
+        logger.info("\n💡 Recomendaciones:")
         for i, rec in enumerate(self.results["recommendations"], 1):
-            print(f"  {i}. {rec}")
+            logger.info(f"  {i}. {rec}")
 
-        print("=" * 60 + "\n")
+        logger.info("=" * 60 + "\n")
 
 
 async def main():

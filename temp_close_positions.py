@@ -1,6 +1,9 @@
 import asyncio
+import logging
 
 from exchanges.connectors.binance.binance_connector import BinanceConnector
+
+logger = logging.getLogger(__name__)
 
 
 async def close_positions():
@@ -9,16 +12,16 @@ async def close_positions():
 
     # Get open positions
     positions = await connector.fetch_positions()
-    print(f"Found {len(positions)} positions")
+    logger.info(f"Found {len(positions)} positions")
 
     for pos in positions:
         if pos["contracts"] != 0:
-            print(f"Closing position: {pos['symbol']} - {pos['contracts']} contracts")
+            logger.info(f"Closing position: {pos['symbol']} - {pos['contracts']} contracts")
             try:
                 result = await connector.close_position(pos["symbol"])
-                print(f"Close result: {result}")
+                logger.info(f"Close result: {result}")
             except Exception as e:
-                print(f"Error closing: {e}")
+                logger.error(f"Error closing: {e}")
 
     await connector.close()
 

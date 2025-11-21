@@ -89,7 +89,7 @@ def parse_args():
 
 def print_help():
     """Print help message."""
-    print(
+    logger.info(
         """
 Casino V2 - Trading Bot
 
@@ -308,22 +308,22 @@ def _print_human_summary(mode: str, stats: dict, session_stats: dict):
     funding_total = stats.get("funding_total")  # may be None if not tracked
     liquidations = stats.get("liquidations", 0)
 
-    print("-" * 59)
-    print(f"   Balance inicial       : {fmt(initial_balance)}")
-    print(f"   Velas procesadas      : {candles}")
-    print(f"   Trades BET            : {bets}")
-    print(f"   Trades GHOST          : {ghosts}")
-    print(f"   Trades SKIP           : {skips}")
-    print(f"   Wins / Losses         : {wins} / {losses}")
-    print(f"   WinRate (BET)         : {win_rate_bet:.2f}%")
-    print(f"   Comisiones totales    : {fmt(total_fees) if total_fees is not None else 'N/A'}")
-    print(f"   Funding total         : {fmt(funding_total) if funding_total is not None else 'N/A'}")
-    print(f"   Liquidaciones         : {liquidations}")
-    print(f"   Balance final         : {fmt(final_balance)}")
-    print(
+    logger.info("-" * 59)
+    logger.info(f"   Balance inicial       : {fmt(initial_balance)}")
+    logger.info(f"   Velas procesadas      : {candles}")
+    logger.info(f"   Trades BET            : {bets}")
+    logger.info(f"   Trades GHOST          : {ghosts}")
+    logger.info(f"   Trades SKIP           : {skips}")
+    logger.info(f"   Wins / Losses         : {wins} / {losses}")
+    logger.info(f"   WinRate (BET)         : {win_rate_bet:.2f}%")
+    logger.info(f"   Comisiones totales    : {fmt(total_fees) if total_fees is not None else 'N/A'}")
+    logger.info(f"   Funding total         : {fmt(funding_total) if funding_total is not None else 'N/A'}")
+    logger.info(f"   Liquidaciones         : {liquidations}")
+    logger.info(f"   Balance final         : {fmt(final_balance)}")
+    logger.info(
         f"   PnL Total             : {('+' if total_pnl >= 0 else '')}{fmt(total_pnl)} ({('+' if pnl_pct >= 0 else '')}{pnl_pct:.2f}%)"
     )
-    print()
+    logger.info("")
 
     # Extras for demo/testing to clarify rejections/errors
     if mode == "demo":
@@ -338,13 +338,13 @@ def _print_human_summary(mode: str, stats: dict, session_stats: dict):
         # Calculate total order attempts
         order_attempts = session_stats.get("executed_trades", 0) + orders_rejected + orders_error
         _ = order_attempts  # Prevent unused variable warning
-        print(
+        logger.info(
             f"   Rechazos              : {orders_rejected} (pos. existente: {rejected_due_to_open_pos}, otros: {other_rejections})"
         )
-        print(f"   Errores de orden      : {orders_error}")
-        print("-" * 59)
+        logger.info(f"   Errores de orden      : {orders_error}")
+        logger.info("-" * 59)
     else:
-        print("-" * 59)
+        logger.info("-" * 59)
 
 
 async def run_backtest(player_module, data_file, max_candles, initial_balance=None):
@@ -692,14 +692,14 @@ async def run_live(player_module, symbol, interval, max_candles, initial_balance
     logger.warning("⚠️" * 20)
 
     # Confirmation
-    print("\n" + "=" * 60)
-    print("⚠️  WARNING: LIVE TRADING MODE - REAL MONEY")
-    print("=" * 60)
-    print(f"Symbol:   {symbol or 'BTC/USD'}")
-    print(f"Interval: {interval or '5m'}")
-    print(f"Player:   {player_module.__name__}")
-    print("\nThis will execute REAL trades with REAL money.")
-    print("=" * 60)
+    logger.warning("\n" + "=" * 60)
+    logger.warning("⚠️  WARNING: LIVE TRADING MODE - REAL MONEY")
+    logger.warning("=" * 60)
+    logger.warning(f"Symbol:   {symbol or 'BTC/USD'}")
+    logger.warning(f"Interval: {interval or '5m'}")
+    logger.warning(f"Player:   {player_module.__name__}")
+    logger.warning("\nThis will execute REAL trades with REAL money.")
+    logger.warning("=" * 60)
 
     confirm = input("\nType 'YES' to continue: ")
     if confirm != "YES":
@@ -759,12 +759,12 @@ async def main():
     player_module = PLAYERS[player_name]
 
     # Print header
-    print("\n" + "=" * 60)
-    print("🎰 CASINO V2 - Trading Bot")
-    print("=" * 60)
-    print(f"Mode:   {mode.upper()}")
-    print(f"Player: {player_name.upper()}")
-    print("=" * 60 + "\n")
+    logger.info("\n" + "=" * 60)
+    logger.info("🎰 CASINO V2 - Trading Bot")
+    logger.info("=" * 60)
+    logger.info(f"Mode:   {mode.upper()}")
+    logger.info(f"Player: {player_name.upper()}")
+    logger.info("=" * 60 + "\n")
 
     # Run mode
     try:

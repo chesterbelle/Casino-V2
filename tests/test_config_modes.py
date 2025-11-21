@@ -19,7 +19,13 @@ def _reload_config(monkeypatch, **env_overrides):
         else:
             monkeypatch.setenv(key, value)
 
+    # Remove the core.config and any submodules from sys.modules so they are reimported
     monkeypatch.delitem(sys.modules, CONFIG_MODULE, raising=False)
+    monkeypatch.delitem(sys.modules, "config", raising=False)
+    monkeypatch.delitem(sys.modules, "config.system", raising=False)
+    monkeypatch.delitem(sys.modules, "config.exchange", raising=False)
+    monkeypatch.delitem(sys.modules, "config.trading", raising=False)
+    monkeypatch.delitem(sys.modules, "core.config", raising=False)
     return importlib.import_module(CONFIG_MODULE)
 
 
@@ -34,8 +40,10 @@ def _clear_env(monkeypatch):
 
 def test_default_mode_is_testing(monkeypatch):
     config = _reload_config(monkeypatch)
-    assert config.MODE == "testing"
-    assert config.EXCHANGE == "KRAKEN"
+    # Default mode changed to 'demo' in v2 config/system.py
+    assert config.MODE == "demo"
+    # Default exchange changed to BYBIT in v2
+    assert config.EXCHANGE == "BYBIT"
 
 
 def test_mode_override_via_env(monkeypatch):

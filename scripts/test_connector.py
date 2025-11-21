@@ -1,8 +1,11 @@
 import asyncio
+import logging
 
 import pandas as pd
 
 from core.data_sources.backtest import BacktestDataSource
+
+logger = logging.getLogger(__name__)
 
 path = "tables/data/raw/BTCUSDT_5m__30d.csv"
 df = pd.read_csv(path)
@@ -28,10 +31,10 @@ async def run():
         "ghost": False,
     }
     res = await source.execute_order(order)
-    print("EXECUTE_RESULT:", res)
-    print("\nConnector orders:")
+    logger.info("EXECUTE_RESULT: %s", res)
+    logger.info("\nConnector orders:")
     for oid, o in source.connector._orders.items():
-        print(oid, o.get("type"), o.get("status"), o.get("parent"), o.get("stopPrice"))
+        logger.info("%s %s %s %s %s", oid, o.get("type"), o.get("status"), o.get("parent"), o.get("stopPrice"))
     # Now simulate a TP hit by closing the position via internal backtest close
     if source.open_positions:
         pos = source.open_positions[0]
@@ -39,16 +42,16 @@ async def run():
         entry = pos.get("entry_price")
         tp_price = entry * tp_mult if tp_mult else None
         if tp_price:
-            print("\nSimulating TP hit at", tp_price)
+            logger.info("\nSimulating TP hit at %s", tp_price)
             source._close_position(pos, tp_price, None, "take_profit", source._get_current_timestamp())
 
-            print("\nAfter closure, connector orders:")
+            logger.info("\nAfter closure, connector orders:")
             for oid, o in source.connector._orders.items():
-                print(oid, o.get("type"), o.get("status"), o.get("parent"), o.get("stopPrice"))
+                logger.info("%s %s %s %s %s", oid, o.get("type"), o.get("status"), o.get("parent"), o.get("stopPrice"))
 
-            print("\nClosed trades:")
+            logger.info("\nClosed trades:")
             for t in source.closed_trades:
-                print(t.get("trade_id", t.get("entry_price")), t.get("exit_reason"), t.get("pnl"))
+                logger.info("%s %s %s", t.get("trade_id", t.get("entry_price")), t.get("exit_reason"), t.get("pnl"))
 
     await source.disconnect()
 

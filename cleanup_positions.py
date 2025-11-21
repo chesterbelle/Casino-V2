@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 
 import asyncio
+import logging
 
 from exchanges.connectors.binance.binance_connector import BinanceConnector
+
+logger = logging.getLogger(__name__)
 
 
 async def cleanup():
@@ -11,20 +14,20 @@ async def cleanup():
 
     # Get open positions
     positions = await connector.fetch_positions()
-    print(f"Found {len(positions)} positions")
+    logger.info(f"Found {len(positions)} positions")
 
     for pos in positions:
         if pos.get("contracts", 0) != 0:
             symbol = pos["symbol"]
             size = abs(pos["contracts"])
             side = "sell" if pos["side"] == "long" else "buy"
-            print(f'Closing position: {symbol} {pos["side"]} {size} contracts')
+            logger.info(f'Closing position: {symbol} {pos["side"]} {size} contracts')
 
             # Create market order to close
             result = await connector.create_order(
                 symbol=symbol, type="market", side=side, amount=size, params={"reduceOnly": True}
             )
-            print(f"Close order result: {result}")
+            logger.info(f"Close order result: {result}")
 
     await connector.disconnect()
 

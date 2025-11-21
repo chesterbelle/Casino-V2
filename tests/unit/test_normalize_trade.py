@@ -21,7 +21,7 @@ def test_binance_normalize_trade_with_close():
     }
 
     # Crear conector (sin conectar)
-    connector = BinanceConnector(api_key="test", api_secret="test", testnet=True)
+    connector = BinanceConnector(api_key="test", secret="test", mode="demo")
 
     # Normalizar trade
     normalized = connector.normalize_trade(raw_trade)
@@ -49,7 +49,7 @@ def test_binance_normalize_trade_without_close():
         },
     }
 
-    connector = BinanceConnector(api_key="test", api_secret="test", testnet=True)
+    connector = BinanceConnector(api_key="test", secret="test", mode="demo")
 
     normalized = connector.normalize_trade(raw_trade)
 
@@ -77,7 +77,7 @@ def test_kraken_normalize_trade_with_close():
         },
     }
 
-    connector = KrakenConnector(api_key="test", api_secret="test")
+    connector = KrakenConnector(api_key="test", secret="test", mode="testing")
 
     normalized = connector.normalize_trade(raw_trade)
 
@@ -105,7 +105,7 @@ def test_kraken_normalize_trade_without_close():
         },
     }
 
-    connector = KrakenConnector(api_key="test", api_secret="test")
+    connector = KrakenConnector(api_key="test", secret="test", mode="testing")
 
     normalized = connector.normalize_trade(raw_trade)
 
@@ -132,7 +132,7 @@ def test_bybit_normalize_trade_with_close():
         },
     }
 
-    connector = BybitConnector(api_key="test", api_secret="test", demo=True)
+    connector = BybitConnector(api_key="test", secret="test", mode="demo")
 
     normalized = connector.normalize_trade(raw_trade)
 
@@ -159,7 +159,7 @@ def test_bybit_normalize_trade_without_close():
         },
     }
 
-    connector = BybitConnector(api_key="test", api_secret="test", demo=True)
+    connector = BybitConnector(api_key="test", secret="test", mode="demo")
 
     normalized = connector.normalize_trade(raw_trade)
 

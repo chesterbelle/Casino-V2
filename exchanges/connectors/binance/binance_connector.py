@@ -112,7 +112,7 @@ class BinanceTestnet(ccxt_async.binance):
             return markets
         except Exception as e:
             # If futures call fails, return empty to avoid cascading errors
-            print(f"⚠️ BinanceTestnet.fetch_markets failed: {e}")
+            self.logger.error(f"⚠️ BinanceTestnet.fetch_markets failed: {e}")
             return []
 
     async def fetch_positions(self, symbols=None, params={}):
@@ -289,7 +289,7 @@ class BinanceTestnetPro(ccxtpro.binance):
             markets = self.parse_markets(response["symbols"])
             return markets
         except Exception as e:
-            print(f"⚠️ BinanceTestnetPro.fetch_markets failed: {e}")
+            self.logger.error(f"⚠️ BinanceTestnetPro.fetch_markets failed: {e}")
             return []
 
     async def fetch_positions(self, symbols=None, params={}):
@@ -339,6 +339,53 @@ class BinanceTestnetPro(ccxtpro.binance):
 
 
 class BinanceConnector(BaseConnector):
+    # =========================================================
+    # 🟢 WEBSOCKET QUERIES (STUBS)
+    # =========================================================
+
+    async def watch_balance(self) -> Dict[str, Any]:
+        """
+        Fetch account balance using WebSocket (if supported).
+        Returns balance dict in CCXT format.
+        """
+        if not self.enable_websocket or not self.ws_exchange:
+            raise NotImplementedError("WebSocket balance not available or not initialized.")
+        # CCXT Pro does not natively support watch_balance for Binance Futures, so this is a placeholder.
+        # If/when supported, implement here.
+        raise NotImplementedError("watch_balance not implemented for Binance Futures.")
+
+    async def watch_positions(self, symbols: Optional[List[str]] = None) -> List[Dict[str, Any]]:
+        """
+        Fetch open positions using WebSocket (if supported).
+        Returns list of positions in CCXT format.
+        """
+        if not self.enable_websocket or not self.ws_exchange:
+            raise NotImplementedError("WebSocket positions not available or not initialized.")
+        # CCXT Pro supports watchPositions for Binance Futures, but may require custom handling.
+        try:
+            positions = await self.ws_exchange.watch_positions(symbols, params={"type": "future"})
+            self.logger.debug(f"📊 WS positions fetched: {len(positions)} active")
+            return positions
+        except Exception as e:
+            self.logger.error(f"❌ Error fetching positions via WS: {e}")
+            raise
+
+    async def watch_order_book(self, symbol: str, limit: int = 20) -> Dict[str, Any]:
+        """
+        Fetch order book using WebSocket (if supported).
+        Returns order book dict in CCXT format.
+        """
+        if not self.enable_websocket or not self.ws_exchange:
+            raise NotImplementedError("WebSocket order book not available or not initialized.")
+        try:
+            binance_symbol = self.normalize_symbol(symbol)
+            order_book = await self.ws_exchange.watch_order_book(binance_symbol, limit)
+            self.logger.debug(f"📊 WS order book fetched: {symbol}")
+            return order_book
+        except Exception as e:
+            self.logger.error(f"❌ Error fetching order book via WS: {e}")
+            raise
+
     """
     Connector for Binance Futures exchange (USDT Perpetual).
 

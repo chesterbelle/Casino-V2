@@ -9,10 +9,13 @@ from __future__ import annotations
 
 import argparse
 import csv
+import logging
 import math
 import os
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
+
+logger = logging.getLogger(__name__)
 
 import requests
 
@@ -148,7 +151,7 @@ def main() -> None:
 
     klines: List[List[Any]] = []
     current = start_ms
-    print(f"Descargando {symbol} {interval} de los últimos {days} días...")
+    logger.info(f"Descargando {symbol} {interval} de los últimos {days} días...")
     while current < end_ms:
         batch = fetch_klines(symbol, interval, start_time=current, limit=1500)
         if not batch:
@@ -164,12 +167,12 @@ def main() -> None:
 
     klines = [k for k in klines if int(k[0]) >= start_ms and int(k[0]) <= end_ms]
     if not klines:
-        print("No se descargaron velas. Verifica los parámetros.")
+        logger.error("No se descargaron velas. Verifica los parámetros.")
         return
 
     tag = args.tag or f"{days}d"
     out_path = save_csv(symbol, interval, klines, tag=tag)
-    print(f"Dataset guardado en: {out_path} ({len(klines)} velas)")
+    logger.info(f"Dataset guardado en: {out_path} ({len(klines)} velas)")
 
 
 if __name__ == "__main__":

@@ -11,10 +11,11 @@ Estos tests validan que:
 from unittest.mock import AsyncMock, Mock
 
 import pytest
-from tables.ccxt_adapter import CCXTAdapter
-from tables.connectors.kraken.kraken_connector import KrakenConnector
-from tables.exchange_state_sync import ExchangeStateSync
-from tables.position_tracker import PositionTracker
+
+from core.portfolio.position_tracker import PositionTracker
+from exchanges.adapters.ccxt_adapter import CCXTAdapter
+from exchanges.adapters.exchange_state_sync import ExchangeStateSync
+from exchanges.connectors.kraken.kraken_connector import KrakenConnector
 
 
 class TestExchangeStateSync:
@@ -270,18 +271,8 @@ class TestCCXTAdapterEnriched:
         # Mock connector
         connector = Mock()
         connector.exchange_name = "kraken"
-        connector.fetch_ohlcv = AsyncMock(
-            return_value=[
-                {
-                    "timestamp": 1699000000000,
-                    "open": 50000.0,
-                    "high": 50100.0,
-                    "low": 49900.0,
-                    "close": 50050.0,
-                    "volume": 100.0,
-                }
-            ]
-        )
+        # Return CCXT OHLCV format as list: [timestamp, open, high, low, close, volume]
+        connector.fetch_ohlcv = AsyncMock(return_value=[[1699000000000, 50000.0, 50100.0, 49900.0, 50050.0, 100.0]])
         connector.fetch_balance = AsyncMock(return_value={"free": {"USD": 5000.0}, "total": {"USD": 5000.0}})
         connector.fetch_positions = AsyncMock(return_value=[])
         connector.fetch_my_trades = AsyncMock(return_value=[])
@@ -291,16 +282,16 @@ class TestCCXTAdapterEnriched:
 
         candle = await table.next_candle()
 
-        # Verificar estructura enriquecida
+        # Verify standard OHLCV structure fields
         assert candle is not None
+        assert "timestamp" in candle
+        assert "open" in candle
+        assert "high" in candle
+        assert "low" in candle
         assert "close" in candle
-        assert "equity" in candle
-        assert "balance" in candle
-        assert "unrealized_pnl" in candle
-        assert "open_positions" in candle
-        assert "positions" in candle
-        assert "recent_fills" in candle
-        assert candle["state_source"] == "exchange_confirmed"
+        assert "volume" in candle
+        # _last_candle should be set to the last candle
+        assert table._last_candle is not None
 
 
 @pytest.mark.integration

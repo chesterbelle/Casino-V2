@@ -12,10 +12,13 @@ Usage:
 """
 
 import argparse
+import logging
 import re
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Tuple
+
+logger = logging.getLogger(__name__)
 
 
 def parse_log_file(log_path: str) -> Dict:
@@ -314,7 +317,7 @@ def generate_comparison_report(testing_metrics: Dict, backtest_metrics: Dict, ou
         output_file = Path(output_path)
         output_file.parent.mkdir(parents=True, exist_ok=True)
         output_file.write_text(report, encoding="utf-8")
-        print(f"✅ Reporte guardado en: {output_path}")
+        logger.info(f"✅ Reporte guardado en: {output_path}")
 
     return report
 
@@ -345,34 +348,34 @@ Ejemplo:
 
     args = parser.parse_args()
 
-    print("=" * 60)
-    print("📊 COMPARE RESULTS - Casino V2")
-    print("=" * 60)
+    logger.info("=" * 60)
+    logger.info("📊 COMPARE RESULTS - Casino V2")
+    logger.info("=" * 60)
 
     # Parse logs
-    print(f"\n📖 Parseando testing log: {args.testing}")
+    logger.info(f"\n📖 Parseando testing log: {args.testing}")
     testing_metrics = parse_log_file(args.testing)
-    print(f"   Modo: {testing_metrics['mode']}")
-    print(f"   Velas: {testing_metrics.get('candles_processed', 'N/A')}")
-    print(f"   Órdenes: {testing_metrics.get('orders_executed', 'N/A')}")
+    logger.info(f"   Modo: {testing_metrics['mode']}")
+    logger.info(f"   Velas: {testing_metrics.get('candles_processed', 'N/A')}")
+    logger.info(f"   Órdenes: {testing_metrics.get('orders_executed', 'N/A')}")
 
-    print(f"\n📖 Parseando backtest log: {args.backtest}")
+    logger.info(f"\n📖 Parseando backtest log: {args.backtest}")
     backtest_metrics = parse_log_file(args.backtest)
-    print(f"   Modo: {backtest_metrics['mode']}")
-    print(f"   Velas: {backtest_metrics.get('candles_processed', 'N/A')}")
-    print(f"   Órdenes: {backtest_metrics.get('orders_executed', 'N/A')}")
+    logger.info(f"   Modo: {backtest_metrics['mode']}")
+    logger.info(f"   Velas: {backtest_metrics.get('candles_processed', 'N/A')}")
+    logger.info(f"   Órdenes: {backtest_metrics.get('orders_executed', 'N/A')}")
 
     # Generate report
-    print(f"\n📝 Generando reporte de comparación...")
+    logger.info(f"\n📝 Generando reporte de comparación...")
     report = generate_comparison_report(testing_metrics, backtest_metrics, args.output)
 
     # Print to console if no output file
     if not args.output:
-        print("\n" + "=" * 60)
-        print(report)
-        print("=" * 60)
+        logger.info("\n" + "=" * 60)
+        logger.info(report)
+        logger.info("=" * 60)
 
-    print("\n✅ Comparación completada")
+    logger.info("\n✅ Comparación completada")
 
 
 if __name__ == "__main__":

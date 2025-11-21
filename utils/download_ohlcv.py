@@ -19,9 +19,12 @@ Usage:
 
 import argparse
 import asyncio
+import logging
 import sys
 from datetime import datetime
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 import pandas as pd
 
@@ -51,46 +54,46 @@ async def download_ohlcv(
         last_n_candles: Número de velas recientes (alternativa a start/end)
         output: Ruta del archivo CSV de salida
     """
-    print("=" * 60)
-    print("📥 DOWNLOAD OHLCV - Casino V2")
-    print("=" * 60)
+    logger.info("=" * 60)
+    logger.info("📥 DOWNLOAD OHLCV - Casino V2")
+    logger.info("=" * 60)
 
     # Crear connector
     connector = KrakenConnector(mode="demo")
 
     try:
         # Conectar
-        print(f"\n🔌 Conectando a Kraken Futures...")
+        logger.info(f"\n🔌 Conectando a Kraken Futures...")
         await connector.connect()
-        print("✅ Conectado")
+        logger.info("✅ Conectado")
 
         # Determinar parámetros de descarga
         if last_n_candles:
             # Calcular timestamps basado en last_n_candles
-            print(f"\n📊 Descargando últimas {last_n_candles} velas...")
+            logger.info(f"\n📊 Descargando últimas {last_n_candles} velas...")
             limit = last_n_candles
             since = None
         elif start_ts and end_ts:
             # Usar timestamps específicos
-            print(f"\n📊 Descargando período específico...")
-            print(f"   Inicio: {datetime.fromtimestamp(start_ts/1000)}")
-            print(f"   Fin:    {datetime.fromtimestamp(end_ts/1000)}")
+            logger.info(f"\n📊 Descargando período específico...")
+            logger.info(f"   Inicio: {datetime.fromtimestamp(start_ts/1000)}")
+            logger.info(f"   Fin:    {datetime.fromtimestamp(end_ts/1000)}")
             limit = None
             since = start_ts
         else:
             raise ValueError("Debes especificar --last-n-candles o --start y --end")
 
         # Descargar datos
-        print(f"   Symbol: {symbol}")
-        print(f"   Interval: {interval}")
+        logger.info(f"   Symbol: {symbol}")
+        logger.info(f"   Interval: {interval}")
 
         ohlcv = await connector.fetch_ohlcv(symbol=symbol, timeframe=interval, since=since, limit=limit)
 
         if not ohlcv:
-            print("❌ No se obtuvieron datos")
+            logger.error("❌ No se obtuvieron datos")
             return
 
-        print(f"✅ Descargadas {len(ohlcv)} velas")
+        logger.info(f"✅ Descargadas {len(ohlcv)} velas")
 
         # Convertir a DataFrame
         df = pd.DataFrame(ohlcv, columns=["timestamp", "open", "high", "low", "close", "volume"])
@@ -102,17 +105,17 @@ async def download_ohlcv(
         df = df[["timestamp", "datetime", "open", "high", "low", "close", "volume"]]
 
         # Mostrar preview
-        print(f"\n📊 Preview de datos:")
-        print(df.head(3))
-        print("...")
-        print(df.tail(3))
+        logger.info(f"\n📊 Preview de datos:")
+        logger.info(df.head(3).to_string())
+        logger.info("...")
+        logger.info(df.tail(3).to_string())
 
         # Estadísticas
-        print(f"\n📈 Estadísticas:")
-        print(f"   Velas: {len(df)}")
-        print(f"   Período: {df['datetime'].iloc[0]} → {df['datetime'].iloc[-1]}")
-        print(f"   Precio: ${df['close'].iloc[0]:.2f} → ${df['close'].iloc[-1]:.2f}")
-        print(f"   Rango: ${df['low'].min():.2f} - ${df['high'].max():.2f}")
+        logger.info(f"\n📈 Estadísticas:")
+        logger.info(f"   Velas: {len(df)}")
+        logger.info(f"   Período: {df['datetime'].iloc[0]} → {df['datetime'].iloc[-1]}")
+        logger.info(f"   Precio: ${df['close'].iloc[0]:.2f} → ${df['close'].iloc[-1]:.2f}")
+        logger.info(f"   Rango: ${df['low'].min():.2f} - ${df['high'].max():.2f}")
 
         # Guardar CSV
         if not output:
@@ -124,21 +127,21 @@ async def download_ohlcv(
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
         df.to_csv(output_path, index=False)
-        print(f"\n💾 Guardado en: {output_path}")
-        print(f"   Tamaño: {output_path.stat().st_size / 1024:.2f} KB")
+        logger.info(f"\n💾 Guardado en: {output_path}")
+        logger.info(f"   Tamaño: {output_path.stat().st_size / 1024:.2f} KB")
 
     except Exception as e:
-        print(f"\n❌ Error: {e}")
+        logger.error(f"\n❌ Error: {e}")
         raise
 
     finally:
         # Desconectar
         await connector.disconnect()
-        print("\n🔌 Desconectado")
+        logger.info("\n🔌 Desconectado")
 
-    print("\n" + "=" * 60)
-    print("✅ DESCARGA COMPLETADA")
-    print("=" * 60)
+    logger.info("\n" + "=" * 60)
+    logger.info("✅ DESCARGA COMPLETADA")
+    logger.info("=" * 60)
 
 
 def main():

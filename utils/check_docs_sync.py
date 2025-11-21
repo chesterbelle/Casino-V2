@@ -19,11 +19,14 @@ Salida:
 ====================================================
 """
 
+import logging
 import os
 import re
 import sys
 from pathlib import Path
 from typing import Dict, List, Optional
+
+logger = logging.getLogger(__name__)
 
 # Importar versión desde core
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -113,20 +116,20 @@ def check_version_mentions(file_path: str, expected_version: str) -> List[str]:
 # =====================================================
 def main():
     """Función principal de verificación."""
-    print("=" * 60)
-    print("🔍 VERIFICACIÓN DE SINCRONIZACIÓN DE DOCUMENTACIÓN")
-    print("=" * 60)
-    print(f"\n📌 Versión esperada: v{__version__}")
-    print(f"📝 Nombre: {__version_name__}")
-    print(f"📅 Fecha: {__release_date__}\n")
+    logger.info("=" * 60)
+    logger.info("🔍 VERIFICACIÓN DE SINCRONIZACIÓN DE DOCUMENTACIÓN")
+    logger.info("=" * 60)
+    logger.info(f"\n📌 Versión esperada: v{__version__}")
+    logger.info(f"📝 Nombre: {__version_name__}")
+    logger.info(f"📅 Fecha: {__release_date__}\n")
 
     # Verificar que estamos en el directorio correcto
     if not os.path.exists("core/version.py"):
-        print("❌ ERROR: Ejecutar desde el directorio raíz del proyecto")
+        logger.error("❌ ERROR: Ejecutar desde el directorio raíz del proyecto")
         sys.exit(1)
 
     # Extraer versiones de cada archivo
-    print("📂 Verificando archivos pilares...\n")
+    logger.info("📂 Verificando archivos pilares...\n")
     versions: Dict[str, Optional[str]] = {}
     all_problems: Dict[str, List[str]] = {}
 
@@ -136,7 +139,7 @@ def main():
 
         if version:
             status = "✅" if version == __version__ else "❌"
-            print(f"{status} {file_path}: v{version}")
+            logger.info(f"{status} {file_path}: v{version}")
 
             # Verificar todas las menciones
             if version != __version__:
@@ -144,55 +147,55 @@ def main():
                 if problems:
                     all_problems[file_path] = problems
         else:
-            print(f"⚠️  {file_path}: No se encontró versión")
+            logger.warning(f"⚠️  {file_path}: No se encontró versión")
             versions[file_path] = "NOT_FOUND"
 
     # Análisis de resultados
-    print("\n" + "=" * 60)
-    print("📊 RESULTADOS")
-    print("=" * 60)
+    logger.info("\n" + "=" * 60)
+    logger.info("📊 RESULTADOS")
+    logger.info("=" * 60)
 
     unique_versions = set(v for v in versions.values() if v and v != "NOT_FOUND")
 
     if len(unique_versions) == 1 and __version__ in unique_versions:
-        print(f"\n✅ ÉXITO: Todos los documentos están en v{__version__}")
-        print("\n🎉 Documentación sincronizada correctamente!")
+        logger.info(f"\n✅ ÉXITO: Todos los documentos están en v{__version__}")
+        logger.info("\n🎉 Documentación sincronizada correctamente!")
         return 0
 
     # Hay problemas
-    print("\n❌ PROBLEMAS DETECTADOS:\n")
+    logger.error("\n❌ PROBLEMAS DETECTADOS:\n")
 
     # Mostrar versiones inconsistentes
     if len(unique_versions) > 1:
-        print("🔴 Versiones inconsistentes encontradas:")
+        logger.warning("🔴 Versiones inconsistentes encontradas:")
         for file_path, version in versions.items():
             if version != __version__:
-                print(f"  • {file_path}: v{version} (esperado v{__version__})")
+                logger.warning(f"  • {file_path}: v{version} (esperado v{__version__})")
         print()
 
     # Mostrar archivos sin versión
     missing = [f for f, v in versions.items() if v == "NOT_FOUND"]
     if missing:
-        print("⚠️  Archivos sin versión detectada:")
+        logger.warning("⚠️  Archivos sin versión detectada:")
         for file_path in missing:
-            print(f"  • {file_path}")
+            logger.warning(f"  • {file_path}")
         print()
 
     # Mostrar problemas detallados
     if all_problems:
-        print("📝 Detalles de inconsistencias:")
+        logger.info("📝 Detalles de inconsistencias:")
         for file_path, problems in all_problems.items():
-            print(f"\n  {file_path}:")
+            logger.info(f"\n  {file_path}:")
             for problem in problems[:5]:  # Limitar a 5 problemas por archivo
-                print(f"    {problem}")
+                logger.info(f"    {problem}")
             if len(problems) > 5:
-                print(f"    ... y {len(problems) - 5} más")
+                logger.info(f"    ... y {len(problems) - 5} más")
 
     # Instrucciones de corrección
-    print("\n" + "=" * 60)
-    print("🔧 CÓMO CORREGIR")
-    print("=" * 60)
-    print(
+    logger.info("\n" + "=" * 60)
+    logger.info("🔧 CÓMO CORREGIR")
+    logger.info("=" * 60)
+    logger.info(
         f"""
 1. Actualizar manualmente cada archivo con v{__version__}
 2. Buscar y reemplazar versiones antiguas

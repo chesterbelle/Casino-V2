@@ -5,10 +5,13 @@ Heuristic-based: scans `logs/` for `main_*.log` files and `logs/demo_*.json` fil
 Outputs a short summary with counts and latency stats.
 """
 import json
+import logging
 import re
 import statistics
 from datetime import datetime
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 LOGS_DIR = Path("logs")
 TIME_FMT = "%Y-%m-%d %H:%M:%S,%f"
@@ -114,10 +117,10 @@ def main():
     demo_jsons = sorted(LOGS_DIR.glob("demo_*.json"))
 
     if not logs and not demo_jsons:
-        print("No main_*.log or demo_*.json files found in logs/.")
+        logger.info("No main_*.log or demo_*.json files found in logs/.")
         return
 
-    print(f"Found {len(logs)} main_*.log, {len(demo_jsons)} demo_*.json")
+    logger.info(f"Found {len(logs)} main_*.log, {len(demo_jsons)} demo_*.json")
 
     all_events = []
     for p in logs:
@@ -186,32 +189,32 @@ def main():
     total_ws = len(ws_events)
     total_fallback = len(fallback_events)
 
-    print("\nSummary Report")
-    print("--------------")
-    print(f"Total create-like events found: {total_creates}")
-    print(f"Total ws-confirm-like events found: {total_ws}")
-    print(f"Total REST fallback-like events found: {total_fallback}")
-    print(f"Linked confirmations (heuristic): {matched_count}")
+    logger.info("\nSummary Report")
+    logger.info("--------------")
+    logger.info(f"Total create-like events found: {total_creates}")
+    logger.info(f"Total ws-confirm-like events found: {total_ws}")
+    logger.info(f"Total REST fallback-like events found: {total_fallback}")
+    logger.info(f"Linked confirmations (heuristic): {matched_count}")
     if matched_latencies:
-        print(
+        logger.info(
             f"Latency (ms) - mean: {statistics.mean(matched_latencies):.1f}, median: {statistics.median(matched_latencies):.1f}, min: {min(matched_latencies):.1f}, max: {max(matched_latencies):.1f}"
         )
     else:
-        print("No latency samples found.")
+        logger.info("No latency samples found.")
 
     # show samples
-    print("\nSample events (up to 10)")
+    logger.info("\nSample events (up to 10)")
     for e in all_events_sorted[:10]:
         ts = e["ts"].isoformat(sep=" ") if e["ts"] else "NO_TS"
         oid = e.get("order_id") or "-"
-        print(f"{ts} | {e['kind']} | order_id={oid} | {e['text']}")
+        logger.info(f"{ts} | {e['kind']} | order_id={oid} | {e['text']}")
 
     # Demo JSONs quick scan
     if demo_jsons:
-        print("\nDemo JSON scan:")
+        logger.info("\nDemo JSON scan:")
         for p in demo_jsons[-5:]:
             d = scan_demo_json(p)
-            print(f"{p.name}: keys_found={list(d.keys())}")
+            logger.info(f"{p.name}: keys_found={list(d.keys())}")
 
 
 if __name__ == "__main__":

@@ -1,10 +1,13 @@
 import asyncio
 import json
+import logging
 import os
 import time
 from pathlib import Path
 
 from exchanges.connectors.binance.binance_connector import BinanceConnector
+
+logger = logging.getLogger(__name__)
 
 LOGS = Path("logs")
 LOGS.mkdir(exist_ok=True)
@@ -78,7 +81,7 @@ async def run_market_then_protect(
     try:
         await connector.connect()
     except Exception as e:
-        print("Connector connect exception:", e)
+        logger.error("Connector connect exception: %s", e)
 
     # Step 1: Market entry (no TP/SL in payload)
     entry_payload = {
@@ -178,4 +181,4 @@ async def run_market_then_protect(
 
 if __name__ == "__main__":
     res = asyncio.run(run_market_then_protect())
-    print("RESULT:", res)
+    logger.info("RESULT: %s", res)

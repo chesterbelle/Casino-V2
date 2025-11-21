@@ -21,6 +21,8 @@ from typing import Any, Dict, List, Optional
 
 from ..connectors.connector_base import BaseConnector
 
+logger = logging.getLogger(__name__)
+
 
 @dataclass
 class SessionState:
@@ -71,7 +73,7 @@ class StateRecovery:
         state = await recovery.recover_session("session_123")
 
         if state:
-            print(f"Recuperando sesión con {len(state.open_positions)} posiciones")
+            logger.info(f"Recuperando sesión con {len(state.open_positions)} posiciones")
 
         # Save state periodically
         await recovery.save_state(current_state)

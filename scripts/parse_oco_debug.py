@@ -5,9 +5,12 @@ Compute latencies from EXECUTE_ORDER -> TP verify and -> SL verify.
 Produce a concise report with counts and latency statistics and sample payloads.
 """
 import json
+import logging
 import statistics
 from datetime import datetime
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 LOGS_DIR = Path("logs")
 
@@ -92,7 +95,7 @@ def main():
             all_results.extend(res)
 
     if not all_results:
-        print("No EXECUTE_ORDER entries found in oco_debug files.")
+        logger.info("No EXECUTE_ORDER entries found in oco_debug files.")
         return
 
     tp_latencies = []
@@ -118,38 +121,42 @@ def main():
     tp_stats = stats(tp_latencies)
     sl_stats = stats(sl_latencies)
 
-    print("OCO Debug Analysis Report")
-    print("========================")
-    print(f"Total EXECUTE_ORDER entries: {len(all_results)}")
-    print(f"Total with TP verify timestamps: {len(tp_latencies)}")
-    print(f"Total with SL verify timestamps: {len(sl_latencies)}")
-    print("")
-    print("TP latency stats (ms):")
+    logger.info("OCO Debug Analysis Report")
+    logger.info("========================")
+    logger.info(f"Total EXECUTE_ORDER entries: {len(all_results)}")
+    logger.info(f"Total with TP verify timestamps: {len(tp_latencies)}")
+    logger.info(f"Total with SL verify timestamps: {len(sl_latencies)}")
+    logger.info("")
+    logger.info("TP latency stats (ms):")
     if tp_stats:
         for k, v in tp_stats.items():
-            print(f"  {k}: {v:.1f}" if isinstance(v, float) else f"  {k}: {v}")
+            logger.info(f"  {k}: {v:.1f}" if isinstance(v, float) else f"  {k}: {v}")
     else:
-        print("  no samples")
-    print("")
-    print("SL latency stats (ms):")
+        logger.info("  no samples")
+    logger.info("")
+    logger.info("SL latency stats (ms):")
     if sl_stats:
         for k, v in sl_stats.items():
-            print(f"  {k}: {v:.1f}" if isinstance(v, float) else f"  {k}: {v}")
+            logger.info(f"  {k}: {v:.1f}" if isinstance(v, float) else f"  {k}: {v}")
     else:
-        print("  no samples")
+        logger.info("  no samples")
 
     # show up to 5 samples
-    print("\nSamples (up to 5):")
+    logger.info("\nSamples (up to 5):")
     for r in all_results[:5]:
-        print("---")
-        print("file:", r["file"])
-        print("exec_ts:", r["exec_ts"])
-        print("main_order_id:", r["main_order_id"])
-        print("tp_ts:", r["tp_ts"], "sl_ts:", r["sl_ts"])
+        logger.info("---")
+        logger.info("file: %s", r["file"])
+        logger.info("exec_ts: %s", r["exec_ts"])
+        logger.info("main_order_id: %s", r["main_order_id"])
+        logger.info("tp_ts: %s sl_ts: %s", r["tp_ts"], r["sl_ts"])
         if r["tp_order_info"]:
-            print("tp_order.id:", r["tp_order_info"].get("id") if isinstance(r["tp_order_info"], dict) else "N/A")
+            logger.info(
+                "tp_order.id: %s", r["tp_order_info"].get("id") if isinstance(r["tp_order_info"], dict) else "N/A"
+            )
         if r["sl_order_info"]:
-            print("sl_order.id:", r["sl_order_info"].get("id") if isinstance(r["sl_order_info"], dict) else "N/A")
+            logger.info(
+                "sl_order.id: %s", r["sl_order_info"].get("id") if isinstance(r["sl_order_info"], dict) else "N/A"
+            )
 
 
 if __name__ == "__main__":

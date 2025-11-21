@@ -1,4 +1,7 @@
+import logging
 import os
+
+logger = logging.getLogger(__name__)
 
 EXPECTED_STRUCTURE = {
     "root": [
@@ -43,29 +46,29 @@ def check_file(path):
 
 
 def check_structure(base_path="."):
-    print("\n🎰 Verificando estructura del proyecto Casino V2\n")
+    logger.info("\n🎰 Verificando estructura del proyecto Casino V2\n")
 
     total_missing = 0
     for folder, items in EXPECTED_STRUCTURE.items():
         if folder == "root":
-            print("📁 Carpeta raíz:")
+            logger.info("📁 Carpeta raíz:")
             current_path = base_path
         else:
-            print(f"\n📂 {folder}/")
+            logger.info(f"\n📂 {folder}/")
             current_path = os.path.join(base_path, folder)
 
         for item in items:
             file_path = os.path.join(current_path, item)
             if check_file(file_path):
-                print(f"   ✅ {item}")
+                logger.info(f"   ✅ {item}")
             else:
-                print(f"   ❌ {item} (FALTA)")
+                logger.warning(f"   ❌ {item} (FALTA)")
                 total_missing += 1
 
     if total_missing == 0:
-        print("\n✅ Estructura completa y en orden. ¡Todo listo para jugar en el casino!\n")
+        logger.info("\n✅ Estructura completa y en orden. ¡Todo listo para jugar en el casino!\n")
     else:
-        print(f"\n⚠️ Faltan {total_missing} elementos. Revisa los ❌ marcados.\n")
+        logger.warning(f"\n⚠️ Faltan {total_missing} elementos. Revisa los ❌ marcados.\n")
 
 
 if __name__ == "__main__":

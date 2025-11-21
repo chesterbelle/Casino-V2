@@ -95,6 +95,7 @@ def load_aster_credentials(test_connection: bool = False) -> Dict[str, str]:
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     result = load_aster_credentials(test_connection=True)
-    print("\nResultado ASTER:")
+    logger = logging.getLogger("AsterEnvLoader")
+    logger.info("\nResultado ASTER:")
     for key, value in result.items():
-        print(f"  {key}: {value}")
+        logger.info(f"  {key}: {value}")

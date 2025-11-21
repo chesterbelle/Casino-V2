@@ -138,24 +138,24 @@ def get_hyperliquid_credentials() -> Optional[Dict[str, str]]:
 
 if __name__ == "__main__":
     # Test the loader
-    print("🔍 Testing Hyperliquid environment loader...")
+    logger.info("🔍 Testing Hyperliquid environment loader...")
 
     config = load_hyperliquid_config()
-    print(f"Config loaded: {bool(config)}")
+    logger.info(f"Config loaded: {bool(config)}")
 
     if config:
-        print(f"API Key configured: {bool(config.get('api_key'))}")
-        print(f"API Secret configured: {bool(config.get('api_secret'))}")
-        print(f"Vault configured: {bool(config.get('vault_address'))}")
-        print(f"Testnet: {config.get('testnet', False)}")
+        logger.info(f"API Key configured: {bool(config.get('api_key'))}")
+        logger.info(f"API Secret configured: {bool(config.get('api_secret'))}")
+        logger.info(f"Vault configured: {bool(config.get('vault_address'))}")
+        logger.info(f"Testnet: {config.get('testnet', False)}")
 
         is_valid = validate_hyperliquid_config(config)
-        print(f"Configuration valid: {is_valid}")
+        logger.info(f"Configuration valid: {is_valid}")
 
         credentials = get_hyperliquid_credentials()
         if credentials:
-            print("✅ Credentials ready for CCXT")
+            logger.info("✅ Credentials ready for CCXT")
         else:
-            print("❌ Credentials not available")
+            logger.error("❌ Credentials not available")
     else:
-        print("❌ No configuration found")
+        logger.error("❌ No configuration found")

@@ -4,7 +4,10 @@
 from __future__ import annotations
 
 import csv
+import logging
 import os
+
+logger = logging.getLogger(__name__)
 from collections import Counter
 
 # Construct an absolute path to the log file relative to this script's location
@@ -15,7 +18,7 @@ LOG_PATH = os.getenv("MEMORY_LOG_PATH", DEFAULT_PATH)
 
 def main() -> None:
     if not os.path.exists(LOG_PATH):
-        print(f"⚠️ No se encontró el archivo {LOG_PATH}. Ejecuta un backtest primero.")
+        logger.warning(f"⚠️ No se encontró el archivo {LOG_PATH}. Ejecuta un backtest primero.")
         return
 
     wins = Counter()
@@ -24,7 +27,7 @@ def main() -> None:
     with open(LOG_PATH, "r", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         if "strategy" not in reader.fieldnames or "result" not in reader.fieldnames:
-            print("⚠️ El archivo no contiene las columnas esperadas (strategy, result).")
+            logger.warning("⚠️ El archivo no contiene las columnas esperadas (strategy, result).")
             return
         for row in reader:
             strat = row.get("strategy", "UNKNOWN")
@@ -38,12 +41,13 @@ def main() -> None:
                 losses[strat] += 1
 
     print("Estrategia,Winrate (%)")
+    logger.info("Estrategia,Winrate (%)")
     for strat in sorted(set(wins) | set(losses)):
         total = wins[strat] + losses[strat]
         if total == 0:
             continue
         wr = wins[strat] / total * 100
-        print(f"{strat},{wr:.2f}")
+        logger.info(f"{strat},{wr:.2f}")
 
 
 if __name__ == "__main__":
