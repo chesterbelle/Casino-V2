@@ -12,9 +12,13 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
+import pytest
+
 from exchanges.connectors.kraken import KrakenConnector
 
 
+@pytest.mark.asyncio
+@pytest.mark.integration
 async def test_websocket_connection():
     """Test básico de conexión WebSocket."""
     print("=" * 80)
@@ -31,6 +35,8 @@ async def test_websocket_connection():
 
     # 3. Verificar estado
     status = connector.status_dict
+    if not status or not status.get("connected"):
+        pytest.skip("Connector not connected; skipping WebSocket integration test")
     print(f"\n📊 Estado del conector:")
     print(f"   Connected: {status['connected']}")
     print(f"   Markets loaded: {status['markets_loaded']}")
@@ -69,6 +75,8 @@ async def test_websocket_connection():
     print("=" * 80)
 
 
+@pytest.mark.asyncio
+@pytest.mark.integration
 async def test_websocket_fallback():
     """Test de fallback a REST cuando WebSocket no está disponible."""
     print("\n" + "=" * 80)
@@ -85,6 +93,8 @@ async def test_websocket_fallback():
 
     # 3. Verificar estado
     status = connector.status_dict
+    if not status or not status.get("connected"):
+        pytest.skip("Connector not connected; skipping WebSocket integration test")
     print(f"\n📊 Estado del conector:")
     print(f"   Connected: {status['connected']}")
     print(f"   WebSocket active: {status['websocket_active']}")

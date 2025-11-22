@@ -123,7 +123,7 @@ Cada ronda debe pasar antes de avanzar a la siguiente.
 
 4. **Ajustar y repetir:**
    - Corregir bugs encontrados
-   - Ajustar tolerancias si es necesario
+   - analizr ronda y esperar indicaciones para continuar
    - Re-ejecutar la misma ronda
 
 ---
@@ -159,27 +159,11 @@ Cada ronda debe pasar antes de avanzar a la siguiente.
 
 ### Configuración
 - Exchange: **Binance (demo / testnet)**
-- Symbol: **BTC/USDT** (ajustar a `BTC/USDT:USDT` si se usa futures USDT-M)
+- Symbol: **LTC/USDT** (ajustar a `LTC/USDT:USDT` si se usa futures USDT-M)
 - Interval: **1m**
 - Player: **paroli**
 
 ---
-
-## 🎓 Lecciones Aprendidas
-
-1. **Demo Trading ≠ Testnet:**
-   - En Binance usar demo/testnet apropiado para simular ejecuciones reales; verificar que los endpoints usados estén disponibles en la instancia demo.
-
-2. **Binance tiene limitaciones en endpoints demo:**
-   - Algunas operaciones privadas pueden diferir; usar la combinación adecuada de API pública y testnet privada cuando sea necesario.
-
-3. **CCXT y Binance:**
-   - CCXT cubre la mayoría, pero validar endpoints específicos de demo/testnet y, si es necesario, usar llamadas directas a la API REST de Binance.
-
-4. **Arquitectura debe mantenerse:**
-   - Adapter siempre agnóstico
-   - Connector maneja particularidades del exchange
-   - Solo connector conoce la dual connection o modo demo
 
 ---
 

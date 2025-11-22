@@ -6,6 +6,7 @@ import asyncio
 import json
 import logging
 
+from exchanges.adapters.exchange_state_sync import ExchangeStateSync
 from exchanges.connectors.binance import BinanceConnector
 
 logging.basicConfig(level=logging.INFO)
@@ -55,13 +56,20 @@ async def main():
         else:
             logger.info("⚠️ exchange.positions does not exist")
 
-        # Check what fetch_positions returns
+        # Check what fetch_positions returns (raw)
         logger.info("\n5️⃣ Calling fetch_positions() again...")
         positions = await connector.fetch_positions()
         logger.info(f"✅ fetch_positions() returned {len(positions)} positions")
         if positions:
             logger.info("\n📊 Positions (JSON):")
             logger.info(json.dumps(positions, indent=2, default=str))
+
+        # Also show normalized positions via ExchangeStateSync
+        sync = ExchangeStateSync(connector)
+        normalized_positions = await sync.sync_positions()
+        logger.info("\n6️⃣ Normalized positions (ExchangeStateSync):")
+        for p in normalized_positions:
+            logger.info(p)
 
     except Exception as e:
         logger.error(f"❌ Error: {e}", exc_info=True)

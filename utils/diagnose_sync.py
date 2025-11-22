@@ -35,6 +35,7 @@ from tables.ccxt_adapter import CCXTAdapter
 from tables.connectors.kraken.kraken_connector import KrakenConnector
 
 from core import config
+from exchanges.adapters.exchange_state_sync import ExchangeStateSync
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
@@ -140,8 +141,13 @@ class SyncDiagnostics:
                     currency = curr
                     break
 
-            # Posiciones del exchange
-            positions = await self.table.connector.fetch_positions()
+            # Posiciones del exchange (normalized)
+            try:
+                sync = ExchangeStateSync(self.table.connector)
+                positions_dt = await sync.sync_positions()
+                positions = [p.__dict__ for p in positions_dt]
+            except Exception:
+                positions = await self.table.connector.fetch_positions()
             open_positions_exchange = len([p for p in positions if float(p.get("contracts", 0)) != 0])
 
             # Unrealized PnL del exchange

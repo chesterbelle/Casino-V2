@@ -51,6 +51,7 @@ from typing import Dict, List, Optional
 
 from core.portfolio.balance_manager import BalanceManager
 from core.portfolio.position_tracker import PositionTracker
+from core.portfolio.utils import calculate_position_pnl
 from exchanges.adapters.exchange_state_sync import ExchangeStateSync
 
 
@@ -293,6 +294,13 @@ class Croupier:
             # 6. Configurar TP/SL (siempre se configuran)
             tp_order_id = None
             sl_order_id = None
+            # Instrumentation placeholders for attempt metadata (defined here so
+            # outer scope can safely attach them to the result dict). The
+            # detailed attempt logs are recorded inside _setup_oco_orders, but
+            # exposing these placeholders avoids NameError/flake8 issues when
+            # instrumentation is attempted below.
+            tp_attempts = []
+            sl_attempts = []
             try:
                 tp_order_id, sl_order_id = await self._setup_oco_orders(order, main_order)
             except (TPOrderCreationError, SLOrderCreationError, OCOConfigurationError) as e:
@@ -427,6 +435,13 @@ class Croupier:
                 # Non-critical: do not fail order flow due to instrumentation
                 pass
 
+            # Attach TP/SL attempt metadata for diagnostics (non-critical)
+            try:
+                result["tp_attempts"] = tp_attempts
+                result["sl_attempts"] = sl_attempts
+            except Exception:
+                pass
+
             self._log_execution(order, result)
             return result
 
@@ -453,13 +468,48 @@ class Croupier:
                         await self.exchange_adapter.cancel_order(order["id"], symbol)
 
                 # 2. Cerrar posición si existe
-                positions = await self.exchange_adapter.connector.fetch_positions([symbol])
-                pos_found = any(p and abs(p.get("contracts", 0)) > 0 for p in positions)
+                # Prefer normalized positions from ExchangeStateSync; use central helper to fallback
+                positions = await self._fetch_positions([symbol])
+
+                def _pos_contracts(p):
+                    try:
+                        if not p:
+                            return 0
+                        if isinstance(p, dict):
+                            return abs(p.get("contracts", 0) or p.get("amount", 0))
+                        # dataclass/obj
+                        return abs(getattr(p, "contracts", None) or getattr(p, "size", 0))
+                    except Exception:
+                        return 0
+
+                pos_found = any(
+                    _pos_contracts(p) > 0
+                    for p in positions
+                    if p
+                    and (getattr(p, "symbol", None) == symbol or (isinstance(p, dict) and p.get("symbol") == symbol))
+                )
                 if pos_found:
-                    for pos in positions:
-                        if pos and abs(pos.get("contracts", 0)) > 0:
-                            side = "sell" if pos.get("side") == "long" else "buy"
-                            amount = abs(pos.get("contracts", 0))
+                    for pos in [
+                        p
+                        for p in positions
+                        if p
+                        and (
+                            getattr(p, "symbol", None) == symbol or (isinstance(p, dict) and p.get("symbol") == symbol)
+                        )
+                    ]:
+                        if _pos_contracts(pos) > 0:
+                            # compute side and amount from dict or object
+                            try:
+                                if isinstance(pos, dict):
+                                    side = "sell" if (pos.get("side") or "").lower() == "long" else "buy"
+                                    amount = abs(pos.get("contracts", 0) or pos.get("amount", 0))
+                                else:
+                                    side = "sell" if (getattr(pos, "side", "")).upper() == "LONG" else "buy"
+                                    amount = abs(getattr(pos, "contracts", None) or getattr(pos, "size", 0))
+                            except Exception:
+                                side = "sell"
+                                amount = 0
+
                             await self.exchange_adapter.execute_order(
                                 {
                                     "symbol": symbol,
@@ -479,8 +529,8 @@ class Croupier:
 
                 # 4. Verificación final
                 final_orders = await self.exchange_adapter.connector.fetch_open_orders(symbol)
-                final_positions = await self.exchange_adapter.connector.fetch_positions([symbol])
-                has_pos = any(p and abs(p.get("contracts", 0)) > 0 for p in final_positions)
+                final_positions = await self._fetch_positions([symbol])
+                has_pos = any(_pos_contracts(p) > 0 for p in final_positions)
 
                 if not final_orders and not has_pos:
                     self.logger.info(f"✅ Limpieza para {symbol} completada.")
@@ -502,11 +552,24 @@ class Croupier:
             raise ValueError(f"No se encontró una posición abierta con el trade_id: {trade_id}")
 
         close_side = "sell" if position_to_close.side == "LONG" else "buy"
+        # Compute notional safely
+        try:
+            if isinstance(position_to_close, dict):
+                notional_val = position_to_close.get("notional") or (
+                    position_to_close.get("amount") * position_to_close.get("entry_price", 0)
+                )
+            else:
+                notional_val = getattr(position_to_close, "notional", None)
+                if notional_val is None:
+                    notional_val = getattr(position_to_close, "size", 0) * getattr(position_to_close, "entry_price", 0)
+        except Exception:
+            notional_val = 0.0
+
         close_order = {
             "symbol": position_to_close.symbol,
             "type": "market",
             "side": close_side,
-            "amount": position_to_close.notional / position_to_close.entry_price,
+            "amount": notional_val / position_to_close.entry_price if position_to_close.entry_price else 0,
             "params": {"reduceOnly": True},
         }
 
@@ -591,6 +654,17 @@ class Croupier:
         order_with_amount["amount"] = amount
         return order_with_amount
 
+    async def _fetch_positions(self, symbols: list = None):
+        """Return normalized positions via ExchangeStateSync when possible, fallback to connector."""
+        try:
+            synced = await self.state_sync.sync_positions()
+            if symbols:
+                syms = set(symbols)
+                return [p for p in synced if getattr(p, "symbol", None) in syms]
+            return synced
+        except Exception:
+            return await self.exchange_adapter.connector.fetch_positions(symbols)
+
     async def _setup_oco_orders(self, order: dict, main_result: dict) -> tuple:
         """
         OCO Monitor: Crea órdenes TP/SL después de la orden principal.
@@ -598,7 +672,8 @@ class Croupier:
         Responsable de:
         1. Detectar si hay TP/SL en la orden
         2. Calcular precios absolutos desde multiplicadores
-        3. Crear órdenes TP y SL como órdenes limit separadas
+          3. Crear órdenes TP y SL como órdenes limit separadas (creadas en paralelo para
+              reducir ventana de riesgo de "immediate-trigger")
         4. Retornar IDs de las órdenes
 
         Nota: Croupier es agnóstico del exchange. Solo crea órdenes limit simples.
@@ -616,19 +691,31 @@ class Croupier:
         if not has_tpsl:
             return None, None
 
-        # Forzar uso del precio de ejecución real
-        entry_price = main_result.get("price")
-        if not entry_price or entry_price <= 0:
-            entry_price = main_result.get("avgPrice")
-        if not entry_price or entry_price <= 0:
-            # Intentar obtener de fetch_order si el exchange lo soporta
-            try:
-                order_id = main_result.get("id")
-                if order_id:
-                    fetched_order = await self.exchange_adapter.connector.fetch_order(order_id, order.get("symbol"))
-                    entry_price = fetched_order.get("average") or fetched_order.get("avgPrice")
-            except Exception as e:
-                self.logger.warning(f"⚠️ Could not fetch order details: {e}")
+        # Preferir precio confirmado por WebSocket cuando esté disponible
+        entry_price = None
+        try:
+            # Si el main_result indica que se usó la confirmación WS, preferir ese precio
+            if main_result.get("used_ws_confirm"):
+                entry_price = main_result.get("price") or main_result.get("avgPrice")
+
+            # Si no hay confirmación WS, usar price/avgPrice si están presentes
+            if not entry_price:
+                entry_price = main_result.get("price") or main_result.get("avgPrice")
+
+            # Como último recurso, intentar fetch_order para obtener average/avgPrice
+            if (not entry_price or entry_price <= 0) and main_result.get("id"):
+                try:
+                    fetched_order = await self.exchange_adapter.connector.fetch_order(
+                        main_result.get("id"), order.get("symbol")
+                    )
+                    entry_price = fetched_order.get("average") or fetched_order.get("avgPrice") or entry_price
+                    # mark that we used rest fallback for instrumentation
+                    main_result["used_rest_fallback"] = True
+                except Exception as e:
+                    self.logger.debug(f"⚠️ fetch_order fallback failed: {e}")
+        except Exception as e:
+            self.logger.warning(f"⚠️ Error obtaining execution price from main_result: {e}")
+
         # Si aún no hay precio, fallar claramente
         if not entry_price or entry_price <= 0:
             raise OCOConfigurationError(f"No valid execution price for TP/SL calculation. Got: {entry_price}")
@@ -663,6 +750,30 @@ class Croupier:
 
         self.logger.info(f"📊 OCO Monitor | Entry: ${entry_price:.8f} | TP: ${tp_price:.8f} | SL: ${sl_price:.8f}")
 
+        # Rounding: intentar ajustar TP/SL al tick size/precision del exchange antes de validar
+        def _round_price_to_exchange(sym: str, price: float) -> float:
+            try:
+                exch = getattr(self.exchange_adapter, "exchange", None)
+                if exch and hasattr(exch, "price_to_precision"):
+                    # price_to_precision devuelve string formateada
+                    pstr = exch.price_to_precision(sym, price)
+                    return float(pstr)
+            except Exception:
+                pass
+            # Fallback: no rounding disponible, devolver original
+            return price
+
+        tp_price_rounded = _round_price_to_exchange(symbol, tp_price)
+        sl_price_rounded = _round_price_to_exchange(symbol, sl_price)
+
+        if tp_price_rounded != tp_price or sl_price_rounded != sl_price:
+            self.logger.info(
+                f"🔧 Rounded TP/SL to exchange precision | TP: {tp_price} -> {tp_price_rounded} | SL: {sl_price} -> {sl_price_rounded}"
+            )
+
+        tp_price = tp_price_rounded
+        sl_price = sl_price_rounded
+
         # Obtener precio actual del mercado para validar TP/SL
         try:
             current_market_price = await self.exchange_adapter.get_current_price(symbol)
@@ -679,76 +790,220 @@ class Croupier:
         # and the caller (Croupier) should cancel created orders and close the main
         # position to avoid leaving an unprotected position open.
 
-        MAX_RETRIES = 3
+        # Mejorar resiliencia: aumentar retries y usar backoff exponencial
+        MAX_RETRIES = 5
         tp_order_id = None
         sl_order_id = None
         tp_attempts = []
         sl_attempts = []
 
-        # Helper to create order with retries
-        async def _attempt_create(payload, attempts_list):
+        # Helper to create order with retries. Return a structured result so we can
+        # act atomically when creating both TP and SL concurrently.
+        async def _attempt_create_structured(payload, attempts_list, tag: str):
             for attempt in range(1, MAX_RETRIES + 1):
                 try:
+                    # Debug instrumentation: log entering attempt and payload
+                    self.logger.debug("🔁 %s attempt %s/%s - payload: %s", tag, attempt, MAX_RETRIES, payload)
                     t0 = time.time()
+                    self.logger.debug(
+                        "🔁 %s attempt %s/%s - creating order payload: %s", tag, attempt, MAX_RETRIES, payload
+                    )
                     res = await self.exchange_adapter.execute_order(payload)
                     t1 = time.time()
                     attempts_list.append({"attempt": attempt, "ok": True, "duration_ms": int((t1 - t0) * 1000)})
-                    return res
+                    return {"ok": True, "result": res}
                 except Exception as e:
                     t1 = time.time()
+                    err_str = str(e)
                     attempts_list.append(
-                        {"attempt": attempt, "ok": False, "error": str(e), "duration_ms": int((t1 - t0) * 1000)}
+                        {"attempt": attempt, "ok": False, "error": err_str, "duration_ms": int((t1 - t0) * 1000)}
                     )
-                    await asyncio.sleep(0.2 * attempt)
-            return None
+                    # Detect immediate-trigger-like responses (fail fast semantics)
+                    low_err = err_str.lower()
+                    immediate = False
+                    if (
+                        "order would immediately trigger" in low_err
+                        or "-2021" in low_err
+                        or "immediately trigger" in low_err
+                    ):
+                        immediate = True
+                        self.logger.error(f"❌ Immediate-trigger error detected for {tag}, failing fast: {err_str}")
 
-        # Create TP order (take profit market)
-        if tp_price:
+                    # Log error details to help diagnosis (exchange msg / code if present)
+                    self.logger.warning(f"⚠️ {tag} order create attempt {attempt} failed: {err_str}")
+                    # If immediate-trigger, return quickly to let the caller cancel sibling
+                    if immediate:
+                        return {"ok": False, "immediate": True, "error": err_str}
+
+                    # Exponential backoff with cap
+                    backoff = min(0.25 * (2 ** (attempt - 1)), 5.0)
+                    await asyncio.sleep(backoff)
+            return {"ok": False, "immediate": False, "error": "max_retries_exhausted"}
+
+        # Add reduceOnly param for protective orders (exchange-specific)
+        reduce_only_param = True
+
+        # Validate both TP and SL prices are present and positive
+        if not tp_price:
+            raise OCOConfigurationError("TP price is zero or invalid")
+        if not sl_price:
+            raise OCOConfigurationError("SL price is zero or invalid")
+
+            # Create TP order (take profit market)
             tp_payload = {
                 "symbol": symbol,
                 "side": close_side,
                 "amount": amount,
                 "type": "take_profit_market",
-                "params": {"stopPrice": tp_price},
+                "params": {"stopPrice": tp_price, "reduceOnly": reduce_only_param},
             }
 
-            tp_res = await _attempt_create(tp_payload, tp_attempts)
-            if tp_res:
-                tp_order_id = tp_res.get("id")
-                self.logger.info(f"✅ TP order created: {tp_order_id} @ ${tp_price:.8f}")
-            else:
-                # If TP couldn't be created after retries, raise to trigger failure handling
-                self.logger.error(f"❌ Failed to create TP after {MAX_RETRIES} attempts: {tp_attempts}")
-                raise TPOrderCreationError(f"Failed to create TP after {MAX_RETRIES} attempts")
-        else:
-            raise OCOConfigurationError("TP price is zero or invalid")
+            # Validate that TP is sufficiently far from current market to avoid
+            # immediate-trigger errors from exchanges (e.g. Binance).
+            # Use the previously calculated safety margin as a minimum required %.
+            required_margin_pct = max(safety_margin_factor, 0.002)  # at least 0.2%
+            try:
+                if current_market_price and current_market_price > 0:
+                    if side == "LONG":
+                        min_allowed_tp = current_market_price * (1.0 + required_margin_pct)
+                        if tp_price <= min_allowed_tp:
+                            msg = (
+                                f"TP order would immediately trigger. Entry: ${entry_price:.8f}, "
+                                f"TP: ${tp_price:.8f}, Market: ${current_market_price:.8f}. "
+                                f"Increase TP margin or reduce position size."
+                            )
+                            self.logger.error(f"❌ {msg}")
+                            raise TPOrderCreationError(msg)
+                    else:  # SHORT
+                        max_allowed_tp = current_market_price * (1.0 - required_margin_pct)
+                        if tp_price >= max_allowed_tp:
+                            msg = (
+                                f"TP order would immediately trigger. Entry: ${entry_price:.8f}, "
+                                f"TP: ${tp_price:.8f}, Market: ${current_market_price:.8f}. "
+                                f"Increase TP margin or reduce position size."
+                            )
+                            self.logger.error(f"❌ {msg}")
+                            raise TPOrderCreationError(msg)
+            except TPOrderCreationError:
+                raise
+            except Exception as e:
+                # Non-fatal: proceed to attempts but log the anomaly
+                self.logger.warning(f"⚠️ Could not validate TP distance: {e}")
 
-        # Create SL order (stop market)
-        if sl_price:
+            # Create both TP and SL concurrently to reduce the chance of immediate-trigger
             sl_payload = {
                 "symbol": symbol,
                 "side": close_side,
                 "amount": amount,
                 "type": "stop_market",
-                "params": {"stopPrice": sl_price},
+                "params": {"stopPrice": sl_price, "reduceOnly": reduce_only_param},
             }
 
-            sl_res = await _attempt_create(sl_payload, sl_attempts)
-            if sl_res:
-                sl_order_id = sl_res.get("id")
-                self.logger.info(f"✅ SL order created: {sl_order_id} @ ${sl_price:.2f}")
+            # Validate SL proximity as well (mirror of TP validation) before creation
+            try:
+                if current_market_price and current_market_price > 0:
+                    if side == "LONG":
+                        max_allowed_sl = current_market_price * (1.0 - required_margin_pct)
+                        if sl_price >= max_allowed_sl:
+                            msg = (
+                                f"SL order would immediately trigger. Entry: ${entry_price:.8f}, "
+                                f"SL: ${sl_price:.8f}, Market: ${current_market_price:.8f}. "
+                                f"Increase SL margin or reduce position size."
+                            )
+                            self.logger.error(f"❌ {msg}")
+                            raise SLOrderCreationError(msg)
+                    else:  # SHORT
+                        min_allowed_sl = current_market_price * (1.0 + required_margin_pct)
+                        if sl_price <= min_allowed_sl:
+                            msg = (
+                                f"SL order would immediately trigger. Entry: ${entry_price:.8f}, "
+                                f"SL: ${sl_price:.8f}, Market: ${current_market_price:.8f}. "
+                                f"Increase SL margin or reduce position size."
+                            )
+                            self.logger.error(f"❌ {msg}")
+                            raise SLOrderCreationError(msg)
+            except SLOrderCreationError:
+                raise
+
+            # Now that both TP and SL passed validation (or we didn't raise), create them concurrently
+            # Debug instrumentation: record payloads for diagnostics
+            try:
+                # Use lazy formatting to avoid exceptions during debug string creation
+                self.logger.debug("🔁 Preparing OCO payloads: TP=%s | SL=%s", tp_payload, sl_payload)
+            except Exception:
+                pass
+            tp_task = asyncio.create_task(_attempt_create_structured(tp_payload, tp_attempts, "TP"))
+            sl_task = asyncio.create_task(_attempt_create_structured(sl_payload, sl_attempts, "SL"))
+            tp_res_struct, sl_res_struct = await asyncio.gather(tp_task, sl_task)
+
+            # Helper shorthand
+            tp_ok = bool(tp_res_struct and tp_res_struct.get("ok"))
+            sl_ok = bool(sl_res_struct and sl_res_struct.get("ok"))
+
+            # If both ok, great
+            if tp_ok and sl_ok:
+                tp_order_id = tp_res_struct["result"].get("id")
+                sl_order_id = sl_res_struct["result"].get("id")
+                self.logger.info(f"✅ TP order created: {tp_order_id} @ ${tp_price:.8f}")
+                self.logger.info(f"✅ SL order created: {sl_order_id} @ ${sl_price:.8f}")
             else:
-                # Cancel TP if SL creation failed
-                self.logger.error(f"❌ Failed to create SL after {MAX_RETRIES} attempts: {sl_attempts}")
-                if tp_order_id:
-                    try:
-                        await self.exchange_adapter.cancel_order(tp_order_id, symbol)
-                        self.logger.info(f"🔄 Cancelled TP order {tp_order_id} due to SL creation failure")
-                    except Exception as cancel_error:
-                        self.logger.error(f"❌ Failed to cancel TP order: {cancel_error}")
-                raise SLOrderCreationError(f"Failed to create SL after {MAX_RETRIES} attempts")
-        else:
-            raise OCOConfigurationError("SL price is zero or invalid")
+                # If one failed but the other succeeded, cancel the successful one and raise
+                if tp_ok and not sl_ok:
+                    # Check immediate trigger
+                    if sl_res_struct.get("immediate"):
+                        # Cancel created TP and raise TPOrderCreationError so caller can handle
+                        try:
+                            await self.exchange_adapter.cancel_order(tp_res_struct["result"].get("id"), symbol)
+                            self.logger.info(
+                                f"🔄 Cancelled TP order {tp_res_struct['result'].get('id')} due to SL immediate-trigger error"
+                            )
+                        except Exception as e:
+                            self.logger.error(f"❌ Failed to cancel TP after SL immediate-trigger: {e}")
+                        raise SLOrderCreationError(sl_res_struct.get("error"))
+                    else:
+                        # SL failed for other reason; cancel TP and raise
+                        try:
+                            await self.exchange_adapter.cancel_order(tp_res_struct["result"].get("id"), symbol)
+                            self.logger.info(
+                                f"🔄 Cancelled TP order {tp_res_struct['result'].get('id')} due to SL creation failure"
+                            )
+                        except Exception as e:
+                            self.logger.error(f"❌ Failed to cancel TP after SL failure: {e}")
+                        raise SLOrderCreationError(sl_res_struct.get("error"))
+
+                if sl_ok and not tp_ok:
+                    if tp_res_struct.get("immediate"):
+                        try:
+                            await self.exchange_adapter.cancel_order(sl_res_struct["result"].get("id"), symbol)
+                            self.logger.info(
+                                f"🔄 Cancelled SL order {sl_res_struct['result'].get('id')} due to TP immediate-trigger error"
+                            )
+                        except Exception as e:
+                            self.logger.error(f"❌ Failed to cancel SL after TP immediate-trigger: {e}")
+                        raise TPOrderCreationError(tp_res_struct.get("error"))
+                    else:
+                        try:
+                            await self.exchange_adapter.cancel_order(sl_res_struct["result"].get("id"), symbol)
+                            self.logger.info(
+                                f"🔄 Cancelled SL order {sl_res_struct['result'].get('id')} due to TP creation failure"
+                            )
+                        except Exception as e:
+                            self.logger.error(f"❌ Failed to cancel SL after TP failure: {e}")
+                        raise TPOrderCreationError(tp_res_struct.get("error"))
+
+                # Neither succeeded
+                self.logger.error(
+                    f"❌ Both TP and SL creation failed. TP attempts: {tp_attempts} | SL attempts: {sl_attempts}"
+                )
+                if tp_res_struct and tp_res_struct.get("immediate"):
+                    raise TPOrderCreationError(tp_res_struct.get("error"))
+                if sl_res_struct and sl_res_struct.get("immediate"):
+                    raise SLOrderCreationError(sl_res_struct.get("error"))
+                    raise OCOConfigurationError("Both TP and SL creations failed after retries")
+                else:
+                    # If TP couldn't be created after retries, raise to trigger failure handling
+                    self.logger.error(f"❌ Failed to create TP after {MAX_RETRIES} attempts: {tp_attempts}")
+                    raise TPOrderCreationError(f"Failed to create TP after {MAX_RETRIES} attempts")
 
         # Attach attempt metadata to logs (non-critical)
         try:
@@ -791,22 +1046,45 @@ class Croupier:
             )
 
             # Determinar lado opuesto para cerrar
-            close_side = "sell" if position.side == "LONG" else "buy"
+            side_raw = getattr(position, "side", None)
+            if not side_raw and isinstance(position, dict):
+                side_raw = position.get("side")
+            close_side = "sell" if (str(side_raw).upper() == "LONG" or str(side_raw).lower() == "buy") else "buy"
+
+            # Compute amount (contracts) safely
+            if isinstance(position, dict):
+                size_val = abs(position.get("contracts", 0) or position.get("amount", 0))
+            else:
+                size_val = abs(getattr(position, "size", 0))
 
             # Cerrar con orden MARKET
             close_order = await self.exchange_adapter.execute_order(
                 {
-                    "symbol": position.symbol,
+                    "symbol": getattr(
+                        position, "symbol", position.get("symbol") if isinstance(position, dict) else None
+                    ),
                     "side": close_side,
-                    "amount": abs(position.size),
+                    "amount": size_val,
                     "type": "market",
                     "params": {"reduceOnly": True},
                 }
             )
 
             # Calcular PnL
-            exit_price = close_order.get("price", position.entry_price)
-            fee = close_order.get("fee", {}).get("cost", 0.0)
+            # Safe access to returned payloads (some connectors use dicts for fee, others float)
+            exit_price = (
+                close_order.get("price", position.entry_price)
+                if isinstance(close_order, dict)
+                else position.entry_price
+            )
+            fee_info = close_order.get("fee", {}) if isinstance(close_order, dict) else {}
+            if isinstance(fee_info, dict):
+                fee = fee_info.get("cost", 0.0)
+            else:
+                try:
+                    fee = float(fee_info) if fee_info is not None else 0.0
+                except Exception:
+                    fee = 0.0
             pnl = self._calculate_position_pnl(position, exit_price, fee)
 
             # Registrar cierre
@@ -856,42 +1134,7 @@ class Croupier:
             self.logger.debug(f"🃏 Exec | {symbol} {side} | status={status}")
 
     def _calculate_position_pnl(self, position, exit_price: float, fee: float) -> float:
-        """
-        Calcula el PnL de una posición cerrada.
-
-        Args:
-            position: OpenPosition object
-            exit_price: Precio de salida
-            fee: Fee de la transacción
-
-        Returns:
-            PnL en USD (positivo = ganancia, negativo = pérdida)
-        """
-        try:
-            # Calcular PnL basado en el lado de la posición
-            if position.side == "LONG":
-                # Para LONG: ganancia si exit_price > entry_price
-                pnl_pct = (exit_price - position.entry_price) / position.entry_price
-            else:  # SHORT
-                # Para SHORT: ganancia si exit_price < entry_price
-                pnl_pct = (position.entry_price - exit_price) / position.entry_price
-
-            # Convertir porcentaje a valor absoluto
-            pnl = position.notional * pnl_pct
-
-            # Restar fee
-            pnl -= fee
-
-            self.logger.debug(
-                f"📊 PnL Calc | {position.symbol} {position.side} | "
-                f"Entry: {position.entry_price:.2f} | Exit: {exit_price:.2f} | "
-                f"PnL: {pnl:+.2f} | Notional: {position.notional:.2f} | Fee: {fee:.2f}"
-            )
-
-            return pnl
-        except Exception as e:
-            self.logger.error(f"❌ Error calculating PnL: {e}")
-            return 0.0
+        return calculate_position_pnl(position, exit_price, fee)
 
     async def _cancel_sibling_order(self, order_id: Optional[str], order_type: str, symbol: str):
         """Cancela una orden hermana (TP o SL) si existe y está activa."""
@@ -988,7 +1231,13 @@ class Croupier:
         # Calcular PnL y confirmar el cierre
         exit_price = executed_order.get("price", position.entry_price)
         fee_info = executed_order.get("fee") or {}
-        fee = fee_info.get("cost", 0.0)
+        if isinstance(fee_info, dict):
+            fee = fee_info.get("cost", 0.0)
+        else:
+            try:
+                fee = float(fee_info) if fee_info is not None else 0.0
+            except Exception:
+                fee = 0.0
         pnl = self._calculate_position_pnl(position, exit_price, fee)
 
         self.logger.info(
@@ -1027,7 +1276,18 @@ class Croupier:
         try:
             # Crear una orden de mercado para cerrar la posición
             close_side = "sell" if position.side == "LONG" else "buy"
-            amount = position.notional / position.entry_price
+            # Compute notional safely
+            try:
+                if isinstance(position, dict):
+                    notional_val = position.get("notional") or (position.get("amount") * position.get("entry_price", 0))
+                else:
+                    notional_val = getattr(position, "notional", None)
+                    if notional_val is None:
+                        notional_val = getattr(position, "size", 0) * getattr(position, "entry_price", 0)
+            except Exception:
+                notional_val = 0.0
+
+            amount = notional_val / position.entry_price if position.entry_price else 0
             market_close_order = await self.exchange_adapter.execute_order(
                 {
                     "symbol": position.symbol,
@@ -1038,8 +1298,19 @@ class Croupier:
                 }
             )
 
-            exit_price = market_close_order.get("price", position.entry_price)
-            fee = market_close_order.get("fee", {}).get("cost", 0.0)
+            exit_price = (
+                market_close_order.get("price", position.entry_price)
+                if isinstance(market_close_order, dict)
+                else position.entry_price
+            )
+            fee_info = market_close_order.get("fee", {}) if isinstance(market_close_order, dict) else {}
+            if isinstance(fee_info, dict):
+                fee = fee_info.get("cost", 0.0)
+            else:
+                try:
+                    fee = float(fee_info) if fee_info is not None else 0.0
+                except Exception:
+                    fee = 0.0
             pnl = self._calculate_position_pnl(position, exit_price, fee)
 
             self.position_tracker.confirm_close(position.trade_id, exit_price, "ORPHANED", pnl, fee)

@@ -340,11 +340,12 @@ class ResilientConnector(BaseConnector):
     async def create_order(
         self,
         symbol: str,
-        side: str,
-        amount: float,
+        side: str = None,
+        amount: Optional[float] = None,
         price: Optional[float] = None,
         order_type: str = "market",
         params: Optional[Dict[str, Any]] = None,
+        **kwargs,
     ) -> Dict[str, Any]:
         """
         Crea orden con tracking (inspirado en Hummingbot).
@@ -359,8 +360,43 @@ class ResilientConnector(BaseConnector):
         4. UPDATE tracking con exchange_order_id (estado: SUBMITTED)
         5. Si falla, marcar como FAILED pero mantener tracking
         """
+        # Normalize flexible payloads: support callers passing `size`, `type`,
+        # or extra flags (confirm_with_ws, ws_timeout_ms, etc.). Some callers
+        # (adapters/scripts) pass varying keys; be permissive here and map
+        # to the canonical parameters expected by the underlying connector.
+
         # 1. Generar client_order_id único
         client_order_id = self._generate_client_order_id()
+
+        # Allow callers to pass `size` instead of `amount`
+        if amount is None and isinstance(kwargs.get("size"), (int, float)):
+            amount = kwargs.pop("size")
+
+        # Accept `type` as alias for `order_type`
+        if "type" in kwargs and (order_type is None or order_type == "market"):
+            order_type = kwargs.pop("type")
+
+        # Accept `order_type` passed inside kwargs too
+        if "order_type" in kwargs:
+            order_type = kwargs.pop("order_type")
+
+        # Pull remaining common extras into params so they reach the connector
+        params = dict(params or {})
+        for extra in (
+            "confirm_with_ws",
+            "ws_timeout_ms",
+            "trade_id",
+            "take_profit",
+            "stop_loss",
+            "leverage",
+            "candle_close",
+        ):
+            if extra in kwargs:
+                params[extra] = kwargs.pop(extra)
+
+        # Keep any other remaining kwargs inside params to avoid unexpected keyword errors
+        if kwargs:
+            params.setdefault("extra", {}).update(kwargs)
 
         # 2. START tracking ANTES de enviar
         self._order_tracker.start_tracking(

@@ -19,6 +19,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from ..adapters.exchange_state_sync import ExchangeStateSync
 from ..connectors.connector_base import BaseConnector
 
 logger = logging.getLogger(__name__)
@@ -216,8 +217,13 @@ class StateRecovery:
 
         # Sync with exchange
         try:
-            # 1. Fetch real positions from exchange
-            real_positions = await self.connector.fetch_positions()
+            # 1. Fetch real positions from exchange via ExchangeStateSync
+            try:
+                sync = ExchangeStateSync(self.connector)
+                real_positions_dt = await sync.sync_positions()
+                real_positions = [p.__dict__ for p in real_positions_dt]
+            except Exception:
+                real_positions = await self.connector.fetch_positions()
             self.logger.info(f"📊 Posiciones reales del exchange: {len(real_positions)}")
 
             # 2. Fetch real balance

@@ -20,6 +20,7 @@ from core.data_sources.testing import TestingDataSource
 from core.trading import TradingSession
 from croupier.croupier import Croupier
 from exchanges.adapters.ccxt_adapter import CCXTAdapter
+from exchanges.adapters.exchange_state_sync import ExchangeStateSync
 from exchanges.connectors import BybitConnector, KrakenConnector, ResilientConnector
 from players import kelly_player, paroli_player
 
@@ -188,7 +189,14 @@ async def _force_close_open_positions_and_orders(connector, croupier, symbol: st
 
         # Step 1: PRIMERO cerrar todas las posiciones abiertas
         try:
-            positions = await connector.fetch_positions()
+            # Prefer normalized positions via ExchangeStateSync
+            try:
+                sync = ExchangeStateSync(connector)
+                positions = await sync.sync_positions()
+                # Convert dataclass positions to dicts for backward compatibility
+                positions = [p.__dict__ for p in positions]
+            except Exception:
+                positions = await connector.fetch_positions()
             logger.info(f"📊 Found {len(positions)} total positions")
         except Exception as e:
             logger.warning(f"⚠️ Error fetching positions: {e}")

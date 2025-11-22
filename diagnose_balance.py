@@ -6,6 +6,7 @@ import asyncio
 import logging
 
 from exchanges.adapters import CCXTAdapter
+from exchanges.adapters.exchange_state_sync import ExchangeStateSync
 from exchanges.connectors import KrakenConnector, ResilientConnector
 
 logging.basicConfig(
@@ -59,13 +60,32 @@ async def diagnose():
 
     # 4. Posiciones abiertas
     try:
-        positions = await connector.fetch_positions()
+        # Prefer normalized positions via ExchangeStateSync
+        state_sync = ExchangeStateSync(connector)
+        try:
+            positions = await state_sync.sync_positions()
+        except Exception:
+            positions = await connector.fetch_positions()
+
         logger.info(f"\n📍 POSICIONES ABIERTAS: {len(positions)}")
         for pos in positions:
-            logger.info(f"   - {pos.get('symbol')}: {pos.get('contracts')} contracts")
-            logger.info(f"     Entry: ${pos.get('entryPrice', 0):,.2f}")
-            logger.info(f"     Mark: ${pos.get('markPrice', 0):,.2f}")
-            logger.info(f"     PnL: ${pos.get('unrealizedPnl', 0):+,.2f}")
+            if isinstance(pos, dict):
+                sym = pos.get("symbol")
+                contracts = pos.get("contracts")
+                entry = pos.get("entryPrice", 0)
+                mark = pos.get("markPrice", 0)
+                pnl = pos.get("unrealizedPnl", 0)
+            else:
+                sym = getattr(pos, "symbol", None)
+                contracts = getattr(pos, "contracts", None) or getattr(pos, "size", None)
+                entry = getattr(pos, "entry_price", None) or getattr(pos, "entryPrice", 0)
+                mark = getattr(pos, "mark_price", None) or getattr(pos, "markPrice", 0)
+                pnl = getattr(pos, "unrealized_pnl", None) or getattr(pos, "unrealizedPnl", 0)
+
+            logger.info(f"   - {sym}: {contracts} contracts")
+            logger.info(f"     Entry: ${entry:,.2f}")
+            logger.info(f"     Mark: ${mark:,.2f}")
+            logger.info(f"     PnL: ${pnl:+,.2f}")
     except Exception as e:
         logger.error(f"   Error: {e}")
 

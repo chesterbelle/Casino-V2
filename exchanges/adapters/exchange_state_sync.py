@@ -329,6 +329,14 @@ class ExchangeStateSync:
             timestamp=raw_pos.get("timestamp", int(time.time() * 1000)),
         )
 
+    def normalize_position(self, raw_pos: Dict[str, Any]) -> Position:
+        """Public helper to normalize a raw position (dict) into a Position dataclass.
+
+        This is useful for callers that fetch raw positions from connectors and
+        need a canonical representation.
+        """
+        return self._normalize_position(raw_pos)
+
     def _normalize_fill(self, raw_trade: Dict[str, Any]) -> Fill:
         """
         Normaliza fill del exchange a formato interno usando campos estándar CCXT.

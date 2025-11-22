@@ -5,6 +5,7 @@ Debug script to test fetch_positions() for Binance Testnet
 import asyncio
 import logging
 
+from exchanges.adapters.exchange_state_sync import ExchangeStateSync
 from exchanges.connectors.binance import BinanceConnector
 
 logging.basicConfig(level=logging.DEBUG)
@@ -25,9 +26,12 @@ async def main():
         await connector.connect()
         logger.info("✅ Connected")
 
-        # Fetch positions
-        logger.info("\n2️⃣ Fetching ALL positions...")
-        all_positions = await connector.fetch_positions()
+        # Fetch positions via ExchangeStateSync
+        logger.info("\n2️⃣ Fetching ALL positions via ExchangeStateSync...")
+        sync = ExchangeStateSync(connector)
+        all_positions = await sync.sync_positions()
+        # Convert to dict for compatibility
+        all_positions = [p.__dict__ for p in all_positions]
         logger.info(f"✅ Fetched {len(all_positions)} total positions")
 
         if all_positions:
@@ -45,7 +49,8 @@ async def main():
 
         # Fetch positions for specific symbol
         logger.info("\n3️⃣ Fetching positions for LTC/USD:USD...")
-        ltc_positions = await connector.fetch_positions(["LTC/USD:USD"])
+        ltc_positions = await sync.sync_positions()
+        ltc_positions = [p.__dict__ for p in ltc_positions if p.symbol == "LTC/USD:USD"]
         logger.info(f"✅ Fetched {len(ltc_positions)} positions for LTC/USD:USD")
 
         if ltc_positions:
@@ -61,7 +66,10 @@ async def main():
 
         # Fetch positions for normalized symbol
         logger.info("\n4️⃣ Fetching positions for LTCUSDT...")
-        ltc_norm_positions = await connector.fetch_positions(["LTCUSDT"])
+        ltc_norm_positions = await sync.sync_positions()
+        ltc_norm_positions = [
+            p.__dict__ for p in ltc_norm_positions if p.symbol == "LTCUSDT" or p.symbol == "LTC/USDT:USDT"
+        ]
         logger.info(f"✅ Fetched {len(ltc_norm_positions)} positions for LTCUSDT")
 
         if ltc_norm_positions:
