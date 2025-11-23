@@ -744,9 +744,24 @@ class Croupier:
             # Para LONG: SL debe estar DEBAJO del entry_price, así que restamos el margen
             sl_price = entry_price * sl_multiplier * (1 - safety_margin_factor)
         else:  # SHORT
-            tp_price = entry_price * (2.0 - tp_multiplier)
-            # Para SHORT: SL debe estar ARRIBA del entry_price, así que sumamos el margen
-            sl_price = entry_price * (2.0 - sl_multiplier) * (1 + safety_margin_factor)
+            # TP Logic:
+            # Si el multiplier es > 1.0 (ej. 1.01), asumimos que es "LONG-centric" y lo invertimos (2.0 - 1.01 = 0.99)
+            # Si el multiplier es < 1.0 (ej. 0.99), asumimos que es "Explicit" y lo usamos directo
+            if tp_multiplier > 1.0:
+                tp_price = entry_price * (2.0 - tp_multiplier)
+            else:
+                tp_price = entry_price * tp_multiplier
+
+            # SL Logic:
+            # Si el multiplier es < 1.0 (ej. 0.99), asumimos que es "LONG-centric" (loss) y lo invertimos (2.0 - 0.99 = 1.01)
+            # Si el multiplier es > 1.0 (ej. 1.01), asumimos que es "Explicit" y lo usamos directo
+            if sl_multiplier < 1.0:
+                sl_price = entry_price * (2.0 - sl_multiplier)
+            else:
+                sl_price = entry_price * sl_multiplier
+
+            # Aplicar margen de seguridad (SL debe estar ARRIBA del entry)
+            sl_price = sl_price * (1 + safety_margin_factor)
 
         self.logger.info(f"📊 OCO Monitor | Entry: ${entry_price:.8f} | TP: ${tp_price:.8f} | SL: ${sl_price:.8f}")
 
@@ -849,161 +864,161 @@ class Croupier:
         if not sl_price:
             raise OCOConfigurationError("SL price is zero or invalid")
 
-            # Create TP order (take profit market)
-            tp_payload = {
-                "symbol": symbol,
-                "side": close_side,
-                "amount": amount,
-                "type": "take_profit_market",
-                "params": {"stopPrice": tp_price, "reduceOnly": reduce_only_param},
-            }
+        # Create TP order (take profit market)
+        tp_payload = {
+            "symbol": symbol,
+            "side": close_side,
+            "amount": amount,
+            "type": "take_profit_market",
+            "params": {"stopPrice": tp_price, "reduceOnly": reduce_only_param},
+        }
 
-            # Validate that TP is sufficiently far from current market to avoid
-            # immediate-trigger errors from exchanges (e.g. Binance).
-            # Use the previously calculated safety margin as a minimum required %.
-            required_margin_pct = max(safety_margin_factor, 0.002)  # at least 0.2%
-            try:
-                if current_market_price and current_market_price > 0:
-                    if side == "LONG":
-                        min_allowed_tp = current_market_price * (1.0 + required_margin_pct)
-                        if tp_price <= min_allowed_tp:
-                            msg = (
-                                f"TP order would immediately trigger. Entry: ${entry_price:.8f}, "
-                                f"TP: ${tp_price:.8f}, Market: ${current_market_price:.8f}. "
-                                f"Increase TP margin or reduce position size."
-                            )
-                            self.logger.error(f"❌ {msg}")
-                            raise TPOrderCreationError(msg)
-                    else:  # SHORT
-                        max_allowed_tp = current_market_price * (1.0 - required_margin_pct)
-                        if tp_price >= max_allowed_tp:
-                            msg = (
-                                f"TP order would immediately trigger. Entry: ${entry_price:.8f}, "
-                                f"TP: ${tp_price:.8f}, Market: ${current_market_price:.8f}. "
-                                f"Increase TP margin or reduce position size."
-                            )
-                            self.logger.error(f"❌ {msg}")
-                            raise TPOrderCreationError(msg)
-            except TPOrderCreationError:
-                raise
-            except Exception as e:
-                # Non-fatal: proceed to attempts but log the anomaly
-                self.logger.warning(f"⚠️ Could not validate TP distance: {e}")
+        # Validate that TP is sufficiently far from current market to avoid
+        # immediate-trigger errors from exchanges (e.g. Binance).
+        # Use the previously calculated safety margin as a minimum required %.
+        required_margin_pct = max(safety_margin_factor, 0.002)  # at least 0.2%
+        try:
+            if current_market_price and current_market_price > 0:
+                if side == "LONG":
+                    min_allowed_tp = current_market_price * (1.0 + required_margin_pct)
+                    if tp_price <= min_allowed_tp:
+                        msg = (
+                            f"TP order would immediately trigger. Entry: ${entry_price:.8f}, "
+                            f"TP: ${tp_price:.8f}, Market: ${current_market_price:.8f}. "
+                            f"Increase TP margin or reduce position size."
+                        )
+                        self.logger.error(f"❌ {msg}")
+                        raise TPOrderCreationError(msg)
+                else:  # SHORT
+                    max_allowed_tp = current_market_price * (1.0 - required_margin_pct)
+                    if tp_price >= max_allowed_tp:
+                        msg = (
+                            f"TP order would immediately trigger. Entry: ${entry_price:.8f}, "
+                            f"TP: ${tp_price:.8f}, Market: ${current_market_price:.8f}. "
+                            f"Increase TP margin or reduce position size."
+                        )
+                        self.logger.error(f"❌ {msg}")
+                        raise TPOrderCreationError(msg)
+        except TPOrderCreationError:
+            raise
+        except Exception as e:
+            # Non-fatal: proceed to attempts but log the anomaly
+            self.logger.warning(f"⚠️ Could not validate TP distance: {e}")
 
-            # Create both TP and SL concurrently to reduce the chance of immediate-trigger
-            sl_payload = {
-                "symbol": symbol,
-                "side": close_side,
-                "amount": amount,
-                "type": "stop_market",
-                "params": {"stopPrice": sl_price, "reduceOnly": reduce_only_param},
-            }
+        # Create both TP and SL concurrently to reduce the chance of immediate-trigger
+        sl_payload = {
+            "symbol": symbol,
+            "side": close_side,
+            "amount": amount,
+            "type": "stop_market",
+            "params": {"stopPrice": sl_price, "reduceOnly": reduce_only_param},
+        }
 
-            # Validate SL proximity as well (mirror of TP validation) before creation
-            try:
-                if current_market_price and current_market_price > 0:
-                    if side == "LONG":
-                        max_allowed_sl = current_market_price * (1.0 - required_margin_pct)
-                        if sl_price >= max_allowed_sl:
-                            msg = (
-                                f"SL order would immediately trigger. Entry: ${entry_price:.8f}, "
-                                f"SL: ${sl_price:.8f}, Market: ${current_market_price:.8f}. "
-                                f"Increase SL margin or reduce position size."
-                            )
-                            self.logger.error(f"❌ {msg}")
-                            raise SLOrderCreationError(msg)
-                    else:  # SHORT
-                        min_allowed_sl = current_market_price * (1.0 + required_margin_pct)
-                        if sl_price <= min_allowed_sl:
-                            msg = (
-                                f"SL order would immediately trigger. Entry: ${entry_price:.8f}, "
-                                f"SL: ${sl_price:.8f}, Market: ${current_market_price:.8f}. "
-                                f"Increase SL margin or reduce position size."
-                            )
-                            self.logger.error(f"❌ {msg}")
-                            raise SLOrderCreationError(msg)
-            except SLOrderCreationError:
-                raise
+        # Validate SL proximity as well (mirror of TP validation) before creation
+        try:
+            if current_market_price and current_market_price > 0:
+                if side == "LONG":
+                    max_allowed_sl = current_market_price * (1.0 - required_margin_pct)
+                    if sl_price >= max_allowed_sl:
+                        msg = (
+                            f"SL order would immediately trigger. Entry: ${entry_price:.8f}, "
+                            f"SL: ${sl_price:.8f}, Market: ${current_market_price:.8f}. "
+                            f"Increase SL margin or reduce position size."
+                        )
+                        self.logger.error(f"❌ {msg}")
+                        raise SLOrderCreationError(msg)
+                else:  # SHORT
+                    min_allowed_sl = current_market_price * (1.0 + required_margin_pct)
+                    if sl_price <= min_allowed_sl:
+                        msg = (
+                            f"SL order would immediately trigger. Entry: ${entry_price:.8f}, "
+                            f"SL: ${sl_price:.8f}, Market: ${current_market_price:.8f}. "
+                            f"Increase SL margin or reduce position size."
+                        )
+                        self.logger.error(f"❌ {msg}")
+                        raise SLOrderCreationError(msg)
+        except SLOrderCreationError:
+            raise
 
-            # Now that both TP and SL passed validation (or we didn't raise), create them concurrently
-            # Debug instrumentation: record payloads for diagnostics
-            try:
-                # Use lazy formatting to avoid exceptions during debug string creation
-                self.logger.debug("🔁 Preparing OCO payloads: TP=%s | SL=%s", tp_payload, sl_payload)
-            except Exception:
-                pass
-            tp_task = asyncio.create_task(_attempt_create_structured(tp_payload, tp_attempts, "TP"))
-            sl_task = asyncio.create_task(_attempt_create_structured(sl_payload, sl_attempts, "SL"))
-            tp_res_struct, sl_res_struct = await asyncio.gather(tp_task, sl_task)
+        # Now that both TP and SL passed validation (or we didn't raise), create them concurrently
+        # Debug instrumentation: record payloads for diagnostics
+        try:
+            # Use lazy formatting to avoid exceptions during debug string creation
+            self.logger.debug("🔁 Preparing OCO payloads: TP=%s | SL=%s", tp_payload, sl_payload)
+        except Exception:
+            pass
+        tp_task = asyncio.create_task(_attempt_create_structured(tp_payload, tp_attempts, "TP"))
+        sl_task = asyncio.create_task(_attempt_create_structured(sl_payload, sl_attempts, "SL"))
+        tp_res_struct, sl_res_struct = await asyncio.gather(tp_task, sl_task)
 
-            # Helper shorthand
-            tp_ok = bool(tp_res_struct and tp_res_struct.get("ok"))
-            sl_ok = bool(sl_res_struct and sl_res_struct.get("ok"))
+        # Helper shorthand
+        tp_ok = bool(tp_res_struct and tp_res_struct.get("ok"))
+        sl_ok = bool(sl_res_struct and sl_res_struct.get("ok"))
 
-            # If both ok, great
-            if tp_ok and sl_ok:
-                tp_order_id = tp_res_struct["result"].get("id")
-                sl_order_id = sl_res_struct["result"].get("id")
-                self.logger.info(f"✅ TP order created: {tp_order_id} @ ${tp_price:.8f}")
-                self.logger.info(f"✅ SL order created: {sl_order_id} @ ${sl_price:.8f}")
-            else:
-                # If one failed but the other succeeded, cancel the successful one and raise
-                if tp_ok and not sl_ok:
-                    # Check immediate trigger
-                    if sl_res_struct.get("immediate"):
-                        # Cancel created TP and raise TPOrderCreationError so caller can handle
-                        try:
-                            await self.exchange_adapter.cancel_order(tp_res_struct["result"].get("id"), symbol)
-                            self.logger.info(
-                                f"🔄 Cancelled TP order {tp_res_struct['result'].get('id')} due to SL immediate-trigger error"
-                            )
-                        except Exception as e:
-                            self.logger.error(f"❌ Failed to cancel TP after SL immediate-trigger: {e}")
-                        raise SLOrderCreationError(sl_res_struct.get("error"))
-                    else:
-                        # SL failed for other reason; cancel TP and raise
-                        try:
-                            await self.exchange_adapter.cancel_order(tp_res_struct["result"].get("id"), symbol)
-                            self.logger.info(
-                                f"🔄 Cancelled TP order {tp_res_struct['result'].get('id')} due to SL creation failure"
-                            )
-                        except Exception as e:
-                            self.logger.error(f"❌ Failed to cancel TP after SL failure: {e}")
-                        raise SLOrderCreationError(sl_res_struct.get("error"))
-
-                if sl_ok and not tp_ok:
-                    if tp_res_struct.get("immediate"):
-                        try:
-                            await self.exchange_adapter.cancel_order(sl_res_struct["result"].get("id"), symbol)
-                            self.logger.info(
-                                f"🔄 Cancelled SL order {sl_res_struct['result'].get('id')} due to TP immediate-trigger error"
-                            )
-                        except Exception as e:
-                            self.logger.error(f"❌ Failed to cancel SL after TP immediate-trigger: {e}")
-                        raise TPOrderCreationError(tp_res_struct.get("error"))
-                    else:
-                        try:
-                            await self.exchange_adapter.cancel_order(sl_res_struct["result"].get("id"), symbol)
-                            self.logger.info(
-                                f"🔄 Cancelled SL order {sl_res_struct['result'].get('id')} due to TP creation failure"
-                            )
-                        except Exception as e:
-                            self.logger.error(f"❌ Failed to cancel SL after TP failure: {e}")
-                        raise TPOrderCreationError(tp_res_struct.get("error"))
-
-                # Neither succeeded
-                self.logger.error(
-                    f"❌ Both TP and SL creation failed. TP attempts: {tp_attempts} | SL attempts: {sl_attempts}"
-                )
-                if tp_res_struct and tp_res_struct.get("immediate"):
-                    raise TPOrderCreationError(tp_res_struct.get("error"))
-                if sl_res_struct and sl_res_struct.get("immediate"):
+        # If both ok, great
+        if tp_ok and sl_ok:
+            tp_order_id = tp_res_struct["result"].get("id")
+            sl_order_id = sl_res_struct["result"].get("id")
+            self.logger.info(f"✅ TP order created: {tp_order_id} @ ${tp_price:.8f}")
+            self.logger.info(f"✅ SL order created: {sl_order_id} @ ${sl_price:.8f}")
+        else:
+            # If one failed but the other succeeded, cancel the successful one and raise
+            if tp_ok and not sl_ok:
+                # Check immediate trigger
+                if sl_res_struct.get("immediate"):
+                    # Cancel created TP and raise TPOrderCreationError so caller can handle
+                    try:
+                        await self.exchange_adapter.cancel_order(tp_res_struct["result"].get("id"), symbol)
+                        self.logger.info(
+                            f"🔄 Cancelled TP order {tp_res_struct['result'].get('id')} due to SL immediate-trigger error"
+                        )
+                    except Exception as e:
+                        self.logger.error(f"❌ Failed to cancel TP after SL immediate-trigger: {e}")
                     raise SLOrderCreationError(sl_res_struct.get("error"))
-                    raise OCOConfigurationError("Both TP and SL creations failed after retries")
                 else:
-                    # If TP couldn't be created after retries, raise to trigger failure handling
-                    self.logger.error(f"❌ Failed to create TP after {MAX_RETRIES} attempts: {tp_attempts}")
-                    raise TPOrderCreationError(f"Failed to create TP after {MAX_RETRIES} attempts")
+                    # SL failed for other reason; cancel TP and raise
+                    try:
+                        await self.exchange_adapter.cancel_order(tp_res_struct["result"].get("id"), symbol)
+                        self.logger.info(
+                            f"🔄 Cancelled TP order {tp_res_struct['result'].get('id')} due to SL creation failure"
+                        )
+                    except Exception as e:
+                        self.logger.error(f"❌ Failed to cancel TP after SL failure: {e}")
+                    raise SLOrderCreationError(sl_res_struct.get("error"))
+
+            if sl_ok and not tp_ok:
+                if tp_res_struct.get("immediate"):
+                    try:
+                        await self.exchange_adapter.cancel_order(sl_res_struct["result"].get("id"), symbol)
+                        self.logger.info(
+                            f"🔄 Cancelled SL order {sl_res_struct['result'].get('id')} due to TP immediate-trigger error"
+                        )
+                    except Exception as e:
+                        self.logger.error(f"❌ Failed to cancel SL after TP immediate-trigger: {e}")
+                    raise TPOrderCreationError(tp_res_struct.get("error"))
+                else:
+                    try:
+                        await self.exchange_adapter.cancel_order(sl_res_struct["result"].get("id"), symbol)
+                        self.logger.info(
+                            f"🔄 Cancelled SL order {sl_res_struct['result'].get('id')} due to TP creation failure"
+                        )
+                    except Exception as e:
+                        self.logger.error(f"❌ Failed to cancel SL after TP failure: {e}")
+                    raise TPOrderCreationError(tp_res_struct.get("error"))
+
+            # Neither succeeded
+            self.logger.error(
+                f"❌ Both TP and SL creation failed. TP attempts: {tp_attempts} | SL attempts: {sl_attempts}"
+            )
+            if tp_res_struct and tp_res_struct.get("immediate"):
+                raise TPOrderCreationError(tp_res_struct.get("error"))
+            if sl_res_struct and sl_res_struct.get("immediate"):
+                raise SLOrderCreationError(sl_res_struct.get("error"))
+                raise OCOConfigurationError("Both TP and SL creations failed after retries")
+            else:
+                # If TP couldn't be created after retries, raise to trigger failure handling
+                self.logger.error(f"❌ Failed to create TP after {MAX_RETRIES} attempts: {tp_attempts}")
+                raise TPOrderCreationError(f"Failed to create TP after {MAX_RETRIES} attempts")
 
         # Attach attempt metadata to logs (non-critical)
         try:

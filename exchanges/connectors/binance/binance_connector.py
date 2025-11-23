@@ -872,7 +872,9 @@ class BinanceConnector(BaseConnector):
             self.logger.warning(f"⚠️ Error during validation: {e}, skipping validation")
             return round(amount, 8)
 
-    async def _ensure_stop_price_safe(self, binance_symbol: str, side: str, stop_price: float) -> float:
+    async def _ensure_stop_price_safe(
+        self, binance_symbol: str, side: str, stop_price: float, order_type: str = "STOP"
+    ) -> float:
         """
         Ensure a stop/take-profit price won't "immediately trigger" on Binance by
         comparing against current market price and adjusting by one tick if needed.
@@ -892,41 +894,88 @@ class BinanceConnector(BaseConnector):
             # Determine tick/price precision
             tick = None
             if market:
+                # 1. Try 'precision' (ccxt unified)
                 precision = market.get("precision") or {}
                 price_prec = precision.get("price")
-                if isinstance(price_prec, int):
-                    tick = 10 ** (-price_prec)
-                else:
-                    # Fallback to limits.price.min
+
+                if isinstance(price_prec, (int, float)):
+                    if isinstance(price_prec, int):
+                        # If int, it's decimal places (e.g. 2 -> 0.01)
+                        tick = 10 ** (-price_prec)
+                    else:
+                        # If float, it's the tick size itself (e.g. 0.01)
+                        tick = price_prec
+
+                # 2. If no tick yet, try 'info.filters' (Binance specific)
+                if tick is None:
+                    info = market.get("info", {})
+                    filters = info.get("filters", [])
+                    for f in filters:
+                        if f.get("filterType") == "PRICE_FILTER":
+                            tick_size = f.get("tickSize")
+                            if tick_size:
+                                tick = float(tick_size)
+                            break
+
+                # 3. Fallback to limits (careful with min price vs tick)
+                if tick is None:
                     limits = market.get("limits", {})
                     price_limits = limits.get("price", {})
+                    # DO NOT use 'min' as tick, it can be large (e.g. 3.61 for LTC)
+                    # Only use if it looks like a tick (small)
                     min_price = price_limits.get("min")
-                    try:
-                        tick = float(min_price) if min_price else None
-                    except Exception:
-                        tick = None
+                    if min_price and float(min_price) < 0.1:
+                        tick = float(min_price)
 
             # Final fallback tick
             if tick is None or tick == 0:
                 tick = max(0.0001, abs(last_price) * 1e-6)
 
-            # For buy side (long), a TAKE_PROFIT stopPrice must be strictly greater than last_price
-            # For sell side (short), TAKE_PROFIT stopPrice must be strictly lower than last_price
             side_lower = side.lower()
             adjusted = float(stop_price)
+            order_type_upper = (order_type or "").upper()
 
+            # Determine if this is a Take Profit or Stop Loss
+            is_tp = "TAKE_PROFIT" in order_type_upper
+            # is_sl = "STOP" in order_type_upper  <-- Removed unused variable
+
+            # Logic for BUY (Long Entry or Short Close)
             if side_lower == "buy":
-                if adjusted <= last_price:
-                    adjusted = float(last_price) + tick
-                    self.logger.warning(
-                        f"⚠️ Adjusting stopPrice from {stop_price} -> {adjusted} to avoid immediate-trigger (last={last_price})"
-                    )
+                if is_tp:
+                    # TP BUY: Trigger when price FALLS to stopPrice (stopPrice < current)
+                    # Ensure stopPrice is strictly LESS than last_price
+                    if adjusted >= last_price:
+                        adjusted = float(last_price) - tick
+                        self.logger.warning(
+                            f"⚠️ Adjusting TP BUY stopPrice from {stop_price} -> {adjusted} to avoid immediate-trigger (last={last_price})"
+                        )
+                else:
+                    # SL BUY (or default): Trigger when price RISES to stopPrice (stopPrice > current)
+                    # Ensure stopPrice is strictly GREATER than last_price
+                    if adjusted <= last_price:
+                        adjusted = float(last_price) + tick
+                        self.logger.warning(
+                            f"⚠️ Adjusting SL BUY stopPrice from {stop_price} -> {adjusted} to avoid immediate-trigger (last={last_price})"
+                        )
+
+            # Logic for SELL (Short Entry or Long Close)
             else:
-                if adjusted >= last_price:
-                    adjusted = float(last_price) - tick
-                    self.logger.warning(
-                        f"⚠️ Adjusting stopPrice from {stop_price} -> {adjusted} to avoid immediate-trigger (last={last_price})"
-                    )
+                if is_tp:
+                    # TP SELL: Trigger when price RISES to stopPrice (stopPrice > current)
+                    # Ensure stopPrice is strictly GREATER than last_price
+                    if adjusted <= last_price:
+                        adjusted = float(last_price) + tick
+                        self.logger.warning(
+                            f"⚠️ Adjusting TP SELL stopPrice from {stop_price} -> {adjusted} to avoid immediate-trigger (last={last_price})"
+                        )
+                else:
+                    # SL SELL (or default): Trigger when price FALLS to stopPrice (stopPrice < current)
+                    # Ensure stopPrice is strictly LESS than last_price
+                    if adjusted >= last_price:
+                        adjusted = float(last_price) - tick
+                        self.logger.warning(
+                            f"⚠️ Adjusting SL SELL stopPrice from {stop_price} -> {adjusted} to avoid immediate-trigger (last={last_price})"
+                        )
 
             return adjusted
         except Exception as e:
@@ -1000,7 +1049,9 @@ class BinanceConnector(BaseConnector):
                     sp = clean_params.get("stopPrice")
                     if sp is not None:
                         try:
-                            adjusted_sp = await self._ensure_stop_price_safe(binance_symbol, side, float(sp))
+                            adjusted_sp = await self._ensure_stop_price_safe(
+                                binance_symbol, side, float(sp), order_type
+                            )
                             clean_params["stopPrice"] = adjusted_sp
                         except Exception:
                             # If safety check fails, continue with original stopPrice

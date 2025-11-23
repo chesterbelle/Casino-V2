@@ -54,6 +54,26 @@ class ProcessSignalsStage(Stage):
         # Process through sensors
         signals = self.sensor_manager.process_candle(candle_dict)
 
+        # Allow players to force a synthetic signal (e.g. debug_player wants to bet on first candle)
+        try:
+            meta = context.metadata or {}
+            if not signals and meta.get("force_bet_first"):
+                # Create a synthetic SHORT signal attributed to the debug player
+                synthetic = {
+                    "timestamp": candle_dict.get("timestamp"),
+                    "symbol": candle_dict.get("symbol"),
+                    "timeframe": candle_dict.get("timeframe"),
+                    "side": "SHORT",
+                    "contributors": ["debug_player"],
+                    "origin": "debug_player",
+                    "features": {"forced": True},
+                }
+                signals = [synthetic]
+                logger.info("🧪 Injected synthetic signal (force_bet_first) from debug_player")
+        except Exception:
+            # Be defensive: if anything fails, fallback to sensor signals
+            pass
+
         if signals:
             logger.info(f"📡 Detected {len(signals)} signal(s)")
             for signal in signals:

@@ -43,6 +43,14 @@ class BuildOrderStage(Stage):
         player_name = getattr(player_module, "__name__", "").lower()
         self.is_aggressive = "paroli" in player_name or "martingale" in player_name
 
+        # Players can explicitly opt-in to forcing bets via a module-level flag
+        # e.g. debug_player.FORCE_BET = True
+        try:
+            if getattr(player_module, "FORCE_BET", False):
+                self.is_aggressive = True
+        except Exception:
+            pass
+
     async def process(self, context: TradingContext) -> TradingContext:
         """
         Build order from verdict.
@@ -71,11 +79,16 @@ class BuildOrderStage(Stage):
                 logger.debug("⏭️ No side in verdict (aggressive player needs a side)")
                 return context
             logger.debug(f"🎲 Aggressive player: building order despite action={action}")
-        else:
-            # Conservative players (Kelly): only bet if action == "BET"
-            if action != "BET":
-                logger.debug(f"⏭️ No order to build (action={action}, conservative player)")
-                return context
+            # If the player explicitly requests to force a bet (FORCE_BET),
+            # treat it as a real BET regardless of Gemini's verdict (e.g. GHOST).
+            if getattr(self.player, "FORCE_BET", False) and verdict.get("action") != "BET":
+                logger.info(
+                    "🔧 Player module %s forces a BET; overriding verdict %s -> BET",
+                    self.player.__name__,
+                    verdict.get("action"),
+                )
+                verdict["action"] = "BET"
+                verdict["reason"] = "forced_by_player"
 
         # Get order from verdict (Gemini already built it)
         order = verdict.get("order")

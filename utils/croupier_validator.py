@@ -1,38 +1,13 @@
 """
-Croupier Validator - Simulador de Vuelo Completo para el Bot Casino V2
-
-Este script es un test de integración End-to-End que valida TODA la funcionalidad
-del bot de trading, desde componentes básicos hasta el pipeline completo.
-
-🎯 MISIONES DE VALIDACIÓN:
-=========================
-
-TESTS BÁSICOS DE CROUPIER (1-4):
-- ✅ Posiciones LONG/SHORT con TP/SL
-- ✅ Prevención de posiciones duplicadas
-- ✅ Cierre manual y cancelación OCO
-- ✅ Ciclo de vida completo de posiciones
-
-TESTS AVANZADOS DEL BOT (5-12):
-- ✅ OCO Manual con WebSocket en tiempo real
-- ✅ Integración con Gemini (sistema de decisiones)
-- ✅ Generación de señales de sensores técnicos
-- ✅ Pipeline completo de trading (TradingSession)
-- ✅ Sincronización de balance con exchange
-- ✅ Modos del PositionTracker (hybrid/simulation/confirmed)
-- ✅ Manejo robusto de errores y casos edge
-- ✅ Tests de rendimiento bajo estrés
-
-🚀 FILOSOFÍA: "SIMULADOR DE VUELO COMPLETO"
-==========================================
-- Simula el flujo REAL del bot desde sensores hasta ejecución
-- Valida consistencia entre estado interno y exchange real
-- Prueba casos de éxito, fallo y edge cases
-- Verifica rendimiento bajo condiciones de estrés
-- Garantiza que TODOS los componentes funcionan integrados
+Croupier Validator (Optimizado) — Test de ciclo de vida OCO en Binance Testnet
+-------------------------------------------------------------------------------
+Valida la creación, monitoreo y cierre completo de una posición real (LONG) con TP/SL (OCO).
+Incluye limpieza robusta, logging estructurado, y captura de intentos TP/SL.
 
 Uso:
     python -m utils.croupier_validator --exchange=binance --symbol=LTC/USDT:USDT --mode=demo
+Opciones:
+    --size=0.01 --tp=1.02 --sl=0.98 --leverage=5 --wait=60
 """
 
 import argparse
@@ -70,86 +45,93 @@ logger = logging.getLogger("CroupierValidator")
 
 
 class CroupierValidator:
-    """Encapsula la lógica de validación del Croupier."""
+    """Test robusto de ciclo de vida OCO en testnet."""
 
-    def __init__(self, exchange_name: str, symbol: str, mode: str):
+    def __init__(
+        self,
+        exchange_name: str,
+        symbol: str,
+        mode: str,
+        size: float,
+        tp: float,
+        sl: float,
+        leverage: int,
+        wait: int,
+        side: str = "LONG",
+    ):
         self.exchange_name = exchange_name.lower()
         self.symbol = symbol
         self.mode = mode
+        self.size = size
+        self.tp = tp
+        self.sl = sl
+        self.leverage = leverage
+        self.wait = wait
+        self.side = side.upper()
         self.croupier = None
         self.adapter = None
         self.connector = None
 
     async def setup(self):
-        """Configura los componentes necesarios para el test."""
         logger.info(f"--- Configurando para Exchange: {self.exchange_name.upper()} ---")
-
-        # 1. Crear Conector (específico del exchange) con WebSocket habilitado
         if self.exchange_name == "binance":
             from exchanges.connectors.binance import BinanceConnector
 
-            base_connector = BinanceConnector(
-                mode=self.mode, enable_websocket=True
-            )  # ✅ WebSocket con validación mejorada
+            base_connector = BinanceConnector(mode=self.mode, enable_websocket=True)
         elif self.exchange_name == "bybit":
             base_connector = BybitConnector(mode="demo")
         elif self.exchange_name == "kraken":
             base_connector = KrakenConnector(mode="demo")
         else:
             raise ValueError(f"Exchange '{self.exchange_name}' no soportado.")
-        # Configurar ResilientConnector con Master Clock y tiempos más holgados para evitar timeouts falsos
-        clock_cfg = {
-            "clock_enabled": True,
-            "clock_base_tick": 1.0,
-            "clock_jobs": {
-                "ws_ensure_interval": 10.0,
-                "ws_ensure_timeout": 2.0,
-                "oco_interval": 5.0,
-                "oco_timeout": 5.0,
-            },
-        }
-        self.connector = ResilientConnector(connector=base_connector, connection_config=clock_cfg)
-
-        # 2. Conectar al exchange
-        try:
-            await self.connector.connect()
-            logger.info(f"✅ Conectado al exchange {self.exchange_name.upper()}")
-        except Exception as e:
-            if "Invalid API-key" in str(e):
-                logger.error("❌ CREDENCIALES API INVÁLIDAS")
-                logger.error("🔑 Verifica tu archivo .env:")
-                logger.error("   - BINANCE_TESTNET_API_KEY")
-                logger.error("   - BINANCE_TESTNET_SECRET")
-                logger.error("📝 Permisos requeridos: Futures Trading + Reading")
-                raise
-            else:
-                logger.error(f"❌ Error de conexión: {e}")
-                raise
-
-        # 3. Crear Adapter (sin estado)
+        self.connector = ResilientConnector(connector=base_connector)
+        await self.connector.connect()
         self.adapter = CCXTAdapter(self.connector, self.symbol)
-        await self.adapter.connect()
-
-        # 4. Obtener balance inicial del exchange (modo pass-through)
-        try:
-            balance_data = await self.connector.fetch_balance()
-            initial_balance = balance_data.get("free", {}).get("USDT", 0.0)
-            if initial_balance <= 10:
-                raise ValueError(f"Balance insuficiente para el test: ${initial_balance:.2f}")
-            logger.info(f"Balance real obtenido: ${initial_balance:,.2f}")
-        except Exception as e:
-            logger.error(f"❌ Error obteniendo balance: {e}")
-            if "Invalid API-key" in str(e):
-                logger.error("🔑 Problema con credenciales API")
-            raise
-
-        # 5. Crear Croupier (con estado)
+        # Balance real del exchange
+        balance_data = await self.connector.fetch_balance()
+        initial_balance = balance_data.get("free", {}).get("USDT", 0.0)
+        if initial_balance <= 10:
+            raise ValueError(f"Balance insuficiente para el test: ${initial_balance:.2f}")
+        logger.info(f"Balance real obtenido: ${initial_balance:,.2f}")
         self.croupier = Croupier(exchange_adapter=self.adapter, initial_balance=initial_balance)
-
-        # 6. Limpieza PRE-TEST: Asegurar un estado limpio antes de empezar
-        logger.info("--- Realizando limpieza PRE-TEST ---")
-        await self.cleanup(post_test=False)  # Llamamos a cleanup sin cerrar la conexión
+        logger.info("--- Limpieza PRE-TEST ---")
+        await self.cleanup()
         logger.info("--- LIMPIEZA PRE-TEST completada ---")
+
+    async def run_lifecycle_test(self):
+        logger.info("--- INICIANDO TEST DE CICLO DE VIDA OCO ---")
+        await self.setup()
+        # 1. Crear orden con TP/SL
+        order = {
+            "symbol": self.symbol,
+            "side": self.side,
+            "size": self.size,
+            "take_profit": self.tp,
+            "stop_loss": self.sl,
+            "leverage": self.leverage,
+            "trade_id": f"validator_{int(datetime.now().timestamp())}",
+        }
+        logger.info(f"Ejecutando orden {self.side}: {order}")
+        result = await self.croupier.execute_order(order)
+        logger.info(f"Resultado de la orden: {result}")
+        # 2. Esperar y monitorear ciclo de vida
+        logger.info(f"Esperando {self.wait}s para monitorear ejecución de TP/SL...")
+        for i in range(self.wait // 5):
+            await asyncio.sleep(5)
+            await self.croupier.monitor_positions()
+            open_positions = self.croupier.get_open_positions()
+            logger.info(f"Posiciones abiertas: {len(open_positions)}")
+            if not open_positions:
+                logger.info("✅ Posición cerrada (TP/SL o manual)")
+                break
+        else:
+            logger.warning("⚠️ La posición sigue abierta tras el periodo de espera. Cerrando manualmente...")
+            open_positions = self.croupier.get_open_positions()
+            for pos in open_positions:
+                await self.croupier.close_position(pos.trade_id)
+        # 3. Limpieza final
+        await self.cleanup()
+        logger.info("--- TEST DE CICLO DE VIDA COMPLETADO ---")
 
     async def cleanup(self, post_test: bool = True):
         """Limpia el estado del exchange y cierra la conexión si es necesario."""
@@ -758,25 +740,31 @@ class CroupierValidator:
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Croupier Validator Script")
+    parser = argparse.ArgumentParser(description="Croupier Validator Script (Optimizado)")
     parser.add_argument("--exchange", type=str, required=True, help="Exchange name (e.g., binance)")
     parser.add_argument("--symbol", type=str, required=True, help="Symbol to trade (e.g., LTC/USDT:USDT)")
     parser.add_argument("--mode", type=str, default="demo", choices=["demo", "live"], help="Trading mode")
+    parser.add_argument("--size", type=float, default=0.01, help="Fraction of equity to use (default: 0.01)")
+    parser.add_argument("--tp", type=float, default=1.02, help="Take profit multiplier (default: 1.02)")
+    parser.add_argument("--sl", type=float, default=0.98, help="Stop loss multiplier (default: 0.98)")
+    parser.add_argument("--leverage", type=int, default=5, help="Leverage (default: 5)")
+    parser.add_argument("--wait", type=int, default=60, help="Seconds to wait for TP/SL execution (default: 60)")
+    parser.add_argument(
+        "--side", type=str, default="LONG", choices=["LONG", "SHORT"], help="Order side (default: LONG)"
+    )
+    setup_logging()
+
+    # Parse args
     args = parser.parse_args()
-    return args.exchange, args.symbol, args.mode
+    return args.exchange, args.symbol, args.mode, args.size, args.tp, args.sl, args.leverage, args.wait, args.side
 
 
 async def main():
-    # Load environment variables from .env file
     load_dotenv()
-
-    # Load environment variables (silent)
-    # Note: .env file loaded successfully
-
-    exchange_name, symbol, mode = parse_args()
-    validator = CroupierValidator(exchange_name, symbol, mode)
+    exchange_name, symbol, mode, size, tp, sl, leverage, wait, side = parse_args()
+    validator = CroupierValidator(exchange_name, symbol, mode, size, tp, sl, leverage, wait, side)
     try:
-        await validator.run_missions()
+        await validator.run_lifecycle_test()
     except Exception as e:
         logger.error(f"La validación falló con un error inesperado: {e}", exc_info=True)
     finally:

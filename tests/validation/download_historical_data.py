@@ -2,15 +2,17 @@
 """
 Download Historical Data - Casino V2
 
-Descarga datos históricos de Bybit para validación de backtesting.
+Descarga datos históricos usando CCXTAdapter para mantener consistencia
+arquitectural con el resto del sistema.
 
 Uso:
     python tests/validation/download_historical_data.py \
         --start "2024-11-07 19:00:00" \
         --end "2024-11-07 19:10:00" \
-        --symbol BTC/USDT \
+        --symbol LTC/USDT:USDT \
         --interval 1m \
-        --output data/validation/historical_10candles.csv
+        --output data/validation/historical_10candles.csv \
+        --exchange binance
 
 Validaciones:
     - Número de velas correcto
@@ -22,13 +24,19 @@ Validaciones:
 import argparse
 import asyncio
 import logging
-import os
 import sys
 from datetime import datetime
 from pathlib import Path
 
-import ccxt.async_support as ccxt_async
 import pandas as pd
+
+# Add project root to path
+project_root = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(project_root))
+
+from exchanges.adapters.ccxt_adapter import CCXTAdapter
+from exchanges.connectors.binance.binance_connector import BinanceConnector
+from exchanges.connectors.bybit.bybit_connector import BybitConnector
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)-8s | %(message)s", datefmt="%H:%M:%S")
@@ -38,13 +46,13 @@ logger = logging.getLogger("DownloadHistoricalData")
 
 def parse_args():
     """Parse command line arguments."""
-    parser = argparse.ArgumentParser(description="Download historical data from Bybit for backtesting validation")
+    parser = argparse.ArgumentParser(description="Download historical data using CCXTAdapter")
 
     parser.add_argument("--start", type=str, required=True, help='Start datetime (format: "YYYY-MM-DD HH:MM:SS")')
 
     parser.add_argument("--end", type=str, required=True, help='End datetime (format: "YYYY-MM-DD HH:MM:SS")')
 
-    parser.add_argument("--symbol", type=str, default="BTC/USDT", help="Trading pair (default: BTC/USDT)")
+    parser.add_argument("--symbol", type=str, default="LTC/USDT:USDT", help="Trading pair (default: LTC/USDT:USDT)")
 
     parser.add_argument("--interval", type=str, default="1m", help="Candle interval (default: 1m)")
 
@@ -58,9 +66,9 @@ def parse_args():
     parser.add_argument(
         "--exchange",
         type=str,
-        default="bybit",
-        choices=["bybit", "kraken", "binance"],
-        help="Exchange to download from (default: bybit)",
+        default="binance",
+        choices=["binance", "bybit"],
+        help="Exchange to download from (default: binance)",
     )
 
     return parser.parse_args()
@@ -110,14 +118,14 @@ def get_interval_ms(interval: str) -> int:
 
 
 async def download_data(
-    exchange_name: str, symbol: str, interval: str, start_dt: datetime, end_dt: datetime
+    adapter: CCXTAdapter, symbol: str, interval: str, start_dt: datetime, end_dt: datetime
 ) -> pd.DataFrame:
     """
-    Download OHLCV data from exchange.
+    Download OHLCV data using CCXTAdapter.
 
     Args:
-        exchange_name: Exchange name ('bybit' or 'kraken')
-        symbol: Trading pair (e.g., 'BTC/USDT')
+        adapter: CCXTAdapter instance
+        symbol: Trading pair (e.g., 'LTC/USDT:USDT')
         interval: Candle interval (e.g., '1m')
         start_dt: Start datetime
         end_dt: End datetime
@@ -125,105 +133,83 @@ async def download_data(
     Returns:
         DataFrame with OHLCV data
     """
-    logger.info(f"📡 Connecting to {exchange_name.upper()}...")
+    logger.info(f"📡 Downloading data using CCXTAdapter...")
 
-    # Create exchange instance (async)
-    if exchange_name == "bybit":
-        exchange = ccxt_async.bybit(
-            {
-                "enableRateLimit": True,
-            }
+    # Convert datetimes to timestamps
+    start_ts = int(start_dt.timestamp() * 1000)
+    end_ts = int(end_dt.timestamp() * 1000)
+
+    logger.info(f"📊 Downloading data...")
+    logger.info(f"   Symbol: {symbol}")
+    logger.info(f"   Interval: {interval}")
+    logger.info(f"   Start: {start_dt}")
+    logger.info(f"   End: {end_dt}")
+
+    # Download data
+    all_candles = []
+    current_ts = start_ts
+    interval_ms = get_interval_ms(interval)
+
+    while current_ts < end_ts:
+        # Fetch candles using adapter
+        logger.info(f"   Fetching with limit=1000 from {current_ts}")
+        candles = await adapter.connector.fetch_ohlcv(
+            symbol=symbol, timeframe=interval, since=current_ts, limit=1000  # Max per request
         )
-    elif exchange_name == "kraken":
-        exchange = ccxt_async.kraken(
-            {
-                "enableRateLimit": True,
-            }
-        )
-    elif exchange_name == "binance":
-        logger.info("📡 Connecting to BINANCE testnet...")
-        # Import and use custom BinanceTestnet class
-        sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../.."))
-        from exchanges.connectors.binance.binance_connector import BinanceTestnet
 
-        exchange = BinanceTestnet(
-            {
-                "apiKey": os.getenv("BINANCE_TESTNET_API_KEY"),
-                "secret": os.getenv("BINANCE_TESTNET_SECRET"),
-                "enableRateLimit": True,
-                "options": {
-                    "defaultType": "future",
-                },
-            }
-        )
-    else:
-        raise ValueError(f"Unsupported exchange: {exchange_name}")
+        if not candles:
+            break
 
-    try:
-        # Normalize symbol for exchange
-        normalized_symbol = symbol
-        if exchange_name == "binance":
-            # Convert LTC/USD:USD to LTC/USDT:USDT for Binance
-            if symbol == "LTC/USD:USD":
-                normalized_symbol = "LTC/USDT:USDT"
-            elif symbol == "BTC/USD:USD":
-                normalized_symbol = "BTC/USDT:USDT"
-            logger.info(f"📝 Normalized symbol: {symbol} → {normalized_symbol}")
-
-        # Convert datetimes to timestamps
-        start_ts = int(start_dt.timestamp() * 1000)
-        end_ts = int(end_dt.timestamp() * 1000)
-
-        logger.info(f"📊 Downloading data...")
-        logger.info(f"   Symbol: {normalized_symbol}")
-        logger.info(f"   Interval: {interval}")
-        logger.info(f"   Start: {start_dt}")
-        logger.info(f"   End: {end_dt}")
-
-        # Download data
-        all_candles = []
-        current_ts = start_ts
-        interval_ms = get_interval_ms(interval)
-
-        while current_ts < end_ts:
-            # Fetch candles (async)
-            candles = await exchange.fetch_ohlcv(
-                normalized_symbol, timeframe=interval, since=current_ts, limit=1000
-            )  # Max per request
-
-            if not candles:
-                break
-
-            # Filter candles within range
-            for candle in candles:
-                if start_ts <= candle[0] < end_ts:
+        # Filter candles within range
+        for candle in candles:
+            if isinstance(candle, dict):
+                candle_ts = candle.get("timestamp")
+            else:
+                candle_ts = candle[0]
+            if candle_ts and start_ts <= candle_ts < end_ts:
+                # Normalize candle format
+                if isinstance(candle, dict):
                     all_candles.append(candle)
+                else:
+                    # Convert list format to dict
+                    all_candles.append(
+                        {
+                            "timestamp": candle[0],
+                            "open": candle[1],
+                            "high": candle[2],
+                            "low": candle[3],
+                            "close": candle[4],
+                            "volume": candle[5],
+                        }
+                    )
 
-            # Move to next batch
-            current_ts = candles[-1][0] + interval_ms
+        # Move to next batch
+        last_candle = candles[-1]
+        if isinstance(last_candle, dict):
+            last_ts = last_candle.get("timestamp")
+        else:
+            last_ts = last_candle[0]
+        current_ts = last_ts + interval_ms
 
-            logger.info(f"   Downloaded {len(all_candles)} candles so far...")
+        logger.info(f"   Downloaded {len(all_candles)} candles so far...")
 
-            # Avoid rate limits
-            await asyncio.sleep(0.1)
+        # Avoid rate limits
+        await asyncio.sleep(0.1)
 
-        logger.info(f"✅ Downloaded {len(all_candles)} candles")
+    logger.info(f"✅ Downloaded {len(all_candles)} candles")
 
-        # Convert to DataFrame
-        df = pd.DataFrame(all_candles, columns=["timestamp", "open", "high", "low", "close", "volume"])
+    # Convert to DataFrame
+    df = pd.DataFrame(all_candles)
 
-        # Add metadata
-        df["symbol"] = symbol.replace("/", "")  # BTC/USDT -> BTCUSDT
-        df["timeframe"] = interval
+    # Ensure we have the required columns
+    if "timestamp" not in df.columns:
+        raise ValueError("Downloaded data missing 'timestamp' column")
 
-        return df
+    # Add metadata
+    df["symbol"] = symbol.replace("/", "")  # LTC/USDT:USDT -> LTCUSDTUSDT
+    df["timeframe"] = interval
 
-    finally:
-        try:
-            await exchange.close()
-        except Exception as e:
-            logging.debug(f"Error closing exchange: {e}")
-            # Ignore close errors
+    return df
 
 
 def validate_data(df: pd.DataFrame, interval: str, expected_candles: int = None) -> bool:
@@ -336,7 +322,7 @@ async def main():
         expected_candles = int(duration_seconds / interval_seconds)
 
         logger.info("=" * 80)
-        logger.info("📥 DOWNLOAD HISTORICAL DATA")
+        logger.info("📥 DOWNLOAD HISTORICAL DATA (CCXTAdapter)")
         logger.info("=" * 80)
         logger.info(f"Exchange: {args.exchange.upper()}")
         logger.info(f"Symbol: {args.symbol}")
@@ -345,32 +331,45 @@ async def main():
         logger.info(f"Expected candles: {expected_candles}")
         logger.info("=" * 80 + "\n")
 
-        # Download data
-        df = await download_data(args.exchange, args.symbol, args.interval, start_dt, end_dt)
+        # Create connector based on exchange
+        if args.exchange == "binance":
+            connector = BinanceConnector(mode="demo")
+        elif args.exchange == "bybit":
+            connector = BybitConnector(testnet=True)
+        else:
+            raise ValueError(f"Unsupported exchange: {args.exchange}")
 
-        # Validate data
-        validate_data(df, args.interval, expected_candles)
+        # Create adapter
+        adapter = CCXTAdapter(connector=connector, symbol=args.symbol, timeframe=args.interval)
+        await adapter.connect()
 
-        # Generate output path if not provided
-        if not args.output:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            args.output = f"data/validation/historical_{timestamp}.csv"
+        # Connection already established
+        logger.info(f"✅ Connected to {args.exchange.upper()}\n")
 
-        # Save data
-        save_data(df, args.output)
+        try:
+            # Download data
+            df = await download_data(adapter, args.symbol, args.interval, start_dt, end_dt)
 
-        logger.info("\n" + "=" * 80)
-        logger.info("✅ DOWNLOAD COMPLETED SUCCESSFULLY")
-        logger.info("=" * 80)
-        logger.info(f"\n📝 Next steps:")
-        logger.info(f"   1. Run backtest with this data:")
-        logger.info(f"      python main.py --mode=backtest --data={args.output} --max-candles={len(df)}")
-        logger.info(f"\n   2. Compare with testing results:")
-        logger.info(f"      python tests/validation/compare_results.py \\")
-        logger.info(f"          --testing logs/testing_*.json \\")
-        logger.info(f"          --backtest logs/backtest_*.json")
+            # Validate data
+            validate_data(df, args.interval, expected_candles)
 
-        return 0
+            # Generate output path if not provided
+            if not args.output:
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                args.output = f"data/validation/historical_{timestamp}.csv"
+
+            # Save data
+            save_data(df, args.output)
+
+            logger.info("\n" + "=" * 80)
+            logger.info("✅ DOWNLOAD COMPLETED SUCCESSFULLY")
+            logger.info("=" * 80)
+
+            return 0
+
+        finally:
+            await adapter.disconnect()
+            logger.info("🔌 Disconnected from exchange")
 
     except Exception as e:
         logger.error(f"\n❌ ERROR: {e}", exc_info=True)

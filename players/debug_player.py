@@ -34,6 +34,10 @@ def init_state() -> Dict:
     return {"forced_count": 0}
 
 
+# Flag para que el sistema trate este player como agresivo (puede forzar apuestas)
+FORCE_BET = True
+
+
 def prepare_state(state: Dict, equity: Optional[float]) -> Tuple[Dict, Dict]:
     """
     Garantiza que el estado exista y devuelve metadata sencilla.
@@ -42,8 +46,11 @@ def prepare_state(state: Dict, equity: Optional[float]) -> Tuple[Dict, Dict]:
     new_state = dict(state or {})
     if "forced_count" not in new_state:
         new_state["forced_count"] = 0
+    # Only request a forced bet on the FIRST candle (when forced_count == 0)
+    force_first = int(new_state.get("forced_count", 0)) == 0
     meta = {
-        "force_bet": True,
+        "force_bet": force_first,
+        "force_bet_first": force_first,
         "max_fraction": MAX_POSITION_SIZE,
     }
     if equity is not None:

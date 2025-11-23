@@ -16,8 +16,8 @@ STARTING_BALANCE = 10_000.0
 
 # Tamaños relativos de TP y SL (expresados en proporción decimal)
 # Ejemplo: 0.01 = 1% de take profit, 0.008 = 0.8% de stop loss
-TAKE_PROFIT = 0.005  # 0.5% - Take profit más ajustado
-STOP_LOSS = 0.015  # 1.5% - Stop loss más amplio (ratio 1:3)
+TAKE_PROFIT = 0.01  # 1.0% - Take profit ajustado
+STOP_LOSS = 0.015  # 1.5% - Stop loss (ratio 1:1.5)
 
 
 # =====================================================

@@ -70,6 +70,8 @@ class BacktestDataSource(DataSource):
         # Position tracking (usado por SimulatedConnector)
         self.open_positions: List[Dict] = []
         self.closed_trades: List[Dict] = []
+        # Track candle timestamps for validation
+        self.candle_timestamps = []
 
         # Metadata
         self.symbol = data.get("symbol", pd.Series(["BTC/USD"]))[0] if "symbol" in data.columns else "BTC/USD"
@@ -309,6 +311,10 @@ class BacktestDataSource(DataSource):
         row = self.data.iloc[self.index]
         self.index += 1
 
+        # Track timestamp for validation
+        timestamp = int(row["timestamp"])
+        self.candle_timestamps.append(timestamp)
+
         # Check TP/SL of open positions with this candle
         self._check_positions_tpsl(row)
 
@@ -320,7 +326,7 @@ class BacktestDataSource(DataSource):
         equity = self.balance + unrealized_pnl
 
         return Candle(
-            timestamp=int(row["timestamp"]),
+            timestamp=timestamp,
             open=float(row["open"]),
             high=float(row["high"]),
             low=float(row["low"]),
@@ -466,7 +472,7 @@ class BacktestDataSource(DataSource):
             tp_mult = pos.get("take_profit")
             sl_mult = pos.get("stop_loss")
 
-            if side == "buy":
+            if side.lower() in ("buy", "long"):
                 # Long: TP above, SL below
                 tp_price = entry * tp_mult if tp_mult else None
                 sl_price = entry * sl_mult if sl_mult else None
@@ -657,6 +663,7 @@ class BacktestDataSource(DataSource):
             "win_rate": len(wins) / len(self.closed_trades) if self.closed_trades else 0,
             "avg_win": sum(t["pnl"] for t in wins) / len(wins) if wins else 0,
             "avg_loss": sum(t["pnl"] for t in losses) / len(losses) if losses else 0,
+            "candle_timestamps": self.candle_timestamps,
         }
 
     # =========================================================

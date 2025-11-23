@@ -20,7 +20,6 @@ from core.data_sources.testing import TestingDataSource
 from core.trading import TradingSession
 from croupier.croupier import Croupier
 from exchanges.adapters.ccxt_adapter import CCXTAdapter
-from exchanges.adapters.exchange_state_sync import ExchangeStateSync
 from exchanges.connectors import BybitConnector, KrakenConnector, ResilientConnector
 from players import kelly_player, paroli_player
 
@@ -169,6 +168,8 @@ def save_results_json(mode: str, stats: dict, player_name: str, symbol: str = No
             "orders_rejected": stats.get("orders_rejected", 0),
             "orders_error": stats.get("orders_error", 0),
             "rejection_reasons": stats.get("rejection_reasons", []),
+            "candle_timestamps": stats.get("candle_timestamps", []),
+            "closed_trades": stats.get("closed_trades", []),
         }
 
         # Save to file
@@ -187,67 +188,42 @@ async def _force_close_open_positions_and_orders(connector, croupier, symbol: st
     try:
         logger.info(f"🧹 Force closing positions and orders for {symbol}")
 
-        # Step 1: PRIMERO cerrar todas las posiciones abiertas
+        # Step 1: PRIMERO cerrar todas las posiciones abiertas via Croupier
+        # (esto asegura que se contabilicen como trades cerrados)
         try:
-            # Prefer normalized positions via ExchangeStateSync
-            try:
-                sync = ExchangeStateSync(connector)
-                positions = await sync.sync_positions()
-                # Convert dataclass positions to dicts for backward compatibility
-                positions = [p.__dict__ for p in positions]
-            except Exception:
-                positions = await connector.fetch_positions()
-            logger.info(f"📊 Found {len(positions)} total positions")
+            open_positions = croupier.get_open_positions()
+            logger.info(f"📊 Found {len(open_positions)} open positions in Croupier")
+
+            closed_count = 0
+            for position in open_positions[:]:  # Copy to avoid modification during iteration
+                try:
+                    trade_id = position.trade_id if hasattr(position, "trade_id") else position.get("trade_id")
+                    pos_symbol = position.symbol if hasattr(position, "symbol") else position.get("symbol")
+
+                    # Check if this position matches our symbol
+                    if pos_symbol != symbol:
+                        logger.debug(f"⏭️ Symbol mismatch: {pos_symbol} != {symbol}")
+                        continue
+
+                    logger.info(f"🔒 Closing position via Croupier: {trade_id} for {pos_symbol}")
+
+                    # Close via Croupier (which handles TP/SL cancellation and accounting)
+                    await croupier.close_position(trade_id)
+
+                    logger.info(f"✅ Force-closed position {trade_id} via Croupier")
+                    closed_count += 1
+
+                except Exception as e:
+                    logger.warning(f"⚠️ Error force-closing position via Croupier: {e}")
+                    # Continue with other positions even if one fails
+
+            if closed_count > 0:
+                logger.info(f"✅ Closed {closed_count} position(s) via Croupier")
+            else:
+                logger.info("ℹ️ No positions to close")
+
         except Exception as e:
-            logger.warning(f"⚠️ Error fetching positions: {e}")
-            positions = []
-
-        closed_count = 0
-        for pos in positions:
-            try:
-                pos_symbol = pos.get("symbol", "")
-                contracts = float(pos.get("contracts") or 0)
-
-                logger.debug(f"🔍 Checking position: symbol={pos_symbol}, contracts={contracts}")
-
-                # Check if this position matches our symbol
-                # Handle multiple symbol formats:
-                # - LTC/USD:USD (our format)
-                # - LTC/USDT:USDT (CCXT format)
-                # - LTCUSDT (raw API format)
-                symbol_matches = (
-                    pos_symbol == symbol
-                    or pos_symbol.replace("USDT", "USD:USD") == symbol
-                    or pos_symbol.replace("/USDT:USDT", "") == symbol.replace("/USD:USD", "")
-                    or pos_symbol.replace("/", "").replace(":USDT", "") == symbol.replace("/", "").replace(":USD", "")
-                )
-
-                if not symbol_matches:
-                    logger.debug(f"⏭️ Symbol mismatch: {pos_symbol} != {symbol}")
-                    continue
-
-                if contracts <= 0:
-                    logger.debug(f"⏭️ Skipping position with {contracts} contracts")
-                    continue
-
-                side_raw = str(pos.get("side", "")).lower()
-                close_side = "sell" if side_raw in ("long", "buy") else "buy"
-
-                logger.info(f"🔒 Closing {side_raw} position: {pos_symbol} | qty={contracts}")
-
-                params = {"reduceOnly": True, "positionSide": "BOTH"}
-                result = await connector.create_order(symbol, close_side, contracts, None, "market", params)
-                logger.info(
-                    f"✅ Force-closed position | order_id={result.get('id')} | side={close_side} | qty={contracts}"
-                )
-                closed_count += 1
-            except Exception as e:
-                logger.warning(f"⚠️ Error force-closing position: {e}")
-
-        if closed_count > 0:
-            logger.info(f"✅ Closed {closed_count} position(s)")
-        else:
-            logger.info("ℹ️ No positions to close")
+            logger.warning(f"⚠️ Error during Croupier position closure: {e}")
 
         # Step 2: DESPUÉS cancelar todas las órdenes abiertas
         try:

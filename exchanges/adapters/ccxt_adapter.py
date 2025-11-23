@@ -219,6 +219,16 @@ class CCXTAdapter(BaseTable):
         if not self.exchange:
             raise ValueError("El conector debe tener una instancia `exchange` de ccxt inicializada.")
 
+    async def connect(self) -> None:
+        """Connect the underlying connector if it provides a connect method.
+
+        This method should be called before any data fetching operations.
+        """
+        if hasattr(self.connector, "connect"):
+            await self.connector.connect()
+        else:
+            self.logger.warning("Connector does not implement async connect().")
+
     # duplicate fetch_positions block removed
 
     async def fetch_order_book(self, symbol: str = None, limit: int = 20) -> Dict[str, Any]:
@@ -392,5 +402,23 @@ class CCXTAdapter(BaseTable):
         """Get exchange name."""
         return self.connector.exchange_name
 
-    """
-    """
+    async def cancel_order(self, order_id: str, symbol: str) -> Dict:
+        """
+        Cancela una orden.
+        """
+        return await self.connector.cancel_order(order_id, symbol)
+
+    async def fetch_order(self, order_id: str, symbol: str) -> Dict:
+        """
+        Obtiene información de una orden.
+        """
+        return await self.connector.fetch_order(order_id, symbol)
+
+    async def disconnect(self) -> None:
+        """
+        Desconecta el adaptador y su conector subyacente.
+        """
+        if hasattr(self.connector, "disconnect"):
+            await self.connector.disconnect()
+        elif hasattr(self.connector, "close"):
+            await self.connector.close()

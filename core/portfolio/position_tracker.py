@@ -224,8 +224,22 @@ class PositionTracker:
                 sl_level = entry_price * sl_factor
                 liquidation_level = entry_price * (1.0 - (1.0 / leverage) + 0.005)  # Aprox liquidation
             elif side == "SHORT":
-                tp_level = entry_price * (2.0 - tp_factor)
-                sl_level = entry_price * (2.0 - sl_factor)
+                # TP Logic: Support both implicit (1.01) and explicit (0.99) multipliers
+                # If tp_factor > 1.0 (e.g., 1.01), it's "LONG-centric" so invert it (2.0 - 1.01 = 0.99)
+                # If tp_factor < 1.0 (e.g., 0.99), it's already correct for SHORT, use directly
+                if tp_factor > 1.0:
+                    tp_level = entry_price * (2.0 - tp_factor)
+                else:
+                    tp_level = entry_price * tp_factor
+
+                # SL Logic: Support both implicit (0.99) and explicit (1.015) multipliers
+                # If sl_factor < 1.0 (e.g., 0.99), it's "LONG-centric" loss so invert it (2.0 - 0.99 = 1.01)
+                # If sl_factor > 1.0 (e.g., 1.015), it's already correct for SHORT, use directly
+                if sl_factor < 1.0:
+                    sl_level = entry_price * (2.0 - sl_factor)
+                else:
+                    sl_level = entry_price * sl_factor
+
                 liquidation_level = entry_price * (1.0 + (1.0 / leverage) - 0.005)
             else:
                 return None

@@ -64,6 +64,8 @@ class TestingDataSource(DataSource):
         self._last_candle_timestamp = 0
         # El balance inicial se obtiene directamente del Croupier, que ya está inicializado.
         self.initial_balance = self.croupier.get_balance()
+        # Track candle timestamps for validation
+        self.candle_timestamps = []
 
         logger.info(
             f"📊 TestingDataSource initialized | "
@@ -77,8 +79,37 @@ class TestingDataSource(DataSource):
         pass
 
     async def disconnect(self) -> None:
-        """Método de desconexión requerido por la clase base. No realiza ninguna acción."""
-        pass
+        """
+        Cierra la sesión de testing y fuerza el cierre de posiciones abiertas.
+
+        Esto asegura que las posiciones abiertas al final de la sesión se contabilicen
+        como trades cerrados, igual que en el backtest.
+        """
+        # Force close all open positions at session end
+        open_positions = self.croupier.get_open_positions()
+
+        if open_positions:
+            logger.info(f"🔄 Force-closing {len(open_positions)} open position(s) at session end...")
+
+            for position in open_positions[:]:  # Copy to avoid modification during iteration
+                try:
+                    trade_id = position.trade_id if hasattr(position, "trade_id") else position.get("trade_id")
+                    symbol = position.symbol if hasattr(position, "symbol") else position.get("symbol")
+
+                    logger.info(f"🔨 Closing position {trade_id} for {symbol}...")
+
+                    # Close position via Croupier (which handles TP/SL cancellation)
+                    await self.croupier.close_position(trade_id)
+
+                    logger.info(f"✅ Position {trade_id} closed at session end")
+
+                except Exception as e:
+                    logger.error(f"❌ Error closing position at session end: {e}")
+                    # Continue with other positions even if one fails
+
+            logger.info("✅ All positions closed at session end")
+
+        logger.info("🔌 Testing data source disconnected")
 
     async def next_candle(self) -> Optional[Candle]:
         """
@@ -123,6 +154,7 @@ class TestingDataSource(DataSource):
                     continue
 
                 self._last_candle_timestamp = timestamp
+                self.candle_timestamps.append(timestamp)
                 logger.info(f"✅ New candle received | ts={timestamp}")
 
                 # The Croupier is now responsible for checking for closed positions.
@@ -220,6 +252,7 @@ class TestingDataSource(DataSource):
                 "losses": losses,
                 "win_rate": wins / (wins + losses) if (wins + losses) > 0 else 0,
                 "open_positions": open_positions_count,
+                "candle_timestamps": self.candle_timestamps,
             }
             return normalized
         except Exception as e:

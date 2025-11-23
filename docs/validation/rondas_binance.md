@@ -133,15 +133,25 @@ Cada ronda debe pasar antes de avanzar a la siguiente.
 ### ✅ Preparación Completada
 - [x] Binance connector configurado para demo/testnet
 - [x] Connector validator pasando sus tests relevantes (local)
-- [x] Script de Ronda 1 adaptado para Binance
+- [x] Scripts de Ronda 1, 2 y 3 adaptados para Binance
 - [x] Scripts auxiliares listos (download, compare)
 - [x] Directorios creados
+- [x] **Scripts corregidos para período exacto** (sin margen de 5 min)
+- [x] **Balance inicial automático** (extrae del demo log)
 
 ### 📝 Próximo Paso
 ```bash
-# Ejecutar Ronda 1 para Binance
+# Ejecutar Ronda 1 para Binance (corregida)
 ./tests/validation/run_ronda1_binance.sh
 ```
+
+### 🔧 Mejoras Implementadas (2025-11-22)
+
+1. **Período Exacto**: Eliminado margen de 5 minutos en descarga de datos
+2. **Balance Consistente**: Backtest usa el mismo balance inicial que demo
+3. **Extracción Automática**: Scripts extraen timestamps y balance del demo log
+
+Estas mejoras aseguran que la comparación Demo vs Backtest sea precisa y significativa.
 
 ---
 
@@ -159,7 +169,7 @@ Cada ronda debe pasar antes de avanzar a la siguiente.
 
 ### Configuración
 - Exchange: **Binance (demo / testnet)**
-- Symbol: **LTC/USDT** (ajustar a `LTC/USDT:USDT` si se usa futures USDT-M)
+- Symbol: **LTC/USDT:USDT** (Futures USDT-M)
 - Interval: **1m**
 - Player: **paroli**
 

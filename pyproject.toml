@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "casino-v2"
-version = "1.9.8"
+version = "2.0.2"
 description = "Casino V2 - Advanced Trading System with Gemini AI"
 readme = "README.md"
 requires-python = ">=3.8"
