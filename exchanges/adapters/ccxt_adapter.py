@@ -217,7 +217,7 @@ class CCXTAdapter(BaseTable):
         # El adapter es sin estado, solo delega. La instancia de exchange se obtiene del conector.
         self.exchange = getattr(self.connector, "exchange", None)
         if not self.exchange:
-            raise ValueError("El conector debe tener una instancia `exchange` de ccxt inicializada.")
+            self.logger.info("⚠️ Connector does not expose 'exchange' attribute (Virtual/Simulated?).")
 
     async def connect(self) -> None:
         """Connect the underlying connector if it provides a connect method.
@@ -363,30 +363,52 @@ class CCXTAdapter(BaseTable):
             # Fallback agnóstico si el connector no implementa normalize_trade
             return {**raw_trade, "is_close": False, "realized_pnl": 0.0, "close_reason": None}
 
-    async def _calculate_tpsl_prices(self, order: Dict) -> tuple[Optional[float], Optional[float]]:
+    async def calculate_tpsl_prices(
+        self, order: Dict, entry_price: Optional[float] = None
+    ) -> tuple[Optional[float], Optional[float]]:
         """
-        Calcula los precios absolutos de TP/SL a partir de multiplicadores.
+        Calcula los precios absolutos de TP/SL a partir de porcentajes.
+
+        Args:
+            order: Diccionario de la orden. Debe contener:
+                   - symbol: Símbolo del par
+                   - side: 'buy' (LONG) o 'sell' (SHORT)
+                   - take_profit: Porcentaje de TP (ej: 0.01 para 1%)
+                   - stop_loss: Porcentaje de SL (ej: 0.01 para 1%)
+            entry_price: Precio de entrada (opcional). Si no se da, se busca el actual.
+
+        Returns:
+            Tuple (tp_price, sl_price)
         """
-        if "take_profit" not in order or not order["take_profit"]:
+        if "take_profit" not in order or "stop_loss" not in order:
             return None, None
 
         try:
-            current_price = await self.get_current_price(order.get("symbol", self.symbol))
-            tp_multiplier = float(order["take_profit"])
-            sl_multiplier = float(order["stop_loss"])
+            if entry_price is None or entry_price <= 0:
+                current_price = await self.get_current_price(order.get("symbol", self.symbol))
+            else:
+                current_price = entry_price
 
-            # Lógica corregida para LONG/SHORT con margen de seguridad
-            safety_margin_factor = 0.0005  # 0.05% de margen para el SL
+            # Asumimos que vienen como porcentajes (ej: 0.01)
+            tp_pct = float(order["take_profit"])
+            sl_pct = float(order["stop_loss"])
 
-            if order.get("side") == "buy":  # LONG
-                tp_price = current_price * tp_multiplier
-                # Asegurarse de que el SL esté claramente por debajo del precio actual
-                sl_price = current_price * sl_multiplier * (1 - safety_margin_factor)
+            # Validación de seguridad: si parecen multiplicadores (ej: > 0.5), advertir o convertir
+            # Pero para limpiar la arquitectura, asumiremos que el caller (Gemini) ya se actualizó.
+            # Si alguien manda 1.01 pensando que es 1%, obtendrá un TP de +101% (aceptable error de usuario)
+            # Si manda 1.01 pensando que es precio, fallará la lógica de porcentaje.
+
+            safety_margin_factor = 0.0005  # 0.05% de margen extra para asegurar ejecución
+
+            side = order.get("side", "").lower()
+            if side in ["buy", "long"]:  # LONG
+                # TP arriba, SL abajo
+                tp_price = current_price * (1 + tp_pct)
+                sl_price = current_price * (1 - sl_pct) * (1 - safety_margin_factor)
             else:  # SHORT
-                # Para SHORT, el TP está por debajo y el SL por encima.
-                tp_price = current_price * (2.0 - tp_multiplier)
-                # Asegurarse de que el SL esté claramente por encima del precio actual
-                sl_price = current_price * (2.0 - sl_multiplier) * (1 + safety_margin_factor)
+                # TP abajo, SL arriba
+                tp_price = current_price * (1 - tp_pct)
+                sl_price = current_price * (1 + sl_pct) * (1 + safety_margin_factor)
 
             return tp_price, sl_price
         except Exception as e:

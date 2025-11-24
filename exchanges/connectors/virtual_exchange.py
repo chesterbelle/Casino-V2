@@ -1,0 +1,505 @@
+"""
+Virtual Exchange Connector - Casino V2
+
+A self-contained simulated exchange that mimics the behavior of a real exchange
+(like Binance or Kraken) but runs locally in memory.
+
+It is designed to be used by BacktestDataSource to provide a realistic
+trading environment that is identical to the Live/Demo environment from
+the perspective of the TradingSession and Croupier.
+"""
+
+import logging
+from typing import Any, Dict, List, Optional
+
+from exchanges.connectors.connector_base import BaseConnector
+
+
+class VirtualExchangeConnector(BaseConnector):
+    """
+    Virtual Exchange that simulates a real crypto exchange.
+
+    Features:
+    - Maintains internal order book and account balance
+    - Simulates order execution (Market, Limit, Stop, Take Profit)
+    - Tracks positions and calculates PnL
+    - Supports OCO-like behavior via conditional orders
+    - Realistic fee and slippage simulation
+    """
+
+    def __init__(
+        self,
+        initial_balance: float = 10000.0,
+        fee_rate: float = 0.0006,  # 0.06% (Taker)
+        maker_fee_rate: float = 0.0002,  # 0.02% (Maker)
+        slippage_rate: float = 0.0001,  # 0.01%
+        min_amount: float = 0.001,
+        amount_precision: int = 3,
+    ):
+        self.logger = logging.getLogger("VirtualExchange")
+
+        # Configuration
+        self.initial_balance = initial_balance
+        self.fee_rate = fee_rate
+        self.maker_fee_rate = maker_fee_rate
+        self.slippage_rate = slippage_rate
+        self.min_amount = min_amount
+        self.amount_precision = amount_precision
+        self.base_currency = "USD"
+
+        # State
+        self._balance = initial_balance
+        self._orders: Dict[str, Dict] = {}  # id -> order
+        self._positions: List[Dict] = []  # list of position dicts
+        self._trades: List[Dict] = []  # history of trades
+
+        self._current_price: float = 0.0
+        self._current_timestamp: int = 0
+        self._order_seq = 0
+
+        self._connected = False
+        self._ready = False
+
+        self.logger.info(
+            f"🏦 VirtualExchange initialized | Balance: ${initial_balance:,.2f} | "
+            f"Fee: {fee_rate:.2%} | Slippage: {slippage_rate:.2%}"
+        )
+
+    # =========================================================
+    # 🔌 CONNECTION MANAGEMENT
+    # =========================================================
+
+    async def connect(self) -> None:
+        """Simulate connection."""
+        self._connected = True
+        self._ready = True
+        self.logger.info("✅ VirtualExchange connected")
+
+    async def close(self) -> None:
+        """Simulate disconnection."""
+        self._connected = False
+        self._ready = False
+        self.logger.info("🔌 VirtualExchange disconnected")
+
+    @property
+    def is_connected(self) -> bool:
+        return self._connected
+
+    @property
+    def ready(self) -> bool:
+        return self._ready
+
+    @property
+    def exchange_name(self) -> str:
+        return "VirtualExchange"
+
+    # =========================================================
+    # ⚙️ ENGINE (The "Virtual" part)
+    # =========================================================
+
+    def update_market_state(self, candle: Dict[str, Any]) -> None:
+        """
+        Update the internal state of the virtual exchange with a new candle.
+        This triggers the matching engine to check pending orders.
+
+        Args:
+            candle: Dictionary with keys: timestamp, open, high, low, close
+        """
+        self._current_timestamp = int(candle["timestamp"])
+        self._current_price = float(candle["close"])
+
+        high = float(candle["high"])
+        low = float(candle["low"])
+
+        # Process open orders
+        # We iterate over a copy to allow modification during iteration
+        for order_id, order in list(self._orders.items()):
+            if order["status"] != "open":
+                continue
+
+            self._process_order(order, high, low)
+
+    def _process_order(self, order: Dict, high: float, low: float) -> None:
+        """Check if an order should be triggered/filled based on price action."""
+        side = order["side"]
+        order_type = order["type"]
+        stop_price = order.get("stopPrice")
+        price = order.get("price")  # Limit price
+
+        triggered = False
+        execution_price = 0.0
+
+        # 1. Check Triggers (Stop Loss / Take Profit)
+        if stop_price:
+            # STOP/TAKE_PROFIT orders become Market orders when triggered
+            # For BUY: trigger if price >= stopPrice (Stop Buy) or price <= stopPrice (Take Profit Buy?)
+            # Context: Usually Stop Loss Sell is below price, Take Profit Sell is above.
+            # But here we use generic "stopPrice".
+            # Convention:
+            #   - If side=SELL and stopPrice < current: Stop Loss (trigger if Low <= stopPrice)
+            #   - If side=SELL and stopPrice > current: Take Profit (trigger if High >= stopPrice)
+            #   - If side=BUY and stopPrice > current: Stop Buy (trigger if High >= stopPrice)
+            #   - If side=BUY and stopPrice < current: Take Profit (trigger if Low <= stopPrice)
+
+            # Simplified logic based on standard exchange behavior:
+            # We assume the order was placed correctly relative to price.
+
+            if side == "sell":
+                # Trigger if price drops below stop (SL) or rises above stop (TP)
+                # We check if the candle range [low, high] touches the stopPrice
+                if low <= stop_price <= high:
+                    triggered = True
+                    execution_price = stop_price  # Execute at stop price (ideal) or slippage
+            else:  # buy
+                if low <= stop_price <= high:
+                    triggered = True
+                    execution_price = stop_price
+
+        # 2. Check Limit Orders
+        elif order_type == "limit":
+            limit_price = price
+            if side == "buy":
+                # Buy limit: fill if Low <= limit_price
+                if low <= limit_price:
+                    triggered = True
+                    execution_price = limit_price  # Limit guarantees price or better
+            else:  # sell
+                # Sell limit: fill if High >= limit_price
+                if high >= limit_price:
+                    triggered = True
+                    execution_price = limit_price
+
+        if triggered:
+            self._execute_order_fill(order, execution_price)
+
+    def _execute_order_fill(self, order: Dict, price: float) -> None:
+        """Execute the fill of an order."""
+        # Apply slippage for stop/market orders (not limit)
+        is_limit = order["type"] == "limit"
+
+        if not is_limit:
+            if order["side"] == "buy":
+                price = price * (1 + self.slippage_rate)
+            else:
+                price = price * (1 - self.slippage_rate)
+
+        # Calculate fee
+        # Maker fee for limit orders, Taker for others
+        fee_rate = self.maker_fee_rate if is_limit else self.fee_rate
+        amount = order["amount"]
+        notional = amount * price
+        fee_cost = notional * fee_rate
+
+        # Update Order
+        order["status"] = "closed"
+        order["filled"] = amount
+        order["remaining"] = 0.0
+        order["price"] = price  # Avg fill price
+        order["cost"] = notional
+        order["fee"] = {"cost": fee_cost, "currency": self.base_currency}
+        order["closed_timestamp"] = self._current_timestamp
+
+        # Update Balance & Positions
+        self._update_account_state(order)
+
+        self.logger.info(
+            f"⚡ Order filled (Virtual) | {order['side'].upper()} {amount} @ {price:.2f} | "
+            f"Fee: {fee_cost:.4f} | PnL: {order.get('realized_pnl', 0):.2f}"
+        )
+
+        # Handle OCO-like behavior (cancel siblings)
+        self._cancel_siblings(order)
+
+    def _update_account_state(self, order: Dict) -> None:
+        """Update balance and positions based on filled order."""
+        side = order["side"]
+        amount = order["amount"]
+        price = order["price"]
+        fee = order["fee"]["cost"]
+        symbol = order["symbol"]
+
+        # 1. Deduct Fee
+        self._balance -= fee
+
+        # 2. Update Position
+        # Check if we have an existing position
+        position = next((p for p in self._positions if p["symbol"] == symbol), None)
+
+        if not position:
+            # New Position
+            if order.get("params", {}).get("reduceOnly"):
+                self.logger.warning(f"⚠️ ReduceOnly order {order['id']} executed but no position found.")
+                return
+
+            new_pos = {
+                "symbol": symbol,
+                "side": "LONG" if side == "buy" else "SHORT",
+                "amount": amount,
+                "entry_price": price,
+                "timestamp": self._current_timestamp,
+            }
+            self._positions.append(new_pos)
+            # Deduct margin (simplified: 1x leverage)
+            self._balance -= amount * price
+
+        else:
+            # Existing Position
+            pos_side = position["side"]
+            is_increase = (pos_side == "LONG" and side == "buy") or (pos_side == "SHORT" and side == "sell")
+
+            if is_increase:
+                # Increase position
+                total_amount = position["amount"] + amount
+                # Weighted average entry price
+                total_cost = (position["amount"] * position["entry_price"]) + (amount * price)
+                position["entry_price"] = total_cost / total_amount
+                position["amount"] = total_amount
+                # Deduct margin
+                self._balance -= amount * price
+
+            else:
+                # Decrease/Close position
+                close_amount = min(amount, position["amount"])
+                remaining = position["amount"] - close_amount
+
+                # Calculate PnL
+                if pos_side == "LONG":
+                    pnl = (price - position["entry_price"]) * close_amount
+                else:
+                    pnl = (position["entry_price"] - price) * close_amount
+
+                # Return margin + PnL
+                margin_released = close_amount * position["entry_price"]
+                self._balance += margin_released + pnl
+
+                # Store PnL in order for reporting
+                order["realized_pnl"] = pnl
+
+                if remaining < self.min_amount:
+                    self._positions.remove(position)
+                else:
+                    position["amount"] = remaining
+
+        # 3. Record Trade
+        self._trades.append(
+            {
+                "id": f"tr_{self._order_seq}",
+                "order": order["id"],
+                "symbol": symbol,
+                "side": side,
+                "amount": amount,
+                "price": price,
+                "fee": fee,
+                "timestamp": self._current_timestamp,
+                "pnl": order.get("realized_pnl", 0),
+            }
+        )
+
+    def _cancel_siblings(self, filled_order: Dict) -> None:
+        """
+        Cancel sibling orders (OCO behavior).
+        If a TP fills, cancel the SL, and vice versa.
+        We link them via 'parent' param or simple heuristic.
+        """
+        parent_id = filled_order.get("params", {}).get("parent")
+        if not parent_id:
+            return
+
+        symbol = filled_order["symbol"]
+
+        for oid, order in self._orders.items():
+            if (
+                order["status"] == "open"
+                and order["symbol"] == symbol
+                and order.get("params", {}).get("parent") == parent_id
+                and oid != filled_order["id"]
+            ):
+
+                order["status"] = "canceled"
+                order["canceled_timestamp"] = self._current_timestamp
+                self.logger.info(f"🔄 Sibling order canceled (OCO) | id={oid}")
+
+    # =========================================================
+    # 💰 ACCOUNT DATA
+    # =========================================================
+
+    async def fetch_balance(self) -> Dict[str, Any]:
+        """Return current simulated balance."""
+        return {
+            self.base_currency: {
+                "free": self._balance,
+                "used": 0.0,
+                "total": self._balance,
+            },
+            "free": {self.base_currency: self._balance},
+            "used": {self.base_currency: 0.0},
+            "total": {self.base_currency: self._balance},
+            "timestamp": self._current_timestamp,
+        }
+
+    async def fetch_positions(self, symbols: Optional[List[str]] = None) -> List[Dict[str, Any]]:
+        """Return open positions."""
+        positions = []
+        for p in self._positions:
+            if symbols and p["symbol"] not in symbols:
+                continue
+
+            # Calculate unrealized PnL
+            current_price = self._current_price
+            if p["side"] == "LONG":
+                upnl = (current_price - p["entry_price"]) * p["amount"]
+            else:
+                upnl = (p["entry_price"] - current_price) * p["amount"]
+
+            positions.append(
+                {
+                    "symbol": p["symbol"],
+                    "side": p["side"],
+                    "contracts": p["amount"],
+                    "entryPrice": p["entry_price"],
+                    "unrealizedPnl": upnl,
+                    "timestamp": p["timestamp"],
+                }
+            )
+        return positions
+
+    # =========================================================
+    # 📝 ORDER EXECUTION
+    # =========================================================
+
+    async def create_order(
+        self,
+        symbol: str,
+        side: str,
+        amount: float,
+        price: Optional[float] = None,
+        order_type: str = "market",
+        params: Optional[Dict[str, Any]] = None,
+        **kwargs,
+    ) -> Dict[str, Any]:
+        """Create a new order."""
+        # Handle 'type' alias for 'order_type' (compatibility)
+        if "type" in kwargs:
+            order_type = kwargs["type"]
+
+        # Validate amount
+        amount = round(amount, self.amount_precision)
+        if amount < self.min_amount:
+            raise ValueError(f"Amount {amount} < min {self.min_amount}")
+
+        self._order_seq += 1
+        order_id = f"v_{self._current_timestamp}_{self._order_seq}"
+
+        order = {
+            "id": order_id,
+            "symbol": symbol,
+            "side": side,
+            "amount": amount,
+            "type": order_type,
+            "price": price,  # None for market
+            "status": "open",
+            "filled": 0.0,
+            "remaining": amount,
+            "cost": 0.0,
+            "fee": {"cost": 0.0, "currency": self.base_currency},
+            "timestamp": self._current_timestamp,
+            "params": params or {},
+            "stopPrice": (params or {}).get("stopPrice"),
+        }
+
+        self._orders[order_id] = order
+
+        # If Market order, execute immediately
+        if order_type == "market":
+            # Use current price
+            self._execute_order_fill(order, self._current_price)
+        else:
+            self.logger.info(f"📝 Order created | {side.upper()} {amount} @ {price or 'MKT'} | id={order_id}")
+
+        return order
+
+    async def fetch_open_orders(self, symbol: Optional[str] = None) -> List[Dict[str, Any]]:
+        orders = [o for o in self._orders.values() if o["status"] == "open"]
+        if symbol:
+            orders = [o for o in orders if o["symbol"] == symbol]
+        return orders
+
+    async def cancel_order(self, order_id: str, symbol: Optional[str] = None) -> Dict[str, Any]:
+        order = self._orders.get(order_id)
+        if not order:
+            raise ValueError(f"Order {order_id} not found")
+
+        if order["status"] == "open":
+            order["status"] = "canceled"
+            order["canceled_timestamp"] = self._current_timestamp
+            self.logger.info(f"🛑 Order canceled | id={order_id}")
+
+        return order
+
+    # =========================================================
+    # 🔧 UTILITY METHODS
+    # =========================================================
+
+    def normalize_symbol(self, symbol: str) -> str:
+        return symbol
+
+    def denormalize_symbol(self, exchange_symbol: str) -> str:
+        return exchange_symbol
+
+    async def fetch_ticker(self, symbol: str) -> Dict[str, Any]:
+        """
+        Fetch current ticker data.
+        """
+        if not self._current_price:
+            # If no price yet (start of backtest), return 0 or raise
+            # But usually update_market_state is called before execution
+            return {
+                "symbol": symbol,
+                "timestamp": self._current_timestamp,
+                "datetime": str(self._current_timestamp),
+                "high": 0.0,
+                "low": 0.0,
+                "bid": 0.0,
+                "bidVolume": 0.0,
+                "ask": 0.0,
+                "askVolume": 0.0,
+                "vwap": 0.0,
+                "open": 0.0,
+                "close": 0.0,
+                "last": 0.0,
+                "previousClose": 0.0,
+                "change": 0.0,
+                "percentage": 0.0,
+                "average": 0.0,
+                "baseVolume": 0.0,
+                "quoteVolume": 0.0,
+                "info": {},
+            }
+
+        return {
+            "symbol": symbol,
+            "timestamp": self._current_timestamp,
+            "datetime": str(self._current_timestamp),
+            "high": self._current_price,
+            "low": self._current_price,
+            "bid": self._current_price,
+            "bidVolume": 1000.0,
+            "ask": self._current_price,
+            "askVolume": 1000.0,
+            "vwap": self._current_price,
+            "open": self._current_price,
+            "close": self._current_price,
+            "last": self._current_price,
+            "previousClose": self._current_price,
+            "change": 0.0,
+            "percentage": 0.0,
+            "average": self._current_price,
+            "baseVolume": 1000.0,
+            "quoteVolume": 1000.0 * self._current_price,
+            "info": {},
+        }
+
+    async def fetch_ohlcv(self, symbol: str, timeframe: str, limit: int = 100) -> List[Dict[str, Any]]:
+        # VirtualExchange doesn't store history, it just consumes it.
+        # This method is rarely used by Croupier (it uses DataSource).
+        return []

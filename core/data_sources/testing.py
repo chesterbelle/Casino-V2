@@ -42,6 +42,7 @@ class TestingDataSource(DataSource):
         symbol: str,
         timeframe: str,
         poll_interval: float = 5.0,
+        max_wait_minutes: Optional[int] = None,
     ):
         """
         Initializes the TestingDataSource.
@@ -51,6 +52,7 @@ class TestingDataSource(DataSource):
             symbol: Trading symbol (e.g., "BTC/USD").
             timeframe: Candle interval (e.g., "5m", "1h").
             poll_interval: Seconds to wait between candle polls.
+            max_wait_minutes: Maximum minutes to wait for candles before timing out (None = no limit).
         """
         self.croupier = croupier
         # The adapter and connector are accessed through the Croupier
@@ -60,8 +62,10 @@ class TestingDataSource(DataSource):
         self.symbol = symbol
         self.timeframe = timeframe
         self.poll_interval = poll_interval
+        self.max_wait_minutes = max_wait_minutes  # Maximum time to wait for candles
 
         self._last_candle_timestamp = 0
+        self._start_time = None  # Track when we started waiting
         # El balance inicial se obtiene directamente del Croupier, que ya está inicializado.
         self.initial_balance = self.croupier.get_balance()
         # Track candle timestamps for validation
@@ -71,7 +75,10 @@ class TestingDataSource(DataSource):
             f"📊 TestingDataSource initialized | "
             f"Symbol: {symbol} | "
             f"Timeframe: {timeframe} | "
-            f"Poll: {poll_interval}s"
+            f"Poll: {poll_interval}s | "
+            f"Max wait: {max_wait_minutes}min"
+            if max_wait_minutes
+            else f"Poll: {poll_interval}s"
         )
 
     async def connect(self) -> None:
@@ -99,9 +106,42 @@ class TestingDataSource(DataSource):
                     logger.info(f"🔨 Closing position {trade_id} for {symbol}...")
 
                     # Close position via Croupier (which handles TP/SL cancellation)
-                    await self.croupier.close_position(trade_id)
+                    await self.croupier.close_position(trade_id, skip_confirm_close=True)
 
-                    logger.info(f"✅ Position {trade_id} closed at session end")
+                    # Calculate REAL PnL like backtest does
+                    # Get current price from exchange
+                    try:
+                        current_price = await self.croupier.exchange_adapter.get_current_price(position.symbol)
+
+                        # Get position details
+                        entry_price = (
+                            position.entry_price if hasattr(position, "entry_price") else position.get("entry_price", 0)
+                        )
+                        amount = position.amount if hasattr(position, "amount") else position.get("amount", 0)
+                        side = position.side if hasattr(position, "side") else position.get("side", "LONG")
+
+                        # Calculate PnL like backtest
+                        if side.upper() == "LONG":
+                            pnl = (current_price - entry_price) * amount
+                        else:  # SHORT
+                            pnl = (entry_price - current_price) * amount
+
+                        # Apply fee (same rate as backtest)
+                        fee = amount * current_price * 0.001  # 0.1% fee rate
+                        net_pnl = pnl - fee
+
+                        # Confirm close with REAL PnL
+                        self.croupier.position_tracker.confirm_close(
+                            trade_id=trade_id, exit_price=current_price, exit_reason="END_SESSION", pnl=net_pnl, fee=fee
+                        )
+
+                        logger.info(
+                            f"✅ Position {trade_id} closed at session end | PnL REAL: {net_pnl:+.2f} | Price: {current_price}"
+                        )
+
+                    except Exception as calc_error:
+                        logger.warning(f"⚠️ Could not calculate real PnL for {trade_id}: {calc_error}")
+                        logger.info(f"✅ Position {trade_id} closed at session end")
 
                 except Exception as e:
                     logger.error(f"❌ Error closing position at session end: {e}")
@@ -115,7 +155,21 @@ class TestingDataSource(DataSource):
         """
         Gets the next candle from the exchange and enriches it with portfolio data from the Croupier.
         """
+        # Initialize start time on first call
+        if self._start_time is None:
+            self._start_time = time.time()
+
         while True:
+            # Check timeout if max_wait_minutes is set
+            if self.max_wait_minutes:
+                elapsed_minutes = (time.time() - self._start_time) / 60
+                if elapsed_minutes >= self.max_wait_minutes:
+                    logger.warning(
+                        f"⏱️ Timeout reached: {elapsed_minutes:.1f} minutes >= {self.max_wait_minutes} minutes. "
+                        f"Processed {len(self.candle_timestamps)} candles. Stopping."
+                    )
+                    return None
+
             try:
                 candle_data = await self.adapter.next_candle()
                 logger.debug(

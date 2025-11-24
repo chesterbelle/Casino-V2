@@ -586,23 +586,16 @@ class Gemini:
         symbol = meta.get("symbol", "UNKNOWN")
         timeframe = meta.get("timeframe", "UNKNOWN")
 
-        # TP/SL multiplicadores dependen de la dirección
-        # LONG: TP arriba (1 + R), SL abajo (1 - L)
-        # SHORT: TP abajo (1 - R), SL arriba (1 + L)
-        if side == "LONG":
-            take_profit_mult = 1.0 + R_GROSS  # Ganar si sube
-            stop_loss_mult = 1.0 - L_GROSS  # Perder si baja
-        else:  # SHORT
-            take_profit_mult = 1.0 - R_GROSS  # Ganar si baja
-            stop_loss_mult = 1.0 + L_GROSS  # Perder si sube
+        # TP/SL ahora se envían como porcentajes puros (ej: 0.01)
+        # El adaptador se encarga de calcular los precios absolutos según el lado.
         order = {
             "symbol": symbol,
             "timeframe": timeframe,
             "timestamp": meta.get("timestamp"),
             "side": side,
             "size": float(size_fraction),
-            "take_profit": take_profit_mult,
-            "stop_loss": stop_loss_mult,
+            "take_profit": R_GROSS,  # Porcentaje (ej: 0.01)
+            "stop_loss": L_GROSS,  # Porcentaje (ej: 0.01)
             "type": "market",  # ← MARKET order como lo hacen los bots profesionales
         }
         if timeframe and timeframe != "UNKNOWN":
