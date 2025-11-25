@@ -38,7 +38,7 @@ if TYPE_CHECKING:  # pragma: no cover - solo para hints
     from gemini.gemini_core import Verdict
 
 # Parámetros Paroli
-BASE_DIVISOR = 250  # Unidad inicial = equity / 250
+BASE_DIVISOR = 100  # Unidad inicial = equity / 100 (1% de equity)
 PROGRESSION = (1, 4, 8)  # Multiplicadores Paroli
 MAX_POSITION_SIZE = float(getattr(trading, "MAX_POSITION_SIZE", 0.02))
 LEVERAGE = 10  # Apalancamiento para futures (máx permitido: trading.MAX_LEVERAGE)

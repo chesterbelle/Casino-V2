@@ -287,11 +287,15 @@ class BacktestDataSource(DataSource):
         trades = self.connector._trades  # Access internal history
 
         # Calculate stats
-        total_pnl = sum(t["pnl"] for t in trades)
+        # Calculate stats
+        # Filter out opening trades (pnl is None)
+        closed_trades = [t for t in trades if t.get("pnl") is not None]
+
+        total_pnl = sum(t["pnl"] for t in closed_trades)
         total_fees = sum(t["fee"] for t in trades)
 
-        wins = [t for t in trades if t["pnl"] > 0]
-        losses = [t for t in trades if t["pnl"] <= 0 and t.get("pnl") is not None]  # Only count realized PnL trades
+        wins = [t for t in closed_trades if t["pnl"] > 0]
+        losses = [t for t in closed_trades if t["pnl"] <= 0]
 
         return {
             "initial_balance": self.initial_balance,
@@ -303,7 +307,7 @@ class BacktestDataSource(DataSource):
             "total_trades": len(trades),
             "wins": len(wins),
             "losses": len(losses),
-            "win_rate": len(wins) / len(trades) if trades else 0,
+            "win_rate": len(wins) / len(closed_trades) if closed_trades else 0,
             "avg_win": sum(t["pnl"] for t in wins) / len(wins) if wins else 0,
             "avg_loss": sum(t["pnl"] for t in losses) / len(losses) if losses else 0,
             "candle_timestamps": self.candle_timestamps,

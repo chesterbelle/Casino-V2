@@ -203,7 +203,13 @@ class TradingSession:
 
                 # STEP 1: Monitorear posiciones abiertas y gestionar OCO
                 if hasattr(self.data_source, "croupier") and hasattr(self.data_source.croupier, "monitor_positions"):
-                    await self.data_source.croupier.monitor_positions()
+                    closed_positions = await self.data_source.croupier.monitor_positions()
+
+                    # Update player state based on closed positions (CRITICAL for Paroli progression)
+                    if closed_positions and hasattr(self.player, "handle_trade_outcome"):
+                        for result in closed_positions:
+                            self.player_state = self.player.handle_trade_outcome(self.player_state, "BET", result)
+                            logger.info(f"🎲 Player state updated: {self.player_state}")
 
                 # STEP 2: Prepare player state for this iteration
                 current_equity = self.data_source.get_equity()

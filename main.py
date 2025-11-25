@@ -426,7 +426,7 @@ async def run_backtest(player_module, data_file, max_candles, initial_balance=No
         raise
 
     # Print stats - combine session stats with data source stats
-    stats = source.get_stats()
+    stats = await source.get_stats()
 
     # Merge session stats (orders_rejected, orders_error, rejection_reasons)
     stats.update(
@@ -548,7 +548,11 @@ async def run_demo(player_module, symbol, interval, max_candles, exchange=None, 
         logger.warning(f"⚠️ Cleanup error (continuing anyway): {e}")
 
     # 5. Crear el DataSource (que usa el Croupier para ejecutar órdenes)
-    source = TestingDataSource(croupier, symbol, interval)
+    # Calculate timeout: 125% of expected time (max_candles * 1 minute * 1.25)
+    # This allows for some delays while preventing indefinite waiting
+    timeout_minutes = int(max_candles * 1.25) if max_candles else None
+
+    source = TestingDataSource(croupier, symbol, interval, max_wait_minutes=timeout_minutes)
 
     # Create session
     session = TradingSession(source, player_module, max_candles)

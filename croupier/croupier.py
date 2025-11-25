@@ -47,7 +47,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from core.portfolio.balance_manager import BalanceManager
 from core.portfolio.position_tracker import PositionTracker
@@ -1228,7 +1228,7 @@ class Croupier:
             # Este bloque solo debería ejecutarse si hay un error real inesperado
             self.logger.error(f"❌ Error inesperado cancelando orden {order_type} {order_id}: {e}")
 
-    async def monitor_positions(self) -> None:
+    async def monitor_positions(self) -> List[Dict[str, Any]]:
         """
         Método centralizado para monitorear posiciones abiertas y emular OCO.
 
@@ -1237,8 +1237,12 @@ class Croupier:
         2. Verificar estado de órdenes TP/SL.
         3. Si una se ejecuta, cancelar la otra y confirmar el cierre.
         4. Si ambas órdenes desaparecen, cerrar la posición para evitar posiciones huérfanas.
+
+        Returns:
+            List[Dict]: Lista de resultados de posiciones cerradas en esta iteración.
         """
         self.logger.debug("🔍 Monitoring open positions...")
+        closed_results = []
         # Usar una copia de la lista para poder modificarla durante la iteración
         for position in list(self.position_tracker.open_positions):
             try:
@@ -1248,22 +1252,35 @@ class Croupier:
                 # Escenario 1: TP ejecutado
                 if tp_order and tp_order.get("status") in ["closed", "filled"]:
                     self.logger.info(f"🎯 TAKE PROFIT DETECTED for {position.symbol}")
-                    await self._handle_position_closure(position, tp_order, "TP", sl_order)
+                    result = await self._handle_position_closure(position, tp_order, "TP", sl_order)
+                    if result:
+                        closed_results.append(result)
                     continue  # Mover a la siguiente posición
 
                 # Escenario 2: SL ejecutado
                 if sl_order and sl_order.get("status") in ["closed", "filled"]:
                     self.logger.info(f"🛡️ STOP LOSS DETECTED for {position.symbol}")
-                    await self._handle_position_closure(position, sl_order, "SL", tp_order)
+                    result = await self._handle_position_closure(position, sl_order, "SL", tp_order)
+                    if result:
+                        closed_results.append(result)
                     continue
 
                 # Escenario 3: Ambas órdenes TP/SL han desaparecido (canceladas o no encontradas)
                 if not tp_order and not sl_order:
-                    self.logger.warning(f"⚠️ Both TP/SL orders for {position.symbol} are gone. Closing position.")
-                    await self._close_position_without_orders(position)
+                    self.logger.warning(f"⚠️ Both TP/SL orders missing for {position.symbol}. Closing position.")
+                    # Estimar precio de salida (usar precio de entrada como fallback neutro)
+                    exit_price = position.entry_price
+                    result = await self._handle_position_closure(
+                        position, {"price": exit_price}, "ORPHANED_ORDERS_MISSING", None
+                    )
+                    if result:
+                        closed_results.append(result)
+                    continue
 
             except Exception as e:
                 self.logger.error(f"❌ Error monitoring position {position.trade_id}: {e}", exc_info=True)
+
+        return closed_results
 
     async def _fetch_order_safely(self, order_id: Optional[str], symbol: str) -> Optional[Dict]:
         """Obtiene una orden de forma segura, devolviendo None si no se encuentra."""
@@ -1277,7 +1294,7 @@ class Croupier:
 
     async def _handle_position_closure(
         self, position, executed_order: Dict, reason: str, sibling_order: Optional[Dict]
-    ):
+    ) -> Optional[Dict]:
         """Maneja el cierre de una posición, cancelando la orden hermana y confirmando."""
         self.logger.info(f"📋 Closing position | Symbol: {position.symbol} | Reason: {reason}")
 
@@ -1320,7 +1337,7 @@ class Croupier:
             f"PnL: {pnl:+.2f} | Fee: {fee:.2f}"
         )
 
-        self.position_tracker.confirm_close(position.trade_id, exit_price, reason, pnl, fee)
+        return self.position_tracker.confirm_close(position.trade_id, exit_price, reason, pnl, fee)
 
     async def _cancel_all_orders(
         self,

@@ -77,7 +77,7 @@ fi
 
 # 3) Descargar datos históricos de Binance para la ventana
 echo "[ronda1] Descargando datos históricos de Binance → ${HIST_DATA}"
-python tests/validation/download_historical_data.py --exchange binance --symbol LTC/USDT --interval 1m --start "$START_DATE" --end "$END_DATE" --output ${HIST_DATA} || echo "[ronda1] download script devolvió error; revisar tests/validation/download_historical_data.py"
+python tests/validation/download_historical_data.py --exchange binance --symbol LTC/USDT:USDT --interval 1m --start "$START_DATE" --end "$END_DATE" --output ${HIST_DATA} || echo "[ronda1] download script devolvió error; revisar tests/validation/download_historical_data.py"
 
 # 3.1) Filtrar CSV para que contenga SOLO las velas que el demo procesó
 if [ -n "$DEMO_LOG" ] && [ -f "$DEMO_LOG" ] && [ -f "${HIST_DATA}" ]; then

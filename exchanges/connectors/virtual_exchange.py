@@ -291,7 +291,7 @@ class VirtualExchangeConnector(BaseConnector):
                 "price": price,
                 "fee": fee,
                 "timestamp": self._current_timestamp,
-                "pnl": order.get("realized_pnl", 0),
+                "pnl": order.get("realized_pnl"),  # None for opening trades
             }
         )
 
@@ -409,12 +409,18 @@ class VirtualExchangeConnector(BaseConnector):
 
         self._orders[order_id] = order
 
-        # If Market order, execute immediately
-        if order_type == "market":
+        # If Market order (but NOT conditional market orders), execute immediately
+        # Conditional orders like 'stop_market' and 'take_profit_market' should wait for trigger
+        is_conditional = "stop" in order_type or "take_profit" in order_type
+
+        if order_type == "market" and not is_conditional:
             # Use current price
             self._execute_order_fill(order, self._current_price)
         else:
-            self.logger.info(f"📝 Order created | {side.upper()} {amount} @ {price or 'MKT'} | id={order_id}")
+            # Log creation of pending order
+            stop_price = (params or {}).get("stopPrice")
+            price_str = f"stop={stop_price:.2f}" if stop_price else (f"{price:.2f}" if price else "MKT")
+            self.logger.info(f"📝 Order created | {side.upper()} {amount} @ {price_str} | id={order_id}")
 
         return order
 
@@ -434,6 +440,13 @@ class VirtualExchangeConnector(BaseConnector):
             order["canceled_timestamp"] = self._current_timestamp
             self.logger.info(f"🛑 Order canceled | id={order_id}")
 
+        return order
+
+    async def fetch_order(self, order_id: str, symbol: Optional[str] = None) -> Dict[str, Any]:
+        """Fetch an order by ID."""
+        order = self._orders.get(order_id)
+        if not order:
+            raise ValueError(f"Order {order_id} not found")
         return order
 
     # =========================================================

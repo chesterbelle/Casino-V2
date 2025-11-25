@@ -3,16 +3,13 @@ __pycache__/
 *.pyc
 *.pyo
 
-# Archivos de entorno y logs
+# Archivos de entorno
 .env
-# Logs
-*.log
-*.txt
-*.json
 
-# Data
-*.csv
-*.json
+# Logs (commented out to allow log viewing)
+# *.log
+# *.txt
+# *.json
 
 # Data
 *.csv
@@ -20,7 +17,9 @@ __pycache__/
 # Archivos de entorno y logs
 .idea/
 
-# Testing temporales
-testing_*.log
-RESULTADOS_TEST_*.md
-RELEASE_NOTES_*.md
+# Testing temporales (commented out to allow log viewing)
+# testing_*.log
+# RESULTADOS_TEST_*.md
+# RELEASE_NOTES_*.md
+logs/*.log
+logs/*.json

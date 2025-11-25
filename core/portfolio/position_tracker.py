@@ -581,9 +581,9 @@ class PositionTracker:
         # This measures if the prediction was correct, not if we made money
         if exit_reason == "TP":
             self.total_wins += 1
-        elif exit_reason == "SL":
+        elif exit_reason in ["SL", "FORCE_CLOSE", "END_SESSION", "MANUAL_SYNC", "MANUAL"]:
             self.total_losses += 1
-        # Other reasons (MANUAL, IMMEDIATE_CLOSE, END_SESSION) don't count as wins/losses
+        # Other reasons (IMMEDIATE_CLOSE) don't count as wins/losses
 
         logger.info(
             f"✅ CONFIRMED CLOSE | {position.symbol} {position.side} | "
@@ -626,7 +626,7 @@ class PositionTracker:
 
             result = {
                 "trade_id": position.trade_id,
-                "result": "WIN" if pnl_value > 0 else "LOSS",
+                "result": "LOSS",  # Force close is always considered a LOSS
                 "pnl": pnl_value,
                 "pnl_pct": pnl_pct,
                 "fee": 0.0,
