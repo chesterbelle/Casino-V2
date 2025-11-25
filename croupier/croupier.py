@@ -117,13 +117,15 @@ class Croupier:
         except Exception as e:
             self.logger.error(f"❌ Error during orphaned position cleanup for {symbol}: {e}", exc_info=True)
 
-    def __init__(self, exchange_adapter, initial_balance: float):
+    def __init__(self, exchange_adapter, initial_balance: float, position_tracker_mode: str = "hybrid"):
         """
         Inicializa el Croupier como el dueño del estado.
 
         Args:
             exchange_adapter: Adaptador para comunicación con el exchange (debe ser sin estado).
             initial_balance: Balance inicial en USDT. Requerido para inicializar el estado.
+            position_tracker_mode: Modo del PositionTracker ('simulation', 'hybrid', 'confirmed').
+                                    Default 'hybrid' para live/demo, 'simulation' para backtest.
         """
         self.logger = logging.getLogger("Croupier")
         self.exchange_adapter = exchange_adapter
@@ -131,7 +133,7 @@ class Croupier:
         # --- El Croupier ahora es dueño del estado ---
         self.balance_manager = BalanceManager(starting_balance=initial_balance)
         self.position_tracker = PositionTracker(
-            mode="hybrid",  # Modo recomendado
+            mode=position_tracker_mode,
             adapter=exchange_adapter,  # Pasar adapter para OCO manual
         )
         self.state_sync = ExchangeStateSync(exchange_adapter.connector)

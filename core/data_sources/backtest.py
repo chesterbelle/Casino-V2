@@ -11,8 +11,6 @@ from typing import Dict, List, Optional
 import pandas as pd
 
 from croupier.croupier import Croupier
-from exchanges.adapters.ccxt_adapter import CCXTAdapter
-from exchanges.connectors.virtual_exchange import VirtualExchangeConnector
 
 from .base import Candle, DataSource
 
@@ -80,6 +78,10 @@ class BacktestDataSource(DataSource):
         self.timeframe = data.get("timeframe", pd.Series(["1h"]))[0] if "timeframe" in data.columns else "1h"
 
         # Create modular architecture: Connector → Adapter → Croupier
+        # Import here to avoid circular imports
+        from exchanges.adapters.ccxt_adapter import CCXTAdapter
+        from exchanges.connectors.virtual_exchange import VirtualExchangeConnector
+
         # 1. Virtual Exchange (The "Real" Exchange Simulation)
         self.connector = VirtualExchangeConnector(
             initial_balance=initial_balance,
@@ -99,6 +101,7 @@ class BacktestDataSource(DataSource):
         self.croupier = Croupier(
             exchange_adapter=self.adapter,
             initial_balance=initial_balance,
+            position_tracker_mode="simulation",  # Use simulation mode for backtest
         )
 
         self._connected = False
