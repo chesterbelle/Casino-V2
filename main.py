@@ -281,12 +281,16 @@ def _print_human_summary(mode: str, stats: dict, session_stats: dict):
     wins = int(stats.get("wins", session_stats.get("wins", 0)))
     losses = int(stats.get("losses", session_stats.get("losses", 0)))
 
-    # Prefer backtest win_rate when present; otherwise compute from bets
-    if "win_rate" in stats and stats.get("win_rate") not in (None, 0):
-        win_rate_bet = float(stats.get("win_rate", 0.0)) * 100.0
-    else:
-        denom = bets if bets else (wins + losses)
-        win_rate_bet = (wins / denom * 100.0) if denom else 0.0
+    bets = int(session_stats.get("bets", 0))
+    ghosts = int(session_stats.get("ghosts", 0))
+    skips = int(session_stats.get("skips", 0))
+
+    wins = int(stats.get("wins", session_stats.get("wins", 0)))
+    losses = int(stats.get("losses", session_stats.get("losses", 0)))
+
+    # Calcular WinRate basado en los resultados (W/L)
+    denom = wins + losses
+    win_rate = (wins / denom * 100.0) if denom > 0 else 0.0
 
     total_fees = stats.get("total_fees")
     funding_total = stats.get("funding_total")  # may be None if not tracked
@@ -295,11 +299,11 @@ def _print_human_summary(mode: str, stats: dict, session_stats: dict):
     logger.info("-" * 59)
     logger.info(f"   Balance inicial       : {fmt(initial_balance)}")
     logger.info(f"   Velas procesadas      : {candles}")
-    logger.info(f"   Trades BET            : {bets}")
-    logger.info(f"   Trades GHOST          : {ghosts}")
-    logger.info(f"   Trades SKIP           : {skips}")
-    logger.info(f"   Wins / Losses         : {wins} / {losses}")
-    logger.info(f"   WinRate (BET)         : {win_rate_bet:.2f}%")
+    logger.info(f"   Veredictos (BET)      : {bets}")
+    logger.info(f"   Veredictos (GHOST)    : {ghosts}")
+    logger.info(f"   Veredictos (SKIP)     : {skips}")
+    logger.info(f"   Resultados (W/L)      : {wins} / {losses}")
+    logger.info(f"   WinRate (Señal)       : {win_rate:.2f}%")
     logger.info(f"   Comisiones totales    : {fmt(total_fees) if total_fees is not None else 'N/A'}")
     logger.info(f"   Funding total         : {fmt(funding_total) if funding_total is not None else 'N/A'}")
     logger.info(f"   Liquidaciones         : {liquidations}")
