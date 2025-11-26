@@ -101,7 +101,6 @@ class BacktestDataSource(DataSource):
         self.croupier = Croupier(
             exchange_adapter=self.adapter,
             initial_balance=initial_balance,
-            position_tracker_mode="simulation",  # Use simulation mode for backtest
         )
 
         self._connected = False
@@ -197,7 +196,41 @@ class BacktestDataSource(DataSource):
         logger.info("✅ Backtest data source connected")
 
     async def disconnect(self) -> None:
-        """Close backtest."""
+        """Close backtest and force-close any open positions."""
+        # Force-close all open positions at market price
+        positions = await self.connector.fetch_positions()
+
+        if positions:
+            logger.info(f"🔒 Force-closing {len(positions)} open position(s) at session end...")
+
+            for position in positions:
+                symbol = position["symbol"]
+                amount = position["contracts"]  # VirtualExchange uses 'contracts' not 'amount'
+                side = "sell" if position["side"] == "LONG" else "buy"
+
+                # Get current market price from last candle
+                if self.index > 0:
+                    last_candle = self.data.iloc[self.index - 1]
+                    close_price = float(last_candle["close"])
+                else:
+                    close_price = position["entryPrice"]  # VirtualExchange uses 'entryPrice'
+
+                # Create market order to close position
+                try:
+                    await self.connector.create_order(
+                        symbol=symbol,
+                        type="market",
+                        side=side,
+                        amount=amount,
+                        price=close_price,
+                    )
+                    logger.info(
+                        f"✅ Closed {position['side']} position for {symbol} | "
+                        f"Amount: {amount} | Price: {close_price:.2f}"
+                    )
+                except Exception as e:
+                    logger.error(f"❌ Failed to close position {symbol}: {e}")
+
         await self.connector.close()
         self._connected = False
         logger.info("🔌 Backtest data source disconnected")
@@ -290,11 +323,11 @@ class BacktestDataSource(DataSource):
         trades = self.connector._trades  # Access internal history
 
         # Calculate stats
-        # Calculate stats
         # Filter out opening trades (pnl is None)
         closed_trades = [t for t in trades if t.get("pnl") is not None]
 
-        total_pnl = sum(t["pnl"] for t in closed_trades)
+        realized_pnl = sum(t["pnl"] for t in closed_trades)
+        total_pnl = realized_pnl + unrealized_pnl  # Include unrealized PnL from open positions
         total_fees = sum(t["fee"] for t in trades)
 
         wins = [t for t in closed_trades if t["pnl"] > 0]
@@ -307,7 +340,7 @@ class BacktestDataSource(DataSource):
             "total_pnl": total_pnl,
             "total_fees": total_fees,
             "net_pnl": total_pnl,  # Already net in VirtualExchange
-            "total_trades": len(trades),
+            "total_trades": len(closed_trades),  # Count only completed trades (with PnL)
             "wins": len(wins),
             "losses": len(losses),
             "win_rate": len(wins) / len(closed_trades) if closed_trades else 0,

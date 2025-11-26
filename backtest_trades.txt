@@ -1,0 +1,7 @@
+2025-11-25 19:39:45,239 | VirtualExchange | INFO | ⚡ Order filled (Virtual) | SELL 0.104 @ 85.73 | Fee: 0.0036 | PnL: 0.00
+2025-11-25 19:39:45,246 | VirtualExchange | INFO | ⚡ Order filled (Virtual) | BUY 0.104 @ 85.31 | Fee: 0.0035 | PnL: 0.04
+2025-11-25 19:39:45,249 | VirtualExchange | INFO | ⚡ Order filled (Virtual) | BUY 0.419 @ 85.15 | Fee: 0.0143 | PnL: 0.00
+2025-11-25 19:39:45,415 | VirtualExchange | INFO | ⚡ Order filled (Virtual) | SELL 0.419 @ 85.57 | Fee: 0.0143 | PnL: 0.16
+2025-11-25 19:39:45,422 | VirtualExchange | INFO | ⚡ Order filled (Virtual) | BUY 0.833 @ 85.60 | Fee: 0.0285 | PnL: 0.00
+2025-11-25 19:39:45,435 | VirtualExchange | INFO | ⚡ Order filled (Virtual) | SELL 0.833 @ 85.52 | Fee: 0.0285 | PnL: -0.09
+2025-11-25 19:39:45,435 | core.data_sources.backtest | INFO | ✅ Closed LONG position for LTCUSDT:USDT | Amount: 0.833 | Price: 85.53

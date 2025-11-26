@@ -2,10 +2,10 @@
 COMPARISON REPORT: Testing vs Backtesting
 ================================================================================
 
-Generated: 2025-11-25T13:23:16.364425
+Generated: 2025-11-25T21:01:34.170716
 
-Testing file: 2025-11-25T13:23:09.236101
-Backtest file: 2025-11-25T13:23:16.162666
+Testing file: 2025-11-25T21:01:25.943201
+Backtest file: 2025-11-25T21:01:33.952117
 
 Tolerance: ±0.5%
 
@@ -14,16 +14,16 @@ Tolerance: ±0.5%
 METRICS:
 
   Initial Balance:
-    Testing:    $3,566.47
-    Backtesting: $3,566.47
+    Testing:    $3,566.06
+    Backtesting: $3,566.06
 
   Final Balance:
-    Testing:    $3,566.43
-    Backtesting: $3,557.57
+    Testing:    $3,566.02
+    Backtesting: $3,566.05
 
   Total PnL:
     Testing:    $-0.04
-    Backtesting: $-0.01
+    Backtesting: $-0.00
 
   Total Trades:
     Testing:    1

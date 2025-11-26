@@ -1,0 +1,1 @@
+2025-11-25 19:39:30,650 | Casino-V2 | INFO | ✅ Closed 1 position(s) via Croupier

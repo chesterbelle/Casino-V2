@@ -33,6 +33,7 @@ class VirtualExchangeConnector(BaseConnector):
         fee_rate: float = 0.0006,  # 0.06% (Taker)
         maker_fee_rate: float = 0.0002,  # 0.02% (Maker)
         slippage_rate: float = 0.0001,  # 0.01%
+        simulation_spread: float = 0.0005,  # 0.05% (Spread simulation)
         min_amount: float = 0.001,
         amount_precision: int = 3,
     ):
@@ -43,6 +44,7 @@ class VirtualExchangeConnector(BaseConnector):
         self.fee_rate = fee_rate
         self.maker_fee_rate = maker_fee_rate
         self.slippage_rate = slippage_rate
+        self.simulation_spread = simulation_spread
         self.min_amount = min_amount
         self.amount_precision = amount_precision
         self.base_currency = "USD"
@@ -144,14 +146,53 @@ class VirtualExchangeConnector(BaseConnector):
             # Simplified logic based on standard exchange behavior:
             # We assume the order was placed correctly relative to price.
 
+            # Spread simulation: Always trade against the spread
+            # SELL orders execute at BID (Price - Spread)
+            # BUY orders execute at ASK (Price + Spread)
+
+            spread_val = stop_price * self.simulation_spread
+
+            # Calculate effective candle range for execution
+            bid_high = high - spread_val
+            bid_low = low - spread_val
+            ask_high = high + spread_val
+            ask_low = low + spread_val
+
             if side == "sell":
-                # Trigger if price drops below stop (SL) or rises above stop (TP)
-                # We check if the candle range [low, high] touches the stopPrice
-                if low <= stop_price <= high:
+                # SELL STOP logic
+                # We need to determine if this is a Stop Loss (trigger on drop) or Take Profit (trigger on rise)
+                # Since we don't track the intent, we check both possibilities relative to the range
+
+                # Case A: Price drops to stop (SL behavior) -> Check Bid Low
+                if bid_low <= stop_price <= self._current_price:
                     triggered = True
-                    execution_price = stop_price  # Execute at stop price (ideal) or slippage
+                    execution_price = stop_price
+
+                # Case B: Price rises to stop (TP behavior) -> Check Bid High
+                elif self._current_price <= stop_price <= bid_high:
+                    triggered = True
+                    execution_price = stop_price
+
+                # Case C: Candle fully engulfs stop (Gap)
+                elif bid_low <= stop_price <= bid_high:
+                    triggered = True
+                    execution_price = stop_price
+
             else:  # buy
-                if low <= stop_price <= high:
+                # BUY STOP logic
+
+                # Case A: Price rises to stop (SL for Short) -> Check Ask High
+                if self._current_price <= stop_price <= ask_high:
+                    triggered = True
+                    execution_price = stop_price
+
+                # Case B: Price drops to stop (TP for Short) -> Check Ask Low
+                elif ask_low <= stop_price <= self._current_price:
+                    triggered = True
+                    execution_price = stop_price
+
+                # Case C: Candle fully engulfs
+                elif ask_low <= stop_price <= ask_high:
                     triggered = True
                     execution_price = stop_price
 
@@ -262,11 +303,20 @@ class VirtualExchangeConnector(BaseConnector):
                 close_amount = min(amount, position["amount"])
                 remaining = position["amount"] - close_amount
 
-                # Calculate PnL
+                # Calculate PnL (Net of fees)
+                # Gross PnL
                 if pos_side == "LONG":
-                    pnl = (price - position["entry_price"]) * close_amount
+                    gross_pnl = (price - position["entry_price"]) * close_amount
                 else:
-                    pnl = (position["entry_price"] - price) * close_amount
+                    gross_pnl = (position["entry_price"] - price) * close_amount
+
+                # Calculate fees for closing trade
+                # Note: fees are calculated on notional value (price * amount)
+                closing_fee = close_amount * price * self.fee_rate
+
+                # Net PnL = Gross PnL - Closing Fee
+                # Note: Opening fee was already deducted from balance when opening
+                pnl = gross_pnl - closing_fee
 
                 # Return margin + PnL
                 margin_released = close_amount * position["entry_price"]

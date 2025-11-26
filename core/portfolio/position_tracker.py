@@ -32,7 +32,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 if TYPE_CHECKING:
     from exchanges.adapters.ccxt_adapter import CCXTAdapter
@@ -96,16 +96,11 @@ class PositionTracker:
     def __init__(
         self,
         max_concurrent_positions: int = 1,
-        mode: Literal["simulation", "confirmed", "hybrid"] = "hybrid",
         adapter: Optional["CCXTAdapter"] = None,
     ):
         """
         Args:
             max_concurrent_positions: Máximo número de posiciones simultáneas permitidas
-            mode: Modo de operación:
-                - "simulation": Simula cierres con OHLC (backtest)
-                - "confirmed": Solo cierra con confirmación del exchange (live)
-                - "hybrid": Detecta + espera confirmación (recomendado)
             adapter: CCXTAdapter para OCO manual (agnóstico del conector)
         """
         self.open_positions: List[OpenPosition] = []
@@ -116,13 +111,10 @@ class PositionTracker:
         self.total_wins = 0  # Track wins
         self.total_losses = 0  # Track losses
 
-        # NUEVO v1.9.1: Modo de operación
-        self.mode = mode
-
-        # NUEVO v1.9.1: Tracking de confirmaciones pendientes
+        # Tracking de confirmaciones pendientes
         self.pending_confirmations: Dict[str, Dict[str, Any]] = {}
 
-        logger.info(f"PositionTracker inicializado | Modo: {mode} | Max positions: {max_concurrent_positions}")
+        logger.info(f"PositionTracker inicializado | Max positions: {max_concurrent_positions}")
 
     def get_available_equity(self, total_equity: float) -> float:
         """Calcula capital disponible (total - bloqueado)."""
@@ -281,143 +273,20 @@ class PositionTracker:
 
     def check_and_close_positions(self, current_candle: Dict[str, Any]) -> List[Dict[str, Any]]:
         """
-        Revisa todas las posiciones abiertas según el modo configurado.
-
-        VERSIÓN v1.9.1: Soporte para 3 modos
-        -------------------------------------
-        - **simulation**: Cierra inmediatamente si TP/SL tocado
-        - **confirmed**: No cierra, solo espera confirmación del exchange
-        - **hybrid**: Detecta TP/SL, marca como pending, espera confirmación
+        Verifica si alguna posición debe cerrarse según la vela actual.
+        Detecta TP/SL tocados y marca como pending para verificación con exchange.
 
         Args:
-            current_candle: Vela actual con OHLC
+            current_candle: Vela actual con keys: timestamp, open, high, low, close
 
         Returns:
-            Lista de resultados de posiciones cerradas (o pending en modo hybrid)
+            Lista de resultados de cierre (o eventos pending)
         """
-        if self.mode == "simulation":
-            return self._simulate_closes(current_candle)
-        elif self.mode == "confirmed":
-            # Solo actualiza bars_held, no cierra nada
-            for position in self.open_positions:
-                position.bars_held += 1
-            return []
-        else:  # hybrid
-            return self._hybrid_check(current_candle)
+        return self._check_potential_exits(current_candle)
 
-    def _simulate_closes(self, current_candle: Dict[str, Any]) -> List[Dict[str, Any]]:
+    def _check_potential_exits(self, current_candle: Dict[str, Any]) -> List[Dict[str, Any]]:
         """
-        Modo simulation: Cierra inmediatamente si TP/SL tocado (backtest).
-        """
-        closed_results = []
-        positions_to_remove = []
-
-        high = float(current_candle.get("high", 0))
-        low = float(current_candle.get("low", 0))
-        timestamp = current_candle.get("timestamp", "")
-
-        for position in self.open_positions:
-            position.bars_held += 1
-
-            # Verificar si tocó TP/SL en esta vela
-            exit_reason = None
-            exit_price = None
-
-            if position.side == "LONG":
-                # Liquidation check
-                if position.liquidation_level and low <= position.liquidation_level:
-                    exit_reason = "LIQUIDATION"
-                    exit_price = position.liquidation_level
-                # SL check (prioridad sobre TP)
-                elif low <= position.sl_level:
-                    exit_reason = "SL"
-                    exit_price = position.sl_level
-                # TP check
-                elif high >= position.tp_level:
-                    exit_reason = "TP"
-                    exit_price = position.tp_level
-
-            elif position.side == "SHORT":
-                # Liquidation check
-                if position.liquidation_level and high >= position.liquidation_level:
-                    exit_reason = "LIQUIDATION"
-                    exit_price = position.liquidation_level
-                # SL check
-                elif high >= position.sl_level:
-                    exit_reason = "SL"
-                    exit_price = position.sl_level
-                # TP check
-                elif low <= position.tp_level:
-                    exit_reason = "TP"
-                    exit_price = position.tp_level
-
-            # Si se cerró la posición
-            if exit_reason:
-                # Calcular P&L
-                if position.side == "LONG":
-                    pnl_pct = (exit_price - position.entry_price) / position.entry_price
-                else:
-                    pnl_pct = (position.entry_price - exit_price) / position.entry_price
-
-                pnl_value = position.notional * pnl_pct
-
-                # Crear resultado estandarizado
-                result = {
-                    "trade_id": position.trade_id,
-                    "result": "WIN" if pnl_value > 0 else "LOSS",
-                    "pnl": pnl_value,
-                    "pnl_pct": pnl_pct,
-                    "fee": 0.0,  # Fees ya calculados en apertura
-                    "funding": position.funding_accrued,
-                    "liquidated": exit_reason == "LIQUIDATION",
-                    "margin_used": position.margin_used,
-                    "notional": position.notional,
-                    "leverage": position.leverage,
-                    "symbol": position.symbol,
-                    "entry_price": position.entry_price,
-                    "trigger_price": exit_price,
-                    "bars_held": position.bars_held,
-                    "exit_reason": exit_reason,
-                    "exit_timestamp": timestamp,
-                    "market": current_candle.get("market", ""),
-                    "timeframe": current_candle.get("timeframe", ""),
-                    "timestamp": timestamp,
-                    "side": position.side,
-                    "action": "CLOSE",
-                    "ghost": False,
-                    "confirmed": True,  # En simulation, se considera confirmado
-                }
-
-                logger.debug(
-                    f"🔍 P&L Calc | {position.symbol} {position.side} | "
-                    f"Entry: {position.entry_price:.2f} | Exit: {exit_price:.2f} | "
-                    f"P&L: {pnl_value:+.2f} ({pnl_pct:.4%}) | "
-                    f"Notional: {position.notional:.2f} | Side: {position.side}"
-                )
-
-                closed_results.append(result)
-                positions_to_remove.append(position)
-
-                # Liberar capital bloqueado
-                self.blocked_capital -= position.margin_used
-                self.total_trades_closed += 1
-
-                logger.info(
-                    f"🔒 CLOSE (simulation) | {position.symbol} {position.side} | "
-                    f"Exit: {exit_price:.2f} ({exit_reason}) | "
-                    f"P&L: {pnl_value:+.2f} ({pnl_pct:.2%}) | Bars: {position.bars_held}"
-                )
-
-        # Remover posiciones cerradas
-        for pos in positions_to_remove:
-            self.open_positions.remove(pos)
-
-        return closed_results
-
-    def _hybrid_check(self, current_candle: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """
-        Modo hybrid: Detecta TP/SL tocados, marca como pending, espera confirmación.
-
+        Detecta TP/SL tocados, marca como pending, espera confirmación.
         NO cierra la posición ni cuenta como WIN/LOSS hasta que exchange confirme.
         """
         potential_closes = []
