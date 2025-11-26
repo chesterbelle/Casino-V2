@@ -200,18 +200,78 @@ class Gemini:
         # Determinar consenso de lado
         long_voters, short_voters, base_meta = self._collect_votes_by_side(signals)
 
-        # Conflicto de lado: no apostar
+        # Conflicto de lado: resolver en lugar de descartar
         if long_voters and short_voters:
-            participants = list({*long_voters, *short_voters})
-            trade_id = self._make_trade_id(base_meta, side="CONFLICT")
+            self.logger.info(
+                f"🥊 Conflicto detectado: {len(long_voters)} LONG vs {len(short_voters)} SHORT. Resolviendo..."
+            )
+            long_metrics = self._participant_metrics(long_voters)
+            short_metrics = self._participant_metrics(short_voters)
+
+            # Encontrar el Kelly conservador más alto para cada lado
+            max_long_kelly = 0.0
+            approved_long_metrics = [m for m in long_metrics if m.approved and m.kelly > 0]
+            if approved_long_metrics:
+                max_long_kelly = max(m.kelly for m in approved_long_metrics)
+
+            max_short_kelly = 0.0
+            approved_short_metrics = [m for m in short_metrics if m.approved and m.kelly > 0]
+            if approved_short_metrics:
+                max_short_kelly = max(m.kelly for m in approved_short_metrics)
+
+            # Resolver el conflicto
+            if max_long_kelly > max_short_kelly:
+                self.logger.info(
+                    f"✅ Conflicto resuelto a favor de LONG (Kelly: {max_long_kelly:.4f} > {max_short_kelly:.4f})"
+                )
+                chosen_side = "LONG"
+                side_voters = long_voters
+                participant_metrics = long_metrics
+                reason_suffix = "long_gano_conflicto"
+            elif max_short_kelly > max_long_kelly:
+                self.logger.info(
+                    f"✅ Conflicto resuelto a favor de SHORT (Kelly: {max_short_kelly:.4f} > {max_long_kelly:.4f})"
+                )
+                chosen_side = "SHORT"
+                side_voters = short_voters
+                participant_metrics = short_metrics
+                reason_suffix = "short_gano_conflicto"
+            else:
+                # Si son iguales o ambos cero, no hay ventaja clara
+                self.logger.info("⚖️ Conflicto no resuelto (Kelly igual o cero). No se apuesta.")
+                participants = list({*long_voters, *short_voters})
+                trade_id = self._make_trade_id(base_meta, side="CONFLICT_UNRESOLVED")
+                self.memory.register_vote_set(trade_id, self._serialize_participants(participants))
+                self._last_verdict_meta = base_meta
+                return Verdict(
+                    trade_id=trade_id,
+                    side=None,
+                    reason="conflicto_no_resuelto",
+                    metrics=[],
+                    participants=participants,
+                    meta=base_meta,
+                )
+
+            # Proceder con el lado ganador
+            participants = side_voters
+            trade_id = self._make_trade_id(base_meta, side=chosen_side)
             self.memory.register_vote_set(trade_id, self._serialize_participants(participants))
             self._last_verdict_meta = base_meta
 
+            approved_metrics = [m for m in participant_metrics if m.approved]
+            if not approved_metrics:
+                reason = f"sin_aprobadas_{reason_suffix}"
+            else:
+                positive_metrics = [m for m in approved_metrics if m.kelly > 0]
+                reason = f"aprobado_{reason_suffix}" if positive_metrics else f"kelly_no_positivo_{reason_suffix}"
+
+            self._log_verdict(trade_id, chosen_side, reason, base_meta, participants, participant_metrics, equity)
+
             return Verdict(
                 trade_id=trade_id,
-                side=None,
-                reason="conflicto_de_lado",
-                metrics=[],
+                side=chosen_side,
+                reason=reason,
+                metrics=participant_metrics,
                 participants=participants,
                 meta=base_meta,
             )
