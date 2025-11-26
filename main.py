@@ -302,8 +302,12 @@ def _print_human_summary(mode: str, stats: dict, session_stats: dict):
     logger.info(f"   Veredictos (BET)      : {bets}")
     logger.info(f"   Veredictos (GHOST)    : {ghosts}")
     logger.info(f"   Veredictos (SKIP)     : {skips}")
+
+    # Métricas de ejecución real
+    executed_trades = int(stats.get("total_trades", 0))
+    logger.info(f"   Trades Ejecutados     : {executed_trades}")
     logger.info(f"   Resultados (W/L)      : {wins} / {losses}")
-    logger.info(f"   WinRate (Señal)       : {win_rate:.2f}%")
+    logger.info(f"   WinRate (Ejecutado)   : {win_rate:.2f}%")
     logger.info(f"   Comisiones totales    : {fmt(total_fees) if total_fees is not None else 'N/A'}")
     logger.info(f"   Funding total         : {fmt(funding_total) if funding_total is not None else 'N/A'}")
     logger.info(f"   Liquidaciones         : {liquidations}")
