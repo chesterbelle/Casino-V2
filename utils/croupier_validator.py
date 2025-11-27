@@ -82,6 +82,14 @@ class CroupierValidator:
             base_connector = BybitConnector(mode="demo")
         elif self.exchange_name == "kraken":
             base_connector = KrakenConnector(mode="demo")
+        elif self.exchange_name == "hyperliquid":
+            from exchanges.connectors.hyperliquid.hyperliquid_connector import (
+                HyperliquidConnector,
+            )
+
+            # Map "demo" to "testing" for Hyperliquid
+            hl_mode = "testing" if self.mode == "demo" else "live"
+            base_connector = HyperliquidConnector(mode=hl_mode, enable_websocket=True)
         else:
             raise ValueError(f"Exchange '{self.exchange_name}' no soportado.")
         self.connector = ResilientConnector(connector=base_connector)
@@ -89,7 +97,8 @@ class CroupierValidator:
         self.adapter = CCXTAdapter(self.connector, self.symbol)
         # Balance real del exchange
         balance_data = await self.connector.fetch_balance()
-        initial_balance = balance_data.get("free", {}).get("USDT", 0.0)
+        # Support both USDT (Binance) and USDC (Hyperliquid)
+        initial_balance = balance_data.get("free", {}).get("USDT", 0.0) or balance_data.get("free", {}).get("USDC", 0.0)
         if initial_balance <= 10:
             raise ValueError(f"Balance insuficiente para el test: ${initial_balance:.2f}")
         logger.info(f"Balance real obtenido: ${initial_balance:,.2f}")
@@ -596,7 +605,9 @@ class CroupierValidator:
 
         # 2. Balance real del exchange
         exchange_balance_data = await self.connector.fetch_balance()
-        exchange_balance = exchange_balance_data.get("free", {}).get("USDT", 0.0)
+        exchange_balance = exchange_balance_data.get("free", {}).get("USDT", 0.0) or exchange_balance_data.get(
+            "free", {}
+        ).get("USDC", 0.0)
 
         logger.info(f"Balance Croupier: ${croupier_balance:.2f}")
         logger.info(f"Balance Exchange: ${exchange_balance:.2f}")
