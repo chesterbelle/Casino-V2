@@ -10,6 +10,19 @@ from typing import Dict, Iterable, List, Tuple
 
 from config import sensors as sensors_config
 
+from .high_frequency_scalping import (
+    AdaptiveRSIScalper,
+    BollingerBandRejection,
+    HurstRegime,
+    KeltnerBreakout,
+    MicroTrendPullback,
+    MomentumBurst,
+    SmartRangeScalper,
+    VolatilityWakeup,
+    VolumeFlowImbalance,
+    VSAReversal,
+    VWAPMomentum,
+)
 from .mean_reversion import (
     BollingerSqueeze,
     BollingerTouch,
@@ -26,6 +39,13 @@ from .momentum_trend_following import (
     MACDCrossover,
     ParabolicSAR,
     Supertrend,
+)
+from .price_action import (
+    EngulfingPattern,
+    FakeoutReversal,
+    InsideBarBreakout,
+    PinBarReversal,
+    ThreeBarReversal,
 )
 from .volumen_flujo_capital import (
     AccumulationDistribution,
@@ -55,6 +75,26 @@ SENSOR_REGISTRY: Dict[str, type] = {
     "VWAPDeviation": VWAPDeviation,
     "MFIReversion": MFIReversion,
     "AccumulationDistribution": AccumulationDistribution,
+    # Scalping High-Freq (4 sensores)
+    "AdaptiveRSIScalper": AdaptiveRSIScalper,
+    "MomentumBurst": MomentumBurst,
+    "BollingerBandRejection": BollingerBandRejection,
+    "VSAReversal": VSAReversal,
+    # Regimen (3 sensores)
+    "SmartRangeScalper": SmartRangeScalper,
+    "MicroTrendPullback": MicroTrendPullback,
+    "VolatilityWakeup": VolatilityWakeup,
+    # HFT Avanzados (4 sensores)
+    "VWAPMomentum": VWAPMomentum,
+    "KeltnerBreakout": KeltnerBreakout,
+    "VolumeFlowImbalance": VolumeFlowImbalance,
+    "HurstRegime": HurstRegime,
+    # Price Action (5 sensores)
+    "PinBarReversal": PinBarReversal,
+    "EngulfingPattern": EngulfingPattern,
+    "InsideBarBreakout": InsideBarBreakout,
+    "FakeoutReversal": FakeoutReversal,
+    "ThreeBarReversal": ThreeBarReversal,
 }
 
 

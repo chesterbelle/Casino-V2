@@ -117,7 +117,7 @@ class Croupier:
         except Exception as e:
             self.logger.error(f"❌ Error during orphaned position cleanup for {symbol}: {e}", exc_info=True)
 
-    def __init__(self, exchange_adapter, initial_balance: float):
+    def __init__(self, exchange_adapter, initial_balance: float, gemini=None):
         """
         Inicializa el Croupier como el dueño del estado.
 
@@ -132,6 +132,7 @@ class Croupier:
         self.balance_manager = BalanceManager(starting_balance=initial_balance)
         self.position_tracker = PositionTracker(
             adapter=exchange_adapter,  # Pasar adapter para OCO manual
+            on_close_callback=gemini.on_trade_result if gemini else None,
         )
         self.state_sync = ExchangeStateSync(exchange_adapter.connector)
         # --------------------------------------------

@@ -54,6 +54,7 @@ from config import strategy, trading
 from .bucket_manager import BucketManager
 from .decision_logger import DecisionLogger
 from .memory import GeminiMemory
+from .signal_logger import SignalLogger
 
 try:
     from scipy.stats import beta as scipy_beta  # type: ignore
@@ -176,6 +177,7 @@ class Gemini:
             min_support=getattr(strategy, "MIN_SUPPORT", 20),
         )
         self.decision_logger = DecisionLogger()
+        self.signal_logger = SignalLogger()
         # Almacenar base_meta temporalmente para make_order_from_verdict
         self._last_verdict_meta: Optional[Dict] = None
 
@@ -306,6 +308,7 @@ class Gemini:
 
         # Log de la decisión (para análisis)
         self._log_verdict(trade_id, chosen_side, reason, base_meta, participants, participant_metrics, equity)
+        self._log_signal_features(trade_id, chosen_side, signals)
 
         return Verdict(
             trade_id=trade_id,
@@ -341,7 +344,8 @@ class Gemini:
             participants = list({*long_voters, *short_voters})
             trade_id = self._make_trade_id(base_meta, side="CONFLICT")
             self.memory.register_vote_set(trade_id, self._serialize_participants(participants))
-            order = self._make_order(base_meta, side="LONG", size_fraction=0.0)
+            contributors = [p.strategy for p in participants]
+            order = self._make_order(base_meta, side="LONG", size_fraction=0.0, contributors=contributors)
             decision = Decision(action="GHOST", side=None, order=order, reason="conflicto_de_lado", trade_id=trade_id)
             self._log_decision(decision, base_meta, order, participants, [], equity)
             return decision
@@ -385,9 +389,11 @@ class Gemini:
                 # Este caso es raro, pero por si acaso min() diera 0
                 reason = "kelly_conservador_cero"
 
-        order = self._make_order(base_meta, side=chosen_side, size_fraction=size_fraction)
+        contributors = [p.strategy for p in participants]
+        order = self._make_order(base_meta, side=chosen_side, size_fraction=size_fraction, contributors=contributors)
         decision = Decision(action=action, side=chosen_side, order=order, reason=reason, trade_id=trade_id)
         self._log_decision(decision, base_meta, order, participants, participant_metrics, equity)
+        self._log_signal_features(trade_id, chosen_side, signals)
         return decision
 
     # -----------------------------------------------------
@@ -615,7 +621,7 @@ class Gemini:
         market = f"{sym}@{tf}" if tf and tf != "UNKNOWN" else sym
         return f"{market}-{side}-{ts}"
 
-    def _make_order(self, meta: dict, side: str, size_fraction: float) -> dict:
+    def _make_order(self, meta: dict, side: str, size_fraction: float, contributors: List[str] = None) -> dict:
         """
         Construye la orden estandarizada para el Croupier/Mesa.
 
@@ -657,6 +663,7 @@ class Gemini:
             "take_profit": R_GROSS,  # Porcentaje (ej: 0.01)
             "stop_loss": L_GROSS,  # Porcentaje (ej: 0.01)
             "type": "market",  # ← MARKET order como lo hacen los bots profesionales
+            "contributors": contributors or [],
         }
         if timeframe and timeframe != "UNKNOWN":
             order["market"] = f"{symbol}@{timeframe}"
@@ -718,12 +725,15 @@ class Gemini:
         origin = origin_override or self._infer_origin(signal)
         symbol = signal.get("symbol", "UNKNOWN")
         timeframe = signal.get("timeframe", "UNKNOWN")
+
         try:
             bucket = self.bucket_manager.identify_bucket(signal)
         except Exception as exc:
             self.logger.debug(f"[Gemini] Bucket inválido para {origin}: {exc}")
             bucket = "UNKNOWN"
-        return Participant(strategy=origin, bucket=bucket, symbol=symbol, timeframe=timeframe)
+
+        p = Participant(strategy=origin, bucket=bucket, symbol=symbol, timeframe=timeframe)
+        return p
 
     def _serialize_participants(self, participants: List[Participant]) -> List[Dict[str, str]]:
         """
@@ -913,6 +923,46 @@ class Gemini:
             ]
 
         self.decision_logger.log(rows)
+
+    def _log_signal_features(self, trade_id: str, side: str, signals: List[dict]) -> None:
+        """
+        Logs detailed features of the signal(s) that led to the trade.
+        """
+        if not self.signal_logger or not trade_id:
+            return
+
+        # Find the signal(s) matching the chosen side
+        target_signal = None
+        for s in signals:
+            if s.get("side", "").upper() == side:
+                target_signal = s
+                break
+
+        if not target_signal:
+            return
+
+        features = target_signal.get("features", {})
+
+        # Construct log entry
+        log_entry = {
+            "timestamp": target_signal.get("timestamp"),
+            "trade_id": trade_id,
+            "symbol": target_signal.get("symbol"),
+            "timeframe": target_signal.get("timeframe"),
+            "side": side,
+            "price_entry": features.get("close", ""),
+            "atr": features.get("atr", ""),
+            "bbw": features.get("bbw", ""),
+            "rsi2": features.get("rsi2", ""),
+            "touch_dn": features.get("touch_dn", ""),
+            "touch_up": features.get("touch_up", ""),
+            "cond_bbw": features.get("cond_bbw", ""),
+            "range_score": target_signal.get("range_score", ""),
+            "bucket_id": self.bucket_manager.identify_bucket(target_signal),
+            "contributors": ",".join(target_signal.get("contributors", [])),
+        }
+
+        self.signal_logger.log_signal(log_entry)
 
     # -----------------------------------------------------
     # API para construir órdenes desde Verdict

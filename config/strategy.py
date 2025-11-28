@@ -29,7 +29,7 @@ KELLY_FRACTION = 0.1  # Más conservador para live trading
 BAYES_CREDIBILITY_THRESHOLD = 0.7
 
 # Percentil inferior para cálculo conservador
-BAYES_LOWER_PERCENTILE = 0.05
+BAYES_LOWER_PERCENTILE = 0.2
 
 # Priors bayesianos (alpha, beta)
 BAYES_ALPHA = 1.0

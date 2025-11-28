@@ -331,19 +331,25 @@ class VirtualExchangeConnector(BaseConnector):
                     position["amount"] = remaining
 
         # 3. Record Trade
-        self._trades.append(
-            {
-                "id": f"tr_{self._order_seq}",
-                "order": order["id"],
-                "symbol": symbol,
-                "side": side,
-                "amount": amount,
-                "price": price,
-                "fee": fee,
-                "timestamp": self._current_timestamp,
-                "pnl": order.get("realized_pnl"),  # None for opening trades
-            }
-        )
+        trade_record = {
+            "id": f"tr_{self._order_seq}",
+            "order": order["id"],
+            "symbol": symbol,
+            "side": side,
+            "amount": amount,
+            "price": price,
+            "fee": fee,
+            "timestamp": self._current_timestamp,
+            "pnl": order.get("realized_pnl"),  # None for opening trades
+        }
+
+        # Add entry details for closing trades
+        if order.get("realized_pnl") is not None:
+            trade_record["entry_price"] = position["entry_price"]
+            trade_record["entry_time"] = position["timestamp"]
+            trade_record["position_side"] = position["side"]
+
+        self._trades.append(trade_record)
 
     def _cancel_siblings(self, filled_order: Dict) -> None:
         """

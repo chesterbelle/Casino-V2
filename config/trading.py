@@ -15,9 +15,10 @@ Parámetros financieros y de gestión de riesgo.
 STARTING_BALANCE = 10_000.0
 
 # Tamaños relativos de TP y SL (expresados en proporción decimal)
-# Ejemplo: 0.01 = 1% de take profit, 0.008 = 0.8% de stop loss
-TAKE_PROFIT = 0.003  # 0.3% target
-STOP_LOSS = 0.009  # 1% stop (Ratio 1:3)
+# Asymmetric ratio based on MFE/MAE: TP=0.3% (71% of avg MFE=0.42%), SL=0.6% (2.1x avg MAE=0.28%)
+# Gives signals room to breathe while capturing realistic profit targets
+TAKE_PROFIT = 0.003  # 0.3% target (conservative, captures 71% of typical favorable move)
+STOP_LOSS = 0.006  # 0.6% stop (generous, allows 2x typical adverse move)
 
 
 # =====================================================
@@ -26,7 +27,7 @@ STOP_LOSS = 0.009  # 1% stop (Ratio 1:3)
 
 # Configuración básica de trading
 MAX_LEVERAGE = 50  # máximo apalancamiento permitido
-MAX_POSITION_SIZE = 0.02  # tamaño máximo conservador (2% del equity)
+MAX_POSITION_SIZE = 0.08  # tamaño máximo conservador (8% del equity)
 COMMISSION_RATE = 0.0005  # taker fee (0.05%)
 SLIPPAGE_DEFAULT = 0.0003  # spread estimado
 MAINTENANCE_MARGIN_RATE = 0.003  # margen de mantenimiento (0.3%)

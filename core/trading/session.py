@@ -134,8 +134,14 @@ class TradingSession:
             player_module: Player module (e.g., paroli, martingale)
             max_candles: Maximum candles to process (None = unlimited)
         """
-        self.data_source = data_source
         self.player = player_module
+        self.gemini = Gemini()
+
+        # Pass Gemini instance to data source if it supports it
+        if hasattr(data_source, "set_gemini_instance"):
+            data_source.set_gemini_instance(self.gemini)
+
+        self.data_source = data_source
         self.max_candles = max_candles
 
         # Initialize player state (for progression tracking)
@@ -146,7 +152,6 @@ class TradingSession:
 
         # Initialize components
         self.sensor_manager = SensorManager()
-        self.gemini = Gemini()
 
         # Create pipeline
         self.pipeline = Pipeline(

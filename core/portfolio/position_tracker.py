@@ -61,6 +61,7 @@ class OpenPosition:
     sl_order_id: Optional[str] = None  # ID de la orden SL (STOP_MARKET)
     bars_held: int = 0
     funding_accrued: float = 0.0
+    contributors: List[str] = None  # Sensores que contribuyeron a la señal
 
 
 class PositionTracker:
@@ -97,6 +98,7 @@ class PositionTracker:
         self,
         max_concurrent_positions: int = 1,
         adapter: Optional["CCXTAdapter"] = None,
+        on_close_callback: Optional[callable] = None,
     ):
         """
         Args:
@@ -106,6 +108,7 @@ class PositionTracker:
         self.open_positions: List[OpenPosition] = []
         self.blocked_capital: float = 0.0
         self.max_concurrent_positions = max_concurrent_positions
+        self.on_close_callback = on_close_callback
         self.total_trades_opened = 0
         self.total_trades_closed = 0
         self.total_wins = 0  # Track wins
@@ -253,6 +256,7 @@ class PositionTracker:
                 main_order_id=main_order_id,
                 tp_order_id=tp_order_id,
                 sl_order_id=sl_order_id,
+                contributors=order.get("contributors", []),
             )
 
             # Registrar posición
@@ -433,6 +437,7 @@ class PositionTracker:
             "ghost": False,
             "confirmed": True,  # ← FLAG CRÍTICO
             "state_source": "exchange_confirmed",
+            "contributors": position.contributors,
         }
 
         # Remover de pending si estaba
@@ -459,6 +464,13 @@ class PositionTracker:
             f"Exit: {exit_price:.2f} ({exit_reason}) | "
             f"PnL REAL: {pnl:+.2f} | Fee: {fee:.2f} | Bars: {position.bars_held}"
         )
+
+        # Notificar a Gemini (o cualquier otro listener) sobre el resultado
+        if self.on_close_callback:
+            try:
+                self.on_close_callback(trade_id, result)
+            except Exception as e:
+                logger.error(f"Error en callback on_close_callback: {e}")
 
         return result
 

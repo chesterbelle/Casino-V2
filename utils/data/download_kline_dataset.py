@@ -16,12 +16,13 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
+
 
 import requests
 
 OUTPUT_DIR = os.path.join(
-    os.path.dirname(os.path.dirname(__file__)),
-    "tables",
+    os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
     "data",
     "raw",
 )

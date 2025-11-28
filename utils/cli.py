@@ -85,7 +85,7 @@ def run_download_training_data(
     logger.info(f"  Tag: {tag}")
     logger.info("")
 
-    script_path = ROOT / "utils" / "download_kline_dataset.py"
+    script_path = ROOT / "utils" / "data" / "download_kline_dataset.py"
     if not script_path.exists():
         logger.error("❌ Error: utils/download_kline_dataset.py no encontrado")
         logger.info("   Asegúrate de correr desde la raíz del proyecto.")
@@ -235,11 +235,21 @@ def run_train_memory(pattern: str) -> bool:
                 "-c",
                 textwrap.dedent(
                     f"""
+import asyncio
 import sys
 sys.path.insert(0, '.')
-import config_training as config
-config.DATASET_PATH = {dataset_str!r}
-import main  # noqa: F401
+# Import config_training to override system settings
+import config_training
+from players import paroli_player
+import main
+
+# Run the backtest for training
+asyncio.run(main.run_backtest(
+    player_module=paroli_player,
+    data_file='{dataset_str}',
+    max_candles=None,
+    initial_balance=10000.0
+))
 """
                 ),
             ]

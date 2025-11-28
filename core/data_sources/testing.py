@@ -322,3 +322,14 @@ class TestingDataSource(DataSource):
                 "win_rate": 0,
                 "open_positions": 0,
             }
+
+    def set_gemini_instance(self, gemini):
+        """
+        Set Gemini instance and wire up the callback.
+        This is crucial for Demo/Live modes to persist memory.
+        """
+        if self.croupier and hasattr(self.croupier, "position_tracker"):
+            self.croupier.position_tracker.on_close_callback = gemini.on_trade_result
+            logger.info("✅ Gemini instance wired to Croupier (TestingDataSource)")
+        else:
+            logger.warning("⚠️ Could not wire Gemini: Croupier or PositionTracker missing")

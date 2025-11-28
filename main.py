@@ -368,13 +368,18 @@ async def run_backtest(player_module, data_file, max_candles, initial_balance=No
 
     logger.info(f"📁 Loading data from: {data_file}")
 
-    # Validate that initial_balance is provided for backtest mode
+    # Validate that initial_balance is provided (either via CLI or config)
     if initial_balance is None:
-        logger.error("❌ --initial-balance parameter is required for backtest mode")
-        logger.error("   Example: python main.py --mode=backtest --initial-balance=10000.0 --data=data.csv")
-        raise ValueError("initial_balance parameter is required for backtest mode")
-
-    logger.info(f"💰 Using initial balance: ${initial_balance:,.2f}")
+        # Try to get from config for training mode
+        initial_balance = getattr(system, "STARTING_BALANCE", None)
+        if initial_balance is None:
+            logger.error("❌ --initial-balance parameter is required for backtest mode")
+            logger.error("   Example: python main.py --mode=backtest --initial-balance=10000.0 --data=data.csv")
+            raise ValueError("initial_balance parameter is required for backtest mode")
+        else:
+            logger.info(f"💰 Using initial balance from config: ${initial_balance:,.2f}")
+    else:
+        logger.info(f"💰 Using initial balance from CLI: ${initial_balance:,.2f}")
 
     if data_file.endswith(".parquet"):
         source = BacktestDataSource.from_parquet(data_file, initial_balance=initial_balance)
@@ -400,7 +405,7 @@ async def run_backtest(player_module, data_file, max_candles, initial_balance=No
 
         # Try to collect best-effort stats from source and session
         try:
-            stats = source.get_stats()
+            stats = await source.get_stats()
         except Exception:
             stats = {}
 
@@ -432,6 +437,37 @@ async def run_backtest(player_module, data_file, max_candles, initial_balance=No
 
         # Re-raise to allow upper-level handlers to log/exit as before
         raise
+    finally:
+        # This block is executed regardless of whether an exception occurred or not.
+        # It's intended to provide final stats even on interruption.
+        if session_stats is None:  # Only run if not already populated by successful run
+            logger.info("📊 Finalizing stats after interruption...")
+            try:
+                stats = await source.get_stats()
+            except Exception:
+                stats = {}
+
+            try:
+                current_session_stats = session.get_stats().summary() if hasattr(session, "get_stats") else {}
+            except Exception:
+                current_session_stats = {}
+
+            stats.update(
+                {
+                    "orders_rejected": current_session_stats.get("orders_rejected", 0),
+                    "orders_error": current_session_stats.get("orders_error", 0),
+                    "rejection_reasons": current_session_stats.get("rejection_reasons", []),
+                }
+            )
+
+            _print_human_summary("backtest", stats, current_session_stats)
+            save_results_json(
+                mode="backtest",
+                stats=stats,
+                player_name=player_module.__name__.split(".")[-1],
+                symbol=source.symbol,
+                timeframe=source.timeframe,
+            )
 
     # Print stats - combine session stats with data source stats
     stats = await source.get_stats()

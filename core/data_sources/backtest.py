@@ -97,11 +97,8 @@ class BacktestDataSource(DataSource):
             timeframe=self.timeframe,
         )
 
-        # 3. Croupier (The Brain)
-        self.croupier = Croupier(
-            exchange_adapter=self.adapter,
-            initial_balance=initial_balance,
-        )
+        # 3. Croupier (The Brain) - Se inicializará via set_gemini_instance
+        self.croupier = None
 
         self._connected = False
 
@@ -347,7 +344,19 @@ class BacktestDataSource(DataSource):
             "avg_win": sum(t["pnl"] for t in wins) / len(wins) if wins else 0,
             "avg_loss": sum(t["pnl"] for t in losses) / len(losses) if losses else 0,
             "candle_timestamps": self.candle_timestamps,
+            "closed_trades": closed_trades,
         }
+
+    def set_gemini_instance(self, gemini):
+        """Set Gemini instance and initialize Croupier."""
+        if self.croupier is not None:
+            return  # Evitar reinicialización
+        self.croupier = Croupier(
+            exchange_adapter=self.adapter,
+            initial_balance=self.initial_balance,
+            gemini=gemini,
+        )
+        logger.info("✅ Croupier initialized with Gemini instance.")
 
     # =========================================================
     # HELPER METHODS (for compatibility)
