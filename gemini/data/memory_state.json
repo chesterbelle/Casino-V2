@@ -1,5 +1,5 @@
 {
-  "last_update": "2025-11-28T20:57:08.911768",
+  "last_update": "2025-11-28T21:20:09.988315",
   "memory_window": 500,
   "strategies": {
     "BTC/USDC:USDC@1m|BBW=L|RS2|H=N|StochasticReversion": {
@@ -459,8 +459,8 @@
     },
     "LTC/USDC:USDC@1m|BBW=L|RS4|H=N|BollingerBandRejection": {
       "wins": 116,
-      "losses": 119,
-      "winrate": 0.49361702127659574
+      "losses": 121,
+      "winrate": 0.48945147679324896
     },
     "LTC/USDC:USDC@1m|BBW=L|RS3|H=N|AdaptiveRSIScalper": {
       "wins": 77,
@@ -498,14 +498,14 @@
       "winrate": 0.4824120603015075
     },
     "LTC/USDC:USDC@1m|BBW=L|RS3|H=N|BollingerBandRejection": {
-      "wins": 104,
-      "losses": 131,
-      "winrate": 0.4425531914893617
+      "wins": 106,
+      "losses": 132,
+      "winrate": 0.44537815126050423
     },
     "LTC/USDC:USDC@1m|BBW=L|RS2|H=N|BollingerBandRejection": {
-      "wins": 105,
+      "wins": 107,
       "losses": 148,
-      "winrate": 0.4150197628458498
+      "winrate": 0.4196078431372549
     },
     "LTC/USDC:USDC@1m|BBW=L|RS1|H=N|AdaptiveRSIScalper": {
       "wins": 11,
@@ -533,9 +533,9 @@
       "winrate": 0.3333333333333333
     },
     "LTC/USDC:USDC@1m|BBW=L|RS1|H=N|BollingerBandRejection": {
-      "wins": 113,
-      "losses": 87,
-      "winrate": 0.565
+      "wins": 134,
+      "losses": 95,
+      "winrate": 0.5851528384279476
     },
     "LTC/USDC:USDC@1m|BBW=L|RS3|H=N|MomentumBurst": {
       "wins": 9,
@@ -728,9 +728,9 @@
       "winrate": 0.41935483870967744
     },
     "LTC/USDC:USDC@1m|BBW=L|RS2|H=N|MicroTrendPullback": {
-      "wins": 54,
-      "losses": 51,
-      "winrate": 0.5142857142857142
+      "wins": 59,
+      "losses": 54,
+      "winrate": 0.5221238938053098
     },
     "LTC/USDC:USDC@1m|BBW=L|RS4|H=N|SmartRangeScalper": {
       "wins": 23,
@@ -1633,14 +1633,14 @@
       "winrate": 1.0
     },
     "LTC/USDC:USDC@1m|BBW=L|RS1|H=N|PinBarReversal": {
-      "wins": 2,
+      "wins": 3,
       "losses": 0,
       "winrate": 1.0
     },
     "LTC/USDC:USDC@1m|BBW=L|RS1|H=N|InsideBarBreakout": {
-      "wins": 3,
-      "losses": 3,
-      "winrate": 0.5
+      "wins": 5,
+      "losses": 6,
+      "winrate": 0.45454545454545453
     },
     "LTC/USDC:USDC@1m|BBW=L|RS2|H=N|EngulfingPattern": {
       "wins": 0,
@@ -1648,9 +1648,9 @@
       "winrate": 0.0
     },
     "LTC/USDC:USDC@1m|BBW=L|RS2|H=N|InsideBarBreakout": {
-      "wins": 0,
+      "wins": 2,
       "losses": 1,
-      "winrate": 0.0
+      "winrate": 0.6666666666666666
     },
     "LTC/USDC:USDC@1m|BBW=L|RS1|H=N|EngulfingPattern": {
       "wins": 2,
@@ -1666,6 +1666,116 @@
       "wins": 0,
       "losses": 2,
       "winrate": 0.0
+    },
+    "LTC/USDC:USDC@1m|BBW=L|RS2|H=N|RailsPattern": {
+      "wins": 24,
+      "losses": 6,
+      "winrate": 0.8
+    },
+    "LTC/USDC:USDC@1m|BBW=L|RS4|H=N|DojiIndecision": {
+      "wins": 0,
+      "losses": 1,
+      "winrate": 0.0
+    },
+    "LTC/USDC:USDC@1m|BBW=L|RS4|H=N|TweezerPattern": {
+      "wins": 0,
+      "losses": 4,
+      "winrate": 0.0
+    },
+    "LTC/USDC:USDC@1m|BBW=L|RS6|H=N|EngulfingPattern": {
+      "wins": 0,
+      "losses": 1,
+      "winrate": 0.0
+    },
+    "LTC/USDC:USDC@1m|BBW=L|RS6|H=N|InsideBarBreakout": {
+      "wins": 0,
+      "losses": 1,
+      "winrate": 0.0
+    },
+    "LTC/USDC:USDC@1m|BBW=L|RS6|H=N|DojiIndecision": {
+      "wins": 0,
+      "losses": 1,
+      "winrate": 0.0
+    },
+    "LTC/USDC:USDC@1m|BBW=L|RS6|H=N|TweezerPattern": {
+      "wins": 0,
+      "losses": 1,
+      "winrate": 0.0
+    },
+    "LTC/USDC:USDC@1m|BBW=L|RS3|H=N|TweezerPattern": {
+      "wins": 1,
+      "losses": 0,
+      "winrate": 1.0
+    },
+    "LTC/USDC:USDC@1m|BBW=L|RS3|H=N|RailsPattern": {
+      "wins": 4,
+      "losses": 1,
+      "winrate": 0.8
+    },
+    "LTC/USDC:USDC@1m|BBW=L|RS7|H=N|InsideBarBreakout": {
+      "wins": 1,
+      "losses": 0,
+      "winrate": 1.0
+    },
+    "LTC/USDC:USDC@1m|BBW=L|RS7|H=N|DojiIndecision": {
+      "wins": 1,
+      "losses": 0,
+      "winrate": 1.0
+    },
+    "LTC/USDC:USDC@1m|BBW=L|RS7|H=N|RailsPattern": {
+      "wins": 1,
+      "losses": 0,
+      "winrate": 1.0
+    },
+    "LTC/USDC:USDC@1m|BBW=L|RS7|H=N|MarubozuMomentum": {
+      "wins": 1,
+      "losses": 0,
+      "winrate": 1.0
+    },
+    "LTC/USDC:USDC@1m|BBW=L|RS4|H=N|FakeoutReversal": {
+      "wins": 0,
+      "losses": 2,
+      "winrate": 0.0
+    },
+    "LTC/USDC:USDC@1m|BBW=L|RS2|H=N|TweezerPattern": {
+      "wins": 2,
+      "losses": 0,
+      "winrate": 1.0
+    },
+    "LTC/USDC:USDC@1m|BBW=L|RS3|H=N|InsideBarBreakout": {
+      "wins": 3,
+      "losses": 0,
+      "winrate": 1.0
+    },
+    "LTC/USDC:USDC@1m|BBW=L|RS4|H=N|RailsPattern": {
+      "wins": 0,
+      "losses": 1,
+      "winrate": 0.0
+    },
+    "LTC/USDC:USDC@1m|BBW=L|RS5|H=N|InsideBarBreakout": {
+      "wins": 1,
+      "losses": 0,
+      "winrate": 1.0
+    },
+    "LTC/USDC:USDC@1m|BBW=L|RS5|H=N|RailsPattern": {
+      "wins": 1,
+      "losses": 0,
+      "winrate": 1.0
+    },
+    "LTC/USDC:USDC@1m|BBW=L|RS5|H=N|TweezerPattern": {
+      "wins": 1,
+      "losses": 0,
+      "winrate": 1.0
+    },
+    "LTC/USDC:USDC@1m|BBW=L|RS3|H=N|EngulfingPattern": {
+      "wins": 1,
+      "losses": 0,
+      "winrate": 1.0
+    },
+    "LTC/USDC:USDC@1m|BBW=L|RS3|H=N|DojiIndecision": {
+      "wins": 1,
+      "losses": 0,
+      "winrate": 1.0
     }
   }
 }

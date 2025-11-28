@@ -46,6 +46,12 @@ ACTIVE_SENSORS = {
     "InsideBarBreakout": True,
     "FakeoutReversal": True,
     "ThreeBarReversal": True,
+    "DojiIndecision": True,
+    "MorningStarEvening": True,
+    "RailsPattern": True,
+    "TweezerPattern": True,
+    "MarubozuMomentum": True,
+    "SupportResistanceBounce": True,
     # === Sensores NO Rentables (Desactivados) ===
     "ADXFilter": False,
     "RSIReversion": False,
@@ -92,4 +98,10 @@ SENSOR_PARAMS = {
     "InsideBarBreakout": {"max_inside_range_pct": 0.005, "breakout_confirmation": True},
     "FakeoutReversal": {"breakout_threshold_pct": 0.002, "lookback_candles": 10, "reversal_body_pct": 0.6},
     "ThreeBarReversal": {"range_decrease_threshold": 0.7, "close_position_threshold": 0.4},
+    "DojiIndecision": {"max_body_pct": 0.001, "breakout_body_pct": 0.6, "min_breakout_size": 0.003},
+    "MorningStarEvening": {"min_large_body_pct": 0.004, "max_star_body_pct": 0.002, "confirmation_threshold": 0.5},
+    "RailsPattern": {"max_level_diff_pct": 0.001, "min_close_position": 0.5},
+    "TweezerPattern": {"max_wick_diff_pct": 0.0005, "min_second_body_pct": 0.002},
+    "MarubozuMomentum": {"min_body_to_range": 0.8, "min_body_size_pct": 0.004},
+    "SupportResistanceBounce": {"lookback_candles": 20, "touch_threshold_pct": 0.002, "min_bounce_body_pct": 0.003},
 }

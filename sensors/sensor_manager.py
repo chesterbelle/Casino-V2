@@ -41,11 +41,17 @@ from .momentum_trend_following import (
     Supertrend,
 )
 from .price_action import (
+    DojiIndecision,
     EngulfingPattern,
     FakeoutReversal,
     InsideBarBreakout,
+    MarubozuMomentum,
+    MorningStarEvening,
     PinBarReversal,
+    RailsPattern,
+    SupportResistanceBounce,
     ThreeBarReversal,
+    TweezerPattern,
 )
 from .volumen_flujo_capital import (
     AccumulationDistribution,
@@ -89,12 +95,18 @@ SENSOR_REGISTRY: Dict[str, type] = {
     "KeltnerBreakout": KeltnerBreakout,
     "VolumeFlowImbalance": VolumeFlowImbalance,
     "HurstRegime": HurstRegime,
-    # Price Action (5 sensores)
+    # Price Action (11 sensores)
     "PinBarReversal": PinBarReversal,
     "EngulfingPattern": EngulfingPattern,
     "InsideBarBreakout": InsideBarBreakout,
     "FakeoutReversal": FakeoutReversal,
     "ThreeBarReversal": ThreeBarReversal,
+    "DojiIndecision": DojiIndecision,
+    "MorningStarEvening": MorningStarEvening,
+    "RailsPattern": RailsPattern,
+    "TweezerPattern": TweezerPattern,
+    "MarubozuMomentum": MarubozuMomentum,
+    "SupportResistanceBounce": SupportResistanceBounce,
 }
 
 
