@@ -43,15 +43,21 @@ from .momentum_trend_following import (
 from .price_action import (
     DojiIndecision,
     EngulfingPattern,
+    ExtremeCandleRatio,
     FakeoutReversal,
+    HigherTFTrendConfirm,
     InsideBarBreakout,
+    LiquidityVoid,
+    LongTailDistribution,
     MarubozuMomentum,
     MorningStarEvening,
+    OrderBlockBreakout,
     PinBarReversal,
     RailsPattern,
     SupportResistanceBounce,
     ThreeBarReversal,
     TweezerPattern,
+    VolumeSpikeReversal,
 )
 from .volumen_flujo_capital import (
     AccumulationDistribution,
@@ -107,6 +113,12 @@ SENSOR_REGISTRY: Dict[str, type] = {
     "TweezerPattern": TweezerPattern,
     "MarubozuMomentum": MarubozuMomentum,
     "SupportResistanceBounce": SupportResistanceBounce,
+    "VolumeSpikeReversal": VolumeSpikeReversal,
+    "HigherTFTrendConfirm": HigherTFTrendConfirm,
+    "OrderBlockBreakout": OrderBlockBreakout,
+    "LiquidityVoid": LiquidityVoid,
+    "ExtremeCandleRatio": ExtremeCandleRatio,
+    "LongTailDistribution": LongTailDistribution,
 }
 
 

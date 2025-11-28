@@ -1,87 +1,83 @@
-import numpy as np
+import json
+import sys
+from collections import defaultdict
+
 import pandas as pd
 
-# Rutas a los archivos
-DECISIONS_FILE = "gemini/data/gemini_decisions.csv"
-RESULTS_FILE = "gemini/data/gemini_trade_results.csv"
 
-
-def analyze_sensor_performance():
-    """
-    Realiza un análisis avanzado del rendimiento de los sensores, incluyendo PnL.
-    """
+def analyze_backtest(log_file):
     try:
-        # Cargar los archivos CSV
-        print(f"Cargando decisiones desde {DECISIONS_FILE}...")
-        decisions_df = pd.read_csv(DECISIONS_FILE, low_memory=False)
+        with open(log_file, "r") as f:
+            data = json.load(f)
+    except FileNotFoundError:
+        print(f"Error: File {log_file} not found.")
+        return
 
-        print(f"Cargando resultados desde {RESULTS_FILE}...")
-        results_df = pd.read_csv(RESULTS_FILE)
+    signals = data.get("signals", [])
+    trades = data.get("closed_trades", [])
 
-        print("Archivos cargados. Procesando...")
+    print(f"Total Signals: {len(signals)} (Note: Raw signals might not be in log)")
+    print(f"Total Trades: {len(trades)}")
 
-        # --- Pre-procesamiento ---
-        # 1. Limpiar resultados: quedarse con columnas necesarias y trades reales
-        results_df = results_df[["trade_id", "result", "pnl"]].copy()
-        results_df.dropna(subset=["trade_id", "result", "pnl"], inplace=True)
-        results_df = results_df[results_df["result"].isin(["WIN", "LOSS"])]
+    # Map trade ID to result
+    trade_results = {}
+    for trade in trades:
+        trade_results[trade["trade_id"]] = {"pnl": trade["pnl"], "outcome": "WIN" if trade["pnl"] > 0 else "LOSS"}
 
-        # 2. Limpiar decisiones: quedarse con columnas necesarias y explotar 'contributors'
-        decisions_df = decisions_df[["trade_id", "contributors"]].copy()
-        decisions_df.dropna(subset=["trade_id", "contributors"], inplace=True)
-        decisions_df["sensors"] = decisions_df["contributors"].str.split(",")
-        decisions_df = decisions_df.explode("sensors")
-        decisions_df.rename(columns={"sensors": "sensor"}, inplace=True)
-        decisions_df["sensor"] = decisions_df["sensor"].str.strip()
+    # Analyze sensors
+    sensor_stats = defaultdict(lambda: {"signals": 0, "trades": 0, "wins": 0, "losses": 0, "pnl": 0.0})
 
-        # --- Unión de Datos ---
-        print("Cruzando decisiones con resultados...")
-        merged_df = pd.merge(decisions_df, results_df, on="trade_id")
+    for signal in signals:
+        # Check if signal has 'origin' or 'contributors'
+        # The log format might vary, let's inspect a sample signal structure if needed.
+        # Assuming signal object has 'origin' or we look at the trade's contributors
+        pass
 
-        if merged_df.empty:
-            print("No se encontraron trades en común entre decisiones y resultados.")
-            return
+    # Since the signal log in the JSON might not directly link to the trade outcome easily without
+    # matching timestamps/IDs, and the 'contributors' are in the trade object.
 
-        # --- Cálculo de Estadísticas Avanzadas ---
-        print("Calculando estadísticas avanzadas por sensor...")
+    for trade in trades:
+        contributors = trade.get("contributors", [])
+        if isinstance(contributors, str):
+            contributors = [contributors]
 
-        def calculate_stats(df):
-            wins_df = df[df["result"] == "WIN"]
-            losses_df = df[df["result"] == "LOSS"]
+        outcome = "WIN" if trade["pnl"] > 0 else "LOSS"
+        pnl = trade["pnl"]
 
-            total_trades = len(df)
-            wins = len(wins_df)
+        for sensor in contributors:
+            sensor_stats[sensor]["trades"] += 1
+            if outcome == "WIN":
+                sensor_stats[sensor]["wins"] += 1
+            else:
+                sensor_stats[sensor]["losses"] += 1
+            sensor_stats[sensor]["pnl"] += pnl
 
-            gross_profit = wins_df["pnl"].sum()
-            gross_loss = abs(losses_df["pnl"].sum())
+    # Calculate metrics
+    results = []
+    for sensor, stats in sensor_stats.items():
+        total_trades = stats["trades"]
+        win_rate = (stats["wins"] / total_trades * 100) if total_trades > 0 else 0
+        results.append(
+            {
+                "Sensor": sensor,
+                "Trades": total_trades,
+                "Win Rate": win_rate,
+                "PnL": stats["pnl"],
+                "Wins": stats["wins"],
+                "Losses": stats["losses"],
+            }
+        )
 
-            return pd.Series(
-                {
-                    "total_trades": total_trades,
-                    "wins": wins,
-                    "win_rate": (wins / total_trades) * 100 if total_trades > 0 else 0,
-                    "avg_win_pnl": wins_df["pnl"].mean() if wins > 0 else 0,
-                    "avg_loss_pnl": losses_df["pnl"].mean() if len(losses_df) > 0 else 0,
-                    "profit_factor": gross_profit / gross_loss if gross_loss > 0 else np.inf,
-                    "total_pnl": df["pnl"].sum(),
-                }
-            )
-
-        sensor_stats = merged_df.groupby("sensor").apply(calculate_stats)
-        sensor_stats = sensor_stats.sort_values(by="profit_factor", ascending=False)
-
-        # --- Presentación de Resultados ---
-        print("\n--- Resultados del Análisis Avanzado de Sensores ---")
-        print("Sensores ordenados por Profit Factor (Ganancia Bruta / Pérdida Bruta)")
-        print("-----------------------------------------------------")
-        print(sensor_stats.to_string(float_format="{:.2f}".format, formatters={"win_rate": "{:.2f}%".format}))
-        print("-----------------------------------------------------")
-
-    except FileNotFoundError as e:
-        print(f"Error: No se encontró el archivo {e.filename}")
-    except Exception as e:
-        print(f"Ocurrió un error inesperado: {e}")
+    df = pd.DataFrame(results)
+    if not df.empty:
+        df = df.sort_values(by="Win Rate", ascending=False)
+        print(df.to_string(index=False))
+    else:
+        print("No trade data found to analyze.")
 
 
 if __name__ == "__main__":
-    analyze_sensor_performance()
+    if len(sys.argv) < 2:
+        print("Usage: python3 analyze_sensors.py <log_file>")
+    else:
+        analyze_backtest(sys.argv[1])
