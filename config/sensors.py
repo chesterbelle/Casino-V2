@@ -58,6 +58,12 @@ ACTIVE_SENSORS = {
     "LiquidityVoid": False,
     "ExtremeCandleRatio": True,
     "LongTailDistribution": False,
+    "WyckoffSpring": True,
+    "FVGRetest": True,
+    "AbsorptionBlock": True,
+    "MultiTimeframeImpulse": True,
+    "DecelerationCandles": False,
+    "VCPPattern": False,
     # === Sensores NO Rentables (Desactivados) ===
     "ADXFilter": False,
     "RSIReversion": False,
@@ -115,4 +121,10 @@ SENSOR_PARAMS = {
     "LiquidityVoid": {"gap_pct": 0.002, "max_volume_pct": 0.001},
     "ExtremeCandleRatio": {"lookback": 30, "percentile": 0.95},
     "LongTailDistribution": {"n_small": 5, "factor": 3.0},
+    "WyckoffSpring": {"lookback": 20, "volume_factor": 1.5},
+    "FVGRetest": {"min_gap_pct": 0.001},
+    "AbsorptionBlock": {"volume_factor": 2.0, "body_factor": 0.3},
+    "MultiTimeframeImpulse": {"ema_period": 20},
+    "DecelerationCandles": {"sequence_length": 3},
+    "VCPPattern": {"contractions": 3},
 }

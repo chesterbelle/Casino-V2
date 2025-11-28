@@ -41,23 +41,29 @@ from .momentum_trend_following import (
     Supertrend,
 )
 from .price_action import (
+    AbsorptionBlock,
+    DecelerationCandles,
     DojiIndecision,
     EngulfingPattern,
     ExtremeCandleRatio,
     FakeoutReversal,
+    FVGRetest,
     HigherTFTrendConfirm,
     InsideBarBreakout,
     LiquidityVoid,
     LongTailDistribution,
     MarubozuMomentum,
     MorningStarEvening,
+    MultiTimeframeImpulse,
     OrderBlockBreakout,
     PinBarReversal,
     RailsPattern,
     SupportResistanceBounce,
     ThreeBarReversal,
     TweezerPattern,
+    VCPPattern,
     VolumeSpikeReversal,
+    WyckoffSpring,
 )
 from .volumen_flujo_capital import (
     AccumulationDistribution,
@@ -119,6 +125,12 @@ SENSOR_REGISTRY: Dict[str, type] = {
     "LiquidityVoid": LiquidityVoid,
     "ExtremeCandleRatio": ExtremeCandleRatio,
     "LongTailDistribution": LongTailDistribution,
+    "WyckoffSpring": WyckoffSpring,
+    "FVGRetest": FVGRetest,
+    "AbsorptionBlock": AbsorptionBlock,
+    "MultiTimeframeImpulse": MultiTimeframeImpulse,
+    "DecelerationCandles": DecelerationCandles,
+    "VCPPattern": VCPPattern,
 }
 
 
