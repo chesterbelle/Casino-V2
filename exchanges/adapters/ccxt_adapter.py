@@ -105,10 +105,8 @@ from typing import Any, Dict, Optional
 
 from exchanges.connectors.connector_base import BaseConnector
 
-from .table_base import BaseTable
 
-
-class CCXTAdapter(BaseTable):
+class CCXTAdapter:
     async def fetch_positions(self, symbols: list = None) -> list:
         """
         Fetch open positions, preferring WS if enabled and available.
