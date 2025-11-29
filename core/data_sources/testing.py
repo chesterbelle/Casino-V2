@@ -10,7 +10,10 @@ import logging
 import time
 from typing import Dict, Optional
 
-from croupier.croupier import Croupier
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from croupier.croupier import Croupier
 
 from .base import Candle, DataSource
 
@@ -38,7 +41,7 @@ class TestingDataSource(DataSource):
 
     def __init__(
         self,
-        croupier: Croupier,
+        croupier: 'Croupier',
         symbol: str,
         timeframe: str,
         poll_interval: float = 5.0,

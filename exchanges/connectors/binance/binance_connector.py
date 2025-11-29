@@ -386,6 +386,22 @@ class BinanceConnector(BaseConnector):
             self.logger.error(f"❌ Error fetching order book via WS: {e}")
             raise
 
+    async def watch_ticker(self, symbol: str) -> Dict[str, Any]:
+        """
+        Fetch ticker using WebSocket (if supported).
+        Returns ticker dict in CCXT format.
+        """
+        if not self.enable_websocket or not self.ws_exchange:
+            raise NotImplementedError("WebSocket ticker not available or not initialized.")
+        try:
+            binance_symbol = self.normalize_symbol(symbol)
+            ticker = await self.ws_exchange.watch_ticker(binance_symbol)
+            # self.logger.debug(f"📊 WS ticker fetched: {symbol} {ticker.get('last')}")
+            return ticker
+        except Exception as e:
+            self.logger.error(f"❌ Error fetching ticker via WS: {e}")
+            raise
+
     """
     Connector for Binance Futures exchange (USDT Perpetual).
 

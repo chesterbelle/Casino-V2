@@ -245,6 +245,24 @@ class CCXTAdapter(BaseTable):
                 self.logger.error(f"WS order book error: {e}, falling back to REST.")
         return await self.connector.fetch_order_book(symbol, limit)
 
+    async def watch_ticker(self, symbol: str = None) -> Dict[str, Any]:
+        """
+        Watch ticker using WebSocket (if supported).
+        """
+        symbol = symbol or self.symbol
+        if hasattr(self.connector, "watch_ticker"):
+            return await self.connector.watch_ticker(symbol)
+        raise NotImplementedError("Connector does not support watch_ticker")
+
+    async def watch_order_book(self, symbol: str = None, limit: int = 20) -> Dict[str, Any]:
+        """
+        Watch order book using WebSocket (if supported).
+        """
+        symbol = symbol or self.symbol
+        if hasattr(self.connector, "watch_order_book"):
+            return await self.connector.watch_order_book(symbol, limit)
+        raise NotImplementedError("Connector does not support watch_order_book")
+
     async def get_current_price(self, symbol: str = None) -> float:
         """
         Get current market price for a symbol (async).

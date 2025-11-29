@@ -10,7 +10,10 @@ from typing import Dict, List, Optional
 
 import pandas as pd
 
-from croupier.croupier import Croupier
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from croupier.croupier import Croupier
 
 from .base import Candle, DataSource
 
@@ -349,6 +352,8 @@ class BacktestDataSource(DataSource):
 
     def set_gemini_instance(self, gemini):
         """Set Gemini instance and initialize Croupier."""
+        from croupier.croupier import Croupier
+        self.gemini = gemini
         if self.croupier is not None:
             return  # Evitar reinicialización
         self.croupier = Croupier(
