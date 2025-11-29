@@ -11,8 +11,8 @@ from typing import Optional
 
 from config import paroli, trading
 
-from .events import Event, EventType
-from .signal_aggregator import AggregatedSignalEvent
+from core.events import Event, EventType
+from core.signal_aggregator import AggregatedSignalEvent
 
 logger = logging.getLogger(__name__)
 
