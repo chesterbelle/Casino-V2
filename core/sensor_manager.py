@@ -34,6 +34,7 @@ class SensorManager:
     def _load_sensors(self):
         """Load enabled sensors from config."""
         # Import all V3 sensors
+        from config.sensors import ACTIVE_SENSORS
         from sensors.absorption_block import AbsorptionBlockV3
         from sensors.adaptive_rsi import AdaptiveRSIV3
         from sensors.adx_filter import ADXFilterV3
@@ -86,62 +87,71 @@ class SensorManager:
         from sensors.wyckoff_spring import WyckoffSpringV3
         from sensors.zscore_reversion import ZScoreReversionV3
 
-        # Instantiate all sensors
-        self.sensors.extend(
-            [
-                EMACrossoverV3(),
-                PinBarReversalV3(),
-                RailsPatternV3(),
-                EMA50SupportV3(),
-                MarubozuMomentumV3(),
-                VWAPBreakoutV3(),
-                ExtremeCandleRatioV3(),
-                InsideBarBreakoutV3(),
-                DecelerationCandlesV3(),
-                VWAPDeviationV3(),
-                VCPPatternV3(),
-                EngulfingPatternV3(),
-                RSIReversionV3(),
-                BollingerTouchV3(),
-                KeltnerReversionV3(),
-                MACDCrossoverV3(),
-                SupertrendV3(),
-                StochasticReversionV3(),
-                CCIReversionV3(),
-                WilliamsRReversionV3(),
-                ZScoreReversionV3(),
-                ADXFilterV3(),
-                BollingerSqueezeV3(),
-                ParabolicSARV3(),
-                MomentumBurstV3(),
-                VolumeImbalanceV3(),
-                OrderBlockV3(),
-                FVGRetestV3(),
-                DojiIndecisionV3(),
-                MorningStarV3(),
-                LongTailV3(),
-                AbsorptionBlockV3(),
-                LiquidityVoidV3(),
-                FakeoutV3(),
-                HigherTFTrendV3(),
-                MTFImpulseV3(),
-                AdaptiveRSIV3(),
-                BollingerRejectionV3(),
-                HurstRegimeV3(),
-                KeltnerBreakoutV3(),
-                MicroTrendV3(),
-                SmartRangeV3(),
-                VolatilityWakeupV3(),
-                VSAReversalV3(),
-                VWAPMomentumV3(),
-                WickRejectionV3(),
-                WyckoffSpringV3(),
-                VolumeSpikeV3(),
-                TweezerPatternV3(),
-                ThreeBarV3(),
-                SupportResistanceV3(),
-            ]
-        )
+        # Map of sensor class names (or names) to classes
+        sensor_classes = [
+            EMACrossoverV3,
+            PinBarReversalV3,
+            RailsPatternV3,
+            EMA50SupportV3,
+            MarubozuMomentumV3,
+            VWAPBreakoutV3,
+            ExtremeCandleRatioV3,
+            InsideBarBreakoutV3,
+            DecelerationCandlesV3,
+            VWAPDeviationV3,
+            VCPPatternV3,
+            EngulfingPatternV3,
+            RSIReversionV3,
+            BollingerTouchV3,
+            KeltnerReversionV3,
+            MACDCrossoverV3,
+            SupertrendV3,
+            StochasticReversionV3,
+            CCIReversionV3,
+            WilliamsRReversionV3,
+            ZScoreReversionV3,
+            ADXFilterV3,
+            BollingerSqueezeV3,
+            ParabolicSARV3,
+            MomentumBurstV3,
+            VolumeImbalanceV3,
+            OrderBlockV3,
+            FVGRetestV3,
+            DojiIndecisionV3,
+            MorningStarV3,
+            LongTailV3,
+            AbsorptionBlockV3,
+            LiquidityVoidV3,
+            FakeoutV3,
+            HigherTFTrendV3,
+            MTFImpulseV3,
+            AdaptiveRSIV3,
+            BollingerRejectionV3,
+            HurstRegimeV3,
+            KeltnerBreakoutV3,
+            MicroTrendV3,
+            SmartRangeV3,
+            VolatilityWakeupV3,
+            VSAReversalV3,
+            VWAPMomentumV3,
+            WickRejectionV3,
+            WyckoffSpringV3,
+            VolumeSpikeV3,
+            TweezerPatternV3,
+            ThreeBarV3,
+            SupportResistanceV3,
+        ]
+
+        # Instantiate enabled sensors
+        for sensor_cls in sensor_classes:
+            # Create temp instance to get name, or use class name convention
+            # Assuming sensor.name matches the key in ACTIVE_SENSORS
+            # Optimization: Just instantiate and check name
+            sensor = sensor_cls()
+            if ACTIVE_SENSORS.get(sensor.name, False):
+                self.sensors.append(sensor)
+            else:
+                pass  # Sensor disabled
 
         logger.info(f"✅ SensorManager loaded {len(self.sensors)} sensors.")
 
@@ -187,6 +197,17 @@ class SensorManager:
 
     async def _emit_signal(self, signal_data: dict, sensor_name: str):
         """Emit SignalEvent."""
+        from config.sensors import SENSOR_PARAMS
+
+        metadata = signal_data.get("metadata", {})
+
+        # Inject TP/SL from config if available
+        sensor_config = SENSOR_PARAMS.get(sensor_name, {})
+        if "tp_pct" in sensor_config:
+            metadata["tp_pct"] = sensor_config["tp_pct"]
+        if "sl_pct" in sensor_config:
+            metadata["sl_pct"] = sensor_config["sl_pct"]
+
         event = SignalEvent(
             type=EventType.SIGNAL,
             timestamp=time.time(),
@@ -194,7 +215,7 @@ class SensorManager:
             side=signal_data["side"],
             sensor_id=sensor_name,  # Changed from strategy_name to sensor_id
             score=signal_data.get("score", 1.0),
-            metadata=signal_data.get("metadata", {}),
+            metadata=metadata,
         )
         logger.info(f"📡 Signal Detected: {sensor_name} -> {signal_data['side']}")
         await self.engine.dispatch(event)

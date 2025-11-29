@@ -333,6 +333,15 @@ class PositionTracker:
                     exit_reason = "TP"
                     exit_price = position.tp_level
 
+            # Time-Based Exit Check (Optimization Alignment)
+            # If no TP/SL hit and max bars exceeded, close at market (current close)
+            if not exit_reason and position.bars_held >= config.trading.MAX_HOLD_BARS:
+                exit_reason = "TIME_EXIT"
+                exit_price = float(current_candle.get("close", 0))
+                logger.info(
+                    f"⏳ Time Limit Reached for {position.trade_id} ({position.bars_held} bars). Closing at {exit_price}"
+                )
+
             if exit_reason:
                 # Calcular PnL teórico (para referencia)
                 if position.side == "LONG":
@@ -457,7 +466,7 @@ class PositionTracker:
         # This measures if the prediction was correct, not if we made money
         if exit_reason == "TP":
             self.total_wins += 1
-        elif exit_reason in ["SL", "FORCE_CLOSE", "END_SESSION", "MANUAL_SYNC", "MANUAL"]:
+        elif exit_reason in ["SL", "FORCE_CLOSE", "END_SESSION", "MANUAL_SYNC", "MANUAL", "TIME_EXIT"]:
             self.total_losses += 1
         # Other reasons (IMMEDIATE_CLOSE) don't count as wins/losses
 

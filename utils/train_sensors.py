@@ -214,17 +214,17 @@ class SensorTrainer:
             if side == "LONG":
                 # Check TP hit
                 if candle["high"] >= tp_price:
-                    return True, self.tp_pct, bars_held
+                    return True, self.tp_pct - 0.0012, bars_held  # Deduct 0.12% fees
                 # Check SL hit
                 if candle["low"] <= sl_price:
-                    return False, -self.sl_pct, bars_held
+                    return False, -self.sl_pct - 0.0012, bars_held  # Deduct 0.12% fees
             else:  # SHORT
                 # Check TP hit
                 if candle["low"] <= tp_price:
-                    return True, self.tp_pct, bars_held
+                    return True, self.tp_pct - 0.0012, bars_held  # Deduct 0.12% fees
                 # Check SL hit
                 if candle["high"] >= sl_price:
-                    return False, -self.sl_pct, bars_held
+                    return False, -self.sl_pct - 0.0012, bars_held  # Deduct 0.12% fees
 
         # Timeout - no TP/SL hit
         return None, 0.0, max_idx - entry_idx

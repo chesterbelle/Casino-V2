@@ -30,13 +30,24 @@ STATE_FILE = Path("state/paroli_state.json")
 class DecisionEvent(Event):
     """Decision event with bet sizing from Paroli."""
 
-    def __init__(self, symbol: str, side: str, bet_size: float, paroli_step: int, unit_size: float):
+    def __init__(
+        self,
+        symbol: str,
+        side: str,
+        bet_size: float,
+        paroli_step: int,
+        unit_size: float,
+        tp_pct: Optional[float] = None,
+        sl_pct: Optional[float] = None,
+    ):
         super().__init__(type=EventType.SYSTEM, timestamp=time.time())  # Will add DECISION type later
         self.symbol = symbol
         self.side = side
         self.bet_size = bet_size
         self.paroli_step = paroli_step
         self.unit_size = unit_size
+        self.tp_pct = tp_pct
+        self.sl_pct = sl_pct
 
 
 class ParoliV3:
@@ -87,6 +98,11 @@ class ParoliV3:
             logger.warning(f"⚠️ Bet size {bet_size:.4f} exceeds max {max_bet:.4f}, capping")
             bet_size = max_bet
 
+        # Extract TP/SL from metadata
+        metadata = getattr(event, "metadata", {}) or {}
+        tp_pct = metadata.get("tp_pct")
+        sl_pct = metadata.get("sl_pct")
+
         # Create decision event
         decision = DecisionEvent(
             symbol=event.symbol,
@@ -94,6 +110,8 @@ class ParoliV3:
             bet_size=bet_size / equity if equity > 0 else 0,  # Fraction of equity
             paroli_step=self.step,
             unit_size=self.unit,
+            tp_pct=tp_pct,
+            sl_pct=sl_pct,
         )
 
         logger.info(f"💾 State Saved | Step: {self.step} | " f"Unit: {self.unit:.2f}")

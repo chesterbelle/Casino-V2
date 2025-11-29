@@ -19,6 +19,9 @@ STARTING_BALANCE = 10_000.0
 TAKE_PROFIT = 0.01  # 1.0% target
 STOP_LOSS = 0.01  # 1.0% stop
 
+# Time-Based Exit (Optimization Alignment)
+MAX_HOLD_BARS = 120  # Close trade after 120 candles (2 hours) if no TP/SL hit
+
 
 # =====================================================
 # 🪙 PERFIL DEL CASINO (GENERAL)

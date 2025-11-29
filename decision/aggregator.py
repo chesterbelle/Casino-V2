@@ -7,7 +7,7 @@ import asyncio
 import logging
 import time
 from collections import defaultdict
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from config import paroli
 from core.events import Event, EventType, SignalEvent
@@ -33,6 +33,7 @@ class AggregatedSignalEvent(Event):
         side: str,
         confidence: float,
         total_signals: int,
+        metadata: Optional[Dict[str, Any]] = None,
     ):
         super().__init__(type=EventType.AGGREGATED_SIGNAL, timestamp=time.time())
         self.symbol = symbol
@@ -42,6 +43,7 @@ class AggregatedSignalEvent(Event):
         self.side = side
         self.confidence = confidence
         self.total_signals = total_signals
+        self.metadata = metadata
 
 
 class SignalAggregatorV3:
@@ -147,6 +149,7 @@ class SignalAggregatorV3:
                 side=selected["side"],
                 confidence=selected["score"],  # Score is our confidence
                 total_signals=len(signals),
+                metadata=selected["signal"].metadata,
             )
 
             await self.engine.dispatch(aggregated)

@@ -324,9 +324,13 @@ class VirtualExchangeConnector(BaseConnector):
                 # Note: fees are calculated on notional value (price * amount)
                 closing_fee = close_amount * price * self.fee_rate
 
-                # Net PnL = Gross PnL - Closing Fee
-                # Note: Opening fee was already deducted from balance when opening
-                pnl = gross_pnl - closing_fee
+                # Calculate estimated opening fee (proportional to closed amount)
+                # We assume entry was Taker (conservative) as most entries are Market
+                opening_fee = close_amount * position["entry_price"] * self.fee_rate
+
+                # Net PnL = Gross PnL - Closing Fee - Opening Fee
+                # This ensures we capture the full round-trip cost
+                pnl = gross_pnl - closing_fee - opening_fee
 
                 # Return margin + PnL
                 margin_released = close_amount * position["entry_price"]

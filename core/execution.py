@@ -64,9 +64,9 @@ class OrderManager:
         # Construct Order Payload
         trade_id = f"V3_{int(time.time()*1000)}"
 
-        # Calculate multipliers from config
-        tp_pct = config.trading.TAKE_PROFIT
-        sl_pct = config.trading.STOP_LOSS
+        # Calculate multipliers from config or event
+        tp_pct = getattr(event, "tp_pct", None) or config.trading.TAKE_PROFIT
+        sl_pct = getattr(event, "sl_pct", None) or config.trading.STOP_LOSS
 
         order_payload = {
             "trade_id": trade_id,
