@@ -91,15 +91,12 @@ class ParoliV3:
         decision = DecisionEvent(
             symbol=event.symbol,
             side=event.side,
-            bet_size=bet_size / equity,  # Fraction of equity
+            bet_size=bet_size / equity if equity > 0 else 0,  # Fraction of equity
             paroli_step=self.step,
             unit_size=self.unit,
         )
 
-        logger.info(
-            f"💾 State Saved | Step: {self.current_step} | "
-            f"Seq: {self.current_sequence_profit:.2f} | Global: {self.global_pnl:.2f}"
-        )
+        logger.info(f"💾 State Saved | Step: {self.step} | " f"Unit: {self.unit:.2f}")
 
         # Emit decision
         await self.engine.dispatch(decision)

@@ -166,6 +166,9 @@ class SensorTracker:
         """
         Calculate composite quality score for a sensor.
 
+        Uses relative metrics to enable comparison between sensors.
+        Score is normalized to 0-1 range where higher = better.
+
         Returns:
             Score between 0.0 and 1.0 (higher is better)
             Returns 0.5 (neutral) for sensors with insufficient data
@@ -179,29 +182,38 @@ class SensorTracker:
         if stats.total_trades < MIN_TRADES_FOR_SCORING:
             return 0.5
 
-        # Normalize components to 0-1 range
+        # Component 1: Win Rate (already 0-1)
+        win_rate_score = stats.win_rate_short
 
-        # 1. Expectancy (normalize to 0-1, assuming max expectancy ~0.05)
-        expectancy_norm = min(max(stats.expectancy / 0.05, 0.0), 1.0)
+        # Component 2: Expectancy (normalize around 0, typical range -0.01 to +0.01)
+        # Shift to 0-1 range: 0 expectancy = 0.5, positive = >0.5, negative = <0.5
+        expectancy_score = 0.5 + (stats.expectancy * 25.0)  # ±0.02 expectancy → 0-1 range
+        expectancy_score = max(min(expectancy_score, 1.0), 0.0)
 
-        # 2. Win rate short (already 0-1)
-        win_rate_norm = stats.win_rate_short
-
-        # 3. Profit factor (normalize, assuming max ~3.0)
-        profit_factor_norm = min(stats.profit_factor / 3.0, 1.0)
-
-        # 4. Streak bonus (positive streak = bonus, negative = penalty)
-        if stats.current_streak > 0:
-            streak_bonus = min(stats.current_streak / 5.0, 1.0)  # Max bonus at 5-win streak
+        # Component 3: Profit Factor (normalize, typical range 0.5-2.0)
+        # PF = 1.0 is breakeven, >1.0 is profitable
+        if stats.profit_factor >= 1.0:
+            # Profitable: map 1.0-2.0 → 0.5-1.0
+            pf_score = 0.5 + min((stats.profit_factor - 1.0) / 2.0, 0.5)
         else:
-            streak_bonus = max(stats.current_streak / 5.0, -1.0)  # Max penalty at 5-loss streak
+            # Losing: map 0.0-1.0 → 0.0-0.5
+            pf_score = stats.profit_factor * 0.5
 
-        # Composite score (weighted average)
+        # Component 4: Streak (bonus/penalty, -1 to +1)
+        if stats.current_streak > 0:
+            streak_score = 0.5 + min(stats.current_streak / 10.0, 0.5)  # Max bonus at 10-win streak
+        elif stats.current_streak < 0:
+            streak_score = 0.5 - min(abs(stats.current_streak) / 10.0, 0.5)  # Max penalty at 10-loss streak
+        else:
+            streak_score = 0.5  # Neutral
+
+        # Weighted composite score
+        # Prioritize expectancy and win rate for signal quality
         score = (
-            expectancy_norm * 0.4
-            + win_rate_norm * 0.3
-            + profit_factor_norm * 0.2
-            + (streak_bonus * 0.5 + 0.5) * 0.1  # Convert streak from [-1,1] to [0,1]
+            expectancy_score * 0.40  # Expected value per trade (most important)
+            + win_rate_score * 0.35  # Consistency
+            + pf_score * 0.20  # Risk-adjusted returns
+            + streak_score * 0.05  # Recent momentum (minor factor)
         )
 
         return max(min(score, 1.0), 0.0)  # Clamp to [0, 1]

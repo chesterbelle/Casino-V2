@@ -48,7 +48,10 @@ class Engine:
         if event.type in self._subscribers:
             # Execute all callbacks concurrently
             callbacks = self._subscribers[event.type]
-            await asyncio.gather(*(cb(event) for cb in callbacks), return_exceptions=True)
+            results = await asyncio.gather(*(cb(event) for cb in callbacks), return_exceptions=True)
+            for res in results:
+                if isinstance(res, Exception):
+                    logger.error(f"❌ Error in event handler: {res}", exc_info=res)
 
     async def start(self, blocking: bool = True):
         """Start the engine and all components."""

@@ -18,8 +18,7 @@ logger = logging.getLogger(__name__)
 
 # Configuration
 SIGNAL_TIMEOUT_MS = getattr(paroli, "SIGNAL_TIMEOUT_MS", 100)
-MIN_SCORE_THRESHOLD = getattr(paroli, "MIN_SCORE_THRESHOLD", 0.4)  # Minimum score to consider
-CONFLICT_DELTA_THRESHOLD = getattr(paroli, "CONFLICT_DELTA_THRESHOLD", 0.15)  # Min score difference to resolve conflict
+CONFLICT_DELTA_THRESHOLD = getattr(paroli, "CONFLICT_DELTA_THRESHOLD", 0.02)  # Min score difference to resolve conflict
 
 
 class AggregatedSignalEvent(Event):
@@ -150,7 +149,7 @@ class SignalAggregatorV3:
                 total_signals=len(signals),
             )
 
-        await self.engine.dispatch(aggregated)
+            await self.engine.dispatch(aggregated)
 
         # Clear processed signals
         if candle_ts in self.signal_buffer:
@@ -161,32 +160,33 @@ class SignalAggregatorV3:
         Select the best signal from scored signals.
 
         Logic:
-        1. Filter out signals below minimum threshold
-        2. Group by direction (LONG/SHORT)
-        3. If same direction: pick highest score
-        4. If opposite directions: pick highest score if delta > threshold, else SKIP
+        1. Group by direction (LONG/SHORT)
+        2. Pick highest score in each direction
+        3. If same direction: return best
+        4. If opposite directions: return best if delta > threshold, else SKIP
 
         Returns:
             Selected signal dict or None (SKIP)
         """
-        # Filter by minimum threshold
-        valid_signals = [s for s in scored_signals if s["score"] >= MIN_SCORE_THRESHOLD]
-
-        if not valid_signals:
+        if not scored_signals:
             return None
 
         # Group by direction
-        long_signals = [s for s in valid_signals if s["side"] == "LONG"]
-        short_signals = [s for s in valid_signals if s["side"] == "SHORT"]
+        long_signals = [s for s in scored_signals if s["side"] == "LONG"]
+        short_signals = [s for s in scored_signals if s["side"] == "SHORT"]
 
-        # Case 1: Only one direction
+        # Case 1: Only one direction - pick best
         if long_signals and not short_signals:
-            return max(long_signals, key=lambda s: s["score"])
+            best = max(long_signals, key=lambda s: s["score"])
+            logger.debug(f"   Best LONG: {best['sensor_id']} (score: {best['score']:.3f})")
+            return best
 
         if short_signals and not long_signals:
-            return max(short_signals, key=lambda s: s["score"])
+            best = max(short_signals, key=lambda s: s["score"])
+            logger.debug(f"   Best SHORT: {best['sensor_id']} (score: {best['score']:.3f})")
+            return best
 
-        # Case 2: Conflicting directions
+        # Case 2: Conflicting directions - pick best overall if delta is significant
         if long_signals and short_signals:
             best_long = max(long_signals, key=lambda s: s["score"])
             best_short = max(short_signals, key=lambda s: s["score"])
@@ -197,19 +197,21 @@ class SignalAggregatorV3:
             if score_delta < CONFLICT_DELTA_THRESHOLD:
                 logger.info(
                     f"⚖️ Conflict unresolved | "
-                    f"LONG: {best_long['score']:.3f} vs SHORT: {best_short['score']:.3f} | "
+                    f"LONG: {best_long['sensor_id']} ({best_long['score']:.3f}) vs "
+                    f"SHORT: {best_short['sensor_id']} ({best_short['score']:.3f}) | "
                     f"Delta: {score_delta:.3f} < {CONFLICT_DELTA_THRESHOLD}"
                 )
                 return None
 
             # Return the higher scored signal
             winner = best_long if best_long["score"] > best_short["score"] else best_short
+            loser = best_short if winner == best_long else best_long
             logger.info(
                 f"⚖️ Conflict resolved | "
-                f"Winner: {winner['sensor_id']} ({winner['side']}) | "
-                f"Score: {winner['score']:.3f}"
+                f"Winner: {winner['sensor_id']} ({winner['side']}, {winner['score']:.3f}) | "
+                f"Loser: {loser['sensor_id']} ({loser['side']}, {loser['score']:.3f})"
             )
             return winner
 
-        # Case 3: No valid signals (shouldn't happen after filter)
+        # Case 3: No valid signals
         return None
