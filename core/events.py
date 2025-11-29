@@ -73,7 +73,7 @@ class ErrorEvent(Event):
 class SignalEvent(Event):
     symbol: str
     side: str  # 'LONG' or 'SHORT'
-    strategy_name: str
+    sensor_id: str  # Sensor that generated this signal
     score: float = 1.0
     metadata: Optional[Dict[str, Any]] = None
 

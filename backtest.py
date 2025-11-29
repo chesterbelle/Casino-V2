@@ -68,13 +68,14 @@ async def main():
     SensorManager(engine)
 
     # 7. Initialize Signal Aggregator (Signal → Aggregated Signal)
-    SignalAggregatorV3(engine)
+    aggregator = SignalAggregatorV3(engine)
+    tracker = aggregator.tracker  # Get tracker from aggregator
 
     # 7. Initialize Paroli Player (Aggregated Signal → Decision)
     paroli = ParoliV3(engine, croupier)
 
     # 8. Initialize Order Manager (Decision → Execution)
-    order_manager = OrderManager(engine, croupier, paroli)
+    order_manager = OrderManager(engine, croupier, paroli, tracker)
 
     # --- Stats Collection ---
     closed_trades = []
@@ -121,6 +122,21 @@ async def main():
 
     # --- Generate Report ---
     logger.info("✅ Backtest Complete")
+
+    # Save sensor tracker state
+    tracker.save_state()
+    logger.info(f"💾 Sensor stats saved to {tracker.state_file}")
+
+    # Log top sensors
+    top_sensors = tracker.get_top_sensors(n=10)
+    if top_sensors:
+        logger.info("🏆 Top 10 Sensors by Score:")
+        for i, (sensor_id, score) in enumerate(top_sensors, 1):
+            stats = tracker.get_stats(sensor_id)
+            logger.info(
+                f"   {i}. {sensor_id}: {score:.3f} "
+                f"(WR: {stats.win_rate_short:.1%}, Exp: {stats.expectancy:.4f}, Trades: {stats.total_trades})"
+            )
 
     # Calculate stats
     total_trades = len(closed_trades)

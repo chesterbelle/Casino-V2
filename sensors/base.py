@@ -24,3 +24,17 @@ class SensorV3(ABC):
         Returns dict with keys: 'side', 'score', 'metadata' or None.
         """
         pass
+
+    async def emit_signal(self, side: str, score: float = 1.0, metadata: Optional[dict] = None):
+        """Emit a trading signal."""
+        from core.events import SignalEvent
+
+        signal = SignalEvent(
+            timestamp=self.last_candle["timestamp"],
+            symbol=self.symbol,
+            side=side,
+            sensor_id=self.__class__.__name__,  # Use class name as sensor ID
+            score=score,
+            metadata=metadata,
+        )
+        await self.engine.dispatch(signal)

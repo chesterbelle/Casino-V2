@@ -192,7 +192,7 @@ class SensorManager:
             timestamp=time.time(),
             symbol=self.engine.data_feed.adapter.symbol,
             side=signal_data["side"],
-            strategy_name=sensor_name,
+            sensor_id=sensor_name,  # Changed from strategy_name to sensor_id
             score=signal_data.get("score", 1.0),
             metadata=signal_data.get("metadata", {}),
         )

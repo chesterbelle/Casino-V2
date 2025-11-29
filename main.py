@@ -114,13 +114,14 @@ async def main():
     SensorManager(engine)
 
     # 7. Initialize Signal Aggregator (Signal → Aggregated Signal)
-    SignalAggregatorV3(engine)
+    aggregator = SignalAggregatorV3(engine)
+    tracker = aggregator.tracker  # Get tracker from aggregator
 
     # 8. Initialize Paroli Player (Aggregated Signal → Decision)
     paroli = ParoliV3(engine, croupier)
 
     # 9. Initialize Order Manager (Decision → Execution)
-    order_manager = OrderManager(engine, croupier, paroli)
+    order_manager = OrderManager(engine, croupier, paroli, tracker)
 
     # Start components
     await connector.connect()

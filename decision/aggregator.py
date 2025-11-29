@@ -1,6 +1,6 @@
 """
 Signal Aggregator for Casino-V3.
-Collects signals from multiple sensors and applies voting logic.
+Collects signals from multiple sensors and applies intelligent scoring.
 """
 
 import asyncio
@@ -12,11 +12,14 @@ from typing import Dict, List, Optional
 from config import paroli
 from core.events import Event, EventType, SignalEvent
 
+from .sensor_tracker import SensorTracker
+
 logger = logging.getLogger(__name__)
 
 # Configuration
-VOTING_THRESHOLD = getattr(paroli, "VOTING_THRESHOLD", 1.5)
 SIGNAL_TIMEOUT_MS = getattr(paroli, "SIGNAL_TIMEOUT_MS", 100)
+MIN_SCORE_THRESHOLD = getattr(paroli, "MIN_SCORE_THRESHOLD", 0.4)  # Minimum score to consider
+CONFLICT_DELTA_THRESHOLD = getattr(paroli, "CONFLICT_DELTA_THRESHOLD", 0.15)  # Min score difference to resolve conflict
 
 
 class AggregatedSignalEvent(Event):
@@ -26,26 +29,28 @@ class AggregatedSignalEvent(Event):
         self,
         symbol: str,
         candle_timestamp: float,
-        long_votes: int,
-        short_votes: int,
-        total_sensors: int,
+        selected_sensor: str,
+        sensor_score: float,
         side: str,
         confidence: float,
+        total_signals: int,
     ):
         super().__init__(type=EventType.AGGREGATED_SIGNAL, timestamp=time.time())
         self.symbol = symbol
         self.candle_timestamp = candle_timestamp
-        self.long_votes = long_votes
-        self.short_votes = short_votes
-        self.total_sensors = total_sensors
+        self.selected_sensor = selected_sensor
+        self.sensor_score = sensor_score
         self.side = side
         self.confidence = confidence
+        self.total_signals = total_signals
 
 
 class SignalAggregatorV3:
     """
-    Aggregates signals from multiple sensors per candle.
-    Applies simple majority voting with threshold.
+    Aggregates signals from multiple sensors using intelligent scoring.
+
+    Instead of simple voting, scores each signal based on sensor's historical
+    performance (expectancy, win rate, profit factor, etc).
     """
 
     def __init__(self, engine):
@@ -54,13 +59,16 @@ class SignalAggregatorV3:
         self.current_candle_timestamp: Optional[float] = None
         self.timeout_task: Optional[asyncio.Task] = None
 
+        # Initialize sensor tracker
+        self.tracker = SensorTracker()
+
         # Subscribe to SIGNAL events
         self.engine.subscribe(EventType.SIGNAL, self.on_signal)
 
         # Subscribe to CANDLE events to track candle changes
         self.engine.subscribe(EventType.CANDLE, self.on_candle)
 
-        logger.info("✅ SignalAggregator initialized")
+        logger.info("✅ SignalAggregator initialized with intelligent scoring")
 
     async def on_candle(self, event):
         """Track new candles to reset signal buffer."""
@@ -97,46 +105,111 @@ class SignalAggregatorV3:
         await self._process_signals(candle_ts)
 
     async def _process_signals(self, candle_ts: float):
-        """Process buffered signals and emit aggregated signal."""
+        """Process buffered signals using intelligent scoring."""
         signals = self.signal_buffer.get(candle_ts, [])
 
         if not signals:
             return
 
-        # Count votes
-        long_votes = sum(1 for s in signals if s.side == "LONG")
-        short_votes = sum(1 for s in signals if s.side == "SHORT")
-        total = len(signals)
+        # Score all signals
+        scored_signals = []
+        for signal in signals:
+            sensor_id = signal.sensor_id if hasattr(signal, "sensor_id") else "Unknown"
+            score = self.tracker.get_sensor_score(sensor_id)
+            scored_signals.append({"signal": signal, "sensor_id": sensor_id, "score": score, "side": signal.side})
 
-        # Determine consensus
-        side = "SKIP"
-        confidence = 0.0
+        # Select best signal
+        selected = self._select_best_signal(scored_signals)
 
-        if long_votes > short_votes * VOTING_THRESHOLD:
-            side = "LONG"
-            confidence = long_votes / total
-        elif short_votes > long_votes * VOTING_THRESHOLD:
-            side = "SHORT"
-            confidence = short_votes / total
+        if selected is None:
+            logger.info("📊 No signal selected (all below threshold or conflict unresolved)")
+            # Emit SKIP signal
+            aggregated = AggregatedSignalEvent(
+                symbol=signals[0].symbol,
+                candle_timestamp=candle_ts,
+                selected_sensor="None",
+                sensor_score=0.0,
+                side="SKIP",
+                confidence=0.0,
+                total_signals=len(signals),
+            )
+        else:
+            logger.info(
+                f"📊 Selected: {selected['sensor_id']} ({selected['side']}) | "
+                f"Score: {selected['score']:.3f} | "
+                f"Total signals: {len(signals)}"
+            )
 
-        # Log voting results
-        logger.info(
-            f"📊 Voting Results: {long_votes} LONG, {short_votes} SHORT → {side} (confidence: {confidence:.2%})"
-        )
-
-        # Emit aggregated signal
-        aggregated = AggregatedSignalEvent(
-            symbol=signals[0].symbol,
-            candle_timestamp=candle_ts,
-            long_votes=long_votes,
-            short_votes=short_votes,
-            total_sensors=total,
-            side=side,
-            confidence=confidence,
-        )
+            aggregated = AggregatedSignalEvent(
+                symbol=selected["signal"].symbol,
+                candle_timestamp=candle_ts,
+                selected_sensor=selected["sensor_id"],
+                sensor_score=selected["score"],
+                side=selected["side"],
+                confidence=selected["score"],  # Score is our confidence
+                total_signals=len(signals),
+            )
 
         await self.engine.dispatch(aggregated)
 
         # Clear processed signals
         if candle_ts in self.signal_buffer:
             del self.signal_buffer[candle_ts]
+
+    def _select_best_signal(self, scored_signals: List[Dict]) -> Optional[Dict]:
+        """
+        Select the best signal from scored signals.
+
+        Logic:
+        1. Filter out signals below minimum threshold
+        2. Group by direction (LONG/SHORT)
+        3. If same direction: pick highest score
+        4. If opposite directions: pick highest score if delta > threshold, else SKIP
+
+        Returns:
+            Selected signal dict or None (SKIP)
+        """
+        # Filter by minimum threshold
+        valid_signals = [s for s in scored_signals if s["score"] >= MIN_SCORE_THRESHOLD]
+
+        if not valid_signals:
+            return None
+
+        # Group by direction
+        long_signals = [s for s in valid_signals if s["side"] == "LONG"]
+        short_signals = [s for s in valid_signals if s["side"] == "SHORT"]
+
+        # Case 1: Only one direction
+        if long_signals and not short_signals:
+            return max(long_signals, key=lambda s: s["score"])
+
+        if short_signals and not long_signals:
+            return max(short_signals, key=lambda s: s["score"])
+
+        # Case 2: Conflicting directions
+        if long_signals and short_signals:
+            best_long = max(long_signals, key=lambda s: s["score"])
+            best_short = max(short_signals, key=lambda s: s["score"])
+
+            score_delta = abs(best_long["score"] - best_short["score"])
+
+            # If difference is too small, skip (no clear winner)
+            if score_delta < CONFLICT_DELTA_THRESHOLD:
+                logger.info(
+                    f"⚖️ Conflict unresolved | "
+                    f"LONG: {best_long['score']:.3f} vs SHORT: {best_short['score']:.3f} | "
+                    f"Delta: {score_delta:.3f} < {CONFLICT_DELTA_THRESHOLD}"
+                )
+                return None
+
+            # Return the higher scored signal
+            winner = best_long if best_long["score"] > best_short["score"] else best_short
+            logger.info(
+                f"⚖️ Conflict resolved | "
+                f"Winner: {winner['sensor_id']} ({winner['side']}) | "
+                f"Score: {winner['score']:.3f}"
+            )
+            return winner
+
+        # Case 3: No valid signals (shouldn't happen after filter)
+        return None

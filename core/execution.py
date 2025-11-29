@@ -19,12 +19,13 @@ class OrderManager:
     Subscribes to DECISION events (from Paroli).
     """
 
-    def __init__(self, engine, croupier: Croupier, paroli=None):
+    def __init__(self, engine, croupier: Croupier, paroli=None, tracker=None):
         self.engine = engine
         self.croupier = croupier
         self.paroli = paroli
+        self.tracker = tracker  # SensorTracker instance
         self.active = False
-        self.pending_trades = {}  # trade_id -> decision
+        self.pending_trades = {}  # trade_id -> (decision, sensor_id)
 
         # Subscribe to DECISION events (will come from Paroli)
         self.engine.subscribe(EventType.SYSTEM, self.on_decision)  # Using SYSTEM for now
@@ -78,8 +79,9 @@ class OrderManager:
             "ghost": False,
         }
 
-        # Store for outcome tracking
-        self.pending_trades[trade_id] = event
+        # Store for outcome tracking (include sensor_id if available)
+        sensor_id = getattr(event, "selected_sensor", "Unknown")
+        self.pending_trades[trade_id] = (event, sensor_id)
 
         # Execute via Croupier
         try:
@@ -94,10 +96,28 @@ class OrderManager:
         except Exception as e:
             logger.error(f"❌ Execution Failed: {e}", exc_info=True)
 
-    def handle_trade_outcome(self, trade_id: str, won: bool):
-        """Callback when trade closes - update Paroli."""
-        if self.paroli and trade_id in self.pending_trades:
-            self.paroli.handle_trade_outcome(trade_id, won)
+    def handle_trade_outcome(self, trade_id: str, won: bool, pnl: float = 0.0):
+        """
+        Callback when trade closes - update Paroli and SensorTracker.
+
+        Args:
+            trade_id: Trade identifier
+            won: True if trade was profitable
+            pnl: Profit/Loss amount
+        """
+        if trade_id in self.pending_trades:
+            event, sensor_id = self.pending_trades[trade_id]
+
+            # Update Paroli
+            if self.paroli:
+                self.paroli.handle_trade_outcome(trade_id, won)
+
+            # Update SensorTracker
+            if self.tracker and sensor_id != "Unknown":
+                self.tracker.update_sensor(sensor_id, pnl, won)
+                logger.debug(f"📊 Updated tracker for {sensor_id}: won={won}, pnl={pnl:.4f}")
+
+            # Clean up
             del self.pending_trades[trade_id]
 
     async def on_candle(self, event):
@@ -159,6 +179,6 @@ class OrderManager:
 
             if result:
                 logger.info(f"✅ Trade Closed: {trade_id} | {exit_reason} | PnL: {pnl:.2f}")
-                # Update Paroli
+                # Update Paroli and Tracker
                 won = result["result"] == "WIN"
-                self.handle_trade_outcome(trade_id, won)
+                self.handle_trade_outcome(trade_id, won, pnl)
