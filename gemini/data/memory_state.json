@@ -1,1729 +1,389 @@
 {
-  "last_update": "2025-11-28T22:01:25.280077",
+  "last_update": "2025-11-29T04:18:08.115881",
   "memory_window": 500,
   "strategies": {
-    "BTC/USDC:USDC@1m|BBW=L|RS2|H=N|StochasticReversion": {
-      "wins": 208,
-      "losses": 203,
-      "winrate": 0.5060827250608273
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS2|H=N|WilliamsRReversion": {
-      "wins": 426,
-      "losses": 471,
-      "winrate": 0.47491638795986624
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS5|H=N|CCIReversion": {
-      "wins": 1350,
-      "losses": 1529,
-      "winrate": 0.46891281695033
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS5|H=N|MFIReversion": {
-      "wins": 1145,
-      "losses": 1308,
-      "winrate": 0.4667753770892784
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS5|H=N|StochasticReversion": {
-      "wins": 1136,
-      "losses": 1247,
-      "winrate": 0.4767100293747377
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS5|H=N|WilliamsRReversion": {
-      "wins": 1163,
-      "losses": 1290,
-      "winrate": 0.47411333061557276
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS2|H=N|CCIReversion": {
-      "wins": 781,
-      "losses": 832,
-      "winrate": 0.4841909485430874
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS1|H=N|CCIReversion": {
-      "wins": 1252,
-      "losses": 1556,
-      "winrate": 0.4458689458689459
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS3|H=N|CCIReversion": {
-      "wins": 2079,
-      "losses": 2363,
-      "winrate": 0.46803241782980637
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS3|H=N|MFIReversion": {
-      "wins": 617,
-      "losses": 670,
-      "winrate": 0.4794094794094794
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS4|H=N|MFIReversion": {
-      "wins": 275,
-      "losses": 327,
-      "winrate": 0.4568106312292359
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS4|H=N|StochasticReversion": {
-      "wins": 519,
-      "losses": 514,
-      "winrate": 0.5024201355275896
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS4|H=N|WilliamsRReversion": {
-      "wins": 576,
-      "losses": 578,
-      "winrate": 0.49913344887348354
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS3|H=N|StochasticReversion": {
-      "wins": 1246,
-      "losses": 1398,
-      "winrate": 0.4712556732223903
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS3|H=N|WilliamsRReversion": {
-      "wins": 1309,
-      "losses": 1457,
-      "winrate": 0.4732465654374548
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS1|H=N|MACDCrossover": {
-      "wins": 515,
-      "losses": 540,
-      "winrate": 0.4881516587677725
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS2|H=N|MFIReversion": {
-      "wins": 80,
-      "losses": 66,
-      "winrate": 0.547945205479452
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS2|H=N|Supertrend": {
-      "wins": 107,
-      "losses": 158,
-      "winrate": 0.4037735849056604
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS1|H=N|WilliamsRReversion": {
-      "wins": 394,
-      "losses": 376,
-      "winrate": 0.5116883116883116
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS3|H=N|BollingerSqueeze": {
-      "wins": 69,
-      "losses": 79,
-      "winrate": 0.46621621621621623
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS4|H=N|CCIReversion": {
-      "wins": 820,
-      "losses": 868,
-      "winrate": 0.48578199052132703
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS2|H=N|MACDCrossover": {
-      "wins": 54,
-      "losses": 68,
-      "winrate": 0.4426229508196721
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS3|H=N|Supertrend": {
-      "wins": 40,
-      "losses": 34,
-      "winrate": 0.5405405405405406
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS3|H=N|MACDCrossover": {
-      "wins": 69,
-      "losses": 62,
-      "winrate": 0.5267175572519084
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS5|H=N|BollingerSqueeze": {
-      "wins": 12,
-      "losses": 13,
-      "winrate": 0.48
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS5|H=N|Supertrend": {
-      "wins": 9,
-      "losses": 3,
-      "winrate": 0.75
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS4|H=N|MACDCrossover": {
-      "wins": 17,
-      "losses": 20,
-      "winrate": 0.4594594594594595
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS6|H=N|Supertrend": {
-      "wins": 7,
-      "losses": 2,
-      "winrate": 0.7777777777777778
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS6|H=N|MACDCrossover": {
-      "wins": 7,
-      "losses": 5,
-      "winrate": 0.5833333333333334
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS6|H=N|BollingerSqueeze": {
-      "wins": 4,
-      "losses": 0,
-      "winrate": 1.0
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS4|H=N|BollingerSqueeze": {
-      "wins": 1,
-      "losses": 1,
-      "winrate": 0.5
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS1|H=N|WilliamsRReversion": {
-      "wins": 94,
-      "losses": 70,
-      "winrate": 0.573170731707317
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS5|H=N|CCIReversion": {
-      "wins": 265,
-      "losses": 274,
-      "winrate": 0.49165120593692024
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS5|H=N|MFIReversion": {
-      "wins": 165,
-      "losses": 161,
-      "winrate": 0.5061349693251533
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS5|H=N|StochasticReversion": {
-      "wins": 201,
-      "losses": 194,
-      "winrate": 0.5088607594936709
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS5|H=N|WilliamsRReversion": {
-      "wins": 207,
-      "losses": 198,
-      "winrate": 0.5111111111111111
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS3|H=N|CCIReversion": {
-      "wins": 297,
-      "losses": 350,
-      "winrate": 0.45904173106646057
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS3|H=N|StochasticReversion": {
-      "wins": 262,
-      "losses": 282,
-      "winrate": 0.48161764705882354
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS3|H=N|WilliamsRReversion": {
-      "wins": 271,
-      "losses": 286,
-      "winrate": 0.4865350089766607
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS1|H=N|MACDCrossover": {
-      "wins": 80,
-      "losses": 128,
-      "winrate": 0.38461538461538464
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS3|H=N|MFIReversion": {
-      "wins": 48,
-      "losses": 61,
-      "winrate": 0.44036697247706424
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS1|H=N|CCIReversion": {
-      "wins": 98,
-      "losses": 157,
-      "winrate": 0.3843137254901961
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS2|H=N|MFIReversion": {
-      "wins": 30,
-      "losses": 19,
-      "winrate": 0.6122448979591837
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS4|H=N|CCIReversion": {
-      "wins": 367,
-      "losses": 349,
-      "winrate": 0.5125698324022346
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS4|H=N|MFIReversion": {
-      "wins": 70,
-      "losses": 63,
-      "winrate": 0.5263157894736842
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS4|H=N|WilliamsRReversion": {
-      "wins": 320,
-      "losses": 309,
-      "winrate": 0.5087440381558028
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS2|H=N|CCIReversion": {
-      "wins": 135,
-      "losses": 174,
-      "winrate": 0.4368932038834951
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS2|H=N|WilliamsRReversion": {
-      "wins": 90,
-      "losses": 88,
-      "winrate": 0.5056179775280899
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS2|H=N|StochasticReversion": {
-      "wins": 63,
-      "losses": 51,
-      "winrate": 0.5526315789473685
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS2|H=N|Supertrend": {
-      "wins": 21,
-      "losses": 22,
-      "winrate": 0.4883720930232558
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS2|H=N|MACDCrossover": {
-      "wins": 5,
-      "losses": 16,
-      "winrate": 0.23809523809523808
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS3|H=N|BollingerSqueeze": {
-      "wins": 12,
-      "losses": 0,
-      "winrate": 1.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS3|H=N|Supertrend": {
-      "wins": 5,
-      "losses": 5,
-      "winrate": 0.5
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS3|H=N|MACDCrossover": {
-      "wins": 21,
-      "losses": 26,
-      "winrate": 0.44680851063829785
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS4|H=N|StochasticReversion": {
-      "wins": 320,
-      "losses": 305,
-      "winrate": 0.512
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS6|H=N|CCIReversion": {
-      "wins": 630,
-      "losses": 742,
-      "winrate": 0.45918367346938777
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS6|H=N|MFIReversion": {
-      "wins": 585,
-      "losses": 681,
-      "winrate": 0.46208530805687204
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS6|H=N|StochasticReversion": {
-      "wins": 587,
-      "losses": 686,
-      "winrate": 0.46111547525530244
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS6|H=N|WilliamsRReversion": {
-      "wins": 590,
-      "losses": 695,
-      "winrate": 0.4591439688715953
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS6|H=N|AdaptiveRSIScalper": {
-      "wins": 579,
-      "losses": 697,
-      "winrate": 0.4537617554858934
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS7|H=N|CCIReversion": {
-      "wins": 233,
-      "losses": 276,
-      "winrate": 0.4577603143418468
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS7|H=N|MFIReversion": {
-      "wins": 233,
-      "losses": 274,
-      "winrate": 0.45956607495069035
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS7|H=N|StochasticReversion": {
-      "wins": 218,
-      "losses": 265,
-      "winrate": 0.45134575569358176
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS7|H=N|WilliamsRReversion": {
-      "wins": 220,
-      "losses": 267,
-      "winrate": 0.4517453798767967
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS7|H=N|AdaptiveRSIScalper": {
-      "wins": 227,
-      "losses": 279,
-      "winrate": 0.44861660079051385
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS7|H=N|BollingerBandRejection": {
-      "wins": 233,
-      "losses": 272,
-      "winrate": 0.4613861386138614
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS5|H=N|AdaptiveRSIScalper": {
-      "wins": 346,
-      "losses": 407,
-      "winrate": 0.4594953519256308
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS5|H=N|BollingerBandRejection": {
-      "wins": 365,
-      "losses": 393,
-      "winrate": 0.4815303430079156
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS3|H=N|AdaptiveRSIScalper": {
-      "wins": 221,
-      "losses": 319,
-      "winrate": 0.40925925925925927
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS3|H=N|BollingerBandRejection": {
-      "wins": 259,
-      "losses": 333,
-      "winrate": 0.4375
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS2|H=N|AdaptiveRSIScalper": {
-      "wins": 212,
-      "losses": 210,
-      "winrate": 0.5023696682464455
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS4|H=N|AdaptiveRSIScalper": {
-      "wins": 534,
-      "losses": 568,
-      "winrate": 0.484573502722323
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS4|H=N|BollingerBandRejection": {
-      "wins": 303,
-      "losses": 305,
-      "winrate": 0.49835526315789475
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS7|H=N|MomentumBurst": {
-      "wins": 20,
-      "losses": 26,
-      "winrate": 0.43478260869565216
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS2|H=N|BollingerBandRejection": {
-      "wins": 468,
-      "losses": 495,
-      "winrate": 0.48598130841121495
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS1|H=N|AdaptiveRSIScalper": {
-      "wins": 49,
-      "losses": 69,
-      "winrate": 0.4152542372881356
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS1|H=N|BollingerBandRejection": {
-      "wins": 167,
-      "losses": 193,
-      "winrate": 0.4638888888888889
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS6|H=N|BollingerBandRejection": {
-      "wins": 124,
-      "losses": 151,
-      "winrate": 0.4509090909090909
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS2|H=N|MomentumBurst": {
-      "wins": 18,
-      "losses": 2,
-      "winrate": 0.9
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS4|H=N|MomentumBurst": {
-      "wins": 24,
-      "losses": 22,
-      "winrate": 0.5217391304347826
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS6|H=N|MomentumBurst": {
-      "wins": 19,
-      "losses": 20,
-      "winrate": 0.48717948717948717
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS4|H=N|Supertrend": {
-      "wins": 14,
-      "losses": 11,
-      "winrate": 0.56
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS3|H=N|MomentumBurst": {
-      "wins": 19,
-      "losses": 6,
-      "winrate": 0.76
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS5|H=N|MomentumBurst": {
-      "wins": 15,
-      "losses": 11,
-      "winrate": 0.5769230769230769
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS6|H=N|CCIReversion": {
-      "wins": 310,
-      "losses": 311,
-      "winrate": 0.499194847020934
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS6|H=N|MFIReversion": {
-      "wins": 310,
-      "losses": 302,
-      "winrate": 0.5065359477124183
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS6|H=N|StochasticReversion": {
-      "wins": 304,
-      "losses": 292,
-      "winrate": 0.5100671140939598
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS6|H=N|WilliamsRReversion": {
-      "wins": 304,
-      "losses": 293,
-      "winrate": 0.509212730318258
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS6|H=N|AdaptiveRSIScalper": {
-      "wins": 306,
-      "losses": 289,
-      "winrate": 0.5142857142857142
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS4|H=N|AdaptiveRSIScalper": {
-      "wins": 315,
-      "losses": 288,
-      "winrate": 0.5223880597014925
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS4|H=N|MomentumBurst": {
-      "wins": 10,
-      "losses": 9,
-      "winrate": 0.5263157894736842
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS4|H=N|BollingerBandRejection": {
-      "wins": 126,
-      "losses": 135,
-      "winrate": 0.4827586206896552
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS3|H=N|AdaptiveRSIScalper": {
-      "wins": 77,
-      "losses": 71,
-      "winrate": 0.5202702702702703
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS7|H=N|CCIReversion": {
-      "wins": 114,
-      "losses": 116,
-      "winrate": 0.4956521739130435
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS7|H=N|MFIReversion": {
-      "wins": 97,
-      "losses": 103,
-      "winrate": 0.485
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS7|H=N|StochasticReversion": {
-      "wins": 84,
-      "losses": 80,
-      "winrate": 0.5121951219512195
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS7|H=N|WilliamsRReversion": {
-      "wins": 84,
-      "losses": 82,
-      "winrate": 0.5060240963855421
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS7|H=N|AdaptiveRSIScalper": {
-      "wins": 108,
+    "BTC/USDC:USDC@1m|BBW=L|RS2|H=N|RailsPattern": {
+      "wins": 717,
+      "losses": 437,
+      "winrate": 0.621317157712305
+    },
+    "BTC/USDC:USDC@1m|BBW=L|RS2|H=N|VWAPBreakout": {
+      "wins": 774,
+      "losses": 447,
+      "winrate": 0.6339066339066339
+    },
+    "BTC/USDC:USDC@1m|BBW=L|RS2|H=N|EMA50Support": {
+      "wins": 386,
+      "losses": 226,
+      "winrate": 0.630718954248366
+    },
+    "BTC/USDC:USDC@1m|BBW=L|RS1|H=N|InsideBarBreakout": {
+      "wins": 177,
       "losses": 109,
-      "winrate": 0.4976958525345622
+      "winrate": 0.6188811188811189
     },
-    "LTC/USDC:USDC@1m|BBW=L|RS7|H=N|BollingerBandRejection": {
-      "wins": 96,
-      "losses": 103,
-      "winrate": 0.4824120603015075
+    "BTC/USDC:USDC@1m|BBW=L|RS3|H=N|RailsPattern": {
+      "wins": 112,
+      "losses": 74,
+      "winrate": 0.6021505376344086
     },
-    "LTC/USDC:USDC@1m|BBW=L|RS3|H=N|BollingerBandRejection": {
-      "wins": 113,
-      "losses": 141,
-      "winrate": 0.4448818897637795
+    "BTC/USDC:USDC@1m|BBW=L|RS3|H=N|InsideBarBreakout": {
+      "wins": 145,
+      "losses": 99,
+      "winrate": 0.5942622950819673
     },
-    "LTC/USDC:USDC@1m|BBW=L|RS2|H=N|BollingerBandRejection": {
-      "wins": 126,
-      "losses": 151,
-      "winrate": 0.4548736462093863
+    "BTC/USDC:USDC@1m|BBW=L|RS4|H=N|EMA50Support": {
+      "wins": 125,
+      "losses": 61,
+      "winrate": 0.6720430107526881
     },
-    "LTC/USDC:USDC@1m|BBW=L|RS1|H=N|AdaptiveRSIScalper": {
-      "wins": 11,
-      "losses": 28,
-      "winrate": 0.28205128205128205
+    "BTC/USDC:USDC@1m|BBW=L|RS4|H=N|VWAPBreakout": {
+      "wins": 116,
+      "losses": 61,
+      "winrate": 0.655367231638418
     },
-    "LTC/USDC:USDC@1m|BBW=L|RS5|H=N|AdaptiveRSIScalper": {
-      "wins": 169,
-      "losses": 148,
-      "winrate": 0.5331230283911672
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS5|H=N|BollingerBandRejection": {
-      "wins": 171,
-      "losses": 165,
-      "winrate": 0.5089285714285714
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS2|H=N|AdaptiveRSIScalper": {
-      "wins": 35,
-      "losses": 45,
-      "winrate": 0.4375
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS5|H=N|MomentumBurst": {
-      "wins": 4,
-      "losses": 8,
-      "winrate": 0.3333333333333333
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS1|H=N|BollingerBandRejection": {
-      "wins": 256,
-      "losses": 170,
-      "winrate": 0.6009389671361502
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS3|H=N|MomentumBurst": {
-      "wins": 9,
-      "losses": 7,
-      "winrate": 0.5625
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS7|H=N|MomentumBurst": {
-      "wins": 5,
-      "losses": 5,
-      "winrate": 0.5
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS6|H=N|MomentumBurst": {
-      "wins": 4,
-      "losses": 14,
-      "winrate": 0.2222222222222222
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS6|H=N|BollingerBandRejection": {
-      "wins": 48,
-      "losses": 68,
-      "winrate": 0.41379310344827586
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS2|H=N|MomentumBurst": {
-      "wins": 4,
-      "losses": 3,
-      "winrate": 0.5714285714285714
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS8|H=N|CCIReversion": {
-      "wins": 55,
-      "losses": 52,
-      "winrate": 0.514018691588785
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS8|H=N|MFIReversion": {
-      "wins": 49,
-      "losses": 45,
-      "winrate": 0.5212765957446809
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS8|H=N|AdaptiveRSIScalper": {
-      "wins": 49,
-      "losses": 47,
-      "winrate": 0.5104166666666666
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS8|H=N|MomentumBurst": {
-      "wins": 5,
-      "losses": 6,
-      "winrate": 0.45454545454545453
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS8|H=N|BollingerBandRejection": {
-      "wins": 31,
-      "losses": 34,
-      "winrate": 0.47692307692307695
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS8|H=N|SmartRangeScalper": {
-      "wins": 21,
-      "losses": 21,
-      "winrate": 0.5
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS2|H=N|MicroTrendPullback": {
-      "wins": 93,
-      "losses": 116,
-      "winrate": 0.4449760765550239
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS4|H=N|MicroTrendPullback": {
-      "wins": 42,
-      "losses": 33,
-      "winrate": 0.56
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS6|H=N|SmartRangeScalper": {
-      "wins": 52,
-      "losses": 62,
-      "winrate": 0.45614035087719296
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS2|H=N|SmartRangeScalper": {
-      "wins": 32,
-      "losses": 44,
-      "winrate": 0.42105263157894735
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS4|H=N|SmartRangeScalper": {
-      "wins": 52,
-      "losses": 84,
-      "winrate": 0.38235294117647056
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS7|H=N|SmartRangeScalper": {
-      "wins": 36,
-      "losses": 53,
-      "winrate": 0.4044943820224719
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS3|H=N|SmartRangeScalper": {
-      "wins": 123,
-      "losses": 115,
-      "winrate": 0.5168067226890757
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS5|H=N|SmartRangeScalper": {
-      "wins": 108,
-      "losses": 107,
-      "winrate": 0.5023255813953489
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS6|H=N|MicroTrendPullback": {
-      "wins": 12,
-      "losses": 15,
-      "winrate": 0.4444444444444444
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS3|H=N|MicroTrendPullback": {
-      "wins": 41,
-      "losses": 27,
-      "winrate": 0.6029411764705882
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS1|H=N|SmartRangeScalper": {
-      "wins": 21,
-      "losses": 16,
-      "winrate": 0.5675675675675675
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS5|H=N|MicroTrendPullback": {
-      "wins": 12,
-      "losses": 14,
-      "winrate": 0.46153846153846156
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS8|H=N|StochasticReversion": {
-      "wins": 44,
-      "losses": 35,
-      "winrate": 0.5569620253164557
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS8|H=N|WilliamsRReversion": {
-      "wins": 44,
-      "losses": 35,
-      "winrate": 0.5569620253164557
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS8|H=N|MicroTrendPullback": {
-      "wins": 4,
-      "losses": 4,
-      "winrate": 0.5
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS5|H=N|MACDCrossover": {
-      "wins": 12,
-      "losses": 4,
-      "winrate": 0.75
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS9|H=N|CCIReversion": {
-      "wins": 27,
-      "losses": 28,
-      "winrate": 0.4909090909090909
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS9|H=N|MFIReversion": {
-      "wins": 25,
-      "losses": 28,
-      "winrate": 0.4716981132075472
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS9|H=N|StochasticReversion": {
-      "wins": 16,
-      "losses": 15,
-      "winrate": 0.5161290322580645
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS9|H=N|WilliamsRReversion": {
-      "wins": 16,
-      "losses": 15,
-      "winrate": 0.5161290322580645
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS9|H=N|AdaptiveRSIScalper": {
-      "wins": 25,
-      "losses": 24,
-      "winrate": 0.5102040816326531
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS9|H=N|BollingerBandRejection": {
-      "wins": 27,
-      "losses": 28,
-      "winrate": 0.4909090909090909
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS9|H=N|MicroTrendPullback": {
-      "wins": 0,
-      "losses": 2,
-      "winrate": 0.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS5|H=N|SmartRangeScalper": {
-      "wins": 57,
-      "losses": 57,
-      "winrate": 0.5
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS3|H=N|SmartRangeScalper": {
+    "BTC/USDC:USDC@1m|BBW=L|RS3|H=N|VWAPBreakout": {
       "wins": 37,
-      "losses": 42,
-      "winrate": 0.46835443037974683
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS2|H=N|SmartRangeScalper": {
-      "wins": 4,
       "losses": 17,
-      "winrate": 0.19047619047619047
+      "winrate": 0.6851851851851852
     },
-    "LTC/USDC:USDC@1m|BBW=L|RS4|H=N|MicroTrendPullback": {
-      "wins": 15,
-      "losses": 19,
-      "winrate": 0.4411764705882353
+    "BTC/USDC:USDC@1m|BBW=L|RS4|H=N|RailsPattern": {
+      "wins": 175,
+      "losses": 84,
+      "winrate": 0.6756756756756757
     },
-    "LTC/USDC:USDC@1m|BBW=L|RS2|H=N|MicroTrendPullback": {
-      "wins": 103,
-      "losses": 63,
-      "winrate": 0.6204819277108434
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS4|H=N|SmartRangeScalper": {
-      "wins": 23,
-      "losses": 24,
-      "winrate": 0.48936170212765956
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS3|H=N|MicroTrendPullback": {
-      "wins": 27,
-      "losses": 20,
-      "winrate": 0.574468085106383
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS5|H=N|MicroTrendPullback": {
-      "wins": 9,
-      "losses": 7,
-      "winrate": 0.5625
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS1|H=N|SmartRangeScalper": {
-      "wins": 8,
-      "losses": 8,
-      "winrate": 0.5
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS8|H=N|CCIReversion": {
-      "wins": 38,
-      "losses": 50,
-      "winrate": 0.4318181818181818
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS8|H=N|MFIReversion": {
-      "wins": 33,
-      "losses": 41,
-      "winrate": 0.44594594594594594
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS8|H=N|AdaptiveRSIScalper": {
-      "wins": 38,
-      "losses": 36,
-      "winrate": 0.5135135135135135
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS8|H=N|MomentumBurst": {
-      "wins": 5,
-      "losses": 5,
-      "winrate": 0.5
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS8|H=N|BollingerBandRejection": {
-      "wins": 21,
-      "losses": 34,
-      "winrate": 0.38181818181818183
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS8|H=N|SmartRangeScalper": {
-      "wins": 16,
+    "BTC/USDC:USDC@1m|BBW=L|RS3|H=N|EMA50Support": {
+      "wins": 25,
       "losses": 16,
-      "winrate": 0.5
+      "winrate": 0.6097560975609756
     },
-    "LTC/USDC:USDC@1m|BBW=L|RS8|H=N|StochasticReversion": {
+    "BTC/USDC:USDC@1m|BBW=L|RS1|H=N|EngulfingPattern": {
       "wins": 28,
-      "losses": 36,
-      "winrate": 0.4375
+      "losses": 7,
+      "winrate": 0.8
     },
-    "LTC/USDC:USDC@1m|BBW=L|RS8|H=N|WilliamsRReversion": {
-      "wins": 28,
-      "losses": 36,
-      "winrate": 0.4375
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS8|H=N|MicroTrendPullback": {
-      "wins": 1,
-      "losses": 0,
-      "winrate": 1.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS9|H=N|CCIReversion": {
-      "wins": 24,
-      "losses": 28,
-      "winrate": 0.46153846153846156
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS9|H=N|MFIReversion": {
-      "wins": 24,
-      "losses": 27,
-      "winrate": 0.47058823529411764
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS9|H=N|StochasticReversion": {
-      "wins": 20,
-      "losses": 24,
-      "winrate": 0.45454545454545453
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS9|H=N|WilliamsRReversion": {
-      "wins": 20,
-      "losses": 24,
-      "winrate": 0.45454545454545453
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS9|H=N|AdaptiveRSIScalper": {
-      "wins": 24,
-      "losses": 27,
-      "winrate": 0.47058823529411764
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS9|H=N|BollingerBandRejection": {
-      "wins": 24,
-      "losses": 28,
-      "winrate": 0.46153846153846156
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS9|H=N|MicroTrendPullback": {
-      "wins": 1,
+    "BTC/USDC:USDC@1m|BBW=L|RS6|H=N|RailsPattern": {
+      "wins": 2,
       "losses": 3,
-      "winrate": 0.25
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS6|H=N|SmartRangeScalper": {
-      "wins": 17,
-      "losses": 26,
-      "winrate": 0.3953488372093023
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS7|H=N|SmartRangeScalper": {
-      "wins": 14,
-      "losses": 13,
-      "winrate": 0.5185185185185185
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS2|H=N|VWAPMomentum": {
-      "wins": 28,
-      "losses": 23,
-      "winrate": 0.5490196078431373
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS2|H=N|KeltnerBreakout": {
-      "wins": 355,
-      "losses": 434,
-      "winrate": 0.449936628643853
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS9|H=N|VolumeFlowImbalance": {
-      "wins": 24,
-      "losses": 27,
-      "winrate": 0.47058823529411764
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS6|H=N|VolumeFlowImbalance": {
-      "wins": 102,
-      "losses": 122,
-      "winrate": 0.45535714285714285
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS6|H=N|HurstRegime": {
-      "wins": 9,
-      "losses": 8,
-      "winrate": 0.5294117647058824
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS7|H=N|VolumeFlowImbalance": {
-      "wins": 80,
-      "losses": 94,
-      "winrate": 0.45977011494252873
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS5|H=N|VolumeFlowImbalance": {
-      "wins": 104,
-      "losses": 110,
-      "winrate": 0.48598130841121495
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS2|H=N|VolumeFlowImbalance": {
-      "wins": 122,
-      "losses": 116,
-      "winrate": 0.5126050420168067
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS4|H=N|KeltnerBreakout": {
-      "wins": 227,
-      "losses": 270,
-      "winrate": 0.4567404426559356
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS4|H=N|VolumeFlowImbalance": {
-      "wins": 239,
-      "losses": 275,
-      "winrate": 0.4649805447470817
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS12|H=N|CCIReversion": {
-      "wins": 0,
-      "losses": 2,
-      "winrate": 0.0
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS12|H=N|MFIReversion": {
-      "wins": 0,
-      "losses": 2,
-      "winrate": 0.0
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS12|H=N|AdaptiveRSIScalper": {
-      "wins": 0,
-      "losses": 2,
-      "winrate": 0.0
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS12|H=N|MomentumBurst": {
-      "wins": 0,
-      "losses": 1,
-      "winrate": 0.0
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS12|H=N|BollingerBandRejection": {
-      "wins": 0,
-      "losses": 2,
-      "winrate": 0.0
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS12|H=N|SmartRangeScalper": {
-      "wins": 0,
-      "losses": 2,
-      "winrate": 0.0
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS12|H=N|VWAPMomentum": {
-      "wins": 0,
-      "losses": 1,
-      "winrate": 0.0
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS12|H=N|VolumeFlowImbalance": {
-      "wins": 0,
-      "losses": 2,
-      "winrate": 0.0
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS3|H=N|KeltnerBreakout": {
-      "wins": 61,
-      "losses": 52,
-      "winrate": 0.5398230088495575
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS3|H=N|HurstRegime": {
-      "wins": 64,
-      "losses": 56,
-      "winrate": 0.5333333333333333
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS6|H=N|VWAPMomentum": {
-      "wins": 20,
-      "losses": 26,
-      "winrate": 0.43478260869565216
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS6|H=N|KeltnerBreakout": {
-      "wins": 18,
-      "losses": 15,
-      "winrate": 0.5454545454545454
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS1|H=N|HurstRegime": {
-      "wins": 63,
-      "losses": 64,
-      "winrate": 0.49606299212598426
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS5|H=N|HurstRegime": {
-      "wins": 32,
-      "losses": 25,
-      "winrate": 0.5614035087719298
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS5|H=N|KeltnerBreakout": {
-      "wins": 34,
-      "losses": 20,
-      "winrate": 0.6296296296296297
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS4|H=N|HurstRegime": {
-      "wins": 13,
-      "losses": 12,
-      "winrate": 0.52
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS4|H=N|VWAPMomentum": {
-      "wins": 31,
-      "losses": 43,
-      "winrate": 0.4189189189189189
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS7|H=N|VWAPMomentum": {
-      "wins": 7,
-      "losses": 10,
-      "winrate": 0.4117647058823529
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS8|H=N|VolumeFlowImbalance": {
-      "wins": 31,
-      "losses": 34,
-      "winrate": 0.47692307692307695
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS3|H=N|VolumeFlowImbalance": {
-      "wins": 49,
-      "losses": 56,
-      "winrate": 0.4666666666666667
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS5|H=N|VWAPMomentum": {
-      "wins": 8,
-      "losses": 15,
-      "winrate": 0.34782608695652173
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS7|H=N|HurstRegime": {
-      "wins": 8,
-      "losses": 13,
-      "winrate": 0.38095238095238093
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS2|H=N|HurstRegime": {
-      "wins": 6,
-      "losses": 12,
-      "winrate": 0.3333333333333333
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS9|H=N|VWAPMomentum": {
-      "wins": 7,
-      "losses": 1,
-      "winrate": 0.875
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS8|H=N|VWAPMomentum": {
-      "wins": 5,
-      "losses": 9,
-      "winrate": 0.35714285714285715
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS10|H=N|CCIReversion": {
-      "wins": 5,
-      "losses": 6,
-      "winrate": 0.45454545454545453
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS10|H=N|MFIReversion": {
-      "wins": 4,
-      "losses": 5,
-      "winrate": 0.4444444444444444
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS10|H=N|StochasticReversion": {
-      "wins": 4,
-      "losses": 5,
-      "winrate": 0.4444444444444444
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS10|H=N|WilliamsRReversion": {
-      "wins": 4,
-      "losses": 5,
-      "winrate": 0.4444444444444444
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS10|H=N|AdaptiveRSIScalper": {
-      "wins": 4,
-      "losses": 6,
       "winrate": 0.4
     },
-    "BTC/USDC:USDC@1m|BBW=L|RS10|H=N|BollingerBandRejection": {
+    "BTC/USDC:USDC@1m|BBW=L|RS6|H=N|MarubozuMomentum": {
       "wins": 4,
       "losses": 4,
       "winrate": 0.5
     },
-    "BTC/USDC:USDC@1m|BBW=L|RS10|H=N|SmartRangeScalper": {
-      "wins": 3,
-      "losses": 4,
-      "winrate": 0.42857142857142855
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS10|H=N|VolumeFlowImbalance": {
-      "wins": 6,
-      "losses": 6,
-      "winrate": 0.5
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS7|H=N|KeltnerBreakout": {
-      "wins": 4,
-      "losses": 2,
-      "winrate": 0.6666666666666666
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS7|H=N|BollingerSqueeze": {
-      "wins": 5,
-      "losses": 2,
-      "winrate": 0.7142857142857143
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS7|H=N|MicroTrendPullback": {
-      "wins": 2,
-      "losses": 1,
-      "winrate": 0.6666666666666666
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS11|H=N|CCIReversion": {
-      "wins": 2,
-      "losses": 3,
-      "winrate": 0.4
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS11|H=N|MFIReversion": {
-      "wins": 2,
-      "losses": 3,
-      "winrate": 0.4
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS11|H=N|StochasticReversion": {
-      "wins": 2,
-      "losses": 2,
-      "winrate": 0.5
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS11|H=N|WilliamsRReversion": {
-      "wins": 2,
-      "losses": 2,
-      "winrate": 0.5
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS11|H=N|AdaptiveRSIScalper": {
-      "wins": 2,
-      "losses": 2,
-      "winrate": 0.5
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS11|H=N|BollingerBandRejection": {
-      "wins": 2,
-      "losses": 3,
-      "winrate": 0.4
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS11|H=N|VWAPMomentum": {
-      "wins": 0,
-      "losses": 3,
-      "winrate": 0.0
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS11|H=N|VolumeFlowImbalance": {
-      "wins": 2,
-      "losses": 3,
-      "winrate": 0.4
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS8|H=N|HurstRegime": {
-      "wins": 2,
-      "losses": 5,
-      "winrate": 0.2857142857142857
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS3|H=N|VWAPMomentum": {
+    "BTC/USDC:USDC@1m|BBW=L|RS6|H=N|VWAPBreakout": {
       "wins": 5,
       "losses": 4,
       "winrate": 0.5555555555555556
     },
-    "BTC/USDC:USDC@1m|BBW=L|RS9|H=N|MomentumBurst": {
-      "wins": 7,
-      "losses": 8,
-      "winrate": 0.4666666666666667
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS11|H=N|SmartRangeScalper": {
-      "wins": 0,
+    "BTC/USDC:USDC@1m|BBW=L|RS6|H=N|EMA50Support": {
+      "wins": 3,
       "losses": 1,
-      "winrate": 0.0
+      "winrate": 0.75
     },
-    "BTC/USDC:USDC@1m|BBW=L|RS6|H=N|VSAReversal": {
-      "wins": 27,
-      "losses": 25,
-      "winrate": 0.5192307692307693
+    "BTC/USDC:USDC@1m|BBW=L|RS5|H=N|RailsPattern": {
+      "wins": 25,
+      "losses": 9,
+      "winrate": 0.7352941176470589
     },
-    "BTC/USDC:USDC@1m|BBW=L|RS4|H=N|VSAReversal": {
+    "BTC/USDC:USDC@1m|BBW=L|RS5|H=N|EMA50Support": {
+      "wins": 23,
+      "losses": 8,
+      "winrate": 0.7419354838709677
+    },
+    "BTC/USDC:USDC@1m|BBW=L|RS5|H=N|InsideBarBreakout": {
+      "wins": 25,
+      "losses": 9,
+      "winrate": 0.7352941176470589
+    },
+    "BTC/USDC:USDC@1m|BBW=L|RS1|H=N|PinBarReversal": {
+      "wins": 42,
+      "losses": 22,
+      "winrate": 0.65625
+    },
+    "BTC/USDC:USDC@1m|BBW=L|RS3|H=N|MarubozuMomentum": {
+      "wins": 4,
+      "losses": 2,
+      "winrate": 0.6666666666666666
+    },
+    "BTC/USDC:USDC@1m|BBW=L|RS2|H=N|VWAPDeviation": {
+      "wins": 22,
+      "losses": 8,
+      "winrate": 0.7333333333333333
+    },
+    "BTC/USDC:USDC@1m|BBW=L|RS3|H=N|EngulfingPattern": {
+      "wins": 24,
+      "losses": 6,
+      "winrate": 0.8
+    },
+    "BTC/USDC:USDC@1m|BBW=L|RS2|H=N|MarubozuMomentum": {
+      "wins": 24,
+      "losses": 13,
+      "winrate": 0.6486486486486487
+    },
+    "BTC/USDC:USDC@1m|BBW=L|RS4|H=N|MarubozuMomentum": {
       "wins": 21,
-      "losses": 23,
-      "winrate": 0.4772727272727273
+      "losses": 11,
+      "winrate": 0.65625
     },
-    "BTC/USDC:USDC@1m|BBW=L|RS3|H=N|VSAReversal": {
+    "BTC/USDC:USDC@1m|BBW=L|RS5|H=N|VWAPBreakout": {
+      "wins": 15,
+      "losses": 4,
+      "winrate": 0.7894736842105263
+    },
+    "BTC/USDC:USDC@1m|BBW=L|RS3|H=N|PinBarReversal": {
+      "wins": 9,
+      "losses": 4,
+      "winrate": 0.6923076923076923
+    },
+    "BTC/USDC:USDC@1m|BBW=L|RS5|H=N|MarubozuMomentum": {
       "wins": 5,
-      "losses": 5,
+      "losses": 3,
+      "winrate": 0.625
+    },
+    "BTC/USDC:USDC@1m|BBW=L|RS5|H=N|EngulfingPattern": {
+      "wins": 8,
+      "losses": 2,
+      "winrate": 0.8
+    },
+    "BTC/USDC:USDC@1m|BBW=L|RS5|H=N|PinBarReversal": {
+      "wins": 1,
+      "losses": 1,
       "winrate": 0.5
     },
-    "BTC/USDC:USDC@1m|BBW=L|RS5|H=N|VSAReversal": {
-      "wins": 8,
-      "losses": 7,
-      "winrate": 0.5333333333333333
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS2|H=N|VSAReversal": {
-      "wins": 7,
-      "losses": 12,
-      "winrate": 0.3684210526315789
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS8|H=N|KeltnerBreakout": {
-      "wins": 0,
+    "BTC/USDC:USDC@1m|BBW=L|RS2|H=N|InsideBarBreakout": {
+      "wins": 6,
       "losses": 1,
-      "winrate": 0.0
+      "winrate": 0.8571428571428571
     },
-    "BTC/USDC:USDC@1m|BBW=L|RS8|H=N|VSAReversal": {
-      "wins": 14,
-      "losses": 13,
-      "winrate": 0.5185185185185185
+    "BTC/USDC:USDC@1m|BBW=L|RS2|H=N|EngulfingPattern": {
+      "wins": 6,
+      "losses": 1,
+      "winrate": 0.8571428571428571
     },
-    "BTC/USDC:USDC@1m|BBW=L|RS11|H=N|VSAReversal": {
+    "BTC/USDC:USDC@1m|BBW=L|RS4|H=N|VWAPDeviation": {
       "wins": 1,
       "losses": 0,
       "winrate": 1.0
     },
-    "BTC/USDC:USDC@1m|BBW=L|RS9|H=N|VSAReversal": {
+    "BTC/USDC:USDC@1m|BBW=L|RS4|H=N|InsideBarBreakout": {
+      "wins": 2,
+      "losses": 1,
+      "winrate": 0.6666666666666666
+    },
+    "BTC/USDC:USDC@1m|BBW=L|RS4|H=N|EngulfingPattern": {
+      "wins": 2,
+      "losses": 1,
+      "winrate": 0.6666666666666666
+    },
+    "BTC/USDC:USDC@1m|BBW=L|RS6|H=N|InsideBarBreakout": {
+      "wins": 1,
+      "losses": 0,
+      "winrate": 1.0
+    },
+    "BTC/USDC:USDC@1m|BBW=L|RS6|H=N|EngulfingPattern": {
+      "wins": 1,
+      "losses": 0,
+      "winrate": 1.0
+    },
+    "BTC/USDC:USDC@1m|BBW=L|RS7|H=N|RailsPattern": {
+      "wins": 1,
+      "losses": 0,
+      "winrate": 1.0
+    },
+    "BTC/USDC:USDC@1m|BBW=L|RS7|H=N|EMA50Support": {
+      "wins": 1,
+      "losses": 0,
+      "winrate": 1.0
+    },
+    "BTC/USDC:USDC@1m|BBW=L|RS7|H=N|VWAPBreakout": {
+      "wins": 1,
+      "losses": 0,
+      "winrate": 1.0
+    },
+    "BTC/USDC:USDC@1m|BBW=L|RS7|H=N|EngulfingPattern": {
+      "wins": 1,
+      "losses": 0,
+      "winrate": 1.0
+    },
+    "LTC/USDC:USDC@1m|BBW=L|RS2|H=N|RailsPattern": {
+      "wins": 1510,
+      "losses": 884,
+      "winrate": 0.6307435254803676
+    },
+    "LTC/USDC:USDC@1m|BBW=L|RS4|H=N|RailsPattern": {
+      "wins": 311,
+      "losses": 210,
+      "winrate": 0.5969289827255279
+    },
+    "LTC/USDC:USDC@1m|BBW=L|RS4|H=N|EMA50Support": {
+      "wins": 199,
+      "losses": 130,
+      "winrate": 0.6048632218844985
+    },
+    "LTC/USDC:USDC@1m|BBW=L|RS2|H=N|VWAPBreakout": {
+      "wins": 941,
+      "losses": 611,
+      "winrate": 0.6063144329896907
+    },
+    "LTC/USDC:USDC@1m|BBW=L|RS4|H=N|VWAPBreakout": {
+      "wins": 194,
+      "losses": 142,
+      "winrate": 0.5773809523809523
+    },
+    "LTC/USDC:USDC@1m|BBW=L|RS3|H=N|RailsPattern": {
+      "wins": 158,
+      "losses": 87,
+      "winrate": 0.6448979591836734
+    },
+    "LTC/USDC:USDC@1m|BBW=L|RS3|H=N|InsideBarBreakout": {
+      "wins": 184,
+      "losses": 93,
+      "winrate": 0.6642599277978339
+    },
+    "LTC/USDC:USDC@1m|BBW=L|RS2|H=N|EMA50Support": {
+      "wins": 662,
+      "losses": 431,
+      "winrate": 0.605672461116194
+    },
+    "LTC/USDC:USDC@1m|BBW=L|RS2|H=N|VWAPDeviation": {
+      "wins": 50,
+      "losses": 24,
+      "winrate": 0.6756756756756757
+    },
+    "LTC/USDC:USDC@1m|BBW=L|RS4|H=N|MarubozuMomentum": {
+      "wins": 51,
+      "losses": 41,
+      "winrate": 0.5543478260869565
+    },
+    "LTC/USDC:USDC@1m|BBW=L|RS3|H=N|VWAPBreakout": {
+      "wins": 34,
+      "losses": 16,
+      "winrate": 0.68
+    },
+    "LTC/USDC:USDC@1m|BBW=L|RS3|H=N|EngulfingPattern": {
+      "wins": 36,
+      "losses": 14,
+      "winrate": 0.72
+    },
+    "LTC/USDC:USDC@1m|BBW=L|RS4|H=N|VWAPDeviation": {
+      "wins": 1,
+      "losses": 0,
+      "winrate": 1.0
+    },
+    "LTC/USDC:USDC@1m|BBW=L|RS2|H=N|MarubozuMomentum": {
+      "wins": 93,
+      "losses": 58,
+      "winrate": 0.6158940397350994
+    },
+    "LTC/USDC:USDC@1m|BBW=L|RS1|H=N|InsideBarBreakout": {
+      "wins": 206,
+      "losses": 112,
+      "winrate": 0.6477987421383647
+    },
+    "LTC/USDC:USDC@1m|BBW=L|RS5|H=N|EMA50Support": {
+      "wins": 24,
+      "losses": 16,
+      "winrate": 0.6
+    },
+    "LTC/USDC:USDC@1m|BBW=L|RS5|H=N|MarubozuMomentum": {
+      "wins": 13,
+      "losses": 4,
+      "winrate": 0.7647058823529411
+    },
+    "LTC/USDC:USDC@1m|BBW=L|RS5|H=N|EngulfingPattern": {
+      "wins": 9,
+      "losses": 4,
+      "winrate": 0.6923076923076923
+    },
+    "LTC/USDC:USDC@1m|BBW=L|RS1|H=N|PinBarReversal": {
+      "wins": 53,
+      "losses": 26,
+      "winrate": 0.6708860759493671
+    },
+    "LTC/USDC:USDC@1m|BBW=L|RS1|H=N|EngulfingPattern": {
+      "wins": 40,
+      "losses": 24,
+      "winrate": 0.625
+    },
+    "LTC/USDC:USDC@1m|BBW=L|RS6|H=N|RailsPattern": {
+      "wins": 7,
+      "losses": 7,
+      "winrate": 0.5
+    },
+    "LTC/USDC:USDC@1m|BBW=L|RS6|H=N|EMA50Support": {
+      "wins": 7,
+      "losses": 3,
+      "winrate": 0.7
+    },
+    "LTC/USDC:USDC@1m|BBW=L|RS6|H=N|VWAPBreakout": {
+      "wins": 11,
+      "losses": 7,
+      "winrate": 0.6111111111111112
+    },
+    "LTC/USDC:USDC@1m|BBW=L|RS5|H=N|RailsPattern": {
+      "wins": 25,
+      "losses": 18,
+      "winrate": 0.5813953488372093
+    },
+    "LTC/USDC:USDC@1m|BBW=L|RS5|H=N|InsideBarBreakout": {
+      "wins": 30,
+      "losses": 18,
+      "winrate": 0.625
+    },
+    "LTC/USDC:USDC@1m|BBW=L|RS5|H=N|VWAPBreakout": {
+      "wins": 22,
+      "losses": 10,
+      "winrate": 0.6875
+    },
+    "LTC/USDC:USDC@1m|BBW=L|RS3|H=N|PinBarReversal": {
+      "wins": 19,
+      "losses": 15,
+      "winrate": 0.5588235294117647
+    },
+    "LTC/USDC:USDC@1m|BBW=L|RS2|H=N|InsideBarBreakout": {
+      "wins": 4,
+      "losses": 8,
+      "winrate": 0.3333333333333333
+    },
+    "LTC/USDC:USDC@1m|BBW=L|RS2|H=N|EngulfingPattern": {
       "wins": 3,
       "losses": 7,
       "winrate": 0.3
     },
-    "BTC/USDC:USDC@1m|BBW=L|RS7|H=N|VSAReversal": {
-      "wins": 8,
-      "losses": 4,
-      "winrate": 0.6666666666666666
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS9|H=N|BollingerSqueeze": {
-      "wins": 0,
-      "losses": 2,
-      "winrate": 0.0
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS9|H=N|KeltnerBreakout": {
-      "wins": 0,
-      "losses": 2,
-      "winrate": 0.0
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS12|H=N|WilliamsRReversion": {
-      "wins": 0,
-      "losses": 1,
-      "winrate": 0.0
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS12|H=N|VSAReversal": {
-      "wins": 0,
-      "losses": 1,
-      "winrate": 0.0
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS12|H=N|StochasticReversion": {
-      "wins": 0,
-      "losses": 1,
-      "winrate": 0.0
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS7|H=N|Supertrend": {
-      "wins": 3,
-      "losses": 2,
-      "winrate": 0.6
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS9|H=N|SmartRangeScalper": {
-      "wins": 3,
-      "losses": 4,
-      "winrate": 0.42857142857142855
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS8|H=N|MACDCrossover": {
-      "wins": 0,
-      "losses": 3,
-      "winrate": 0.0
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS8|H=N|Supertrend": {
-      "wins": 1,
-      "losses": 4,
-      "winrate": 0.2
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS10|H=N|VWAPMomentum": {
-      "wins": 4,
-      "losses": 2,
-      "winrate": 0.6666666666666666
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS7|H=N|MACDCrossover": {
-      "wins": 2,
-      "losses": 0,
-      "winrate": 1.0
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS11|H=N|MicroTrendPullback": {
-      "wins": 1,
-      "losses": 0,
-      "winrate": 1.0
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS9|H=N|HurstRegime": {
-      "wins": 1,
-      "losses": 0,
-      "winrate": 1.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS2|H=N|VWAPMomentum": {
-      "wins": 47,
-      "losses": 15,
-      "winrate": 0.7580645161290323
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS2|H=N|KeltnerBreakout": {
-      "wins": 351,
-      "losses": 352,
-      "winrate": 0.4992887624466572
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS3|H=N|VolumeFlowImbalance": {
-      "wins": 29,
-      "losses": 44,
-      "winrate": 0.3972602739726027
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS7|H=N|VolumeFlowImbalance": {
-      "wins": 48,
-      "losses": 49,
-      "winrate": 0.4948453608247423
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS5|H=N|VWAPMomentum": {
-      "wins": 12,
-      "losses": 5,
-      "winrate": 0.7058823529411765
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS1|H=N|HurstRegime": {
-      "wins": 32,
-      "losses": 30,
-      "winrate": 0.5161290322580645
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS5|H=N|MACDCrossover": {
-      "wins": 3,
-      "losses": 4,
-      "winrate": 0.42857142857142855
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS4|H=N|VolumeFlowImbalance": {
-      "wins": 208,
-      "losses": 206,
-      "winrate": 0.5024154589371981
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS5|H=N|VolumeFlowImbalance": {
-      "wins": 63,
-      "losses": 66,
-      "winrate": 0.4883720930232558
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS2|H=N|VolumeFlowImbalance": {
-      "wins": 87,
-      "losses": 95,
-      "winrate": 0.47802197802197804
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS4|H=N|KeltnerBreakout": {
-      "wins": 154,
-      "losses": 153,
-      "winrate": 0.501628664495114
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS5|H=N|KeltnerBreakout": {
-      "wins": 14,
-      "losses": 10,
-      "winrate": 0.5833333333333334
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS9|H=N|MomentumBurst": {
-      "wins": 3,
-      "losses": 2,
-      "winrate": 0.6
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS9|H=N|VolumeFlowImbalance": {
-      "wins": 25,
-      "losses": 25,
-      "winrate": 0.5
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS6|H=N|VolumeFlowImbalance": {
-      "wins": 56,
-      "losses": 72,
-      "winrate": 0.4375
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS4|H=N|VWAPMomentum": {
-      "wins": 30,
-      "losses": 14,
-      "winrate": 0.6818181818181818
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS3|H=N|KeltnerBreakout": {
-      "wins": 47,
-      "losses": 53,
-      "winrate": 0.47
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS6|H=N|MicroTrendPullback": {
-      "wins": 2,
-      "losses": 4,
-      "winrate": 0.3333333333333333
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS6|H=N|VWAPMomentum": {
-      "wins": 11,
-      "losses": 25,
-      "winrate": 0.3055555555555556
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS8|H=N|VolumeFlowImbalance": {
-      "wins": 26,
-      "losses": 37,
-      "winrate": 0.4126984126984127
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS3|H=N|HurstRegime": {
-      "wins": 50,
-      "losses": 58,
-      "winrate": 0.46296296296296297
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS8|H=N|HurstRegime": {
-      "wins": 3,
-      "losses": 4,
-      "winrate": 0.42857142857142855
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS4|H=N|MACDCrossover": {
-      "wins": 4,
-      "losses": 8,
-      "winrate": 0.3333333333333333
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS7|H=N|HurstRegime": {
-      "wins": 10,
-      "losses": 5,
-      "winrate": 0.6666666666666666
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS6|H=N|HurstRegime": {
-      "wins": 4,
-      "losses": 4,
-      "winrate": 0.5
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS10|H=N|CCIReversion": {
-      "wins": 4,
-      "losses": 5,
-      "winrate": 0.4444444444444444
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS10|H=N|MFIReversion": {
-      "wins": 3,
-      "losses": 5,
-      "winrate": 0.375
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS10|H=N|AdaptiveRSIScalper": {
-      "wins": 4,
-      "losses": 5,
-      "winrate": 0.4444444444444444
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS10|H=N|MomentumBurst": {
-      "wins": 0,
-      "losses": 2,
-      "winrate": 0.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS10|H=N|BollingerBandRejection": {
-      "wins": 4,
-      "losses": 5,
-      "winrate": 0.4444444444444444
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS10|H=N|SmartRangeScalper": {
-      "wins": 3,
-      "losses": 5,
-      "winrate": 0.375
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS10|H=N|VolumeFlowImbalance": {
-      "wins": 4,
-      "losses": 5,
-      "winrate": 0.4444444444444444
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS7|H=N|MicroTrendPullback": {
-      "wins": 1,
-      "losses": 1,
-      "winrate": 0.5
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS7|H=N|VWAPMomentum": {
-      "wins": 4,
-      "losses": 6,
-      "winrate": 0.4
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS3|H=N|VWAPMomentum": {
-      "wins": 3,
-      "losses": 6,
-      "winrate": 0.3333333333333333
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS5|H=N|BollingerSqueeze": {
-      "wins": 2,
-      "losses": 0,
-      "winrate": 1.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS5|H=N|HurstRegime": {
-      "wins": 17,
-      "losses": 19,
-      "winrate": 0.4722222222222222
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS4|H=N|HurstRegime": {
-      "wins": 8,
+    "LTC/USDC:USDC@1m|BBW=L|RS3|H=N|EMA50Support": {
+      "wins": 31,
       "losses": 12,
-      "winrate": 0.4
+      "winrate": 0.7209302325581395
     },
-    "LTC/USDC:USDC@1m|BBW=L|RS9|H=N|VWAPMomentum": {
-      "wins": 2,
-      "losses": 3,
-      "winrate": 0.4
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS4|H=N|Supertrend": {
+    "LTC/USDC:USDC@1m|BBW=L|RS5|H=N|PinBarReversal": {
       "wins": 3,
-      "losses": 10,
-      "winrate": 0.23076923076923078
+      "losses": 2,
+      "winrate": 0.6
     },
-    "LTC/USDC:USDC@1m|BBW=L|RS6|H=N|KeltnerBreakout": {
-      "wins": 10,
-      "losses": 20,
-      "winrate": 0.3333333333333333
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS2|H=N|HurstRegime": {
-      "wins": 7,
-      "losses": 9,
-      "winrate": 0.4375
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS7|H=N|BollingerSqueeze": {
-      "wins": 5,
-      "losses": 1,
-      "winrate": 0.8333333333333334
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS7|H=N|KeltnerBreakout": {
+    "LTC/USDC:USDC@1m|BBW=L|RS6|H=N|MarubozuMomentum": {
       "wins": 6,
-      "losses": 3,
-      "winrate": 0.6666666666666666
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS8|H=N|VWAPMomentum": {
-      "wins": 6,
-      "losses": 9,
-      "winrate": 0.4
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS10|H=N|WilliamsRReversion": {
-      "wins": 4,
       "losses": 2,
-      "winrate": 0.6666666666666666
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS10|H=N|StochasticReversion": {
-      "wins": 4,
-      "losses": 2,
-      "winrate": 0.6666666666666666
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS10|H=N|HurstRegime": {
-      "wins": 1,
-      "losses": 0,
-      "winrate": 1.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS6|H=N|Supertrend": {
-      "wins": 1,
-      "losses": 3,
-      "winrate": 0.25
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS11|H=N|MomentumBurst": {
-      "wins": 0,
-      "losses": 1,
-      "winrate": 0.0
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS10|H=N|VSAReversal": {
-      "wins": 0,
-      "losses": 2,
-      "winrate": 0.0
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS10|H=N|MomentumBurst": {
-      "wins": 2,
-      "losses": 0,
-      "winrate": 1.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS9|H=N|HurstRegime": {
-      "wins": 1,
-      "losses": 1,
-      "winrate": 0.5
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS5|H=N|Supertrend": {
-      "wins": 0,
-      "losses": 3,
-      "winrate": 0.0
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS9|H=N|MACDCrossover": {
-      "wins": 1,
-      "losses": 0,
-      "winrate": 1.0
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS9|H=N|Supertrend": {
-      "wins": 2,
-      "losses": 0,
-      "winrate": 1.0
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS10|H=N|KeltnerBreakout": {
-      "wins": 1,
-      "losses": 0,
-      "winrate": 1.0
-    },
-    "BTC/USDC:USDC@1m|BBW=L|RS10|H=N|Supertrend": {
-      "wins": 1,
-      "losses": 0,
-      "winrate": 1.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS4|H=N|VSAReversal": {
-      "wins": 2,
-      "losses": 4,
-      "winrate": 0.3333333333333333
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS3|H=N|VSAReversal": {
-      "wins": 0,
-      "losses": 2,
-      "winrate": 0.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS5|H=N|VSAReversal": {
-      "wins": 2,
-      "losses": 2,
-      "winrate": 0.5
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS7|H=N|VSAReversal": {
-      "wins": 0,
-      "losses": 3,
-      "winrate": 0.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS6|H=N|VSAReversal": {
-      "wins": 8,
-      "losses": 3,
-      "winrate": 0.7272727272727273
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS8|H=N|VSAReversal": {
-      "wins": 7,
-      "losses": 5,
-      "winrate": 0.5833333333333334
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS10|H=N|VSAReversal": {
-      "wins": 1,
-      "losses": 1,
-      "winrate": 0.5
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS9|H=N|KeltnerBreakout": {
-      "wins": 1,
-      "losses": 0,
-      "winrate": 1.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS9|H=N|BollingerSqueeze": {
-      "wins": 1,
-      "losses": 0,
-      "winrate": 1.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS9|H=N|Supertrend": {
-      "wins": 1,
-      "losses": 0,
-      "winrate": 1.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS9|H=N|MACDCrossover": {
-      "wins": 1,
-      "losses": 0,
-      "winrate": 1.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS9|H=N|SmartRangeScalper": {
-      "wins": 1,
-      "losses": 0,
-      "winrate": 1.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS2|H=N|VSAReversal": {
-      "wins": 4,
-      "losses": 3,
-      "winrate": 0.5714285714285714
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS7|H=N|Supertrend": {
-      "wins": 0,
-      "losses": 1,
-      "winrate": 0.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS7|H=N|MACDCrossover": {
-      "wins": 0,
-      "losses": 1,
-      "winrate": 0.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS6|H=N|MACDCrossover": {
-      "wins": 3,
-      "losses": 1,
       "winrate": 0.75
     },
-    "LTC/USDC:USDC@1m|BBW=L|RS6|H=N|VolatilityWakeup": {
-      "wins": 0,
-      "losses": 1,
-      "winrate": 0.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS8|H=N|KeltnerBreakout": {
-      "wins": 0,
-      "losses": 1,
-      "winrate": 0.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS9|H=N|VSAReversal": {
-      "wins": 1,
-      "losses": 0,
-      "winrate": 1.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS1|H=N|PinBarReversal": {
-      "wins": 13,
-      "losses": 0,
-      "winrate": 1.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS1|H=N|InsideBarBreakout": {
-      "wins": 5,
-      "losses": 19,
-      "winrate": 0.20833333333333334
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS2|H=N|EngulfingPattern": {
-      "wins": 0,
-      "losses": 1,
-      "winrate": 0.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS2|H=N|InsideBarBreakout": {
-      "wins": 2,
-      "losses": 1,
-      "winrate": 0.6666666666666666
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS1|H=N|EngulfingPattern": {
-      "wins": 2,
-      "losses": 1,
-      "winrate": 0.6666666666666666
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS1|H=N|ThreeBarReversal": {
-      "wins": 2,
+    "LTC/USDC:USDC@1m|BBW=L|RS3|H=N|MarubozuMomentum": {
+      "wins": 14,
       "losses": 7,
-      "winrate": 0.2222222222222222
+      "winrate": 0.6666666666666666
     },
-    "LTC/USDC:USDC@1m|BBW=L|RS2|H=N|FakeoutReversal": {
-      "wins": 0,
-      "losses": 2,
-      "winrate": 0.0
+    "LTC/USDC:USDC@1m|BBW=L|RS4|H=N|InsideBarBreakout": {
+      "wins": 5,
+      "losses": 13,
+      "winrate": 0.2777777777777778
     },
-    "LTC/USDC:USDC@1m|BBW=L|RS2|H=N|RailsPattern": {
-      "wins": 184,
-      "losses": 65,
-      "winrate": 0.7389558232931727
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS4|H=N|DojiIndecision": {
-      "wins": 2,
-      "losses": 8,
-      "winrate": 0.2
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS4|H=N|TweezerPattern": {
-      "wins": 11,
-      "losses": 28,
-      "winrate": 0.28205128205128205
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS6|H=N|EngulfingPattern": {
-      "wins": 0,
-      "losses": 1,
-      "winrate": 0.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS6|H=N|InsideBarBreakout": {
-      "wins": 3,
-      "losses": 1,
-      "winrate": 0.75
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS6|H=N|DojiIndecision": {
-      "wins": 0,
-      "losses": 1,
-      "winrate": 0.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS6|H=N|TweezerPattern": {
-      "wins": 3,
-      "losses": 1,
-      "winrate": 0.75
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS3|H=N|TweezerPattern": {
-      "wins": 1,
-      "losses": 4,
-      "winrate": 0.2
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS3|H=N|RailsPattern": {
-      "wins": 47,
-      "losses": 21,
-      "winrate": 0.6911764705882353
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS7|H=N|InsideBarBreakout": {
-      "wins": 4,
-      "losses": 5,
-      "winrate": 0.4444444444444444
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS7|H=N|DojiIndecision": {
-      "wins": 1,
-      "losses": 5,
-      "winrate": 0.16666666666666666
+    "LTC/USDC:USDC@1m|BBW=L|RS4|H=N|EngulfingPattern": {
+      "wins": 5,
+      "losses": 13,
+      "winrate": 0.2777777777777778
     },
     "LTC/USDC:USDC@1m|BBW=L|RS7|H=N|RailsPattern": {
-      "wins": 4,
+      "wins": 1,
       "losses": 0,
       "winrate": 1.0
     },
@@ -1732,362 +392,62 @@
       "losses": 0,
       "winrate": 1.0
     },
-    "LTC/USDC:USDC@1m|BBW=L|RS4|H=N|FakeoutReversal": {
-      "wins": 0,
-      "losses": 13,
-      "winrate": 0.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS2|H=N|TweezerPattern": {
-      "wins": 14,
-      "losses": 0,
-      "winrate": 1.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS3|H=N|InsideBarBreakout": {
-      "wins": 9,
-      "losses": 1,
-      "winrate": 0.9
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS4|H=N|RailsPattern": {
-      "wins": 8,
-      "losses": 13,
-      "winrate": 0.38095238095238093
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS5|H=N|InsideBarBreakout": {
-      "wins": 5,
-      "losses": 0,
-      "winrate": 1.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS5|H=N|RailsPattern": {
-      "wins": 5,
-      "losses": 0,
-      "winrate": 1.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS5|H=N|TweezerPattern": {
+    "LTC/USDC:USDC@1m|BBW=L|RS7|H=N|VWAPBreakout": {
       "wins": 1,
       "losses": 0,
       "winrate": 1.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS3|H=N|EngulfingPattern": {
-      "wins": 1,
-      "losses": 0,
-      "winrate": 1.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS3|H=N|DojiIndecision": {
-      "wins": 1,
-      "losses": 0,
-      "winrate": 1.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS1|H=N|HigherTFTrendConfirm": {
-      "wins": 45,
-      "losses": 26,
-      "winrate": 0.6338028169014085
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS3|H=N|HigherTFTrendConfirm": {
-      "wins": 11,
-      "losses": 11,
-      "winrate": 0.5
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS4|H=N|ExtremeCandleRatio": {
-      "wins": 12,
-      "losses": 0,
-      "winrate": 1.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS3|H=N|VolumeSpikeReversal": {
-      "wins": 0,
-      "losses": 7,
-      "winrate": 0.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS3|H=N|ExtremeCandleRatio": {
-      "wins": 4,
-      "losses": 3,
-      "winrate": 0.5714285714285714
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS2|H=N|HigherTFTrendConfirm": {
-      "wins": 3,
-      "losses": 1,
-      "winrate": 0.75
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS2|H=N|ExtremeCandleRatio": {
-      "wins": 13,
-      "losses": 10,
-      "winrate": 0.5652173913043478
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS4|H=N|VolumeSpikeReversal": {
-      "wins": 0,
-      "losses": 1,
-      "winrate": 0.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS4|H=N|HigherTFTrendConfirm": {
-      "wins": 6,
-      "losses": 2,
-      "winrate": 0.75
     },
     "LTC/USDC:USDC@1m|BBW=L|RS7|H=N|EngulfingPattern": {
-      "wins": 0,
-      "losses": 5,
-      "winrate": 0.0
+      "wins": 1,
+      "losses": 0,
+      "winrate": 1.0
     },
-    "LTC/USDC:USDC@1m|BBW=L|RS7|H=N|TweezerPattern": {
-      "wins": 3,
-      "losses": 5,
-      "winrate": 0.375
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS7|H=N|ExtremeCandleRatio": {
-      "wins": 3,
-      "losses": 5,
-      "winrate": 0.375
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS1|H=N|VolumeSpikeReversal": {
-      "wins": 3,
-      "losses": 3,
+    "LTC/USDC:USDC@1m|BBW=L|RS6|H=N|InsideBarBreakout": {
+      "wins": 2,
+      "losses": 2,
       "winrate": 0.5
     },
-    "LTC/USDC:USDC@1m|BBW=L|RS1|H=N|ExtremeCandleRatio": {
-      "wins": 13,
-      "losses": 4,
-      "winrate": 0.7647058823529411
+    "LTC/USDC:USDC@1m|BBW=L|RS6|H=N|EngulfingPattern": {
+      "wins": 2,
+      "losses": 1,
+      "winrate": 0.6666666666666666
     },
-    "LTC/USDC:USDC@1m|BBW=L|RS2|H=N|VolumeSpikeReversal": {
+    "LTC/USDC:USDC@1m|BBW=L|RS3|H=N|VWAPDeviation": {
+      "wins": 2,
+      "losses": 0,
+      "winrate": 1.0
+    },
+    "LTC/USDC:USDC@1m|BBW=L|RS2|H=N|PinBarReversal": {
+      "wins": 1,
+      "losses": 1,
+      "winrate": 0.5
+    },
+    "LTC/USDC:USDC@1m|BBW=L|RS6|H=N|PinBarReversal": {
       "wins": 0,
-      "losses": 6,
+      "losses": 1,
       "winrate": 0.0
     },
-    "LTC/USDC:USDC@1m|BBW=L|RS9|H=N|InsideBarBreakout": {
-      "wins": 3,
-      "losses": 0,
-      "winrate": 1.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS9|H=N|DojiIndecision": {
-      "wins": 3,
-      "losses": 0,
-      "winrate": 1.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS9|H=N|RailsPattern": {
-      "wins": 3,
-      "losses": 0,
-      "winrate": 1.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS9|H=N|MarubozuMomentum": {
-      "wins": 3,
-      "losses": 0,
-      "winrate": 1.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS9|H=N|VolumeSpikeReversal": {
-      "wins": 3,
-      "losses": 0,
-      "winrate": 1.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS9|H=N|ExtremeCandleRatio": {
-      "wins": 3,
-      "losses": 0,
-      "winrate": 1.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS4|H=N|InsideBarBreakout": {
-      "wins": 4,
-      "losses": 0,
-      "winrate": 1.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS7|H=N|VolumeSpikeReversal": {
-      "wins": 3,
-      "losses": 0,
-      "winrate": 1.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS5|H=N|EngulfingPattern": {
-      "wins": 5,
-      "losses": 0,
-      "winrate": 1.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS5|H=N|DojiIndecision": {
-      "wins": 5,
-      "losses": 0,
-      "winrate": 1.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS5|H=N|VolumeSpikeReversal": {
-      "wins": 3,
-      "losses": 0,
-      "winrate": 1.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS5|H=N|ExtremeCandleRatio": {
-      "wins": 5,
-      "losses": 0,
-      "winrate": 1.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS8|H=N|InsideBarBreakout": {
-      "wins": 3,
-      "losses": 1,
-      "winrate": 0.75
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS8|H=N|DojiIndecision": {
-      "wins": 3,
-      "losses": 1,
-      "winrate": 0.75
-    },
     "LTC/USDC:USDC@1m|BBW=L|RS8|H=N|RailsPattern": {
-      "wins": 3,
+      "wins": 1,
       "losses": 0,
       "winrate": 1.0
     },
     "LTC/USDC:USDC@1m|BBW=L|RS8|H=N|MarubozuMomentum": {
-      "wins": 3,
-      "losses": 0,
-      "winrate": 1.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS8|H=N|ExtremeCandleRatio": {
-      "wins": 3,
-      "losses": 1,
-      "winrate": 0.75
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS6|H=N|RailsPattern": {
-      "wins": 3,
-      "losses": 0,
-      "winrate": 1.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS6|H=N|ExtremeCandleRatio": {
-      "wins": 3,
-      "losses": 0,
-      "winrate": 1.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS4|H=N|EngulfingPattern": {
-      "wins": 2,
-      "losses": 0,
-      "winrate": 1.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS1|H=N|VCPPattern": {
-      "wins": 21,
-      "losses": 17,
-      "winrate": 0.5526315789473685
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS1|H=N|DecelerationCandles": {
-      "wins": 5,
-      "losses": 5,
-      "winrate": 0.5
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS1|H=N|WyckoffSpring": {
-      "wins": 12,
-      "losses": 7,
-      "winrate": 0.631578947368421
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS3|H=N|FVGRetest": {
-      "wins": 2,
-      "losses": 1,
-      "winrate": 0.6666666666666666
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS4|H=N|ThreeBarReversal": {
-      "wins": 3,
-      "losses": 0,
-      "winrate": 1.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS4|H=N|DecelerationCandles": {
-      "wins": 3,
-      "losses": 0,
-      "winrate": 1.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS1|H=N|FVGRetest": {
-      "wins": 17,
-      "losses": 7,
-      "winrate": 0.7083333333333334
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS1|H=N|MultiTimeframeImpulse": {
-      "wins": 26,
-      "losses": 31,
-      "winrate": 0.45614035087719296
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS2|H=N|MultiTimeframeImpulse": {
-      "wins": 4,
-      "losses": 14,
-      "winrate": 0.2222222222222222
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS2|H=N|VCPPattern": {
-      "wins": 4,
-      "losses": 4,
-      "winrate": 0.5
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS2|H=N|FVGRetest": {
-      "wins": 4,
-      "losses": 6,
-      "winrate": 0.4
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS2|H=N|ThreeBarReversal": {
-      "wins": 2,
-      "losses": 0,
-      "winrate": 1.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS4|H=N|FVGRetest": {
-      "wins": 0,
-      "losses": 2,
-      "winrate": 0.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS4|H=N|VCPPattern": {
-      "wins": 0,
-      "losses": 5,
-      "winrate": 0.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS3|H=N|MultiTimeframeImpulse": {
-      "wins": 14,
-      "losses": 2,
-      "winrate": 0.875
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS2|H=N|WyckoffSpring": {
-      "wins": 8,
-      "losses": 0,
-      "winrate": 1.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS3|H=N|DecelerationCandles": {
-      "wins": 5,
-      "losses": 0,
-      "winrate": 1.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS5|H=N|HigherTFTrendConfirm": {
-      "wins": 4,
-      "losses": 0,
-      "winrate": 1.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS5|H=N|MultiTimeframeImpulse": {
-      "wins": 4,
-      "losses": 0,
-      "winrate": 1.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS4|H=N|MultiTimeframeImpulse": {
-      "wins": 2,
-      "losses": 1,
-      "winrate": 0.6666666666666666
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS3|H=N|WyckoffSpring": {
-      "wins": 3,
-      "losses": 1,
-      "winrate": 0.75
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS3|H=N|VCPPattern": {
-      "wins": 5,
-      "losses": 0,
-      "winrate": 1.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS2|H=N|DecelerationCandles": {
       "wins": 1,
-      "losses": 2,
-      "winrate": 0.3333333333333333
+      "losses": 0,
+      "winrate": 1.0
     },
-    "LTC/USDC:USDC@1m|BBW=L|RS5|H=N|WyckoffSpring": {
-      "wins": 2,
+    "LTC/USDC:USDC@1m|BBW=L|RS8|H=N|VWAPBreakout": {
+      "wins": 1,
+      "losses": 0,
+      "winrate": 1.0
+    },
+    "LTC/USDC:USDC@1m|BBW=L|RS8|H=N|InsideBarBreakout": {
+      "wins": 1,
       "losses": 0,
       "winrate": 1.0
     },
     "LTC/USDC:USDC@1m|BBW=L|RS8|H=N|EngulfingPattern": {
-      "wins": 0,
-      "losses": 1,
-      "winrate": 0.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS8|H=N|TweezerPattern": {
-      "wins": 0,
-      "losses": 1,
-      "winrate": 0.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS8|H=N|FVGRetest": {
-      "wins": 0,
-      "losses": 1,
-      "winrate": 0.0
-    },
-    "LTC/USDC:USDC@1m|BBW=L|RS1|H=N|AbsorptionBlock": {
       "wins": 1,
       "losses": 0,
       "winrate": 1.0

@@ -1,12 +1,12 @@
 """
 ====================================================
-🎯 PAROLI PLAYER — Progresión positiva 1-4-8
+🎯 PAROLI PLAYER — Progresión positiva 1-1-3
 ====================================================
 
 Estrategia:
 -----------
 - Calcula una unidad base al arrancar una nueva secuencia: `unit = equity / BASE_DIVISOR`.
-- Mantiene esa unidad fija durante toda la progresión Paroli (1x, 4x, 8x).
+- Mantiene esa unidad fija durante toda la progresión Paroli (1x, 1x, 3x).
 - Tras cada victoria avanza al siguiente escalón; al perder o completar el ciclo reinicia.
 - Respeta `config.MAX_POSITION_SIZE` para no exceder el riesgo máximo.
 - Usa leverage 10x para amplificar posiciones en futures.
@@ -20,7 +20,7 @@ Integración:
 - `LEVERAGE` → apalancamiento usado en órdenes (10x por defecto, máx 50x según config).
 
 ⚠️ Particularidad: este player no comprueba si Gemini encontró edge.
-Mientras exista `verdict.side`, apostará aplicando la progresión 1-4-8,
+Mientras exista `verdict.side`, apostará aplicando la progresión 1-1-3,
 aunque `verdict.reason` sea "sin_aprobadas" o "kelly_no_positivo".
 Si necesitas respetar el edge, añade un filtro externo antes de usarlo.
 
@@ -39,7 +39,7 @@ if TYPE_CHECKING:  # pragma: no cover - solo para hints
 
 # Parámetros Paroli
 BASE_DIVISOR = 100  # Unidad inicial = equity / 100 (1% de equity)
-PROGRESSION = (1, 4, 8)  # Multiplicadores Paroli
+PROGRESSION = (1, 1, 3)  # Multiplicadores Paroli (ultra conservador)
 MAX_POSITION_SIZE = float(getattr(trading, "MAX_POSITION_SIZE", 0.02))
 LEVERAGE = 10  # Apalancamiento para futures (máx permitido: trading.MAX_LEVERAGE)
 

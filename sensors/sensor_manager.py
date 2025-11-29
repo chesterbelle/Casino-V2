@@ -21,6 +21,7 @@ from .high_frequency_scalping import (
     VolatilityWakeup,
     VolumeFlowImbalance,
     VSAReversal,
+    VWAPBreakout,
     VWAPMomentum,
 )
 from .mean_reversion import (
@@ -35,8 +36,10 @@ from .mean_reversion import (
 )
 from .momentum_trend_following import (
     ADXFilter,
+    EMA50Support,
     EMACrossover,
     MACDCrossover,
+    MomentumPinball,
     ParabolicSAR,
     Supertrend,
 )
@@ -107,6 +110,9 @@ SENSOR_REGISTRY: Dict[str, type] = {
     "KeltnerBreakout": KeltnerBreakout,
     "VolumeFlowImbalance": VolumeFlowImbalance,
     "HurstRegime": HurstRegime,
+    "VWAPBreakout": VWAPBreakout,
+    "MomentumPinball": MomentumPinball,
+    "EMA50Support": EMA50Support,
     # Price Action (11 sensores)
     "PinBarReversal": PinBarReversal,
     "EngulfingPattern": EngulfingPattern,

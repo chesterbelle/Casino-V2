@@ -10,9 +10,19 @@ Nueva arquitectura unificada:
 import asyncio
 import json
 import logging
+import logging.handlers
+import queue
 import sys
 from datetime import datetime
 from pathlib import Path
+
+# Try to use uvloop for higher performance
+try:
+    import uvloop
+
+    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+except ImportError:
+    pass
 
 from config import exchange as exchange_config
 from config import system
@@ -23,13 +33,11 @@ from exchanges.adapters.ccxt_adapter import CCXTAdapter
 from exchanges.connectors import BybitConnector, KrakenConnector, ResilientConnector
 from players import kelly_player, paroli_player
 
-# Setup logging
-logging.basicConfig(
-    level=getattr(logging, system.LOG_LEVEL, logging.INFO),
-    format="%(asctime)s | %(name)s | %(levelname)s | %(message)s",
-)
+# Setup logging with non-blocking QueueHandler
+log_queue = queue.Queue()
+queue_handler = logging.handlers.QueueHandler(log_queue)
 
-# Add file logging for debugging
+# File handler (blocking I/O, will run in separate thread via listener)
 log_filename = f"logs/main_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
 Path("logs").mkdir(exist_ok=True)
 file_handler = logging.FileHandler(log_filename)
@@ -37,13 +45,24 @@ file_handler.setLevel(logging.DEBUG)
 file_formatter = logging.Formatter("%(asctime)s | %(name)s | %(levelname)s | %(message)s")
 file_handler.setFormatter(file_formatter)
 
-# Add file handler to root logger
+# Console handler
+console_handler = logging.StreamHandler()
+console_handler.setFormatter(file_formatter)
+console_handler.setLevel(getattr(logging, system.LOG_LEVEL, logging.INFO))
+
+# QueueListener to handle logs in background
+queue_listener = logging.handlers.QueueListener(log_queue, file_handler, console_handler, respect_handler_level=True)
+queue_listener.start()
+
+# Configure root logger to use QueueHandler
 root_logger = logging.getLogger()
-root_logger.addHandler(file_handler)
+root_logger.addHandler(queue_handler)
 root_logger.setLevel(logging.DEBUG)
 
 logger = logging.getLogger("Casino-V2")
 logger.info(f"📝 Logging to file: {log_filename}")
+if "uvloop" in sys.modules:
+    logger.info("🚀 High-performance uvloop enabled")
 
 # Available players
 PLAYERS = {
@@ -360,6 +379,7 @@ async def run_backtest(player_module, data_file, max_candles, initial_balance=No
           to avoid hardcoded defaults and ensure explicit balance control
     """
     logger.info("🎰 Starting BACKTEST mode")
+    from config.trading import COMMISSION_RATE  # Import commission rate
     from core.data_sources.backtest import BacktestDataSource
 
     # Create backtest data source
@@ -382,7 +402,9 @@ async def run_backtest(player_module, data_file, max_candles, initial_balance=No
         logger.info(f"💰 Using initial balance from CLI: ${initial_balance:,.2f}")
 
     if data_file.endswith(".parquet"):
-        source = BacktestDataSource.from_parquet(data_file, initial_balance=initial_balance)
+        source = BacktestDataSource.from_parquet(
+            data_file, initial_balance=initial_balance, taker_fee_rate=COMMISSION_RATE  # Pass configured fee
+        )
     else:
         # Force timeframe to 1m for Gemini memory compatibility
         # Gemini's memory was trained on 1m data, so we pretend any data is 1m
@@ -391,6 +413,7 @@ async def run_backtest(player_module, data_file, max_candles, initial_balance=No
             normalize_symbol=True,  # USDT/USDC/BUSD → USD
             force_timeframe="1m",  # Force to 1m for memory compatibility
             initial_balance=initial_balance,
+            taker_fee_rate=COMMISSION_RATE,  # Pass configured fee
         )
 
     # Create session

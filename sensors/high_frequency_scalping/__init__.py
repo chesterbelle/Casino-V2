@@ -1,3 +1,5 @@
+"""Colección de sensores de High Frequency Scalping."""
+
 from .adaptive_rsi import AdaptiveRSIScalper
 from .bollinger_rejection import BollingerBandRejection
 from .hurst_regime import HurstRegime
@@ -8,18 +10,22 @@ from .smart_range import SmartRangeScalper
 from .volatility_wakeup import VolatilityWakeup
 from .volume_imbalance import VolumeFlowImbalance
 from .vsa_reversal import VSAReversal
+from .vwap_breakout import VWAPBreakout
+from .vwap_deviation import VWAPDeviation
 from .vwap_momentum import VWAPMomentum
 
 __all__ = [
-    "AdaptiveRSIScalper",
-    "MomentumBurst",
-    "BollingerBandRejection",
-    "VSAReversal",
-    "SmartRangeScalper",
-    "MicroTrendPullback",
-    "VolatilityWakeup",
     "VWAPMomentum",
     "KeltnerBreakout",
-    "VolumeFlowImbalance",
+    "MicroTrendPullback",
     "HurstRegime",
+    "VolumeFlowImbalance",
+    "BollingerBandRejection",
+    "VolatilityWakeup",
+    "VWAPDeviation",
+    "AdaptiveRSIScalper",
+    "MomentumBurst",
+    "VSAReversal",
+    "SmartRangeScalper",
+    "VWAPBreakout",
 ]

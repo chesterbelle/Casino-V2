@@ -662,7 +662,7 @@ class Gemini:
             "size": float(size_fraction),
             "take_profit": R_GROSS,  # Porcentaje (ej: 0.01)
             "stop_loss": L_GROSS,  # Porcentaje (ej: 0.01)
-            "type": "market",  # ← MARKET order como lo hacen los bots profesionales
+            "type": "market",  # ← MARKET order (limit orders incompatibles con OCO en Binance)
             "contributors": contributors or [],
         }
         if timeframe and timeframe != "UNKNOWN":

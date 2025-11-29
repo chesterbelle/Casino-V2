@@ -341,6 +341,7 @@ class VirtualExchangeConnector(BaseConnector):
             "fee": fee,
             "timestamp": self._current_timestamp,
             "pnl": order.get("realized_pnl"),  # None for opening trades
+            "gemini_trade_id": order.get("params", {}).get("gemini_trade_id"),
         }
 
         # Add entry details for closing trades

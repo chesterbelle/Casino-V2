@@ -275,7 +275,10 @@ class Croupier:
                 "type": "market",
                 "amount": amount,
                 "leverage": order.get("leverage", 1),
-                "params": {"reduceOnly": False},
+                "params": {
+                    "reduceOnly": False,
+                    **order.get("params", {}),
+                },
             }
 
             # Respect caller preference whether to wait for WS fill confirmation

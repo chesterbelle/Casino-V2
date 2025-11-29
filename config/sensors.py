@@ -12,69 +12,79 @@ Configuración de detectores técnicos y sus parámetros.
 
 # Activar o desactivar detectores individuales
 ACTIVE_SENSORS = {
-    # === TOP PERFORMERS (HFT Sensors) ===
-    # VWAPMomentum: 70.37% WR (LTC RS2), 66.67% (LTC RS2)
-    "VWAPMomentum": True,
-    # KeltnerBreakout: 62.96% WR (BTC RS5), 59.09% (LTC RS5)
-    "KeltnerBreakout": True,
-    # MicroTrendPullback: 72.73% WR (LTC RS3/RS5)
-    "MicroTrendPullback": True,
-    # HurstRegime: 56.14% WR (BTC RS5), 51.85% (LTC RS1)
-    "HurstRegime": True,
-    # VolumeFlowImbalance: 52.76% WR (LTC RS4), 52.50% (LTC RS9)
-    "VolumeFlowImbalance": True,
-    # === KEEP FOR DIVERSITY (Moderate Performance) ===
-    # BollingerBandRejection: Useful for range detection
-    "BollingerBandRejection": True,
-    # VolatilityWakeup: Breakout specialist
-    "VolatilityWakeup": True,
-    # === DISABLED (Low Performance WR < 52%) ===
+    # === TIER 1: ELITE PERFORMERS (WR >70%) ===
+    "EMACrossover": True,  # 80.56% WR - TOP PERFORMER! 🏆
+    "PinBarReversal": True,  # 76.56% WR
+    "RailsPattern": True,  # 69.05% WR
+    # === TIER 2: EXCELLENT (WR 60-70%) ===
+    "EMA50Support": True,  # 65.22% WR
+    "MarubozuMomentum": True,  # 65.00% WR
+    "VWAPBreakout": True,  # 62.96% WR
+    "ExtremeCandleRatio": True,  # 61.20% WR
+    # === TIER 3: GOOD (WR 55-60%) ===
+    "InsideBarBreakout": True,  # 59.21% WR
+    "DecelerationCandles": True,  # 57.94% WR
+    "VWAPDeviation": True,  # 56.10% WR
+    "VCPPattern": True,  # 55.61% WR
+    "EngulfingPattern": True,  # 55.07% WR
+    # === DISABLED - UNDERPERFORMERS (WR <53%) ===
+    "VWAPMomentum": False,  # 51.11% WR - mediocre
+    "MicroTrendPullback": False,  # 52.90% WR - mediocre
+    "VolatilityWakeup": False,  # 50.00% WR - insufficient data
+    # === DISABLED - TERRIBLE PERFORMERS (WR <50%) ===
+    "BollingerBandRejection": False,  # 48.63% WR - 7,683 losing trades!
+    "KeltnerBreakout": False,  # 47.60% WR - 3,439 losing trades!
+    "VolumeFlowImbalance": False,  # 47.20% WR - 2,962 losing trades!
+    "HurstRegime": False,  # 49.55% WR - 668 losing trades
+    # === DISABLED - LOW PERFORMANCE (WR < 52%) ===
     "BollingerSqueeze": False,
     "Supertrend": False,
     "MACDCrossover": False,
-    "CCIReversion": False,  # WR ~48-50%
-    "MFIReversion": False,  # WR ~48-50%
-    "StochasticReversion": False,  # WR ~48-51%
-    "WilliamsRReversion": False,  # WR ~48-50%
-    "AdaptiveRSIScalper": False,  # Inconsistent
-    "MomentumBurst": False,  # Low sample size
-    "VSAReversal": False,  # Low sample size
-    "SmartRangeScalper": False,  # WR < 50% in most buckets
-    # === Price Action Sensors (Pure Pattern Recognition - 0 Lag) ===
-    "PinBarReversal": True,
-    "EngulfingPattern": True,
-    "InsideBarBreakout": True,
-    "FakeoutReversal": True,
-    "ThreeBarReversal": True,
-    "DojiIndecision": True,
-    "MorningStarEvening": True,
-    "RailsPattern": True,
-    "TweezerPattern": True,
-    "MarubozuMomentum": True,
-    "SupportResistanceBounce": True,
+    "CCIReversion": False,
+    "MFIReversion": False,
+    "StochasticReversion": False,
+    "WilliamsRReversion": False,
+    "AdaptiveRSIScalper": False,
+    "MomentumBurst": False,
+    "VSAReversal": False,
+    "SmartRangeScalper": False,
+    # === DISABLED - PRICE ACTION (Unproven/Noisy) ===
+    "FakeoutReversal": False,
+    "ThreeBarReversal": False,
+    "DojiIndecision": False,
+    "MorningStarEvening": False,
+    "TweezerPattern": False,
+    "SupportResistanceBounce": False,
     "VolumeSpikeReversal": False,
-    "HigherTFTrendConfirm": True,
-    "OrderBlockBreakout": True,
+    "OrderBlockBreakout": False,
     "LiquidityVoid": False,
-    "ExtremeCandleRatio": True,
+    # "ExtremeCandleRatio": False,  # Duplicate removed
     "LongTailDistribution": False,
-    "WyckoffSpring": True,
-    "FVGRetest": True,
-    "AbsorptionBlock": True,
-    "MultiTimeframeImpulse": True,
-    "DecelerationCandles": False,
-    "VCPPattern": False,
-    # === Sensores NO Rentables (Desactivados) ===
+    "WyckoffSpring": False,
+    "FVGRetest": False,
+    "AbsorptionBlock": False,
+    # === DISABLED - LAGGING/SLOW ===
+    "HigherTFTrendConfirm": False,  # Uses 5m/15m - too slow for 1m scalping
+    "MultiTimeframeImpulse": False,  # MTF lag
+    # "DecelerationCandles": False,  # Duplicate removed
+    # "VCPPattern": False,  # Duplicate removed
+    # === DISABLED - MEAN REVERSION (Low WR) ===
     "ADXFilter": False,
     "RSIReversion": False,
     "ZScoreReversion": False,
     "KeltnerReversion": False,
     "BollingerTouch": False,
-    "EMACrossover": False,
-    "VWAPDeviation": False,
+    # "EMACrossover": False,  # Duplicate removed
+    # === NEW OPTIMIZED SENSORS (Tested - Mediocre) ===
+    "MomentumPinball": False,  # 51.35% WR - mediocre
+    # === DISABLED - NEW SCALPING SENSORS (Failed Tests) ===
+    "AggressiveVolume": False,  # Generated losing signals
+    "VolumeDelta": False,  # Generated losing signals
+    "WickRejection": False,  # Generated losing signals
+    # === DISABLED - NO DATA ===
     "OBVBreakout": False,
-    "ParabolicSAR": False,  # No data, disabled as precaution
-    "AccumulationDistribution": False,  # No data, disabled as precaution
+    "ParabolicSAR": False,
+    "AccumulationDistribution": False,
 }
 
 
@@ -127,4 +137,12 @@ SENSOR_PARAMS = {
     "MultiTimeframeImpulse": {"ema_period": 20},
     "DecelerationCandles": {"sequence_length": 3},
     "VCPPattern": {"contractions": 3},
+    # Scalping Sensors
+    "AggressiveVolume": {"volume_multiplier": 2.0, "min_body_pct": 0.002},
+    "VolumeDelta": {"lookback": 10, "delta_threshold": 0.6},
+    "WickRejection": {"wick_to_body_ratio": 2.0, "min_wick_pct": 0.003},
+    # New Optimized Sensors
+    "MomentumPinball": {"ema_period": 34, "rsi_period": 2, "oversold": 10, "overbought": 90},
+    "VWAPBreakout": {"std_dev_mult": 1.0, "volume_factor": 1.2, "adx_threshold": 20.0},
+    "EMA50Support": {"ema_period": 50, "tolerance_pct": 0.001},
 }

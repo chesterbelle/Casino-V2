@@ -1,83 +1,56 @@
 import json
-import sys
 from collections import defaultdict
+from pathlib import Path
 
-import pandas as pd
 
+def analyze_sensors():
+    logs_dir = Path("/home/chesterbelle/Casino-V2/logs")
+    json_files = sorted(logs_dir.glob("backtest_*.json"), key=lambda x: x.stat().st_mtime, reverse=True)
 
-def analyze_backtest(log_file):
-    try:
-        with open(log_file, "r") as f:
-            data = json.load(f)
-    except FileNotFoundError:
-        print(f"Error: File {log_file} not found.")
+    if not json_files:
+        print("❌ No log files found")
         return
 
-    signals = data.get("signals", [])
+    latest_json = json_files[0]
+    print(f"Analyzing: {latest_json.name}\n")
+
+    with open(latest_json, "r") as f:
+        data = json.load(f)
+
     trades = data.get("closed_trades", [])
 
-    print(f"Total Signals: {len(signals)} (Note: Raw signals might not be in log)")
-    print(f"Total Trades: {len(trades)}")
-
-    # Map trade ID to result
-    trade_results = {}
-    for trade in trades:
-        trade_results[trade["trade_id"]] = {"pnl": trade["pnl"], "outcome": "WIN" if trade["pnl"] > 0 else "LOSS"}
-
-    # Analyze sensors
-    sensor_stats = defaultdict(lambda: {"signals": 0, "trades": 0, "wins": 0, "losses": 0, "pnl": 0.0})
-
-    for signal in signals:
-        # Check if signal has 'origin' or 'contributors'
-        # The log format might vary, let's inspect a sample signal structure if needed.
-        # Assuming signal object has 'origin' or we look at the trade's contributors
-        pass
-
-    # Since the signal log in the JSON might not directly link to the trade outcome easily without
-    # matching timestamps/IDs, and the 'contributors' are in the trade object.
+    sensor_stats = defaultdict(lambda: {"wins": 0, "losses": 0, "pnl": 0.0, "trades": 0})
 
     for trade in trades:
+        pnl = trade.get("pnl", 0)
         contributors = trade.get("contributors", [])
-        if isinstance(contributors, str):
-            contributors = [contributors]
 
-        outcome = "WIN" if trade["pnl"] > 0 else "LOSS"
-        pnl = trade["pnl"]
+        # If no contributors listed (shouldn't happen in new logs), skip or label unknown
+        if not contributors:
+            contributors = ["Unknown"]
 
         for sensor in contributors:
-            sensor_stats[sensor]["trades"] += 1
-            if outcome == "WIN":
-                sensor_stats[sensor]["wins"] += 1
+            stats = sensor_stats[sensor]
+            stats["trades"] += 1
+            stats["pnl"] += pnl
+            if pnl > 0:
+                stats["wins"] += 1
             else:
-                sensor_stats[sensor]["losses"] += 1
-            sensor_stats[sensor]["pnl"] += pnl
+                stats["losses"] += 1
 
-    # Calculate metrics
-    results = []
-    for sensor, stats in sensor_stats.items():
-        total_trades = stats["trades"]
-        win_rate = (stats["wins"] / total_trades * 100) if total_trades > 0 else 0
-        results.append(
-            {
-                "Sensor": sensor,
-                "Trades": total_trades,
-                "Win Rate": win_rate,
-                "PnL": stats["pnl"],
-                "Wins": stats["wins"],
-                "Losses": stats["losses"],
-            }
-        )
+    print(f"{'SENSOR':<25} | {'TRADES':<6} | {'WR %':<6} | {'PnL ($)':<8} | {'AVG ($)':<6}")
+    print("-" * 65)
 
-    df = pd.DataFrame(results)
-    if not df.empty:
-        df = df.sort_values(by="Win Rate", ascending=False)
-        print(df.to_string(index=False))
-    else:
-        print("No trade data found to analyze.")
+    sorted_sensors = sorted(sensor_stats.items(), key=lambda x: x[1]["pnl"], reverse=True)
+
+    for sensor, stats in sorted_sensors:
+        trades = stats["trades"]
+        wr = (stats["wins"] / trades * 100) if trades > 0 else 0
+        pnl = stats["pnl"]
+        avg = pnl / trades if trades > 0 else 0
+
+        print(f"{sensor:<25} | {trades:<6} | {wr:6.2f} | {pnl:8.2f} | {avg:6.2f}")
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Usage: python3 analyze_sensors.py <log_file>")
-    else:
-        analyze_backtest(sys.argv[1])
+    analyze_sensors()

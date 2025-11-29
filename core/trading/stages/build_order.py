@@ -161,6 +161,7 @@ class BuildOrderStage(Stage):
             "stop_loss": order["stop_loss"],
             "trade_id": verdict.get("trade_id"),
             "leverage": leverage,
+            "params": {"gemini_trade_id": verdict.get("trade_id")},
         }
 
         logger.info(

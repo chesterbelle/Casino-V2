@@ -27,6 +27,7 @@ from .three_bar import ThreeBarReversal
 from .tweezer_pattern import TweezerPattern
 from .vcp_pattern import VCPPattern
 from .volume_spike import VolumeSpikeReversal
+from .wick_rejection import WickRejection
 from .wyckoff_spring import WyckoffSpring
 
 __all__ = [
@@ -52,4 +53,5 @@ __all__ = [
     "MultiTimeframeImpulse",
     "DecelerationCandles",
     "VCPPattern",
+    "WickRejection",
 ]
