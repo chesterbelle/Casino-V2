@@ -49,7 +49,6 @@ class FVGRetestV3(SensorV3):
 
         cur_low = candle["low"]
         cur_high = candle["high"]
-        cur_close = candle["close"]
 
         for fvg in self.active_fvgs:
             if fvg["filled"] or fvg.get("signaled"):

@@ -3,12 +3,11 @@ Execution Layer for Casino-V3.
 Handles DecisionEvents from Paroli and executes orders via Croupier.
 """
 
-import asyncio
 import logging
 import time
-from typing import Any, Dict, Optional
 
-from core.events import Event, EventType
+import config.trading
+from core.events import EventType
 from croupier.croupier import Croupier
 
 logger = logging.getLogger(__name__)
@@ -29,6 +28,9 @@ class OrderManager:
 
         # Subscribe to DECISION events (will come from Paroli)
         self.engine.subscribe(EventType.SYSTEM, self.on_decision)  # Using SYSTEM for now
+
+        # Subscribe to CANDLE events to check for TP/SL exits
+        self.engine.subscribe(EventType.CANDLE, self.on_candle)
 
     async def start(self):
         """Start the Order Manager."""
@@ -60,13 +62,18 @@ class OrderManager:
 
         # Construct Order Payload
         trade_id = f"V3_{int(time.time()*1000)}"
+
+        # Calculate multipliers from config
+        tp_pct = config.trading.TAKE_PROFIT
+        sl_pct = config.trading.STOP_LOSS
+
         order_payload = {
             "trade_id": trade_id,
             "symbol": event.symbol,
             "side": event.side,
             "size": event.bet_size,  # Fraction of equity
-            "take_profit": 0.01,  # 1% TP
-            "stop_loss": 0.01,  # 1% SL
+            "take_profit": 1.0 + tp_pct,  # e.g. 1.01
+            "stop_loss": 1.0 - sl_pct,  # e.g. 0.99
             "timestamp": str(event.timestamp),
             "ghost": False,
         }
@@ -92,3 +99,66 @@ class OrderManager:
         if self.paroli and trade_id in self.pending_trades:
             self.paroli.handle_trade_outcome(trade_id, won)
             del self.pending_trades[trade_id]
+
+    async def on_candle(self, event):
+        """Handle new candle to check for position exits."""
+        if not self.active:
+            return
+
+        # Convert event to dict for Croupier
+        candle_dict = {
+            "timestamp": event.timestamp,
+            "open": event.open,
+            "high": event.high,
+            "low": event.low,
+            "close": event.close,
+            "volume": event.volume,
+            "market": event.symbol,
+            "timeframe": "1m",  # Assuming 1m for now
+        }
+
+        # Check for potential exits (TP/SL touched)
+        potential_exits = self.croupier.position_tracker.check_and_close_positions(candle_dict)
+
+        for exit_info in potential_exits:
+            # In V3 Backtest with VirtualExchange, we can confirm immediately
+            # In Live, we would wait for Exchange confirmation
+            # For now, let's assume immediate confirmation for backtest speed
+
+            trade_id = exit_info["trade_id"]
+            exit_reason = exit_info["exit_reason_detected"]
+            exit_price = exit_info["exit_price_detected"]
+
+            # Confirm close via Croupier/Tracker
+            # Note: In a real event loop, we might want to send an order to close
+            # But PositionTracker.check_and_close_positions in 'simulation' mode might handle it?
+            # Actually, PositionTracker just returns potential exits.
+            # We need to tell Croupier to close it or confirm it.
+
+            # For Backtest V3, we can use confirm_close directly since we trust the candle data
+            # Calculate PnL
+            position = self.croupier.position_tracker.get_position(trade_id)
+            if not position:
+                continue
+
+            if position.side == "LONG":
+                pnl_pct = (exit_price - position.entry_price) / position.entry_price
+            else:
+                pnl_pct = (position.entry_price - exit_price) / position.entry_price
+
+            pnl = position.notional * pnl_pct
+
+            # Confirm close
+            result = self.croupier.position_tracker.confirm_close(
+                trade_id=trade_id,
+                exit_price=exit_price,
+                exit_reason=exit_reason,
+                pnl=pnl,
+                fee=0.0,  # Simulating 0 fee for now or calculate it
+            )
+
+            if result:
+                logger.info(f"✅ Trade Closed: {trade_id} | {exit_reason} | PnL: {pnl:.2f}")
+                # Update Paroli
+                won = result["result"] == "WIN"
+                self.handle_trade_outcome(trade_id, won)

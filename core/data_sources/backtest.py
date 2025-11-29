@@ -10,11 +10,6 @@ from typing import Dict, List, Optional
 
 import pandas as pd
 
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from croupier.croupier import Croupier
-
 from .base import Candle, DataSource
 
 logger = logging.getLogger(__name__)
@@ -82,7 +77,6 @@ class BacktestDataSource(DataSource):
 
         # Create modular architecture: Connector → Adapter → Croupier
         # Import here to avoid circular imports
-        from exchanges.adapters.ccxt_adapter import CCXTAdapter
         from exchanges.connectors.virtual_exchange import VirtualExchangeConnector
 
         # 1. Virtual Exchange (The "Real" Exchange Simulation)
@@ -94,6 +88,9 @@ class BacktestDataSource(DataSource):
         )
 
         # 2. CCXT Adapter (The Standard Adapter used in Live/Demo)
+        # Import here to avoid circular imports
+        from exchanges.adapters.ccxt_adapter import CCXTAdapter
+
         self.adapter = CCXTAdapter(
             connector=self.connector,
             symbol=self.symbol,
@@ -353,6 +350,7 @@ class BacktestDataSource(DataSource):
     def set_gemini_instance(self, gemini):
         """Set Gemini instance and initialize Croupier."""
         from croupier.croupier import Croupier
+
         self.gemini = gemini
         if self.croupier is not None:
             return  # Evitar reinicialización

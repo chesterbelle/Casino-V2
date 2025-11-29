@@ -10,7 +10,6 @@ from collections import defaultdict
 from typing import Dict, List, Optional
 
 from config import paroli
-
 from core.events import Event, EventType, SignalEvent
 
 logger = logging.getLogger(__name__)

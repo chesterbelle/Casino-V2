@@ -5,17 +5,16 @@ Handles the main event loop, component lifecycle, and event dispatching.
 
 import asyncio
 import logging
-from collections import defaultdict
-from typing import Any, Awaitable, Callable, Dict, List
+from typing import Awaitable, Callable, Dict, List
 
 try:
     import uvloop
+
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 except ImportError:
     pass
 
 from .events import Event, EventType
-
 
 logger = logging.getLogger(__name__)
 
@@ -40,16 +39,12 @@ class Engine:
 
     def subscribe(self, event_type: EventType, callback: Callable[[Event], Awaitable[None]]):
         """Subscribe a callback to an event type."""
-        print(f"DEBUG: Subscribing {callback.__name__} to {event_type}")
         if event_type not in self._subscribers:
             self._subscribers[event_type] = []
         self._subscribers[event_type].append(callback)
 
     async def dispatch(self, event: Event):
         """Dispatch an event to all subscribers."""
-        if event.type == EventType.TICK:
-            print(f"DEBUG: Dispatching TICK event. Subscribers: {len(self._subscribers.get(event.type, []))}")
-
         if event.type in self._subscribers:
             # Execute all callbacks concurrently
             callbacks = self._subscribers[event.type]

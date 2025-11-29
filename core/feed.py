@@ -6,7 +6,7 @@ Manages Websocket streams via CCXTAdapter and dispatches events to the Engine.
 import asyncio
 import logging
 import time
-from typing import Any, Dict, Optional, Set
+from typing import Any, Dict, Set
 
 from exchanges.adapters.ccxt_adapter import CCXTAdapter
 

@@ -5,7 +5,6 @@ Logic: Two consecutive candles with similar range but opposite direction.
 """
 
 import logging
-from collections import deque
 
 from .base import SensorV3
 

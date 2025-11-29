@@ -6,8 +6,6 @@ Logic: Hurst exponent regime detection.
 import logging
 from collections import deque
 
-import numpy as np
-
 from .base import SensorV3
 
 logger = logging.getLogger(__name__)

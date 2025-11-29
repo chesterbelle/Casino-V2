@@ -6,9 +6,6 @@ Event-Driven Architecture with Paroli Betting
 import argparse
 import asyncio
 import logging
-import os
-import sys
-from pathlib import Path
 
 # Try uvloop for performance
 try:
@@ -111,13 +108,13 @@ async def main():
     engine.data_feed = data_feed  # Important for sensors
 
     # 5. Initialize Candle Maker (Tick → Candle)
-    candle_maker = CandleMaker(engine, timeframe="1m")
+    CandleMaker(engine, timeframe_seconds=60)
 
-    # 6. Initialize Sensor Manager (Candle → Signals)
-    sensor_manager = SensorManager(engine)
+    # 6. Initialize Sensor Manager (Candle → Signal)
+    SensorManager(engine)
 
-    # 7. Initialize Signal Aggregator (Signals → Aggregated Signal)
-    signal_aggregator = SignalAggregatorV3(engine)
+    # 7. Initialize Signal Aggregator (Signal → Aggregated Signal)
+    SignalAggregatorV3(engine)
 
     # 8. Initialize Paroli Player (Aggregated Signal → Decision)
     paroli = ParoliV3(engine, croupier)

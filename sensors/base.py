@@ -3,7 +3,7 @@ Base Class for V3 Sensors.
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, Optional
+from typing import Optional
 
 
 class SensorV3(ABC):

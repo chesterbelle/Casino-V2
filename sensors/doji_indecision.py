@@ -4,7 +4,6 @@ Logic: Doji indecision followed by strong breakout.
 """
 
 import logging
-from collections import deque
 
 from .base import SensorV3
 

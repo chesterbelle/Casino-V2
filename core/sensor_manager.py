@@ -5,11 +5,9 @@ Orchestrates sensors, manages cooldowns, and emits SignalEvents.
 
 import logging
 import time
-from typing import Dict, List, Optional, Tuple
+from typing import Dict
 
-from config import sensors as sensors_config
-
-from .events import CandleEvent, Event, EventType, SignalEvent
+from .events import CandleEvent, EventType, SignalEvent
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +47,6 @@ class SensorManager:
         from sensors.ema_crossover import EMACrossoverV3
         from sensors.engulfing_pattern import EngulfingPatternV3
         from sensors.extreme_candle_ratio import ExtremeCandleRatioV3
-        from sensors.base import SensorV3
         from sensors.fakeout import FakeoutV3
         from sensors.fvg_retest import FVGRetestV3
         from sensors.higher_tf_trend import HigherTFTrendV3

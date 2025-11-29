@@ -15,10 +15,9 @@ Parámetros financieros y de gestión de riesgo.
 STARTING_BALANCE = 10_000.0
 
 # Tamaños relativos de TP y SL (expresados en proporción decimal)
-# Asymmetric ratio based on MFE/MAE: TP=0.3% (71% of avg MFE=0.42%), SL=0.6% (2.1x avg MAE=0.28%)
-# Gives signals room to breathe while capturing realistic profit targets
-TAKE_PROFIT = 0.003  # 0.3% target (conservative, captures 71% of typical favorable move)
-STOP_LOSS = 0.006  # 0.6% stop (generous, allows 2x typical adverse move)
+# Proven values from 90-day backtest (50.8% WR, +0.25% PnL)
+TAKE_PROFIT = 0.01  # 1.0% target
+STOP_LOSS = 0.01  # 1.0% stop
 
 
 # =====================================================

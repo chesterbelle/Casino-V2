@@ -105,9 +105,9 @@ class SupertrendV3(SensorV3):
         tr_values = []
         for i in range(1, len(self.closes)):
             h = self.highs[i]
-            l = self.lows[i]
+            low_val = self.lows[i]
             prev_c = self.closes[i - 1]
-            tr = max(h - l, abs(h - prev_c), abs(l - prev_c))
+            tr = max(h - low_val, abs(h - prev_c), abs(low_val - prev_c))
             tr_values.append(tr)
 
         return np.mean(tr_values[-self.atr_period :]) if tr_values else 0.0

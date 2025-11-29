@@ -37,6 +37,8 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional
 if TYPE_CHECKING:
     from exchanges.adapters.ccxt_adapter import CCXTAdapter
 
+import config.trading
+
 logger = logging.getLogger("PositionTracker")
 
 
@@ -211,8 +213,8 @@ class PositionTracker:
             margin_used = notional / leverage if leverage > 0 else notional
 
             # Calcular niveles de TP/SL
-            tp_factor = order.get("take_profit", 1.01)  # 1% default
-            sl_factor = order.get("stop_loss", 0.99)  # -1% default
+            tp_factor = order.get("take_profit", 1.0 + config.trading.TAKE_PROFIT)
+            sl_factor = order.get("stop_loss", 1.0 - config.trading.STOP_LOSS)
 
             if side == "LONG":
                 tp_level = entry_price * tp_factor

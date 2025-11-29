@@ -8,9 +8,7 @@ Delegates all order execution and state management to the Croupier.
 import asyncio
 import logging
 import time
-from typing import Dict, Optional
-
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Dict, Optional
 
 if TYPE_CHECKING:
     from croupier.croupier import Croupier
@@ -41,7 +39,7 @@ class TestingDataSource(DataSource):
 
     def __init__(
         self,
-        croupier: 'Croupier',
+        croupier: "Croupier",
         symbol: str,
         timeframe: str,
         poll_interval: float = 5.0,

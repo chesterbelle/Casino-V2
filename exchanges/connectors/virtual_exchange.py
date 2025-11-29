@@ -99,26 +99,36 @@ class VirtualExchangeConnector(BaseConnector):
     # ⚙️ ENGINE (The "Virtual" part)
     # =========================================================
 
-    def update_market_state(self, candle: Dict[str, Any]) -> None:
+    def process_tick(self, tick: Dict[str, Any]) -> None:
         """
-        Update the internal state of the virtual exchange with a new candle.
-        This triggers the matching engine to check pending orders.
+        Update state with a single tick and check for fills.
 
         Args:
-            candle: Dictionary with keys: timestamp, open, high, low, close
+            tick: Dict with 'price', 'timestamp'
         """
-        self._current_timestamp = int(candle["timestamp"])
-        self._current_price = float(candle["close"])
+        self._current_timestamp = int(tick["timestamp"])
+        price = float(tick["price"])
+        self._current_price = price
 
-        high = float(candle["high"])
-        low = float(candle["low"])
-
-        # Process open orders
-        # We iterate over a copy to allow modification during iteration
+        # Check fills against this specific price
+        # We treat High/Low as the same (current price) for a tick
         for order_id, order in list(self._orders.items()):
             if order["status"] != "open":
                 continue
+            self._process_order(order, high=price, low=price)
 
+    def update_market_state(self, candle: Dict[str, Any]) -> None:
+        """
+        Legacy: Update with candle.
+        """
+        self._current_timestamp = int(candle["timestamp"])
+        self._current_price = float(candle["close"])
+        high = float(candle["high"])
+        low = float(candle["low"])
+
+        for order_id, order in list(self._orders.items()):
+            if order["status"] != "open":
+                continue
             self._process_order(order, high, low)
 
     def _process_order(self, order: Dict, high: float, low: float) -> None:

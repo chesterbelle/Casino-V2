@@ -5,12 +5,8 @@ Replays historical data as TickEvents.
 
 import asyncio
 import logging
-import time
-from typing import Any, Dict, Optional
 
 import pandas as pd
-
-from exchanges.adapters.ccxt_adapter import CCXTAdapter
 
 from .events import EventType, TickEvent
 
@@ -22,15 +18,16 @@ class BacktestFeed:
     Simulates a live data feed by replaying historical data.
     """
 
-    def __init__(self, engine, data_path: str, symbol: str, delay: float = 0.001):
+    def __init__(self, engine, data_path: str, symbol: str, delay: float = 0.001, exchange_connector=None):
         self.engine = engine
         self.data_path = data_path
         self.symbol = symbol
         self.delay = delay  # Delay between events to simulate time
+        self.exchange_connector = exchange_connector  # Connector to update with price data
         self.running = False
         self.data = None
 
-        # Mock Adapter for Croupier
+        # Mock Adapter for Croupier (Legacy support if no connector provided)
         self.adapter = self._create_mock_adapter()
 
     def _create_mock_adapter(self):
@@ -104,9 +101,6 @@ class BacktestFeed:
                 break
 
             # Simulate Ticks from Candle
-            # For simplicity, we emit 1 tick per candle (Close price)
-            # A better simulation would emit Open -> High -> Low -> Close
-
             # 1. Open Tick
             await self._emit_tick(row["timestamp"], row["open"], row["volume"] / 4)
             # 2. High Tick
@@ -124,6 +118,10 @@ class BacktestFeed:
 
     async def _emit_tick(self, timestamp, price, volume):
         """Emit a single tick event."""
+        # Update Virtual Exchange first (no lookahead)
+        if self.exchange_connector and hasattr(self.exchange_connector, "process_tick"):
+            self.exchange_connector.process_tick({"price": price, "timestamp": timestamp})
+
         event = TickEvent(
             type=EventType.TICK,
             timestamp=timestamp,  # Use historical timestamp

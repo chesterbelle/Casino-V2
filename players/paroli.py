@@ -9,8 +9,7 @@ import time
 from pathlib import Path
 from typing import Optional
 
-from config import paroli, trading
-
+from config import paroli
 from core.events import Event, EventType
 from decision.aggregator import AggregatedSignalEvent
 
@@ -98,12 +97,17 @@ class ParoliV3:
         )
 
         logger.info(
-            f"🎯 Decision: {event.side} | Step {self.step} | "
-            f"Bet: {bet_size:.4f} ({decision.bet_size:.2%} of equity)"
+            f"💾 State Saved | Step: {self.current_step} | "
+            f"Seq: {self.current_sequence_profit:.2f} | Global: {self.global_pnl:.2f}"
         )
 
         # Emit decision
         await self.engine.dispatch(decision)
+
+        logger.info(
+            f"🎯 Decision: {event.side} | Step {self.step} | "
+            f"Bet: {bet_size:.4f} ({decision.bet_size:.2%} of equity)"
+        )
 
         # Save state
         self._save_state()
@@ -123,7 +127,7 @@ class ParoliV3:
         else:
             # Reset on loss
             if RESET_ON_LOSS:
-                logger.info(f"❌ Loss! Resetting progression")
+                logger.info("❌ Loss! Resetting progression")
                 self.step = 0
                 self.unit = None
 

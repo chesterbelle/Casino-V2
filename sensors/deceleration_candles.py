@@ -7,8 +7,6 @@ Logic: Sequence of shrinking candles indicating exhaustion.
 import logging
 from collections import deque
 
-import numpy as np
-
 from .base import SensorV3
 
 logger = logging.getLogger(__name__)

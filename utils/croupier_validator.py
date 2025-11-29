@@ -499,6 +499,7 @@ class CroupierValidator:
 
         try:
             from gemini.gemini_core import Gemini
+
             from sensors.sensor_manager import SensorManager
 
             # 1. Crear Gemini y SensorManager

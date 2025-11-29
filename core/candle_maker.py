@@ -7,7 +7,7 @@ import logging
 import time
 from typing import Optional
 
-from .events import CandleEvent, Event, EventType, TickEvent
+from .events import CandleEvent, EventType, TickEvent
 
 logger = logging.getLogger(__name__)
 
