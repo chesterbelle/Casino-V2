@@ -23,7 +23,6 @@ from core.candle_maker import CandleMaker
 from core.engine import Engine
 from core.execution import OrderManager
 from core.feed import StreamManager
-from core.paroli import ParoliV3
 from core.sensor_manager import SensorManager
 from core.signal_aggregator import SignalAggregatorV3
 from croupier.croupier import Croupier
@@ -31,6 +30,7 @@ from exchanges.adapters.ccxt_adapter import CCXTAdapter
 from exchanges.connectors import BybitConnector
 from exchanges.connectors.binance.binance_connector import BinanceConnector
 from exchanges.connectors.hyperliquid.hyperliquid_connector import HyperliquidConnector
+from players.paroli import ParoliV3
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(levelname)s: %(message)s", datefmt="%H:%M:%S")
