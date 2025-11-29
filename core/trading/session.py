@@ -10,8 +10,8 @@ import logging
 from typing import Optional
 
 from core.data_sources.base import DataSource
-from gemini.gemini_core import Gemini
-from sensors.sensor_manager import SensorManager
+# from gemini.gemini_core import Gemini  # V2 Legacy - Not used in V3
+# from sensors.sensor_manager import SensorManager  # V2 Legacy - Not used in V3
 
 from .context import TradingContext
 from .pipeline import Pipeline
