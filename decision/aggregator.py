@@ -11,7 +11,7 @@ from typing import Dict, List, Optional
 
 from config import paroli
 
-from .events import Event, EventType, SignalEvent
+from core.events import Event, EventType, SignalEvent
 
 logger = logging.getLogger(__name__)
 

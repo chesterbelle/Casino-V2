@@ -24,8 +24,8 @@ from core.engine import Engine
 from core.execution import OrderManager
 from core.feed import StreamManager
 from core.sensor_manager import SensorManager
-from core.signal_aggregator import SignalAggregatorV3
 from croupier.croupier import Croupier
+from decision.aggregator import SignalAggregatorV3
 from exchanges.adapters.ccxt_adapter import CCXTAdapter
 from exchanges.connectors import BybitConnector
 from exchanges.connectors.binance.binance_connector import BinanceConnector

@@ -13,8 +13,8 @@ from core.candle_maker import CandleMaker
 from core.engine import Engine
 from core.execution import OrderManager
 from core.sensor_manager import SensorManager
-from core.signal_aggregator import SignalAggregatorV3
 from croupier.croupier import Croupier
+from decision.aggregator import SignalAggregatorV3
 from exchanges.adapters.ccxt_adapter import CCXTAdapter
 from exchanges.connectors.virtual_exchange import VirtualExchangeConnector
 from players.paroli import ParoliV3
