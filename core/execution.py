@@ -28,7 +28,7 @@ class OrderManager:
         self.pending_trades = {}  # trade_id -> (decision, sensor_id)
         self.processed_decisions = set()  # Track processed decision IDs to prevent duplicates
         self.candle_count = 0  # Counter for periodic reconciliation
-        self.reconciliation_interval = 10  # Run reconciliation every N candles
+        self.reconciliation_interval = 1  # Run reconciliation every candle (1 minute)
 
         # Subscribe to DECISION events (will come from Paroli)
         self.engine.subscribe(EventType.SYSTEM, self.on_decision)  # Using SYSTEM for now
@@ -162,13 +162,20 @@ class OrderManager:
         # Check for potential exits (TP/SL touched)
         potential_exits = self.croupier.position_tracker.check_and_close_positions(candle_dict)
 
-        # Determine execution mode
-        mode = "testing"
+        # Determine execution mode - CRITICAL for preventing simulated closures
+        mode = "testing"  # Default to testing if detection fails
         try:
             if hasattr(self.croupier.exchange_adapter, "connector"):
-                mode = getattr(self.croupier.exchange_adapter.connector, "mode", "testing")
-        except Exception:
-            pass
+                connector = self.croupier.exchange_adapter.connector
+                mode = getattr(connector, "mode", "testing")
+                logger.debug(f"🔍 Mode detected from connector: {mode}")
+            else:
+                logger.warning("⚠️ exchange_adapter has no connector attribute, defaulting to testing mode")
+        except Exception as e:
+            logger.error(f"❌ Error detecting mode: {e}, defaulting to testing mode")
+        
+        # Log mode for debugging
+        logger.debug(f"🎯 Execution mode for this candle: {mode}")
 
         for exit_info in potential_exits:
             trade_id = exit_info["trade_id"]

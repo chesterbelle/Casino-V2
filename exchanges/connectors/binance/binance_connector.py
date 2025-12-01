@@ -541,6 +541,11 @@ class BinanceConnector(BaseConnector):
 
         self.logger.info(f"✅ Binance connector initialized | Mode: {mode.upper()}")
 
+    @property
+    def mode(self) -> str:
+        """Expose mode for external access (needed by OrderManager)."""
+        return self._mode
+
     # =========================================================
     # 🔒 CCXT CONCURRENCY PROTECTION
     # =========================================================
