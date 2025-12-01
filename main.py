@@ -119,6 +119,7 @@ async def main():
 
     # 8. Initialize Fixed Player (Aggregated Signal → Decision)
     from players.fixed import FixedPlayer
+
     player = FixedPlayer(engine, croupier, fixed_pct=0.01, max_positions=3)
 
     # 9. Initialize Order Manager (Decision → Execution)
@@ -133,7 +134,7 @@ async def main():
 
     # Hook callback into PositionTracker
     croupier.position_tracker.on_close_callback = on_trade_close
-    
+
     # Store initial balance for PnL calc
     # Note: In demo/live, this might be the exchange balance
     initial_balance = await connector.fetch_balance()
@@ -159,7 +160,7 @@ async def main():
         logger.info("🛑 Shutting down...")
     finally:
         logger.info("🧹 Cleaning up resources...")
-        
+
         # 1. Stop components to prevent new signals
         await engine.stop()
         await order_manager.stop()
@@ -169,14 +170,14 @@ async def main():
             open_positions = croupier.get_open_positions()
             if open_positions:
                 logger.info(f"🧹 Force closing {len(open_positions)} open positions...")
-                
+
                 # Get current price for forced close
                 try:
                     current_price = await adapter.get_current_price(args.symbol)
                 except Exception:
                     logger.warning("⚠️ Could not fetch current price for forced close, using last known")
-                    current_price = 0.0 # Should ideally get from last candle or tick
-                
+                    current_price = 0.0  # Should ideally get from last candle or tick
+
                 import time
             await croupier.cleanup_symbol(args.symbol)
         except Exception as e:
@@ -184,14 +185,14 @@ async def main():
 
         # 3. Generate Session Report (using tracker state which should be updated by cleanup)
         logger.info("📊 Generating Session Report...")
-        
+
         # Get closed trades from our collection list
         tracker_stats = croupier.position_tracker.get_stats()
         total_trades = tracker_stats.get("total_closed", 0)
         wins = tracker_stats.get("total_wins", 0)
         losses = tracker_stats.get("total_losses", 0)
         win_rate = (wins / total_trades * 100) if total_trades > 0 else 0.0
-        
+
         # Fetch REAL final balance from exchange
         try:
             logger.info("💰 Fetching final balance from exchange...")
@@ -208,7 +209,7 @@ async def main():
         # Calculate PnL based on real balance difference
         total_pnl_real = real_final_balance - initial_balance
         pnl_pct = (total_pnl_real / initial_balance * 100) if initial_balance > 0 else 0.0
-        
+
         # Calculate fees from closed trades for reference (approximate)
         total_fees = sum(t.get("fee", 0.0) for t in closed_trades)
 

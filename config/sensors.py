@@ -41,9 +41,8 @@ ACTIVE_SENSORS = {
     "VolumeImbalance": True,
     "WilliamsRReversion": True,
     "ZScoreReversion": True,
-
     # === DISABLED / NOT OPTIMIZED ===
-    "OrderBlock": False,          # No trades generated in 30d
+    "OrderBlock": False,  # No trades generated in 30d
     "VWAPBreakout": False,
     "VWAPMomentum": False,
     "MicroTrendPullback": False,
@@ -76,7 +75,6 @@ ACTIVE_SENSORS = {
     "OBVBreakout": False,
     "ParabolicSAR": False,
     "AccumulationDistribution": False,
-    "MorningStar": False,
 }
 
 
@@ -203,7 +201,6 @@ SENSOR_PARAMS = {
         "5m": {"tp_pct": 0.0770, "sl_pct": 0.0330},  # Exp: 0.061%
         "15m": {"tp_pct": 0.0940, "sl_pct": 0.0160},  # Exp: 0.317%
     },
-    
     # Legacy parameters for sensors not yet optimized for multi-TF
     "HurstRegime": {"hurst_period": 50, "hurst_threshold": 0.5},
     "FakeoutReversal": {"breakout_threshold_pct": 0.002, "lookback_candles": 10, "reversal_body_pct": 0.6},
@@ -223,14 +220,13 @@ SENSOR_PARAMS = {
     "WickRejection": {"wick_to_body_ratio": 2.0, "min_wick_pct": 0.003},
     "MomentumPinball": {"ema_period": 34, "rsi_period": 2, "oversold": 10, "overbought": 90},
     "VWAPBreakout": {"std_dev_mult": 1.0, "volume_factor": 1.2, "adx_threshold": 20.0},
-    
     # Default TP/SL parameters per timeframe (fallback)
     "_default": {
         "1m": {"tp_pct": 0.0150, "sl_pct": 0.0100},
         "5m": {"tp_pct": 0.0300, "sl_pct": 0.0200},
         "15m": {"tp_pct": 0.0600, "sl_pct": 0.0400},
         "1h": {"tp_pct": 0.1200, "sl_pct": 0.0800},
-    }
+    },
 }
 
 
@@ -238,24 +234,25 @@ SENSOR_PARAMS = {
 # 🔧 HELPER FUNCTIONS
 # =====================================================
 
+
 def get_sensor_params(sensor_id: str, timeframe: str = "1m") -> dict:
     """
     Get TP/SL parameters for a sensor at a specific timeframe.
-    
+
     Supports both legacy format (single dict) and new multi-timeframe format.
-    
+
     Args:
         sensor_id: Name of the sensor (e.g., "BollingerTouch")
         timeframe: Timeframe string (e.g., "1m", "5m", "15m", "1h")
-    
+
     Returns:
         Dictionary with at least {"tp_pct": float, "sl_pct": float}
-    
+
     Examples:
         # Multi-TF format
         >>> get_sensor_params("BollingerTouch", "5m")
         {"tp_pct": 0.045, "sl_pct": 0.025}
-        
+
         # Legacy format (backward compatible)
         >>> get_sensor_params("BollingerTouch", "1m")
         {"tp_pct": 0.027, "sl_pct": 0.014}
@@ -263,18 +260,17 @@ def get_sensor_params(sensor_id: str, timeframe: str = "1m") -> dict:
     if sensor_id not in SENSOR_PARAMS:
         # Sensor not found, use default
         return SENSOR_PARAMS["_default"].get(timeframe, {"tp_pct": 0.015, "sl_pct": 0.01})
-    
+
     sensor_config = SENSOR_PARAMS[sensor_id]
-    
+
     # Check if it's multi-timeframe format (has timeframe keys)
     if isinstance(sensor_config, dict) and timeframe in sensor_config:
         return sensor_config[timeframe]
-    
+
     # Check if it's legacy format (has tp_pct/sl_pct directly)
     if isinstance(sensor_config, dict) and "tp_pct" in sensor_config:
         # Legacy format, return as-is (assumes 1m optimization)
         return sensor_config
-    
+
     # Fallback to default
     return SENSOR_PARAMS["_default"].get(timeframe, {"tp_pct": 0.015, "sl_pct": 0.01})
-

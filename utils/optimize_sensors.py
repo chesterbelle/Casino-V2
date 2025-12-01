@@ -329,7 +329,7 @@ class SensorOptimizer:
             if r["expectancy"] > 0:
                 config_output += f'    "{r["sensor"]}": {{\n'
                 config_output += f'        "{timeframe}": {{"tp_pct": {r["tp"]:.4f}, "sl_pct": {r["sl"]:.4f}}},\n'
-                config_output += f'    }},\n'
+                config_output += f"    }},\n"
 
         config_output += "}"
         print("\n" + "=" * 80)
@@ -342,14 +342,20 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--files", type=str, required=True, help="Comma-separated list of CSV files")
     parser.add_argument("--max-bars", type=int, default=120, help="Max bars for MFE/MAE analysis")
-    parser.add_argument("--timeframe", type=str, default=None, help="Timeframe (1m, 5m, 15m, 1h). Auto-detected from filename if not specified.")
+    parser.add_argument(
+        "--timeframe",
+        type=str,
+        default=None,
+        help="Timeframe (1m, 5m, 15m, 1h). Auto-detected from filename if not specified.",
+    )
     args = parser.parse_args()
 
     # Auto-detect timeframe from first filename if not specified
     if args.timeframe is None:
         import re
+
         first_file = args.files.split(",")[0].strip()
-        match = re.search(r'_(\d+[mh])_', first_file)
+        match = re.search(r"_(\d+[mh])_", first_file)
         timeframe = match.group(1) if match else "1m"
         logger.info(f"📊 Auto-detected timeframe: {timeframe}")
     else:

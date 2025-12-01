@@ -1056,7 +1056,7 @@ class BinanceConnector(BaseConnector):
             if "positionSide" not in clean_params:
                 # Determine if this is an entry or exit order
                 is_reduce_only = clean_params.get("reduceOnly", False) or clean_params.get("closePosition", False)
-                
+
                 if is_reduce_only:
                     # Exit: Closing a position
                     # BUY closes SHORT, SELL closes LONG
@@ -1071,12 +1071,12 @@ class BinanceConnector(BaseConnector):
                         clean_params["positionSide"] = "LONG"
                     else:
                         clean_params["positionSide"] = "SHORT"
-                
+
                 self.logger.debug(
                     f"ℹ️ Inferred positionSide: {clean_params['positionSide']} "
                     f"(side={side}, reduceOnly={is_reduce_only})"
                 )
-            
+
             # CRITICAL: In Hedge Mode, reduceOnly is not allowed by Binance
             # Remove it to prevent error -1106: "Parameter 'reduceonly' sent when not required"
             if clean_params.get("positionSide") in ["LONG", "SHORT"]:

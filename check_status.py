@@ -15,13 +15,13 @@ from exchanges.connectors.binance.binance_connector import BinanceConnector
 async def check():
     """Check status for LTC/USDT:USDT"""
     print("🔍 Checking status...")
-    
+
     # Initialize connector
     connector = BinanceConnector(mode="demo")
     await connector.connect()
-    
+
     symbol = "LTC/USDT:USDT"
-    
+
     try:
         # 1. Fetch open orders
         print(f"\n📋 Open Orders for {symbol}:")
@@ -29,18 +29,22 @@ async def check():
         if not orders:
             print("   None")
         for order in orders:
-            print(f"   - ID: {order['id']}, Type: {order['type']}, Side: {order['side']}, Price: {order.get('price')}, Stop: {order.get('stopPrice')}")
-        
+            print(
+                f"   - ID: {order['id']}, Type: {order['type']}, Side: {order['side']}, Price: {order.get('price')}, Stop: {order.get('stopPrice')}"
+            )
+
         # 2. Fetch open positions
         print(f"\n📊 Open Positions for {symbol}:")
         positions = await connector.fetch_positions([symbol])
         active_positions = [p for p in positions if abs(float(p.get("contracts", 0))) > 0]
-        
+
         if not active_positions:
             print("   None")
         for pos in active_positions:
-            print(f"   - Side: {pos['side']}, Contracts: {pos['contracts']}, Entry: {pos['entryPrice']}, PnL: {pos['unrealizedPnl']}")
-            
+            print(
+                f"   - Side: {pos['side']}, Contracts: {pos['contracts']}, Entry: {pos['entryPrice']}, PnL: {pos['unrealizedPnl']}"
+            )
+
     finally:
         await connector.close()
 

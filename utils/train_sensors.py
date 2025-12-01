@@ -49,7 +49,7 @@ class SensorTrainer:
         self.tracker = tracker
         self.timeframe = timeframe
         self.tp_pct = tp_pct or trading.TAKE_PROFIT  # Fallback only
-        self.sl_pct = sl_pct or trading.STOP_LOSS    # Fallback only
+        self.sl_pct = sl_pct or trading.STOP_LOSS  # Fallback only
         self.max_bars = max_bars  # Max bars to hold position
 
         # Load all sensors
@@ -177,9 +177,7 @@ class SensorTrainer:
 
         return sensors
 
-    def _simulate_trade(
-        self, signal: Dict, entry_idx: int, candles: pd.DataFrame
-    ) -> Tuple[Optional[bool], float, int]:
+    def _simulate_trade(self, signal: Dict, entry_idx: int, candles: pd.DataFrame) -> Tuple[Optional[bool], float, int]:
         """
         Simulate a trade based on signal using sensor-specific TP/SL.
 
@@ -197,6 +195,7 @@ class SensorTrainer:
 
         # Get sensor-specific TP/SL from config
         from config.sensors import get_sensor_params
+
         sensor_params = get_sensor_params(sensor_id, self.timeframe)
         tp_pct = sensor_params.get("tp_pct", self.tp_pct)
         sl_pct = sensor_params.get("sl_pct", self.sl_pct)
@@ -392,9 +391,7 @@ class SensorTrainer:
 
 def main():
     """Main entry point."""
-    parser = argparse.ArgumentParser(
-        description="Train sensor tracker on historical data"
-    )
+    parser = argparse.ArgumentParser(description="Train sensor tracker on historical data")
     parser.add_argument(
         "--data-dir",
         type=Path,
@@ -406,7 +403,12 @@ def main():
         type=str,
         help="Specific CSV file(s) to process (comma-separated)",
     )
-    parser.add_argument("--timeframe", type=str, default=None, help="Timeframe (1m, 5m, 15m). Auto-detected from filename if not specified.")
+    parser.add_argument(
+        "--timeframe",
+        type=str,
+        default=None,
+        help="Timeframe (1m, 5m, 15m). Auto-detected from filename if not specified.",
+    )
     parser.add_argument("--tp", type=float, help="Take profit percentage (default: from config)")
     parser.add_argument("--sl", type=float, help="Stop loss percentage (default: from config)")
     parser.add_argument(
@@ -426,8 +428,9 @@ def main():
     # Auto-detect timeframe from first filename if not specified
     if args.timeframe is None and args.files:
         import re
+
         first_file = args.files.split(",")[0].strip()
-        match = re.search(r'_(\d+[mh])_', first_file)
+        match = re.search(r"_(\d+[mh])_", first_file)
         timeframe = match.group(1) if match else "1m"
         logger.info(f"📊 Auto-detected timeframe: {timeframe}")
     else:
@@ -456,7 +459,7 @@ def main():
                 logger.error(f"❌ File not found: {file_path}")
     else:
         trainer.train_all(args.data_dir, verbose=args.verbose)
-    
+
     # Save stats to disk
     tracker.save_state()
     logger.info(f"💾 Sensor stats saved to state/sensor_stats.json")

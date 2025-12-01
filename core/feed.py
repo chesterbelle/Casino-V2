@@ -114,7 +114,7 @@ class StreamManager:
             self._tick_count = 0
         self._tick_count += 1
         if self._tick_count % 10 == 0:
-             logger.info(f"⚡ Tick: {ticker['symbol']} {ticker['last']}")
+            logger.info(f"⚡ Tick: {ticker['symbol']} {ticker['last']}")
 
         event = TickEvent(
             type=EventType.TICK,

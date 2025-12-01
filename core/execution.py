@@ -63,7 +63,7 @@ class OrderManager:
             f"📩 Decision Received: {event.symbol} {event.side} "
             f"(Size: {event.bet_size:.2%}, Step: {event.paroli_step})"
         )
-        
+
         # Check for duplicate decision processing
         decision_id = getattr(event, "decision_id", None)
         if decision_id:
@@ -187,11 +187,11 @@ class OrderManager:
                         # 2. Execute Market Close (ReduceOnly)
                         # 3. Confirm close in tracker
                         await self.croupier.close_position(trade_id)
-                        
+
                         # Update Paroli/Tracker is handled by the callback registered in main.py
                         # But we might want to log here
                         logger.info(f"✅ {exit_reason} executed successfully for {trade_id}")
-                        
+
                     except Exception as e:
                         logger.error(f"❌ Failed to execute {exit_reason} for {trade_id}: {e}")
 
@@ -205,7 +205,7 @@ class OrderManager:
             # TESTING / BACKTEST MODE HANDLING
             else:
                 # In Backtest, we trust the candle data and confirm immediately
-                
+
                 # Calculate PnL
                 position = self.croupier.position_tracker.get_position(trade_id)
                 if not position:
@@ -217,7 +217,7 @@ class OrderManager:
                     pnl_pct = (position.entry_price - exit_price) / position.entry_price
 
                 pnl = position.notional * pnl_pct
-                
+
                 # Calculate fee (0.06% taker fee on notional)
                 fee = position.notional * 0.0006
 

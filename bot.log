@@ -44,3 +44,88 @@
 05:25:16 [core.feed] INFO: 📡 Subscribing to ticker: LTC/USDT:USDT
 05:25:16 [Casino-V3] INFO: ✅ Casino-V3 Running | Press Ctrl+C to stop
 05:25:38 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 77.67
+05:25:57 [Casino-V3] INFO: 🧹 Cleaning up resources...
+05:25:57 [core.engine] INFO: 🛑 Stopping Engine...
+05:25:57 [core.feed] INFO: 🔌 Disconnecting Data Feed...
+05:25:57 [BinanceConnector] INFO: 🔌 WebSocket connection closed
+05:25:57 [BinanceConnector] INFO: 🔌 Connection to Binance closed
+05:25:57 [core.engine] INFO: 👋 Engine stopped.
+05:25:57 [asyncio] ERROR: Exception in callback <function Client.receive_loop.<locals>.after_interrupt at 0x7fc70f82cae0>
+handle: <Handle Client.receive_loop.<locals>.after_interrupt>
+Traceback (most recent call last):
+  File "uvloop/cbhandles.pyx", line 63, in uvloop.loop.Handle._run
+  File "/home/chesterbelle/Casino-V2/.venv/lib/python3.13/site-packages/ccxt/async_support/base/ws/client.py", line 136, in after_interrupt
+    exception = resolved.exception()
+  File "/home/chesterbelle/Casino-V2/.venv/lib/python3.13/site-packages/aiohttp/client_ws.py", line 315, in receive
+    msg = await self._reader.read()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/chesterbelle/Casino-V2/.venv/lib/python3.13/site-packages/aiohttp/streams.py", line 685, in read
+    return await super().read()
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/chesterbelle/Casino-V2/.venv/lib/python3.13/site-packages/aiohttp/streams.py", line 644, in read
+    await self._waiter
+asyncio.exceptions.CancelledError
+05:25:57 [core.execution] INFO: 🛑 OrderManager stopped
+05:25:57 [Croupier] INFO: 🧹 Ejecutando limpieza robusta para LTC/USDT:USDT...
+05:26:00 [Croupier] INFO: ✅ Limpieza para LTC/USDT:USDT completada.
+05:26:00 [Casino-V3] INFO: 📊 Generating Session Report...
+05:26:00 [Casino-V3] INFO: 💰 Fetching final balance from exchange...
+
+========================================
+📊 SESSION REPORT - LTC/USDT:USDT
+========================================
+   Trades Total          : 0
+   Wins / Losses         : 0 / 0
+   WinRate               : 0.00%
+   Comisiones (Est)      : 0.00
+   Balance Inicial       : 3502.97
+   Balance Final (Real)  : 3502.97
+   PnL Total             : 0.00 (0.00%)
+========================================
+
+Traceback (most recent call last):
+  File "/usr/lib/python3.13/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "uvloop/loop.pyx", line 1518, in uvloop.loop.Loop.run_until_complete
+  File "/home/chesterbelle/Casino-V2/main.py", line 157, in main
+    await asyncio.sleep(1)
+  File "/usr/lib/python3.13/asyncio/tasks.py", line 718, in sleep
+    return await future
+           ^^^^^^^^^^^^
+asyncio.exceptions.CancelledError
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/chesterbelle/Casino-V2/main.py", line 229, in <module>
+    asyncio.run(main())
+    ~~~~~~~~~~~^^^^^^^^
+  File "/usr/lib/python3.13/asyncio/runners.py", line 195, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.13/asyncio/runners.py", line 123, in run
+    raise KeyboardInterrupt()
+KeyboardInterrupt
+05:26:03 [ccxt.base.exchange] WARNING: binance requires to release all resources with an explicit call to the .close() coroutine. If you are using the exchange instance with async coroutines, add `await exchange.close()` to your code into a place when you're done with the exchange and don't need the exchange instance anymore (at the end of your async coroutine).
+05:26:03 [asyncio] ERROR: Unclosed client session
+client_session: <aiohttp.client.ClientSession object at 0x7fc70f9bead0>
+Exception ignored in: <function ClientResponse.__del__ at 0x7fc730dac680>
+Traceback (most recent call last):
+  File "/home/chesterbelle/Casino-V2/.venv/lib/python3.13/site-packages/aiohttp/client_reqrep.py", line 974, in __del__
+    self._connection.release()
+  File "/home/chesterbelle/Casino-V2/.venv/lib/python3.13/site-packages/aiohttp/connector.py", line 197, in release
+    self._connector._release(self._key, self._protocol)
+  File "/home/chesterbelle/Casino-V2/.venv/lib/python3.13/site-packages/aiohttp/connector.py", line 704, in _release
+    protocol.close()
+  File "/home/chesterbelle/Casino-V2/.venv/lib/python3.13/site-packages/aiohttp/client_proto.py", line 69, in close
+    transport.close()
+  File "uvloop/sslproto.pyx", line 51, in uvloop.loop._SSLProtocolTransport.close
+  File "uvloop/sslproto.pyx", line 572, in uvloop.loop.SSLProtocol._start_shutdown
+  File "uvloop/loop.pyx", line 1315, in uvloop.loop.Loop.call_later
+  File "uvloop/loop.pyx", line 705, in uvloop.loop.Loop._check_closed
+RuntimeError: Event loop is closed
+05:26:03 [ccxt.base.exchange] WARNING: binance requires to release all resources with an explicit call to the .close() coroutine. If you are using the exchange instance with async coroutines, add `await exchange.close()` to your code into a place when you're done with the exchange and don't need the exchange instance anymore (at the end of your async coroutine).
+05:26:03 [asyncio] ERROR: Unclosed connector
+connections: ['[(<aiohttp.client_proto.ResponseHandler object at 0x7fc707e1bbf0>, 109269.488032986)]']
+connector: <aiohttp.connector.TCPConnector object at 0x7fc70f951e00>

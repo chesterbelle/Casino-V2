@@ -31,7 +31,7 @@ class CandleMaker:
         # Calculate candle start time (floor to minute)
         tick_time = int(tick.timestamp)
         candle_start_time = tick_time - (tick_time % self.timeframe)
-        
+
         # Debug tick time
         # logger.info(f"DEBUG: Tick {tick_time} -> Candle Start {candle_start_time} (Last: {self.last_candle_time})")
 

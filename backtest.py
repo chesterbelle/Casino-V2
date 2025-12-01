@@ -55,7 +55,8 @@ async def main():
 
     # Detect timeframe from filename (e.g., LTCUSDT_5m__30d.csv -> 5m)
     import re
-    match = re.search(r'_(\d+[mh])_', data_file)
+
+    match = re.search(r"_(\d+[mh])_", data_file)
     timeframe = match.group(1) if match else "1m"
     logger.info(f"📊 Detected timeframe: {timeframe}")
 

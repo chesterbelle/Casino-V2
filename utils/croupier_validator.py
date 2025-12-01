@@ -22,6 +22,7 @@ from dotenv import load_dotenv
 
 from config import exchange as exchange_config
 from core.data_sources import BacktestDataSource, LiveDataSource, TestingDataSource
+
 # from core.trading import TradingSession
 from croupier.croupier import Croupier
 from exchanges.adapters.ccxt_adapter import CCXTAdapter

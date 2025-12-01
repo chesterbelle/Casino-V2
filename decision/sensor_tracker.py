@@ -211,9 +211,9 @@ class SensorTracker:
         # Prioritize expectancy and win rate for signal quality
         score = (
             expectancy_score * 0.60  # Expected value per trade (primary driver)
-            + pf_score * 0.30        # Risk-adjusted returns (secondary)
+            + pf_score * 0.30  # Risk-adjusted returns (secondary)
             + win_rate_score * 0.05  # Consistency (minor factor)
-            + streak_score * 0.05    # Recent momentum (minor factor)
+            + streak_score * 0.05  # Recent momentum (minor factor)
         )
 
         return max(min(score, 1.0), 0.0)  # Clamp to [0, 1]

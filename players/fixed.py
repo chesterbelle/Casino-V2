@@ -49,10 +49,10 @@ class FixedPlayer:
         self.croupier = croupier
         self.fixed_pct = fixed_pct
         self.max_positions = max_positions
-        
+
         # Subscribe to Aggregated Signals
         self.engine.subscribe(EventType.AGGREGATED_SIGNAL, self.on_aggregated_signal)
-        
+
         logger.info(f"✅ FixedPlayer initialized | Bet Size: {fixed_pct:.1%} | Max Positions: {max_positions}")
 
     async def on_aggregated_signal(self, event: AggregatedSignalEvent):
@@ -68,14 +68,14 @@ class FixedPlayer:
 
         # Get current equity
         equity = self.croupier.get_equity()
-        
+
         # Calculate bet size (fixed percentage)
         bet_size = self.fixed_pct
-        
+
         # Extract TP/SL from metadata if available
         tp_pct = event.metadata.get("tp_pct")
         sl_pct = event.metadata.get("sl_pct")
-        
+
         logger.info(f"🎯 Decision: {event.side} | Fixed Bet: {bet_size:.2%} of {equity:.2f}")
 
         # Emit Decision with unique ID for tracking

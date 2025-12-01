@@ -354,11 +354,11 @@ class CCXTAdapter:
             # Execute order via connector
             # Note: optional WS-confirmation flags may be present in `order` but
             # are not used by the generic adapter implementation.
-            
+
             # Map 'type' to 'order_type' for connector compatibility
             order_copy = order.copy()
-            order_type = order_copy.pop('type', 'market')
-            
+            order_type = order_copy.pop("type", "market")
+
             result = await self.connector.create_order(order_type=order_type, **order_copy)
             return result
         except Exception as e:

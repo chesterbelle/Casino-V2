@@ -87,19 +87,25 @@ print("SENSOR_PARAMS = {")
 
 for sensor in sorted(all_sensors):
     print(f'    "{sensor}": {{')
-    
+
     if sensor in RESULTS_1M:
         params = RESULTS_1M[sensor]
-        print(f'        "1m": {{"tp_pct": {params["tp_pct"]:.4f}, "sl_pct": {params["sl_pct"]:.4f}}},  # Exp: {params["exp"]:.3f}%')
-    
+        print(
+            f'        "1m": {{"tp_pct": {params["tp_pct"]:.4f}, "sl_pct": {params["sl_pct"]:.4f}}},  # Exp: {params["exp"]:.3f}%'
+        )
+
     if sensor in RESULTS_5M:
         params = RESULTS_5M[sensor]
-        print(f'        "5m": {{"tp_pct": {params["tp_pct"]:.4f}, "sl_pct": {params["sl_pct"]:.4f}}},  # Exp: {params["exp"]:.3f}%')
-    
+        print(
+            f'        "5m": {{"tp_pct": {params["tp_pct"]:.4f}, "sl_pct": {params["sl_pct"]:.4f}}},  # Exp: {params["exp"]:.3f}%'
+        )
+
     if sensor in RESULTS_15M:
         params = RESULTS_15M[sensor]
-        print(f'        "15m": {{"tp_pct": {params["tp_pct"]:.4f}, "sl_pct": {params["sl_pct"]:.4f}}},  # Exp: {params["exp"]:.3f}%')
-    
+        print(
+            f'        "15m": {{"tp_pct": {params["tp_pct"]:.4f}, "sl_pct": {params["sl_pct"]:.4f}}},  # Exp: {params["exp"]:.3f}%'
+        )
+
     print("    },")
 
 print("}")

@@ -117,17 +117,16 @@ class SignalAggregatorV3:
         # Threshold lowered to 0.5 to allow new sensors to trade (Cold Start)
         # Previously 0.6, which blocked sensors with default score (0.5)
         MIN_SCORE_THRESHOLD = 0.0  # TEMP: Disabled for demo validation
-        
-        valid_signals = [
-            s for s in signals 
-            if self.tracker.get_sensor_score(s.sensor_id) >= MIN_SCORE_THRESHOLD
-        ]
+
+        valid_signals = [s for s in signals if self.tracker.get_sensor_score(s.sensor_id) >= MIN_SCORE_THRESHOLD]
 
         if not valid_signals:
-            logger.debug(f"   All signals filtered out for candle {candle_ts} due to low score (< {MIN_SCORE_THRESHOLD})")
+            logger.debug(
+                f"   All signals filtered out for candle {candle_ts} due to low score (< {MIN_SCORE_THRESHOLD})"
+            )
             # Emit SKIP signal if no valid signals remain
             aggregated = AggregatedSignalEvent(
-                symbol=signals[0].symbol, # Use symbol from original signals, even if none are valid
+                symbol=signals[0].symbol,  # Use symbol from original signals, even if none are valid
                 candle_timestamp=candle_ts,
                 selected_sensor="None",
                 sensor_score=0.0,
