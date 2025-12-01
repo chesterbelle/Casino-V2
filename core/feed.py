@@ -109,7 +109,13 @@ class StreamManager:
 
     async def on_ticker(self, ticker: Dict[str, Any]):
         """Handle ticker update."""
-        # logger.debug(f"Tick received: {ticker['symbol']} {ticker['last']}")
+        # Log every 10th tick for visibility
+        if not hasattr(self, "_tick_count"):
+            self._tick_count = 0
+        self._tick_count += 1
+        if self._tick_count % 10 == 0:
+             logger.info(f"⚡ Tick: {ticker['symbol']} {ticker['last']}")
+
         event = TickEvent(
             type=EventType.TICK,
             timestamp=ticker["timestamp"] / 1000.0,

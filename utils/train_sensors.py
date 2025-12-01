@@ -41,13 +41,15 @@ class SensorTrainer:
     def __init__(
         self,
         tracker: SensorTracker,
+        timeframe: str = "1m",
         tp_pct: float = None,
         sl_pct: float = None,
         max_bars: int = 100,
     ):
         self.tracker = tracker
-        self.tp_pct = tp_pct or trading.TAKE_PROFIT
-        self.sl_pct = sl_pct or trading.STOP_LOSS
+        self.timeframe = timeframe
+        self.tp_pct = tp_pct or trading.TAKE_PROFIT  # Fallback only
+        self.sl_pct = sl_pct or trading.STOP_LOSS    # Fallback only
         self.max_bars = max_bars  # Max bars to hold position
 
         # Load all sensors
@@ -61,7 +63,7 @@ class SensorTrainer:
         self.total_timeouts = 0
 
         logger.info(f"✅ SensorTrainer initialized with {len(self.sensors)} sensors")
-        logger.info(f"   TP: {self.tp_pct:.2%} | SL: {self.sl_pct:.2%}")
+        logger.info(f"   Timeframe: {self.timeframe} | Using sensor-specific TP/SL from config")
 
     def _load_sensors(self) -> List:
         """Load all V3 sensors."""
@@ -175,16 +177,11 @@ class SensorTrainer:
 
         return sensors
 
-    def simulate_signal_outcome(
+    def _simulate_trade(
         self, signal: Dict, entry_idx: int, candles: pd.DataFrame
     ) -> Tuple[Optional[bool], float, int]:
         """
-        Simulate signal outcome by scanning forward candles.
-
-        Args:
-            signal: Signal dict with 'side', 'score', etc.
-            entry_idx: Index of entry candle
-            candles: Full candle DataFrame
+        Simulate a trade based on signal using sensor-specific TP/SL.
 
         Returns:
             (won: bool or None, pnl: float, bars_held: int)
@@ -196,14 +193,21 @@ class SensorTrainer:
         entry_candle = candles.iloc[entry_idx]
         entry_price = entry_candle["close"]
         side = signal["side"]
+        sensor_id = signal.get("sensor_id", "Unknown")
+
+        # Get sensor-specific TP/SL from config
+        from config.sensors import get_sensor_params
+        sensor_params = get_sensor_params(sensor_id, self.timeframe)
+        tp_pct = sensor_params.get("tp_pct", self.tp_pct)
+        sl_pct = sensor_params.get("sl_pct", self.sl_pct)
 
         # Calculate TP/SL prices
         if side == "LONG":
-            tp_price = entry_price * (1 + self.tp_pct)
-            sl_price = entry_price * (1 - self.sl_pct)
+            tp_price = entry_price * (1 + tp_pct)
+            sl_price = entry_price * (1 - sl_pct)
         else:  # SHORT
-            tp_price = entry_price * (1 - self.tp_pct)
-            sl_price = entry_price * (1 + self.sl_pct)
+            tp_price = entry_price * (1 - tp_pct)
+            sl_price = entry_price * (1 + sl_pct)
 
         # Scan forward candles
         max_idx = min(entry_idx + self.max_bars, len(candles))
@@ -214,17 +218,17 @@ class SensorTrainer:
             if side == "LONG":
                 # Check TP hit
                 if candle["high"] >= tp_price:
-                    return True, self.tp_pct - 0.0012, bars_held  # Deduct 0.12% fees
+                    return True, tp_pct - 0.0012, bars_held  # Deduct 0.12% fees
                 # Check SL hit
                 if candle["low"] <= sl_price:
-                    return False, -self.sl_pct - 0.0012, bars_held  # Deduct 0.12% fees
+                    return False, -sl_pct - 0.0012, bars_held  # Deduct 0.12% fees
             else:  # SHORT
                 # Check TP hit
                 if candle["low"] <= tp_price:
-                    return True, self.tp_pct - 0.0012, bars_held  # Deduct 0.12% fees
+                    return True, tp_pct - 0.0012, bars_held  # Deduct 0.12% fees
                 # Check SL hit
                 if candle["high"] >= sl_price:
-                    return False, -self.sl_pct - 0.0012, bars_held  # Deduct 0.12% fees
+                    return False, -sl_pct - 0.0012, bars_held  # Deduct 0.12% fees
 
         # Timeout - no TP/SL hit
         return None, 0.0, max_idx - entry_idx
@@ -285,7 +289,7 @@ class SensorTrainer:
                         self.total_signals += 1
 
                         # Simulate outcome
-                        won, pnl, bars_held = self.simulate_signal_outcome(signal, idx, df)
+                        won, pnl, bars_held = self._simulate_trade(signal, idx, df)
 
                         if won is not None:
                             # Valid trade (TP or SL hit)
@@ -388,7 +392,9 @@ class SensorTrainer:
 
 def main():
     """Main entry point."""
-    parser = argparse.ArgumentParser(description="Train sensors on historical data")
+    parser = argparse.ArgumentParser(
+        description="Train sensor tracker on historical data"
+    )
     parser.add_argument(
         "--data-dir",
         type=Path,
@@ -400,6 +406,7 @@ def main():
         type=str,
         help="Specific CSV file(s) to process (comma-separated)",
     )
+    parser.add_argument("--timeframe", type=str, default=None, help="Timeframe (1m, 5m, 15m). Auto-detected from filename if not specified.")
     parser.add_argument("--tp", type=float, help="Take profit percentage (default: from config)")
     parser.add_argument("--sl", type=float, help="Stop loss percentage (default: from config)")
     parser.add_argument(
@@ -416,12 +423,24 @@ def main():
     if args.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
 
+    # Auto-detect timeframe from first filename if not specified
+    if args.timeframe is None and args.files:
+        import re
+        first_file = args.files.split(",")[0].strip()
+        match = re.search(r'_(\d+[mh])_', first_file)
+        timeframe = match.group(1) if match else "1m"
+        logger.info(f"📊 Auto-detected timeframe: {timeframe}")
+    else:
+        timeframe = args.timeframe or "1m"
+        logger.info(f"📊 Using timeframe: {timeframe}")
+
     # Initialize tracker
     tracker = SensorTracker()
 
     # Initialize trainer
     trainer = SensorTrainer(
         tracker=tracker,
+        timeframe=timeframe,
         tp_pct=args.tp,
         sl_pct=args.sl,
         max_bars=args.max_bars,
@@ -437,6 +456,10 @@ def main():
                 logger.error(f"❌ File not found: {file_path}")
     else:
         trainer.train_all(args.data_dir, verbose=args.verbose)
+    
+    # Save stats to disk
+    tracker.save_state()
+    logger.info(f"💾 Sensor stats saved to state/sensor_stats.json")
 
 
 if __name__ == "__main__":

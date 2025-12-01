@@ -112,9 +112,38 @@ class SignalAggregatorV3:
         if not signals:
             return
 
-        # Score all signals
+        # 1. Filter by Score (Strict Quality Control)
+        # TEMPORARILY DISABLED: Allow all signals to validate demo mode
+        # Threshold lowered to 0.5 to allow new sensors to trade (Cold Start)
+        # Previously 0.6, which blocked sensors with default score (0.5)
+        MIN_SCORE_THRESHOLD = 0.0  # TEMP: Disabled for demo validation
+        
+        valid_signals = [
+            s for s in signals 
+            if self.tracker.get_sensor_score(s.sensor_id) >= MIN_SCORE_THRESHOLD
+        ]
+
+        if not valid_signals:
+            logger.debug(f"   All signals filtered out for candle {candle_ts} due to low score (< {MIN_SCORE_THRESHOLD})")
+            # Emit SKIP signal if no valid signals remain
+            aggregated = AggregatedSignalEvent(
+                symbol=signals[0].symbol, # Use symbol from original signals, even if none are valid
+                candle_timestamp=candle_ts,
+                selected_sensor="None",
+                sensor_score=0.0,
+                side="SKIP",
+                confidence=0.0,
+                total_signals=len(signals),
+            )
+            await self.engine.dispatch(aggregated)
+            # Clear processed signals
+            if candle_ts in self.signal_buffer:
+                del self.signal_buffer[candle_ts]
+            return
+
+        # Score all valid signals
         scored_signals = []
-        for signal in signals:
+        for signal in valid_signals:
             sensor_id = signal.sensor_id if hasattr(signal, "sensor_id") else "Unknown"
             score = self.tracker.get_sensor_score(sensor_id)
             scored_signals.append({"signal": signal, "sensor_id": sensor_id, "score": score, "side": signal.side})

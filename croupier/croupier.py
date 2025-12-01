@@ -136,9 +136,91 @@ class Croupier:
         )
         self.state_sync = ExchangeStateSync(exchange_adapter.connector)
         # --------------------------------------------
+        
+        # Register for order updates if supported
+        if hasattr(exchange_adapter.connector, "set_order_update_callback"):
+            exchange_adapter.connector.set_order_update_callback(self._on_order_update)
+            self.logger.info("✅ Registered for WebSocket order updates")
 
         self.logger.info(f"🎯 Croupier initialized as State Owner | Balance: ${initial_balance:,.2f}")
         self.logger.info("✅ OCO Manual enabled in PositionTracker")
+
+    async def _on_order_update(self, order: dict):
+        """
+        Callback para recibir actualizaciones de órdenes vía WebSocket.
+        Delega a PositionTracker para confirmar cierres.
+        """
+        try:
+            order_id = str(order.get("id"))
+            status = order.get("status")
+            symbol = order.get("symbol")
+            
+            # Log ALL order updates for debugging
+            self.logger.info(f"⚡ WebSocket Order Update: ID={order_id}, Symbol={symbol}, Status={status}")
+            
+            # Solo nos interesan órdenes llenadas o cerradas
+            if status not in ["closed", "filled"]:
+                self.logger.debug(f"   ⏭️ Skipping order {order_id} - status '{status}' not in ['closed', 'filled']")
+                return
+
+            # Buscar si esta orden pertenece a alguna posición abierta (TP o SL)
+            # Iteramos sobre las posiciones abiertas (son pocas, max 10)
+            target_position = None
+            exit_reason = None
+            
+            for pos in self.position_tracker.open_positions:
+                if str(pos.tp_order_id) == order_id:
+                    target_position = pos
+                    exit_reason = "TP"
+                    break
+                elif str(pos.sl_order_id) == order_id:
+                    target_position = pos
+                    exit_reason = "SL"
+                    break
+                elif str(pos.main_order_id) == order_id:
+                    # Si es la orden principal, quizás actualizar precio de entrada?
+                    # Por ahora ignoramos, ya que se maneja en la creación
+                    pass
+
+            if target_position and exit_reason:
+                self.logger.info(f"⚡ WebSocket Order Update: {exit_reason} filled for {target_position.symbol}")
+                
+                # Extraer datos del fill
+                last_trade = order.get("lastTrade", {}) # Binance specific structure sometimes
+                # CCXT normalized structure
+                fill_price = float(order.get("average") or order.get("price") or order.get("lastPrice") or 0.0)
+                filled_amount = float(order.get("filled") or order.get("amount") or 0.0)
+                
+                # Calcular PnL aproximado si no viene en la orden
+                pnl = 0.0
+                if target_position.side == "LONG":
+                    pnl = (fill_price - target_position.entry_price) * filled_amount
+                else:
+                    pnl = (target_position.entry_price - fill_price) * filled_amount
+                
+                # Confirmar cierre en el tracker
+                # Esto disparará el callback on_trade_result y liberará capital
+                self.position_tracker.confirm_close(
+                    trade_id=target_position.trade_id,
+                    exit_price=fill_price,
+                    exit_reason=exit_reason,
+                    pnl=pnl,
+                    fee=float(order.get("fee", {}).get("cost", 0.0))
+                )
+                
+                # IMPORTANTE: Cancelar la orden hermana (OCO Manual)
+                sibling_order_id = target_position.sl_order_id if exit_reason == "TP" else target_position.tp_order_id
+                if sibling_order_id:
+                    self.logger.info(f"🧹 Cancelling sibling {exit_reason} order: {sibling_order_id}")
+                    try:
+                        await self.exchange_adapter.cancel_order(sibling_order_id, target_position.symbol)
+                    except Exception as e:
+                        self.logger.warning(f"⚠️ Failed to cancel sibling order {sibling_order_id}: {e}")
+            else:
+                self.logger.debug(f"   ⏭️ Order {order_id} not associated with any open position")
+
+        except Exception as e:
+            self.logger.error(f"❌ Error processing order update: {e}", exc_info=True)
 
     # ========================================
     # API Pública: Información del Portfolio
@@ -215,19 +297,7 @@ class Croupier:
             self._validate_order(order)
             symbol = order["symbol"]
 
-            # 2. Verificar si ya hay posición abierta
-            if await self._has_open_position(symbol):
-                msg = f"Ya hay una posición abierta para {symbol}"
-                self.logger.warning(f"⚠️ {msg}")
-                return {
-                    "status": "rejected",
-                    "reason": msg,
-                    "main_order_id": None,
-                    "tp_order_id": None,
-                    "sl_order_id": None,
-                }
-
-            # 3. Obtener precio actual y convertir fracción a cantidad real de contratos
+            # 2. Obtener precio actual y convertir fracción a cantidad real de contratos
             try:
                 current_price = await self.exchange_adapter.get_current_price(symbol)
             except Exception as e:
@@ -274,9 +344,10 @@ class Croupier:
                 "side": "buy" if order["side"] == "LONG" else "sell",
                 "type": "market",
                 "amount": amount,
-                "leverage": order.get("leverage", 1),
                 "params": {
-                    "reduceOnly": False,
+                    # Don't send reduceOnly for entry orders in Hedge Mode
+                    # Binance infers this from positionSide automatically
+                    "leverage": order.get("leverage", 1),
                     **order.get("params", {}),
                 },
             }
@@ -898,9 +969,6 @@ class Croupier:
                     await asyncio.sleep(backoff)
             return {"ok": False, "immediate": False, "error": "max_retries_exhausted"}
 
-        # Add reduceOnly param for protective orders (exchange-specific)
-        reduce_only_param = True
-
         # Validate both TP and SL prices are present and positive
         if not tp_price:
             raise OCOConfigurationError("TP price is zero or invalid")
@@ -908,12 +976,13 @@ class Croupier:
             raise OCOConfigurationError("SL price is zero or invalid")
 
         # Create TP order (take profit market)
+        # Note: In Hedge Mode, don't send reduceOnly - Binance infers from positionSide
         tp_payload = {
             "symbol": symbol,
             "side": close_side,
             "amount": amount,
             "type": "take_profit_market",
-            "params": {"stopPrice": tp_price, "reduceOnly": reduce_only_param},
+            "params": {"stopPrice": tp_price},
         }
 
         # Validate that TP is sufficiently far from current market to avoid
@@ -948,13 +1017,14 @@ class Croupier:
             # Non-fatal: proceed to attempts but log the anomaly
             self.logger.warning(f"⚠️ Could not validate TP distance: {e}")
 
-        # Create both TP and SL concurrently to reduce the chance of immediate-trigger
+        # Create SL order (stop market)
+        # Note: In Hedge Mode, don't send reduceOnly - Binance infers from positionSide
         sl_payload = {
             "symbol": symbol,
             "side": close_side,
             "amount": amount,
             "type": "stop_market",
-            "params": {"stopPrice": sl_price, "reduceOnly": reduce_only_param},
+            "params": {"stopPrice": sl_price},
         }
 
         # Validate SL proximity as well (mirror of TP validation) before creation

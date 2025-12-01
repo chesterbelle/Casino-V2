@@ -98,7 +98,7 @@ class PositionTracker:
 
     def __init__(
         self,
-        max_concurrent_positions: int = 1,
+        max_concurrent_positions: int = 10,
         adapter: Optional["CCXTAdapter"] = None,
         on_close_callback: Optional[callable] = None,
     ):

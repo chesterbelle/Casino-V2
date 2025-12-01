@@ -18,8 +18,9 @@ class SensorManager:
     Subscribes to CANDLE events, executes sensors, and emits SIGNAL events.
     """
 
-    def __init__(self, engine):
+    def __init__(self, engine, timeframe: str = "1m"):
         self.engine = engine
+        self.timeframe = timeframe
         self.sensors = []
         self.cooldown_bars = 5  # Default cooldown
         self._candle_index = -1
@@ -153,7 +154,7 @@ class SensorManager:
             else:
                 pass  # Sensor disabled
 
-        logger.info(f"✅ SensorManager loaded {len(self.sensors)} sensors.")
+        logger.info(f"✅ SensorManager loaded {len(self.sensors)} sensors for timeframe {self.timeframe}.")
 
     async def on_candle(self, event: CandleEvent):
         """Process new candle."""
@@ -197,12 +198,12 @@ class SensorManager:
 
     async def _emit_signal(self, signal_data: dict, sensor_name: str):
         """Emit SignalEvent."""
-        from config.sensors import SENSOR_PARAMS
+        from config.sensors import get_sensor_params
 
         metadata = signal_data.get("metadata", {})
 
-        # Inject TP/SL from config if available
-        sensor_config = SENSOR_PARAMS.get(sensor_name, {})
+        # Inject TP/SL from config (timeframe-specific)
+        sensor_config = get_sensor_params(sensor_name, self.timeframe)
         if "tp_pct" in sensor_config:
             metadata["tp_pct"] = sensor_config["tp_pct"]
         if "sl_pct" in sensor_config:

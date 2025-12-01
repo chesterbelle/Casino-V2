@@ -22,7 +22,7 @@ from dotenv import load_dotenv
 
 from config import exchange as exchange_config
 from core.data_sources import BacktestDataSource, LiveDataSource, TestingDataSource
-from core.trading import TradingSession
+# from core.trading import TradingSession
 from croupier.croupier import Croupier
 from exchanges.adapters.ccxt_adapter import CCXTAdapter
 from exchanges.connectors import BybitConnector, KrakenConnector, ResilientConnector
@@ -154,12 +154,14 @@ class CroupierValidator:
             for pos in symbol_positions:
                 try:
                     side = "sell" if pos.is_long else "buy"
+                    # In Hedge Mode, use explicit positionSide
+                    position_side = "LONG" if pos.is_long else "SHORT"
                     await self.connector.create_order(
                         symbol=self.symbol,
                         order_type="market",
                         side=side,
                         amount=abs(pos.size),
-                        params={"reduceOnly": True},
+                        params={"positionSide": position_side},
                     )
                     logger.info(f"🔨 Posición {pos.side} cerrada forzadamente")
                 except Exception as e:
@@ -343,12 +345,14 @@ class CroupierValidator:
             for pos in symbol_positions:
                 try:
                     side = "sell" if pos.is_long else "buy"
+                    # In Hedge Mode, use explicit positionSide
+                    position_side = "LONG" if pos.is_long else "SHORT"
                     await self.connector.create_order(
                         symbol=self.symbol,
                         order_type="market",
                         side=side,
                         amount=abs(pos.size),
-                        params={"reduceOnly": True},
+                        params={"positionSide": position_side},
                     )
                     logger.info(f"🔨 Cierre forzado ejecutado para posición {pos.side}")
                 except Exception as e:
@@ -388,12 +392,14 @@ class CroupierValidator:
             for pos in symbol_positions:
                 try:
                     side = "sell" if pos.is_long else "buy"
+                    # In Hedge Mode, use explicit positionSide
+                    position_side = "LONG" if pos.is_long else "SHORT"
                     await self.connector.create_order(
                         symbol=self.symbol,
                         order_type="market",
                         side=side,
                         amount=abs(pos.size),
-                        params={"reduceOnly": True},
+                        params={"positionSide": position_side},
                     )
                     logger.info(f"🔨 Posición {pos.side} cerrada")
                 except Exception as e:

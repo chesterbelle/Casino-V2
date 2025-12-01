@@ -1,0 +1,21 @@
+Traceback (most recent call last):
+  File "/home/chesterbelle/Casino-V2/main.py", line 21, in <module>
+    from core.execution import OrderManager
+  File "/home/chesterbelle/Casino-V2/core/execution.py", line 11, in <module>
+    from croupier.croupier import Croupier
+  File "/home/chesterbelle/Casino-V2/croupier/croupier.py", line 55, in <module>
+    from exchanges.adapters.exchange_state_sync import ExchangeStateSync
+  File "/home/chesterbelle/Casino-V2/exchanges/__init__.py", line 10, in <module>
+    from .adapters.ccxt_adapter import CCXTAdapter
+  File "/home/chesterbelle/Casino-V2/exchanges/adapters/__init__.py", line 7, in <module>
+    from .ccxt_adapter import CCXTAdapter
+  File "/home/chesterbelle/Casino-V2/exchanges/adapters/ccxt_adapter.py", line 106, in <module>
+    from exchanges.connectors.connector_base import BaseConnector
+  File "/home/chesterbelle/Casino-V2/exchanges/connectors/__init__.py", line 48, in <module>
+    from .binance import BinanceConnector
+  File "/home/chesterbelle/Casino-V2/exchanges/connectors/binance/__init__.py", line 26, in <module>
+    from .binance_connector import BinanceConnector
+  File "/home/chesterbelle/Casino-V2/exchanges/connectors/binance/binance_connector.py", line 1114
+    if clean_params.get("positionSide") in ["LONG", "SHORT"]:
+    ^^
+SyntaxError: expected 'except' or 'finally' block

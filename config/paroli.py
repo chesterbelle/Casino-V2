@@ -12,6 +12,7 @@ LEVERAGE = 10  # Futures leverage (max 50x per trading config)
 # Signal Aggregation
 VOTING_THRESHOLD = 1.5  # Majority must be 1.5x minority to trigger
 SIGNAL_TIMEOUT_MS = 100  # Wait 100ms for all sensors to fire
+CONFLICT_DELTA_THRESHOLD = 0.01  # Min score difference to resolve conflict (reduced from 0.02)
 
 # Risk Management
 RESET_ON_LOSS = True  # Reset progression on any loss

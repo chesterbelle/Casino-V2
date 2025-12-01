@@ -233,21 +233,35 @@ class SensorOptimizer:
             if idx % 5000 == 0 and idx > 0:
                 logger.info(f"   Processed {idx} candles... ({signals_count} signals)")
 
-    def optimize_sensors(self):
+    def optimize_sensors(self, timeframe: str = "1m"):
         """Find optimal TP/SL for each sensor."""
         logger.info("\n🔍 OPTIMIZATION RESULTS")
         logger.info("=" * 80)
 
-        # Grid search parameters
-        tp_range = np.arange(0.002, 0.031, 0.001)  # 0.2% to 3.0%
-        sl_range = np.arange(0.002, 0.021, 0.001)  # 0.2% to 2.0%
+        # Grid search parameters (Timeframe-specific ranges)
+        if timeframe == "1m":
+            tp_range = np.arange(0.002, 0.051, 0.001)  # 0.2% to 5.0%
+            sl_range = np.arange(0.002, 0.031, 0.001)  # 0.2% to 3.0%
+        elif timeframe == "5m":
+            tp_range = np.arange(0.005, 0.081, 0.002)  # 0.5% to 8.0%
+            sl_range = np.arange(0.005, 0.051, 0.002)  # 0.5% to 5.0%
+        elif timeframe == "15m":
+            tp_range = np.arange(0.010, 0.121, 0.003)  # 1.0% to 12.0%
+            sl_range = np.arange(0.010, 0.081, 0.003)  # 1.0% to 8.0%
+        elif timeframe == "1h":
+            tp_range = np.arange(0.020, 0.201, 0.005)  # 2.0% to 20.0%
+            sl_range = np.arange(0.020, 0.151, 0.005)  # 2.0% to 15.0%
+        else:
+            # Default to 1m
+            tp_range = np.arange(0.002, 0.051, 0.001)
+            sl_range = np.arange(0.002, 0.031, 0.001)
 
         fee_rate = 0.0007  # 0.07% per trade (Taker+Taker)
 
         results = []
 
         for sensor_name, data in self.sensor_data.items():
-            if len(data) < 10:
+            if len(data) < 1:  # Analyze everything, even with 1 trade
                 continue
 
             df = pd.DataFrame(data)
@@ -313,7 +327,9 @@ class SensorOptimizer:
             )
 
             if r["expectancy"] > 0:
-                config_output += f'    "{r["sensor"]}": {{"tp_pct": {r["tp"]:.4f}, "sl_pct": {r["sl"]:.4f}}},\n'
+                config_output += f'    "{r["sensor"]}": {{\n'
+                config_output += f'        "{timeframe}": {{"tp_pct": {r["tp"]:.4f}, "sl_pct": {r["sl"]:.4f}}},\n'
+                config_output += f'    }},\n'
 
         config_output += "}"
         print("\n" + "=" * 80)
@@ -326,7 +342,19 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--files", type=str, required=True, help="Comma-separated list of CSV files")
     parser.add_argument("--max-bars", type=int, default=120, help="Max bars for MFE/MAE analysis")
+    parser.add_argument("--timeframe", type=str, default=None, help="Timeframe (1m, 5m, 15m, 1h). Auto-detected from filename if not specified.")
     args = parser.parse_args()
+
+    # Auto-detect timeframe from first filename if not specified
+    if args.timeframe is None:
+        import re
+        first_file = args.files.split(",")[0].strip()
+        match = re.search(r'_(\d+[mh])_', first_file)
+        timeframe = match.group(1) if match else "1m"
+        logger.info(f"📊 Auto-detected timeframe: {timeframe}")
+    else:
+        timeframe = args.timeframe
+        logger.info(f"📊 Using specified timeframe: {timeframe}")
 
     optimizer = SensorOptimizer(max_bars=args.max_bars)
 
@@ -337,7 +365,7 @@ def main():
         else:
             logger.error(f"File not found: {f}")
 
-    optimizer.optimize_sensors()
+    optimizer.optimize_sensors(timeframe=timeframe)
 
 
 if __name__ == "__main__":

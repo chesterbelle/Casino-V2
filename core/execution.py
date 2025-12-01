@@ -26,6 +26,7 @@ class OrderManager:
         self.tracker = tracker  # SensorTracker instance
         self.active = False
         self.pending_trades = {}  # trade_id -> (decision, sensor_id)
+        self.processed_decisions = set()  # Track processed decision IDs to prevent duplicates
 
         # Subscribe to DECISION events (will come from Paroli)
         self.engine.subscribe(EventType.SYSTEM, self.on_decision)  # Using SYSTEM for now
@@ -60,6 +61,15 @@ class OrderManager:
             f"📩 Decision Received: {event.symbol} {event.side} "
             f"(Size: {event.bet_size:.2%}, Step: {event.paroli_step})"
         )
+        
+        # Check for duplicate decision processing
+        decision_id = getattr(event, "decision_id", None)
+        if decision_id:
+            if decision_id in self.processed_decisions:
+                logger.warning(f"⚠️ DUPLICATE DECISION DETECTED: {decision_id} - SKIPPING")
+                return
+            self.processed_decisions.add(decision_id)
+            logger.debug(f"📥 Processing DecisionEvent {decision_id}")
 
         # Construct Order Payload
         trade_id = f"V3_{int(time.time()*1000)}"
@@ -73,8 +83,8 @@ class OrderManager:
             "symbol": event.symbol,
             "side": event.side,
             "size": event.bet_size,  # Fraction of equity
-            "take_profit": 1.0 + tp_pct,  # e.g. 1.01
-            "stop_loss": 1.0 - sl_pct,  # e.g. 0.99
+            "take_profit": tp_pct,  # Pass as percentage (e.g. 0.01)
+            "stop_loss": sl_pct,  # Pass as percentage (e.g. 0.01)
             "timestamp": str(event.timestamp),
             "ghost": False,
         }
@@ -140,45 +150,76 @@ class OrderManager:
         # Check for potential exits (TP/SL touched)
         potential_exits = self.croupier.position_tracker.check_and_close_positions(candle_dict)
 
-        for exit_info in potential_exits:
-            # In V3 Backtest with VirtualExchange, we can confirm immediately
-            # In Live, we would wait for Exchange confirmation
-            # For now, let's assume immediate confirmation for backtest speed
+        # Determine execution mode
+        mode = "testing"
+        try:
+            if hasattr(self.croupier.exchange_adapter, "connector"):
+                mode = getattr(self.croupier.exchange_adapter.connector, "mode", "testing")
+        except Exception:
+            pass
 
+        for exit_info in potential_exits:
             trade_id = exit_info["trade_id"]
             exit_reason = exit_info["exit_reason_detected"]
             exit_price = exit_info["exit_price_detected"]
 
-            # Confirm close via Croupier/Tracker
-            # Note: In a real event loop, we might want to send an order to close
-            # But PositionTracker.check_and_close_positions in 'simulation' mode might handle it?
-            # Actually, PositionTracker just returns potential exits.
-            # We need to tell Croupier to close it or confirm it.
+            # LIVE / DEMO MODE HANDLING
+            if mode in ["live", "demo"]:
+                # Case 1: Internal Exits (TIME_EXIT, MANUAL, etc.)
+                # These are NOT handled by the exchange automatically, so we MUST execute them.
+                if exit_reason in ["TIME_EXIT", "MANUAL_SYNC", "FORCE_CLOSE"]:
+                    logger.info(f"⏳ Executing {exit_reason} for {trade_id} in {mode} mode")
+                    try:
+                        # close_position will:
+                        # 1. Cancel TP/SL orders
+                        # 2. Execute Market Close (ReduceOnly)
+                        # 3. Confirm close in tracker
+                        await self.croupier.close_position(trade_id)
+                        
+                        # Update Paroli/Tracker is handled by the callback registered in main.py
+                        # But we might want to log here
+                        logger.info(f"✅ {exit_reason} executed successfully for {trade_id}")
+                        
+                    except Exception as e:
+                        logger.error(f"❌ Failed to execute {exit_reason} for {trade_id}: {e}")
 
-            # For Backtest V3, we can use confirm_close directly since we trust the candle data
-            # Calculate PnL
-            position = self.croupier.position_tracker.get_position(trade_id)
-            if not position:
-                continue
+                # Case 2: Exchange Exits (TP, SL, LIQUIDATION)
+                # These ARE handled by the exchange (Limit/Stop orders).
+                # We should NOT simulate them here. We wait for WebSocket confirmation.
+                elif exit_reason in ["TP", "SL", "LIQUIDATION"]:
+                    logger.debug(f"⏭️ Skipping {exit_reason} detection in {mode} mode - waiting for WebSocket")
+                    continue
 
-            if position.side == "LONG":
-                pnl_pct = (exit_price - position.entry_price) / position.entry_price
+            # TESTING / BACKTEST MODE HANDLING
             else:
-                pnl_pct = (position.entry_price - exit_price) / position.entry_price
+                # In Backtest, we trust the candle data and confirm immediately
+                
+                # Calculate PnL
+                position = self.croupier.position_tracker.get_position(trade_id)
+                if not position:
+                    continue
 
-            pnl = position.notional * pnl_pct
+                if position.side == "LONG":
+                    pnl_pct = (exit_price - position.entry_price) / position.entry_price
+                else:
+                    pnl_pct = (position.entry_price - exit_price) / position.entry_price
 
-            # Confirm close
-            result = self.croupier.position_tracker.confirm_close(
-                trade_id=trade_id,
-                exit_price=exit_price,
-                exit_reason=exit_reason,
-                pnl=pnl,
-                fee=0.0,  # Simulating 0 fee for now or calculate it
-            )
+                pnl = position.notional * pnl_pct
+                
+                # Calculate fee (0.06% taker fee on notional)
+                fee = position.notional * 0.0006
 
-            if result:
-                logger.info(f"✅ Trade Closed: {trade_id} | {exit_reason} | PnL: {pnl:.2f}")
-                # Update Paroli and Tracker
-                won = result["result"] == "WIN"
-                self.handle_trade_outcome(trade_id, won, pnl)
+                # Confirm close
+                result = self.croupier.position_tracker.confirm_close(
+                    trade_id=trade_id,
+                    exit_price=exit_price,
+                    exit_reason=exit_reason,
+                    pnl=pnl,
+                    fee=fee,
+                )
+
+                if result:
+                    logger.info(f"✅ Trade Closed (Simulated): {trade_id} | {exit_reason} | PnL: {pnl:.2f}")
+                    # Update Paroli and Tracker
+                    won = result["result"] == "WIN"
+                    self.handle_trade_outcome(trade_id, won, pnl)

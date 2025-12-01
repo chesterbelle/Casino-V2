@@ -16,6 +16,7 @@ from croupier.croupier import Croupier
 from decision.aggregator import SignalAggregatorV3
 from exchanges.adapters.ccxt_adapter import CCXTAdapter
 from exchanges.connectors.virtual_exchange import VirtualExchangeConnector
+from players.fixed import FixedPlayer
 from players.paroli import ParoliV3
 
 # Setup logging
@@ -28,6 +29,8 @@ def parse_args():
     data_file = "data/raw/LTCUSDT_1m__1d.csv"
     symbol = "LTC/USDT:USDT"
     delay = 0.0
+    player_type = "paroli"  # Default player
+    max_positions = 3  # Default for Fixed player
 
     for arg in sys.argv[1:]:
         if arg.startswith("--data="):
@@ -36,15 +39,25 @@ def parse_args():
             symbol = arg.split("=")[1]
         elif arg.startswith("--delay="):
             delay = float(arg.split("=")[1])
+        elif arg.startswith("--player="):
+            player_type = arg.split("=")[1].lower()
+        elif arg.startswith("--max-positions="):
+            max_positions = int(arg.split("=")[1])
 
-    return data_file, symbol, delay
+    return data_file, symbol, delay, player_type, max_positions
 
 
 async def main():
     """Main backtest entry point."""
-    data_file, symbol, delay = parse_args()
+    data_file, symbol, delay, player_type, max_positions = parse_args()
 
-    logger.info(f"🚀 Starting Casino-V3 Backtest | Data: {data_file}")
+    logger.info(f"🚀 Starting Casino-V3 Backtest | Data: {data_file} | Player: {player_type}")
+
+    # Detect timeframe from filename (e.g., LTCUSDT_5m__30d.csv -> 5m)
+    import re
+    match = re.search(r'_(\d+[mh])_', data_file)
+    timeframe = match.group(1) if match else "1m"
+    logger.info(f"📊 Detected timeframe: {timeframe}")
 
     # 1. Initialize Core Engine
     engine = Engine()
@@ -64,18 +77,22 @@ async def main():
     # 5. Initialize Candle Maker (Tick → Candle)
     CandleMaker(engine, timeframe_seconds=60)
 
-    # 6. Initialize Sensor Manager (Candle → Signal)
-    SensorManager(engine)
+    # 6. Initialize Sensor Manager (Candle → Signal) with timeframe
+    SensorManager(engine, timeframe=timeframe)
 
     # 7. Initialize Signal Aggregator (Signal → Aggregated Signal)
     aggregator = SignalAggregatorV3(engine)
     tracker = aggregator.tracker  # Get tracker from aggregator
 
-    # 7. Initialize Paroli Player (Aggregated Signal → Decision)
-    paroli = ParoliV3(engine, croupier)
+    # 7. Initialize Player (Aggregated Signal → Decision)
+    if player_type == "fixed":
+        player = FixedPlayer(engine, croupier, fixed_pct=0.01, max_positions=max_positions)
+        logger.info(f"📊 FixedPlayer configured with max_positions={max_positions}")
+    else:
+        player = ParoliV3(engine, croupier)
 
     # 8. Initialize Order Manager (Decision → Execution)
-    order_manager = OrderManager(engine, croupier, paroli, tracker)
+    order_manager = OrderManager(engine, croupier, player, tracker)
 
     # --- Stats Collection ---
     closed_trades = []

@@ -60,6 +60,7 @@ class ParoliV3:
     def __init__(self, engine, croupier):
         self.engine = engine
         self.croupier = croupier
+        self.max_positions = 1  # Paroli requires single position for progression
 
         # Paroli state
         self.unit: Optional[float] = None
@@ -72,12 +73,17 @@ class ParoliV3:
         # Subscribe to aggregated signals
         self.engine.subscribe(EventType.AGGREGATED_SIGNAL, self.on_aggregated_signal)
 
-        logger.info(f"✅ ParoliV3 initialized (step={self.step}, unit={self.unit})")
+        logger.info(f"✅ ParoliV3 initialized (step={self.step}, unit={self.unit}, max_positions={self.max_positions})")
 
     async def on_aggregated_signal(self, event: AggregatedSignalEvent):
         """Process aggregated signal and calculate bet size."""
         if event.side == "SKIP":
-            logger.info("⏭️ Skipping - no clear consensus")
+            return
+
+        # Check position limit (Paroli requires single position for progression)
+        open_positions = self.croupier.get_open_positions()
+        if len(open_positions) >= self.max_positions:
+            logger.debug(f"⏭️ Skipping signal - at position limit ({len(open_positions)}/{self.max_positions})")
             return
 
         # Get current equity from Croupier

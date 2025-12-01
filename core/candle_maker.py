@@ -31,6 +31,9 @@ class CandleMaker:
         # Calculate candle start time (floor to minute)
         tick_time = int(tick.timestamp)
         candle_start_time = tick_time - (tick_time % self.timeframe)
+        
+        # Debug tick time
+        # logger.info(f"DEBUG: Tick {tick_time} -> Candle Start {candle_start_time} (Last: {self.last_candle_time})")
 
         # If we have a current candle and we moved to a new minute
         if self.current_candle and candle_start_time > self.last_candle_time:
@@ -71,5 +74,5 @@ class CandleMaker:
             close=candle_data["close"],
             volume=candle_data["volume"],
         )
-        # logger.debug(f"🕯️ Candle Closed: {event.close}")
+        logger.info(f"🕯️ Candle Closed: {event.close} | Vol: {event.volume}")
         await self.engine.dispatch(event)
