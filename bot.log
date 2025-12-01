@@ -1,21 +1,46 @@
-Traceback (most recent call last):
-  File "/home/chesterbelle/Casino-V2/main.py", line 21, in <module>
-    from core.execution import OrderManager
-  File "/home/chesterbelle/Casino-V2/core/execution.py", line 11, in <module>
-    from croupier.croupier import Croupier
-  File "/home/chesterbelle/Casino-V2/croupier/croupier.py", line 55, in <module>
-    from exchanges.adapters.exchange_state_sync import ExchangeStateSync
-  File "/home/chesterbelle/Casino-V2/exchanges/__init__.py", line 10, in <module>
-    from .adapters.ccxt_adapter import CCXTAdapter
-  File "/home/chesterbelle/Casino-V2/exchanges/adapters/__init__.py", line 7, in <module>
-    from .ccxt_adapter import CCXTAdapter
-  File "/home/chesterbelle/Casino-V2/exchanges/adapters/ccxt_adapter.py", line 106, in <module>
-    from exchanges.connectors.connector_base import BaseConnector
-  File "/home/chesterbelle/Casino-V2/exchanges/connectors/__init__.py", line 48, in <module>
-    from .binance import BinanceConnector
-  File "/home/chesterbelle/Casino-V2/exchanges/connectors/binance/__init__.py", line 26, in <module>
-    from .binance_connector import BinanceConnector
-  File "/home/chesterbelle/Casino-V2/exchanges/connectors/binance/binance_connector.py", line 1114
-    if clean_params.get("positionSide") in ["LONG", "SHORT"]:
-    ^^
-SyntaxError: expected 'except' or 'finally' block
+05:25:12 [Casino-V3] INFO: 🚀 Starting Casino-V3 | Exchange: binance | Mode: demo
+05:25:12 [BinanceConnector] INFO: ℹ️ WebSocket habilitado: ccxt.pro puede tener bugs de concurrencia. Se aplicaron mitigaciones (pre-auth, sin snapshots, espejado de markets).
+05:25:12 [BinanceConnector] INFO: 📝 Loading Binance credentials from environment...
+05:25:12 [BinanceConnector] INFO: 🌐 Initializing Binance Futures connection (demo)...
+05:25:12 [BinanceConnector] INFO: 🧪 Testnet mode enabled. Using custom BinanceTestnet class.
+05:25:12 [BinanceConnector] INFO: 🔌 WebSocket enabled - will initialize on connect()
+05:25:12 [BinanceConnector] INFO: ✅ Binance connector initialized | Mode: DEMO
+05:25:12 [exchanges.adapters.ccxt_adapter] INFO: Stateless CCXTAdapter initialized | Symbol: LTC/USDT:USDT | Timeframe: 1m
+05:25:12 [PositionTracker] INFO: PositionTracker inicializado | Max positions: 10
+05:25:12 [ExchangeStateSync] INFO: ExchangeStateSync inicializado
+05:25:12 [Croupier] INFO: 🎯 Croupier initialized as State Owner | Balance: $10,000.00
+05:25:12 [Croupier] INFO: ✅ OCO Manual enabled in PositionTracker
+05:25:12 [core.sensor_manager] INFO: ✅ SensorManager loaded 26 sensors for timeframe 1m.
+05:25:12 [decision.sensor_tracker] INFO: ✅ Loaded stats for 25 sensors from state/sensor_stats.json
+05:25:12 [decision.sensor_tracker] INFO: ✅ SensorTracker initialized | Sensors: 25
+05:25:12 [decision.aggregator] INFO: ✅ SignalAggregator initialized with intelligent scoring
+05:25:12 [players.fixed] INFO: ✅ FixedPlayer initialized | Bet Size: 1.0% | Max Positions: 3
+05:25:14 [Casino-V3] INFO: 💰 Initial Balance for Report: 3502.97 USDT
+05:25:14 [BinanceConnector] INFO: 🔌 Connecting to Binance Futures...
+05:25:14 [BinanceConnector] INFO: ✅ Markets loaded | Count: 646
+05:25:14 [BinanceConnector] INFO: ✅ Balance fetched | USDT: 3502.97362904
+05:25:14 [BinanceConnector] INFO: 🔌 Starting WebSocket initialization...
+05:25:14 [BinanceConnector] INFO: 🔌 Initializing WebSocket connection...
+05:25:14 [BinanceConnector] INFO: 🧪 Using BinanceTestnetPro for WebSocket demo (API: NbcYL8ma...)
+05:25:15 [BinanceConnector] INFO: 🔑 WebSocket authenticated and listenKey provisioned (future)
+05:25:15 [BinanceConnector] INFO: ✅ WebSocket connection initialized
+05:25:15 [BinanceConnector] INFO: 👁️ Order monitoring started
+05:25:15 [BinanceConnector] INFO: ✅ Binance connector ready | Mode: DEMO
+05:25:15 [core.execution] INFO: 🚀 OrderManager started
+05:25:15 [core.engine] INFO: 🚀 Starting Casino-V3 Engine...
+05:25:15 [core.feed] INFO: 🔌 Connecting Data Feed...
+05:25:15 [BinanceConnector] INFO: 🔌 Connecting to Binance Futures...
+05:25:15 [BinanceConnector] INFO: ✅ Markets loaded | Count: 646
+05:25:15 [BinanceConnector] INFO: ✅ Balance fetched | USDT: 3502.97362904
+05:25:15 [BinanceConnector] INFO: 🔌 Starting WebSocket initialization...
+05:25:15 [BinanceConnector] INFO: 🔌 Initializing WebSocket connection...
+05:25:15 [BinanceConnector] INFO: 🧪 Using BinanceTestnetPro for WebSocket demo (API: NbcYL8ma...)
+05:25:16 [BinanceConnector] INFO: 🔑 WebSocket authenticated and listenKey provisioned (future)
+05:25:16 [BinanceConnector] INFO: ✅ WebSocket connection initialized
+05:25:16 [BinanceConnector] INFO: 👁️ Order monitoring started
+05:25:16 [BinanceConnector] INFO: ✅ Binance connector ready | Mode: DEMO
+05:25:16 [core.engine] INFO: ✅ Engine running. Waiting for events...
+05:25:16 [Casino-V3] INFO: 📡 Subscribing to LTC/USDT:USDT...
+05:25:16 [core.feed] INFO: 📡 Subscribing to ticker: LTC/USDT:USDT
+05:25:16 [Casino-V3] INFO: ✅ Casino-V3 Running | Press Ctrl+C to stop
+05:25:38 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 77.67

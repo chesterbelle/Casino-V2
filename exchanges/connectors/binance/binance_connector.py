@@ -1052,9 +1052,38 @@ class BinanceConnector(BaseConnector):
             # Clean params
             clean_params = (params or {}).copy()
 
-            # Add Binance-specific params
+            # Hedge Mode: Infer positionSide based on order intent
             if "positionSide" not in clean_params:
-                clean_params["positionSide"] = "BOTH"  # One-way mode by default
+                # Determine if this is an entry or exit order
+                is_reduce_only = clean_params.get("reduceOnly", False) or clean_params.get("closePosition", False)
+                
+                if is_reduce_only:
+                    # Exit: Closing a position
+                    # BUY closes SHORT, SELL closes LONG
+                    if side.lower() == "buy":
+                        clean_params["positionSide"] = "SHORT"
+                    else:
+                        clean_params["positionSide"] = "LONG"
+                else:
+                    # Entry: Opening a position
+                    # BUY opens LONG, SELL opens SHORT
+                    if side.lower() == "buy":
+                        clean_params["positionSide"] = "LONG"
+                    else:
+                        clean_params["positionSide"] = "SHORT"
+                
+                self.logger.debug(
+                    f"ℹ️ Inferred positionSide: {clean_params['positionSide']} "
+                    f"(side={side}, reduceOnly={is_reduce_only})"
+                )
+            
+            # CRITICAL: In Hedge Mode, reduceOnly is not allowed by Binance
+            # Remove it to prevent error -1106: "Parameter 'reduceonly' sent when not required"
+            if clean_params.get("positionSide") in ["LONG", "SHORT"]:
+                if "reduceOnly" in clean_params:
+                    clean_params.pop("reduceOnly")
+                if "closePosition" in clean_params:
+                    clean_params.pop("closePosition")
 
             # If this is a TP/SL style order, ensure stopPrice won't immediately trigger
             try:
