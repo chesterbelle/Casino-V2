@@ -27,6 +27,8 @@ class OrderManager:
         self.active = False
         self.pending_trades = {}  # trade_id -> (decision, sensor_id)
         self.processed_decisions = set()  # Track processed decision IDs to prevent duplicates
+        self.candle_count = 0  # Counter for periodic reconciliation
+        self.reconciliation_interval = 10  # Run reconciliation every N candles
 
         # Subscribe to DECISION events (will come from Paroli)
         self.engine.subscribe(EventType.SYSTEM, self.on_decision)  # Using SYSTEM for now
@@ -134,6 +136,16 @@ class OrderManager:
         """Handle new candle to check for position exits."""
         if not self.active:
             return
+
+        # Increment candle counter and run periodic reconciliation
+        self.candle_count += 1
+        if self.candle_count >= self.reconciliation_interval:
+            self.candle_count = 0
+            logger.info(f"🔄 Running periodic reconciliation (every {self.reconciliation_interval} candles)")
+            try:
+                await self.croupier.reconcile_positions(event.symbol)
+            except Exception as e:
+                logger.error(f"❌ Error during reconciliation: {e}", exc_info=True)
 
         # Convert event to dict for Croupier
         candle_dict = {

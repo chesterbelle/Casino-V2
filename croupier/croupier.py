@@ -222,6 +222,139 @@ class Croupier:
         except Exception as e:
             self.logger.error(f"❌ Error processing order update: {e}", exc_info=True)
 
+    async def reconcile_positions(self, symbol: str):
+        """
+        Sistema de reconciliación periódica para mantener atomicidad de órdenes.
+        
+        Verifica y corrige:
+        1. Posiciones sin TP/SL completo
+        2. Órdenes huérfanas sin posición asociada
+        3. Posiciones en exchange no registradas en tracker
+        
+        Args:
+            symbol: Símbolo a reconciliar (ej: "LTC/USDT:USDT")
+        """
+        try:
+            self.logger.info(f"🔍 Iniciando reconciliación para {symbol}")
+            
+            # 1. Obtener estado del exchange
+            exchange_positions = await self.state_sync.sync_positions()
+            exchange_orders = await self.exchange_adapter.connector.fetch_open_orders(symbol)
+            
+            # 2. Obtener estado interno
+            tracker_positions = self.position_tracker.open_positions
+            
+            # 3. Crear mapas para búsqueda rápida
+            tracker_map = {p.trade_id: p for p in tracker_positions if p.symbol == symbol}
+            exchange_pos_map = {p.symbol: p for p in exchange_positions if p.symbol == symbol}
+            
+            # === VERIFICACIÓN 1: Posiciones del tracker tienen TP/SL completo ===
+            for pos in tracker_positions:
+                if pos.symbol != symbol:
+                    continue
+                    
+                # Verificar que tenga IDs de órdenes
+                if not pos.tp_order_id or not pos.sl_order_id:
+                    self.logger.warning(
+                        f"⚠️ Posición {pos.trade_id} sin TP/SL completo. "
+                        f"TP: {pos.tp_order_id}, SL: {pos.sl_order_id}"
+                    )
+                    # Cerrar posición incompleta
+                    self.logger.info(f"🧹 Cerrando posición incompleta {pos.trade_id}")
+                    try:
+                        await self.close_position(pos.trade_id)
+                    except Exception as e:
+                        self.logger.error(f"❌ Error cerrando posición incompleta: {e}")
+                    continue
+                
+                # Verificar que las órdenes TP/SL existan en el exchange
+                order_ids = {str(o["id"]) for o in exchange_orders}
+                
+                if str(pos.tp_order_id) not in order_ids:
+                    self.logger.warning(f"⚠️ Orden TP {pos.tp_order_id} no existe en exchange")
+                    # Cerrar posición sin TP
+                    self.logger.info(f"🧹 Cerrando posición sin TP: {pos.trade_id}")
+                    try:
+                        await self.close_position(pos.trade_id)
+                    except Exception as e:
+                        self.logger.error(f"❌ Error cerrando posición sin TP: {e}")
+                    continue
+                    
+                if str(pos.sl_order_id) not in order_ids:
+                    self.logger.warning(f"⚠️ Orden SL {pos.sl_order_id} no existe en exchange")
+                    # Cerrar posición sin SL
+                    self.logger.info(f"🧹 Cerrando posición sin SL: {pos.trade_id}")
+                    try:
+                        await self.close_position(pos.trade_id)
+                    except Exception as e:
+                        self.logger.error(f"❌ Error cerrando posición sin SL: {e}")
+                    continue
+            
+            # === VERIFICACIÓN 2: Órdenes huérfanas sin posición ===
+            # Obtener todos los IDs de órdenes asociadas a posiciones
+            tracked_order_ids = set()
+            for pos in tracker_positions:
+                if pos.symbol == symbol:
+                    if pos.main_order_id:
+                        tracked_order_ids.add(str(pos.main_order_id))
+                    if pos.tp_order_id:
+                        tracked_order_ids.add(str(pos.tp_order_id))
+                    if pos.sl_order_id:
+                        tracked_order_ids.add(str(pos.sl_order_id))
+            
+            # Cancelar órdenes que no están asociadas a ninguna posición
+            for order in exchange_orders:
+                order_id = str(order["id"])
+                order_type = order.get("type", "").upper()
+                
+                # Solo verificar órdenes TP/SL (las órdenes market ya están ejecutadas)
+                if order_type in ["TAKE_PROFIT_MARKET", "STOP_MARKET", "TAKE_PROFIT", "STOP"]:
+                    if order_id not in tracked_order_ids:
+                        self.logger.warning(
+                            f"⚠️ Orden huérfana detectada: {order_id} ({order_type})"
+                        )
+                        # Cancelar orden huérfana
+                        try:
+                            await self.exchange_adapter.cancel_order(order_id, symbol)
+                            self.logger.info(f"✅ Orden huérfana {order_id} cancelada")
+                        except Exception as e:
+                            self.logger.error(f"❌ Error cancelando orden huérfana {order_id}: {e}")
+            
+            # === VERIFICACIÓN 3: Posiciones en exchange no registradas ===
+            for ex_pos in exchange_positions:
+                if ex_pos.symbol != symbol or ex_pos.size == 0:
+                    continue
+                
+                # Buscar si existe en el tracker
+                found_in_tracker = any(
+                    p.symbol == symbol for p in tracker_positions
+                )
+                
+                if not found_in_tracker:
+                    self.logger.warning(
+                        f"⚠️ Posición en exchange no registrada: {symbol} "
+                        f"(size: {ex_pos.size})"
+                    )
+                    # Cerrar posición no registrada
+                    self.logger.info(f"🧹 Cerrando posición no registrada en {symbol}")
+                    try:
+                        side = "sell" if ex_pos.size > 0 else "buy"
+                        await self.exchange_adapter.execute_order({
+                            "symbol": symbol,
+                            "type": "market",
+                            "side": side,
+                            "amount": abs(ex_pos.size),
+                            "params": {"reduceOnly": True}
+                        })
+                        self.logger.info(f"✅ Posición no registrada cerrada")
+                    except Exception as e:
+                        self.logger.error(f"❌ Error cerrando posición no registrada: {e}")
+            
+            self.logger.info(f"✅ Reconciliación completada para {symbol}")
+            
+        except Exception as e:
+            self.logger.error(f"❌ Error durante reconciliación de {symbol}: {e}", exc_info=True)
+
     # ========================================
     # API Pública: Información del Portfolio
     # ========================================
