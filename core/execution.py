@@ -28,7 +28,7 @@ class OrderManager:
         self.pending_trades = {}  # trade_id -> (decision, sensor_id)
         self.processed_decisions = set()  # Track processed decision IDs to prevent duplicates
         self.candle_count = 0  # Counter for periodic reconciliation
-        self.reconciliation_interval = 1  # Run reconciliation every candle (1 minute)
+        self.reconciliation_interval = 10  # Run reconciliation every 10 candles (avoid IP ban)
 
         # Subscribe to DECISION events (will come from Paroli)
         self.engine.subscribe(EventType.SYSTEM, self.on_decision)  # Using SYSTEM for now
