@@ -1,1020 +1,149 @@
-09:45:42 [Casino-V3] INFO: 🚀 Starting Casino-V3 | Exchange: binance | Mode: demo
-09:45:42 [BinanceConnector] INFO: ℹ️ WebSocket habilitado: ccxt.pro puede tener bugs de concurrencia. Se aplicaron mitigaciones (pre-auth, sin snapshots, espejado de markets).
-09:45:42 [BinanceConnector] INFO: 📝 Loading Binance credentials from environment...
-09:45:42 [BinanceConnector] INFO: 🌐 Initializing Binance Futures connection (demo)...
-09:45:42 [BinanceConnector] INFO: 🧪 Testnet mode enabled. Using custom BinanceTestnet class.
-09:45:42 [BinanceConnector] INFO: 🔌 WebSocket enabled - will initialize on connect()
-09:45:42 [BinanceConnector] INFO: ✅ Binance connector initialized | Mode: DEMO
-09:45:42 [exchanges.adapters.ccxt_adapter] INFO: Stateless CCXTAdapter initialized | Symbol: LTC/USDT:USDT | Timeframe: 1m
-09:45:42 [PositionTracker] INFO: PositionTracker inicializado | Max positions: 10
-09:45:42 [ExchangeStateSync] INFO: ExchangeStateSync inicializado
-09:45:42 [Croupier] INFO: 🎯 Croupier initialized as State Owner | Balance: $10,000.00
-09:45:42 [Croupier] INFO: ✅ OCO Manual enabled in PositionTracker
-09:45:42 [core.sensor_manager] INFO: ✅ SensorManager loaded 27 sensors for timeframe 1m.
-09:45:42 [decision.sensor_tracker] INFO: ✅ Loaded stats for 25 sensors from state/sensor_stats.json
-09:45:42 [decision.sensor_tracker] INFO: ✅ SensorTracker initialized | Sensors: 25
-09:45:42 [decision.aggregator] INFO: ✅ SignalAggregator initialized with intelligent scoring
-09:45:42 [players.fixed] INFO: ✅ FixedPlayer initialized | Bet Size: 1.0% | Max Positions: 3
-09:45:43 [Casino-V3] INFO: 💰 Initial Balance for Report: 3498.71 USDT
-09:45:43 [BinanceConnector] INFO: 🔌 Connecting to Binance Futures...
-09:45:43 [BinanceConnector] INFO: ✅ Markets loaded | Count: 646
-09:45:44 [BinanceConnector] INFO: ✅ Balance fetched | USDT: 3498.71060645
-09:45:44 [BinanceConnector] INFO: 🔌 Starting WebSocket initialization...
-09:45:44 [BinanceConnector] INFO: 🔌 Initializing WebSocket connection...
-09:45:44 [BinanceConnector] INFO: 🧪 Using BinanceTestnetPro for WebSocket demo (API: NbcYL8ma...)
-09:45:44 [BinanceConnector] INFO: 🔑 WebSocket authenticated and listenKey provisioned (future)
-09:45:44 [BinanceConnector] INFO: ✅ WebSocket connection initialized
-09:45:44 [BinanceConnector] INFO: 👁️ Order monitoring started
-09:45:44 [BinanceConnector] INFO: ✅ Binance connector ready | Mode: DEMO
-09:45:44 [core.execution] INFO: 🚀 OrderManager started
-09:45:44 [core.engine] INFO: 🚀 Starting Casino-V3 Engine...
-09:45:44 [core.feed] INFO: 🔌 Connecting Data Feed...
-09:45:44 [BinanceConnector] INFO: 🔌 Connecting to Binance Futures...
-09:45:44 [BinanceConnector] INFO: ✅ Markets loaded | Count: 646
-09:45:44 [BinanceConnector] INFO: ✅ Balance fetched | USDT: 3498.71060645
-09:45:44 [BinanceConnector] INFO: 🔌 Starting WebSocket initialization...
-09:45:45 [BinanceConnector] INFO: 🔌 Initializing WebSocket connection...
-09:45:45 [BinanceConnector] INFO: 🧪 Using BinanceTestnetPro for WebSocket demo (API: NbcYL8ma...)
-09:45:45 [BinanceConnector] INFO: 🔑 WebSocket authenticated and listenKey provisioned (future)
-09:45:45 [BinanceConnector] INFO: ✅ WebSocket connection initialized
-09:45:45 [BinanceConnector] INFO: 👁️ Order monitoring started
-09:45:45 [BinanceConnector] INFO: ✅ Binance connector ready | Mode: DEMO
-09:45:45 [core.engine] INFO: ✅ Engine running. Waiting for events...
-09:45:45 [Casino-V3] INFO: 📡 Subscribing to LTC/USDT:USDT...
-09:45:45 [core.feed] INFO: 📡 Subscribing to ticker: LTC/USDT:USDT
-09:45:45 [Casino-V3] INFO: ✅ Casino-V3 Running | Press Ctrl+C to stop
-09:46:00 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.3 | Vol: 14138429.581
-09:46:00 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-09:46:00 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-09:46:01 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-09:46:10 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.29
-09:46:38 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.28
-09:47:02 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.29 | Vol: 65040691.662
-09:47:02 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-09:47:02 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-09:47:02 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-09:47:04 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.28
-09:47:27 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.27
-09:47:52 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.26
-09:48:02 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.26 | Vol: 70704556.93300001
-09:48:02 [core.sensor_manager] INFO: 📡 Signal Detected: RSIReversion -> LONG
-09:48:02 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-09:48:02 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-09:48:02 [decision.aggregator] INFO: 📊 Selected: RSIReversion (LONG) | Score: 0.328 | Total signals: 1
-09:48:02 [players.fixed] INFO: 🎯 Decision: LONG | Fixed Bet: 1.00% of 10000.00
-09:48:02 [core.execution] INFO: 📩 Decision Received: LTC/USDT:USDT LONG (Size: 1.00%, Step: 0)
-09:48:02 [exchanges.adapters.ccxt_adapter] INFO: 🔍 get_current_price | requested_symbol=LTC/USDT:USDT | adapter_symbol=LTC/USDT:USDT
-09:48:03 [exchanges.adapters.ccxt_adapter] INFO: 💰 Current price for LTC/USDT:USDT: 76.26
-09:48:03 [Croupier] INFO: 📊 Orden convertida | Fracción: 0.0100 | Notional: 100.00 USDT | Precio: 76.26000000 | Cantidad: 1.311303 contratos
-09:48:03 [BinanceConnector] INFO: 📋 Creating order: symbol=LTC/USDT:USDT, side=buy, amount=1.311, price=None, type=market
-09:48:03 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-09:48:04 [BinanceConnector] INFO: 🔍 watch_orders() returned: type=<class 'list'>, length=1
-09:48:04 [BinanceConnector] INFO: 🔍 watch_orders() returned: type=<class 'list'>, length=1
-09:48:04 [BinanceConnector] INFO: 🔍 watch_orders() returned: type=<class 'list'>, length=1
-09:48:04 [BinanceConnector] INFO: 🔍 watch_orders() returned: type=<class 'list'>, length=1
-09:48:04 [BinanceConnector] INFO: 🔍 watch_orders() returned: type=<class 'list'>, length=1
-09:48:04 [BinanceConnector] INFO: 🔍 watch_orders() returned: type=<class 'list'>, length=1
-09:48:04 [BinanceConnector] INFO: 🔍 watch_orders() returned: type=<class 'list'>, length=1
-09:48:04 [BinanceConnector] INFO: 🔍 watch_orders() returned: type=<class 'list'>, length=1
-09:48:04 [BinanceConnector] INFO: ✅ Order created | LTC/USDT:USDT BUY 1.311 @ market | avgPrice: 0.0
-09:48:06 [Croupier] INFO: ✅ Orden ejecutada: 875464340
-09:48:06 [Croupier] INFO: 📊 OCO Monitor | Entry: $76.42000000 | TP: $76.87852000 | SL: $74.09033630
-09:48:06 [Croupier] INFO: 🔧 Rounded TP/SL to exchange precision | TP: 76.87852000000001 -> 76.88 | SL: 74.0903363 -> 74.09
-09:48:06 [exchanges.adapters.ccxt_adapter] INFO: 🔍 get_current_price | requested_symbol=LTC/USDT:USDT | adapter_symbol=LTC/USDT:USDT
-09:48:07 [exchanges.adapters.ccxt_adapter] INFO: 💰 Current price for LTC/USDT:USDT: 76.42
-09:48:07 [BinanceConnector] INFO: 📋 Creating order: symbol=LTC/USDT:USDT, side=sell, amount=1.311, price=None, type=take_profit_market
-09:48:07 [BinanceConnector] INFO: 📋 Creating order: symbol=LTC/USDT:USDT, side=sell, amount=1.311, price=None, type=stop_market
-09:48:08 [BinanceConnector] INFO: ✅ Order created | LTC/USDT:USDT SELL 1.311 @ market | avgPrice: 0.0
-09:48:09 [BinanceConnector] INFO: ✅ Order created | LTC/USDT:USDT SELL 1.311 @ market | avgPrice: 0.0
-09:48:09 [Croupier] INFO: ✅ TP order created: 875464345 @ $76.88000000
-09:48:09 [Croupier] INFO: ✅ SL order created: 875464348 @ $74.09000000
-09:48:09 [PositionTracker] INFO: 📈 OPEN | LTC/USDT:USDT LONG | Entry: 76.42 | TP: 76.88 | SL: 74.13 | Notional: 100.00 | Margin: 100.00
-09:48:09 [core.execution] WARNING: ⚠️ Order Result: {'status': 'closed', 'id': '875464340', 'price': 76.42, 'amount': 1.311, 'balance': 10000.0, 'equity': 10000.0, 'main_order_id': '875464340', 'tp_order_id': '875464345', 'sl_order_id': '875464348', 'reason': None, 'order_create_ts': 1764596883634, 'ws_confirm_ts': 1764596886783, 'used_ws_confirm': False, 'used_rest_fallback': True, 'ws_latency_ms': 3149, 'tp_attempts': [], 'sl_attempts': []}
-09:48:18 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.26
-09:48:42 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.25
-09:49:02 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.24 | Vol: 67876307.70699999
-09:49:02 [core.sensor_manager] INFO: 📡 Signal Detected: PinBarReversal -> SHORT
-09:49:02 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-09:49:02 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-09:49:02 [decision.aggregator] INFO: 📊 Selected: PinBarReversal (SHORT) | Score: 0.397 | Total signals: 1
-09:49:02 [players.fixed] INFO: 🎯 Decision: SHORT | Fixed Bet: 1.00% of 10000.00
-09:49:02 [core.execution] INFO: 📩 Decision Received: LTC/USDT:USDT SHORT (Size: 1.00%, Step: 0)
-09:49:02 [exchanges.adapters.ccxt_adapter] INFO: 🔍 get_current_price | requested_symbol=LTC/USDT:USDT | adapter_symbol=LTC/USDT:USDT
-09:49:04 [exchanges.adapters.ccxt_adapter] INFO: 💰 Current price for LTC/USDT:USDT: 76.24
-09:49:04 [Croupier] INFO: 📊 Orden convertida | Fracción: 0.0100 | Notional: 100.00 USDT | Precio: 76.24000000 | Cantidad: 1.311647 contratos
-09:49:04 [BinanceConnector] INFO: 📋 Creating order: symbol=LTC/USDT:USDT, side=sell, amount=1.311, price=None, type=market
-09:49:04 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-09:49:05 [BinanceConnector] INFO: ✅ Order created | LTC/USDT:USDT SELL 1.311 @ market | avgPrice: 0.0
-09:49:06 [Croupier] INFO: ✅ Orden ejecutada: 875464436
-09:49:06 [Croupier] INFO: 📊 OCO Monitor | Entry: $76.24000000 | TP: $75.85880000 | SL: $78.49018548
-09:49:06 [Croupier] INFO: 🔧 Rounded TP/SL to exchange precision | TP: 75.85879999999999 -> 75.86 | SL: 78.49018548 -> 78.49
-09:49:06 [exchanges.adapters.ccxt_adapter] INFO: 🔍 get_current_price | requested_symbol=LTC/USDT:USDT | adapter_symbol=LTC/USDT:USDT
-09:49:07 [exchanges.adapters.ccxt_adapter] INFO: 💰 Current price for LTC/USDT:USDT: 76.24
-09:49:07 [BinanceConnector] INFO: 📋 Creating order: symbol=LTC/USDT:USDT, side=buy, amount=1.311, price=None, type=take_profit_market
-09:49:07 [BinanceConnector] INFO: 📋 Creating order: symbol=LTC/USDT:USDT, side=buy, amount=1.311, price=None, type=stop_market
-09:49:07 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.23
-09:49:09 [BinanceConnector] INFO: ✅ Order created | LTC/USDT:USDT BUY 1.311 @ market | avgPrice: 0.0
-09:49:10 [BinanceConnector] INFO: ✅ Order created | LTC/USDT:USDT BUY 1.311 @ market | avgPrice: 0.0
-09:49:10 [Croupier] INFO: ✅ TP order created: 875464451 @ $75.86000000
-09:49:10 [Croupier] INFO: ✅ SL order created: 875464454 @ $78.49000000
-09:49:10 [PositionTracker] INFO: 📈 OPEN | LTC/USDT:USDT SHORT | Entry: 76.24 | TP: 75.86 | SL: 78.45 | Notional: 100.00 | Margin: 100.00
-09:49:10 [core.execution] WARNING: ⚠️ Order Result: {'status': 'closed', 'id': '875464436', 'price': 76.24, 'amount': 1.311, 'balance': 10000.0, 'equity': 10000.0, 'main_order_id': '875464436', 'tp_order_id': '875464451', 'sl_order_id': '875464454', 'reason': None, 'order_create_ts': 1764596944437, 'ws_confirm_ts': 1764596946310, 'used_ws_confirm': False, 'used_rest_fallback': True, 'ws_latency_ms': 1873, 'tp_attempts': [], 'sl_attempts': []}
-09:49:31 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.22
-09:49:58 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.21
-09:50:00 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.21 | Vol: 65047077.29500001
-09:50:00 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-09:50:00 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-09:50:01 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-09:50:21 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.2
-09:50:42 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.19
-09:51:03 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.19 | Vol: 73532174.83099999
-09:51:03 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-09:51:03 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-09:51:04 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-09:51:09 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.19
-09:51:35 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.19
-09:51:57 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.28
-09:52:00 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.28 | Vol: 67875741.16
-09:52:00 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-09:52:00 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-09:52:00 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-09:52:26 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.38
-09:52:46 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.39
-09:53:01 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.36 | Vol: 67876894.45099999
-09:53:01 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-09:53:01 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-09:53:02 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-09:53:12 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.43
-09:53:37 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.47
-09:54:00 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.47
-09:54:02 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.47 | Vol: 73548316.251
-09:54:02 [core.sensor_manager] INFO: 📡 Signal Detected: RSIReversion -> SHORT
-09:54:02 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-09:54:02 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-09:54:02 [decision.aggregator] INFO: 📊 Selected: RSIReversion (SHORT) | Score: 0.328 | Total signals: 1
-09:54:02 [players.fixed] INFO: 🎯 Decision: SHORT | Fixed Bet: 1.00% of 10000.00
-09:54:02 [core.execution] INFO: 📩 Decision Received: LTC/USDT:USDT SHORT (Size: 1.00%, Step: 0)
-09:54:02 [exchanges.adapters.ccxt_adapter] INFO: 🔍 get_current_price | requested_symbol=LTC/USDT:USDT | adapter_symbol=LTC/USDT:USDT
-09:54:04 [exchanges.adapters.ccxt_adapter] INFO: 💰 Current price for LTC/USDT:USDT: 76.47
-09:54:04 [Croupier] INFO: 📊 Orden convertida | Fracción: 0.0100 | Notional: 100.00 USDT | Precio: 76.47000000 | Cantidad: 1.307702 contratos
-09:54:04 [BinanceConnector] INFO: 📋 Creating order: symbol=LTC/USDT:USDT, side=sell, amount=1.307, price=None, type=market
-09:54:04 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-09:54:04 [BinanceConnector] INFO: ✅ Order created | LTC/USDT:USDT SELL 1.307 @ market | avgPrice: 0.0
-09:54:05 [Croupier] INFO: ✅ Orden ejecutada: 875464877
-09:54:05 [Croupier] INFO: 📊 OCO Monitor | Entry: $76.18000000 | TP: $75.72292000 | SL: $78.50463270
-09:54:05 [Croupier] INFO: 🔧 Rounded TP/SL to exchange precision | TP: 75.72292 -> 75.72 | SL: 78.5046327 -> 78.5
-09:54:05 [exchanges.adapters.ccxt_adapter] INFO: 🔍 get_current_price | requested_symbol=LTC/USDT:USDT | adapter_symbol=LTC/USDT:USDT
-09:54:05 [exchanges.adapters.ccxt_adapter] INFO: 💰 Current price for LTC/USDT:USDT: 76.47
-09:54:05 [BinanceConnector] INFO: 📋 Creating order: symbol=LTC/USDT:USDT, side=buy, amount=1.307, price=None, type=take_profit_market
-09:54:05 [BinanceConnector] INFO: 📋 Creating order: symbol=LTC/USDT:USDT, side=buy, amount=1.307, price=None, type=stop_market
-09:54:07 [BinanceConnector] INFO: ✅ Order created | LTC/USDT:USDT BUY 1.307 @ market | avgPrice: 0.0
-09:54:07 [BinanceConnector] INFO: ✅ Order created | LTC/USDT:USDT BUY 1.307 @ market | avgPrice: 0.0
-09:54:07 [Croupier] INFO: ✅ TP order created: 875464880 @ $75.72000000
-09:54:07 [Croupier] INFO: ✅ SL order created: 875464881 @ $78.50000000
-09:54:07 [PositionTracker] INFO: 📈 OPEN | LTC/USDT:USDT SHORT | Entry: 76.18 | TP: 75.72 | SL: 78.47 | Notional: 100.00 | Margin: 100.00
-09:54:07 [core.execution] WARNING: ⚠️ Order Result: {'status': 'closed', 'id': '875464877', 'price': 76.18, 'amount': 1.307, 'balance': 10000.0, 'equity': 10000.0, 'main_order_id': '875464877', 'tp_order_id': '875464880', 'sl_order_id': '875464881', 'reason': None, 'order_create_ts': 1764597244051, 'ws_confirm_ts': 1764597245552, 'used_ws_confirm': False, 'used_rest_fallback': True, 'ws_latency_ms': 1501, 'tp_attempts': [], 'sl_attempts': []}
-09:54:24 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.49
-09:54:51 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.49
-09:55:04 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.49 | Vol: 65093691.078
-09:55:04 [core.sensor_manager] INFO: 📡 Signal Detected: PinBarReversal -> LONG
-09:55:04 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-09:55:04 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-09:55:04 [decision.aggregator] INFO: 📊 Selected: PinBarReversal (LONG) | Score: 0.397 | Total signals: 1
-09:55:05 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-09:55:19 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.47
-09:55:47 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.4
-09:56:01 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.43 | Vol: 59471872.002
-09:56:01 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-09:56:01 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-09:56:02 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-09:56:12 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.48
-09:56:38 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.49
-09:57:01 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.49 | Vol: 67967663.22800002
-09:57:01 [core.sensor_manager] INFO: 📡 Signal Detected: RailsPattern -> LONG
-09:57:01 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-09:57:01 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-09:57:02 [decision.aggregator] INFO: 📊 Selected: RailsPattern (LONG) | Score: 0.335 | Total signals: 1
-09:57:03 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-09:57:06 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.49
-09:57:28 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.51
-09:57:48 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.51
-09:58:07 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.51 | Vol: 76463659.536
-09:58:07 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-09:58:07 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-09:58:08 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-09:58:15 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.52
-09:58:39 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.55
-09:59:00 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.55
-09:59:02 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.55 | Vol: 70800032.44199999
-09:59:02 [core.sensor_manager] INFO: 📡 Signal Detected: RSIReversion -> SHORT
-09:59:02 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-09:59:02 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-09:59:02 [core.sensor_manager] INFO: 📡 Signal Detected: WilliamsRReversion -> SHORT
-09:59:02 [decision.aggregator] INFO: 📊 Selected: WilliamsRReversion (SHORT) | Score: 0.374 | Total signals: 2
-09:59:04 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-09:59:22 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.53
-09:59:48 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.55
-10:00:00 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.55 | Vol: 67968714.23400001
-10:00:00 [core.sensor_manager] INFO: 📡 Signal Detected: PinBarReversal -> LONG
-10:00:00 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-10:00:00 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-10:00:00 [core.sensor_manager] INFO: 📡 Signal Detected: VCPPattern -> LONG
-10:00:00 [decision.aggregator] INFO: 📊 Selected: PinBarReversal (LONG) | Score: 0.397 | Total signals: 2
-10:00:01 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-10:00:11 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.53
-10:00:39 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.55
-10:01:03 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.53 | Vol: 67964667.595
-10:01:03 [core.sensor_manager] INFO: 📡 Signal Detected: StochasticReversion -> SHORT
-10:01:03 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-10:01:03 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-10:01:03 [decision.aggregator] INFO: 📊 Selected: StochasticReversion (SHORT) | Score: 0.411 | Total signals: 1
-10:01:04 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-10:01:05 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.55
-10:01:28 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.54
-10:01:55 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.56
-10:02:02 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.56 | Vol: 65099674.075
-10:02:02 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-10:02:02 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-10:02:03 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-10:02:26 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.52
-10:02:54 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.57
-10:03:02 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.57 | Vol: 59352760.55899999
-10:03:02 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-10:03:02 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-10:03:03 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-10:03:17 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.59
-10:03:45 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.63
-10:04:03 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.59 | Vol: 64477307.39800001
-10:04:03 [core.sensor_manager] INFO: 📡 Signal Detected: RSIReversion -> SHORT
-10:04:03 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-10:04:03 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-10:04:03 [core.sensor_manager] INFO: 📡 Signal Detected: WilliamsRReversion -> SHORT
-10:04:03 [decision.aggregator] INFO: 📊 Selected: WilliamsRReversion (SHORT) | Score: 0.374 | Total signals: 2
-10:04:04 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-10:04:13 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.63
-10:04:36 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.69
-10:04:58 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.72
-10:05:03 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.72 | Vol: 69723069.748
-10:05:03 [core.sensor_manager] INFO: 📡 Signal Detected: PinBarReversal -> LONG
-10:05:03 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-10:05:03 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-10:05:03 [core.sensor_manager] INFO: 📡 Signal Detected: CCIReversion -> SHORT
-10:05:03 [core.sensor_manager] INFO: 📡 Signal Detected: VolumeImbalance -> LONG
-10:05:03 [decision.aggregator] INFO: ⚖️ Conflict unresolved | LONG: PinBarReversal (0.397) vs SHORT: CCIReversion (0.393) | Delta: 0.004 < 0.01
-10:05:03 [decision.aggregator] INFO: 📊 No signal selected (all below threshold or conflict unresolved)
-10:05:03 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-10:05:22 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.6
-10:05:48 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.57
-10:06:01 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.58 | Vol: 69718877.465
-10:06:01 [core.sensor_manager] INFO: 📡 Signal Detected: RailsPattern -> SHORT
-10:06:01 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-10:06:01 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-10:06:01 [decision.aggregator] INFO: 📊 Selected: RailsPattern (SHORT) | Score: 0.335 | Total signals: 1
-10:06:02 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-10:06:15 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.61
-10:06:43 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.58
-10:07:00 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.55 | Vol: 55775061.562000014
-10:07:00 [core.sensor_manager] INFO: 📡 Signal Detected: VCPPattern -> SHORT
-10:07:00 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-10:07:00 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-10:07:00 [decision.aggregator] INFO: 📊 Selected: VCPPattern (SHORT) | Score: 0.319 | Total signals: 1
-10:07:01 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-10:07:08 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.57
-10:07:29 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.53
-10:08:00 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.48
-10:08:00 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.5 | Vol: 66929727.045
-10:08:00 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-10:08:00 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-10:08:00 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-10:08:26 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.54
-10:08:52 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.46
-10:09:02 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.5 | Vol: 69718423.782
-10:09:02 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-10:09:02 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-10:09:04 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-10:09:17 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.57
-10:09:41 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.64
-10:10:02 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.67
-10:10:02 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.64 | Vol: 69718391.545
-10:10:02 [core.sensor_manager] INFO: 📡 Signal Detected: CCIReversion -> SHORT
-10:10:02 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-10:10:02 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-10:10:02 [core.sensor_manager] INFO: 📡 Signal Detected: WilliamsRReversion -> SHORT
-10:10:02 [core.sensor_manager] INFO: 📡 Signal Detected: VolumeImbalance -> LONG
-10:10:02 [decision.aggregator] INFO: ⚖️ Conflict resolved | Winner: CCIReversion (SHORT, 0.393) | Loser: VolumeImbalance (LONG, 0.331)
-10:10:02 [decision.aggregator] INFO: 📊 Selected: CCIReversion (SHORT) | Score: 0.393 | Total signals: 3
-10:10:03 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-10:10:25 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.72
-10:10:51 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.73
-10:11:02 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.74 | Vol: 69718529.246
-10:11:02 [core.sensor_manager] INFO: 📡 Signal Detected: PinBarReversal -> LONG
-10:11:02 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-10:11:02 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-10:11:02 [core.sensor_manager] INFO: 📡 Signal Detected: RSIReversion -> SHORT
-10:11:02 [core.sensor_manager] INFO: 📡 Signal Detected: StochasticReversion -> SHORT
-10:11:02 [core.sensor_manager] INFO: 📡 Signal Detected: ZScoreReversion -> SHORT
-10:11:03 [decision.aggregator] INFO: ⚖️ Conflict resolved | Winner: StochasticReversion (SHORT, 0.411) | Loser: PinBarReversal (LONG, 0.397)
-10:11:03 [decision.aggregator] INFO: 📊 Selected: StochasticReversion (SHORT) | Score: 0.411 | Total signals: 4
-10:11:03 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-10:11:15 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.7
-10:11:39 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.66
-10:12:01 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.69 | Vol: 64141150.985999994
-10:12:01 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-10:12:01 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-10:12:02 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-10:12:05 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.75
-10:12:29 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.75
-10:12:55 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.76
-10:13:00 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.76 | Vol: 66929846.59900001
-10:13:00 [core.sensor_manager] INFO: 📡 Signal Detected: ADXFilter -> SHORT
-10:13:00 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-10:13:00 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-10:13:00 [decision.aggregator] INFO: 📊 Selected: ADXFilter (SHORT) | Score: 0.241 | Total signals: 1
-10:13:01 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-10:13:19 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.77
-10:13:45 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.74
-10:14:05 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.71 | Vol: 69718562.829
-10:14:05 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-10:14:05 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-10:14:06 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-10:14:11 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.69
-10:14:33 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.61
-10:15:01 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.63
-10:15:01 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.63 | Vol: 64141007.101
-10:15:01 [core.sensor_manager] INFO: 📡 Signal Detected: CCIReversion -> SHORT
-10:15:01 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-10:15:01 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-10:15:01 [core.sensor_manager] INFO: 📡 Signal Detected: WilliamsRReversion -> SHORT
-10:15:01 [decision.aggregator] INFO: 📊 Selected: CCIReversion (SHORT) | Score: 0.393 | Total signals: 2
-10:15:01 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-10:15:30 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.54
-10:15:56 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.57
-10:16:01 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.58 | Vol: 61352175.160000004
-10:16:02 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-10:16:02 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-10:16:03 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-10:16:21 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.54
-10:16:48 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.58
-10:17:03 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.54 | Vol: 66926712.85400001
-10:17:03 [core.sensor_manager] INFO: 📡 Signal Detected: DecelerationCandles -> LONG
-10:17:03 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-10:17:03 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-10:17:03 [core.sensor_manager] INFO: 📡 Signal Detected: RSIReversion -> LONG
-10:17:03 [decision.aggregator] INFO: 📊 Selected: RSIReversion (LONG) | Score: 0.328 | Total signals: 2
-10:17:04 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-10:17:17 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.49
-10:17:42 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.5
-10:18:00 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.47 | Vol: 58560825.467000015
-10:18:00 [core.sensor_manager] INFO: 📡 Signal Detected: ADXFilter -> SHORT
-10:18:00 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-10:18:00 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-10:18:00 [decision.aggregator] INFO: 📊 Selected: ADXFilter (SHORT) | Score: 0.241 | Total signals: 1
-10:18:02 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-10:18:09 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.52
-10:18:30 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.53
-10:18:51 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.54
-10:19:01 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.54 | Vol: 78081308.303
-10:19:01 [core.sensor_manager] INFO: 📡 Signal Detected: PinBarReversal -> LONG
-10:19:01 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-10:19:01 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-10:19:01 [core.sensor_manager] INFO: 📡 Signal Detected: VolumeImbalance -> LONG
-10:19:01 [decision.aggregator] INFO: 📊 Selected: PinBarReversal (LONG) | Score: 0.397 | Total signals: 2
-10:19:02 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-10:19:11 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.52
-10:19:35 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.59
-10:20:00 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.62
-10:20:00 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.58 | Vol: 69711924.66299999
-10:20:00 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-10:20:00 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-10:20:01 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-10:20:27 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.65
-10:20:55 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.65
-10:21:01 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.65 | Vol: 61347146.13499999
-10:21:01 [core.sensor_manager] INFO: 📡 Signal Detected: CCIReversion -> SHORT
-10:21:01 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-10:21:01 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-10:21:01 [decision.aggregator] INFO: 📊 Selected: CCIReversion (SHORT) | Score: 0.393 | Total signals: 1
-10:21:02 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-10:21:20 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.64
-10:21:44 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.71
-10:22:03 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.7 | Vol: 72501047.91700001
-10:22:03 [core.sensor_manager] INFO: 📡 Signal Detected: WilliamsRReversion -> SHORT
-10:22:03 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-10:22:03 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-10:22:03 [decision.aggregator] INFO: 📊 Selected: WilliamsRReversion (SHORT) | Score: 0.374 | Total signals: 1
-10:22:04 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-10:22:07 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.7
-10:22:32 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.74
-10:22:59 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.77
-10:23:03 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.77 | Vol: 66924006.38799999
-10:23:03 [core.sensor_manager] INFO: 📡 Signal Detected: RSIReversion -> SHORT
-10:23:03 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-10:23:03 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-10:23:03 [core.sensor_manager] INFO: 📡 Signal Detected: StochasticReversion -> SHORT
-10:23:03 [core.sensor_manager] INFO: 📡 Signal Detected: ZScoreReversion -> SHORT
-10:23:03 [core.sensor_manager] INFO: 📡 Signal Detected: ADXFilter -> SHORT
-10:23:03 [decision.aggregator] INFO: 📊 Selected: StochasticReversion (SHORT) | Score: 0.411 | Total signals: 4
-10:23:04 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-10:23:24 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.77
-10:23:46 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.76
-10:24:01 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.73 | Vol: 69712473.41000001
-10:24:01 [core.sensor_manager] INFO: 📡 Signal Detected: VCPPattern -> LONG
-10:24:01 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-10:24:01 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-10:24:01 [core.sensor_manager] INFO: 📡 Signal Detected: VolumeImbalance -> SHORT
-10:24:02 [decision.aggregator] INFO: ⚖️ Conflict resolved | Winner: VolumeImbalance (SHORT, 0.331) | Loser: VCPPattern (LONG, 0.319)
-10:24:02 [decision.aggregator] INFO: 📊 Selected: VolumeImbalance (SHORT) | Score: 0.331 | Total signals: 2
-10:24:02 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-10:24:08 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.72
-10:24:29 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.74
-10:24:53 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.77
-10:25:02 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.77 | Vol: 72502030.381
-10:25:02 [core.sensor_manager] INFO: 📡 Signal Detected: RailsPattern -> LONG
-10:25:02 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-10:25:02 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-10:25:02 [decision.aggregator] INFO: 📊 Selected: RailsPattern (LONG) | Score: 0.335 | Total signals: 1
-10:25:02 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-10:25:19 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.73
-10:25:42 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.73
-10:26:00 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.76 | Vol: 69716663.161
-10:26:00 [core.sensor_manager] INFO: 📡 Signal Detected: PinBarReversal -> LONG
-10:26:00 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-10:26:00 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-10:26:00 [core.sensor_manager] INFO: 📡 Signal Detected: MACDCrossover -> LONG
-10:26:00 [core.sensor_manager] INFO: 📡 Signal Detected: CCIReversion -> SHORT
-10:26:00 [decision.aggregator] INFO: ⚖️ Conflict unresolved | LONG: PinBarReversal (0.397) vs SHORT: CCIReversion (0.393) | Delta: 0.004 < 0.01
-10:26:00 [decision.aggregator] INFO: 📊 No signal selected (all below threshold or conflict unresolved)
-10:26:01 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-10:26:08 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.76
-10:26:32 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.73
-10:26:53 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.75
-10:27:01 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.75 | Vol: 72505077.507
-10:27:01 [core.sensor_manager] INFO: 📡 Signal Detected: WilliamsRReversion -> SHORT
-10:27:01 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-10:27:01 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-10:27:01 [decision.aggregator] INFO: 📊 Selected: WilliamsRReversion (SHORT) | Score: 0.374 | Total signals: 1
-10:27:02 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-10:27:15 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.73
-10:27:41 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.77
-10:28:03 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.78 | Vol: 69716313.10800003
-10:28:03 [core.sensor_manager] INFO: 📡 Signal Detected: RSIReversion -> SHORT
-10:28:03 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-10:28:03 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-10:28:03 [core.sensor_manager] INFO: 📡 Signal Detected: StochasticReversion -> SHORT
-10:28:03 [core.sensor_manager] INFO: 📡 Signal Detected: ADXFilter -> SHORT
-10:28:03 [decision.aggregator] INFO: 📊 Selected: StochasticReversion (SHORT) | Score: 0.411 | Total signals: 3
-10:28:05 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-10:28:05 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.78
-10:28:31 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.8
-10:28:53 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.82
-10:29:02 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.83 | Vol: 69720129.75000001
-10:29:02 [core.sensor_manager] INFO: 📡 Signal Detected: ZScoreReversion -> SHORT
-10:29:02 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-10:29:02 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-10:29:02 [core.sensor_manager] INFO: 📡 Signal Detected: VolumeImbalance -> LONG
-10:29:02 [decision.aggregator] INFO: ⚖️ Conflict resolved | Winner: VolumeImbalance (LONG, 0.331) | Loser: ZScoreReversion (SHORT, 0.053)
-10:29:02 [decision.aggregator] INFO: 📊 Selected: VolumeImbalance (LONG) | Score: 0.331 | Total signals: 2
-10:29:02 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-10:29:14 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.85
-10:29:40 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.85
-10:30:00 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.86 | Vol: 67004579.21800001
-10:30:00 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-10:30:00 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-10:30:01 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-10:30:04 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.86
-10:30:31 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.82
-10:30:56 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.85
-10:31:00 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.86 | Vol: 67027007.00599999
-10:31:00 [core.sensor_manager] INFO: 📡 Signal Detected: PinBarReversal -> LONG
-10:31:00 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-10:31:00 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-10:31:00 [core.sensor_manager] INFO: 📡 Signal Detected: CCIReversion -> SHORT
-10:31:00 [decision.aggregator] INFO: ⚖️ Conflict unresolved | LONG: PinBarReversal (0.397) vs SHORT: CCIReversion (0.393) | Delta: 0.004 < 0.01
-10:31:00 [decision.aggregator] INFO: 📊 No signal selected (all below threshold or conflict unresolved)
-10:31:02 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-10:31:20 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.83
-10:31:44 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.83
-10:32:04 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.83 | Vol: 72617305.31199999
-10:32:04 [core.sensor_manager] INFO: 📡 Signal Detected: WilliamsRReversion -> SHORT
-10:32:04 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-10:32:04 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-10:32:04 [decision.aggregator] INFO: 📊 Selected: WilliamsRReversion (SHORT) | Score: 0.374 | Total signals: 1
-10:32:05 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-10:32:09 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.83
-10:32:32 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.83
-10:33:00 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.83
-10:33:02 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.83 | Vol: 64238357.44699999
-10:33:02 [core.sensor_manager] INFO: 📡 Signal Detected: VCPPattern -> SHORT
-10:33:02 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-10:33:02 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-10:33:02 [core.sensor_manager] INFO: 📡 Signal Detected: RSIReversion -> SHORT
-10:33:02 [core.sensor_manager] INFO: 📡 Signal Detected: StochasticReversion -> SHORT
-10:33:02 [core.sensor_manager] INFO: 📡 Signal Detected: ADXFilter -> SHORT
-10:33:02 [decision.aggregator] INFO: 📊 Selected: StochasticReversion (SHORT) | Score: 0.411 | Total signals: 4
-10:33:03 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-10:33:23 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.83
-10:33:48 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.83
-10:34:03 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.84 | Vol: 64238554.27699999
-10:34:03 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-10:34:03 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-10:34:04 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-10:34:23 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.86
-10:34:47 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.83
-10:35:04 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.83 | Vol: 64238440.065
-10:35:04 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-10:35:04 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-10:35:05 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-10:35:12 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.88
-10:35:38 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.89
-10:36:00 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.9
-10:36:02 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.9 | Vol: 67145484.93699999
-10:36:02 [core.sensor_manager] INFO: 📡 Signal Detected: CCIReversion -> SHORT
-10:36:02 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-10:36:02 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-10:36:02 [decision.aggregator] INFO: 📊 Selected: CCIReversion (SHORT) | Score: 0.393 | Total signals: 1
-10:36:04 [Croupier] WARNING: ⚠️ Orden TP 875464345 no existe en exchange
-10:36:04 [Croupier] INFO: 🧹 Cerrando posición sin TP: V3_1764596882533
-10:36:04 [Croupier] INFO: Intentando cerrar manualmente la posición: V3_1764596882533
-10:36:04 [Croupier] INFO: ℹ️ Orden TP 875464345 ya está closed, no necesita cancelación
-10:36:06 [BinanceConnector] INFO: ✅ Order cancelled: 875464348
-10:36:06 [Croupier] INFO: ✅ Orden SL cancelada exitosamente: 875464348
-10:36:06 [BinanceConnector] INFO: 📋 Creating order: symbol=LTC/USDT:USDT, side=sell, amount=1.308, price=None, type=market
-10:36:06 [BinanceConnector] INFO: ✅ Order created | LTC/USDT:USDT SELL 1.308 @ market | avgPrice: 0.0
-10:36:06 [PositionTracker] INFO: ✅ CONFIRMED CLOSE | LTC/USDT:USDT LONG | Exit: 76.88 (MANUAL) | PnL REAL: +0.00 | Fee: 0.00 | Bars: 47
-10:36:06 [Croupier] WARNING: ⚠️ Orden huérfana detectada: 875464348 (STOP_MARKET)
-10:36:07 [BinanceConnector] ERROR: ❌ Error cancelling order: binance {"code":-2011,"msg":"Unknown order sent."}
-10:36:07 [Croupier] ERROR: ❌ Error cancelando orden huérfana 875464348: binance {"code":-2011,"msg":"Unknown order sent."}
-10:36:07 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-10:36:26 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.96
-10:36:51 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.99
-10:37:01 [core.candle_maker] INFO: 🕯️ Candle Closed: 77.0 | Vol: 61730866.76100001
-10:37:01 [core.sensor_manager] INFO: 📡 Signal Detected: KeltnerReversion -> SHORT
-10:37:01 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-10:37:01 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-10:37:01 [core.sensor_manager] INFO: 📡 Signal Detected: WilliamsRReversion -> SHORT
-10:37:01 [core.sensor_manager] INFO: 📡 Signal Detected: ZScoreReversion -> SHORT
-10:37:01 [decision.aggregator] INFO: 📊 Selected: WilliamsRReversion (SHORT) | Score: 0.374 | Total signals: 3
-10:37:01 [players.fixed] INFO: 🎯 Decision: SHORT | Fixed Bet: 1.00% of 10000.00
-10:37:01 [core.execution] INFO: 📩 Decision Received: LTC/USDT:USDT SHORT (Size: 1.00%, Step: 0)
-10:37:01 [exchanges.adapters.ccxt_adapter] INFO: 🔍 get_current_price | requested_symbol=LTC/USDT:USDT | adapter_symbol=LTC/USDT:USDT
-10:37:02 [exchanges.adapters.ccxt_adapter] INFO: 💰 Current price for LTC/USDT:USDT: 76.99
-10:37:02 [Croupier] INFO: 📊 Orden convertida | Fracción: 0.0100 | Notional: 100.00 USDT | Precio: 76.99000000 | Cantidad: 1.298870 contratos
-10:37:02 [BinanceConnector] INFO: 📋 Creating order: symbol=LTC/USDT:USDT, side=sell, amount=1.298, price=None, type=market
-10:37:02 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-10:37:03 [BinanceConnector] INFO: ✅ Order created | LTC/USDT:USDT SELL 1.298 @ market | avgPrice: 0.0
-10:37:03 [Croupier] INFO: ✅ Orden ejecutada: 875468724
-10:37:03 [Croupier] INFO: 📊 OCO Monitor | Entry: $76.88000000 | TP: $76.26496000 | SL: $79.22599320
-10:37:03 [Croupier] INFO: 🔧 Rounded TP/SL to exchange precision | TP: 76.26495999999999 -> 76.26 | SL: 79.22599319999999 -> 79.23
-10:37:03 [exchanges.adapters.ccxt_adapter] INFO: 🔍 get_current_price | requested_symbol=LTC/USDT:USDT | adapter_symbol=LTC/USDT:USDT
-10:37:04 [exchanges.adapters.ccxt_adapter] INFO: 💰 Current price for LTC/USDT:USDT: 76.88
-10:37:04 [BinanceConnector] INFO: 📋 Creating order: symbol=LTC/USDT:USDT, side=buy, amount=1.298, price=None, type=take_profit_market
-10:37:04 [BinanceConnector] INFO: 📋 Creating order: symbol=LTC/USDT:USDT, side=buy, amount=1.298, price=None, type=stop_market
-10:37:05 [BinanceConnector] INFO: ✅ Order created | LTC/USDT:USDT BUY 1.298 @ market | avgPrice: 0.0
-10:37:06 [BinanceConnector] INFO: ✅ Order created | LTC/USDT:USDT BUY 1.298 @ market | avgPrice: 0.0
-10:37:06 [Croupier] INFO: ✅ TP order created: 875468725 @ $76.26000000
-10:37:06 [Croupier] INFO: ✅ SL order created: 875468726 @ $79.23000000
-10:37:06 [PositionTracker] INFO: 📈 OPEN | LTC/USDT:USDT SHORT | Entry: 76.88 | TP: 76.26 | SL: 79.19 | Notional: 100.00 | Margin: 100.00
-10:37:06 [core.execution] WARNING: ⚠️ Order Result: {'status': 'closed', 'id': '875468724', 'price': 76.88, 'amount': 1.298, 'balance': 10000.0, 'equity': 10000.0, 'main_order_id': '875468724', 'tp_order_id': '875468725', 'sl_order_id': '875468726', 'reason': None, 'order_create_ts': 1764599822113, 'ws_confirm_ts': 1764599823996, 'used_ws_confirm': False, 'used_rest_fallback': True, 'ws_latency_ms': 1883, 'tp_attempts': [], 'sl_attempts': []}
-10:37:25 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 77.05
-10:37:47 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 77.22
-10:38:00 [core.candle_maker] INFO: 🕯️ Candle Closed: 77.19 | Vol: 62073447.528
-10:38:00 [core.sensor_manager] INFO: 📡 Signal Detected: ExtremeCandleRatio -> LONG
-10:38:00 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-10:38:00 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-10:38:00 [core.sensor_manager] INFO: 📡 Signal Detected: RSIReversion -> SHORT
-10:38:00 [core.sensor_manager] INFO: 📡 Signal Detected: BollingerTouch -> SHORT
-10:38:00 [core.sensor_manager] INFO: 📡 Signal Detected: StochasticReversion -> SHORT
-10:38:00 [core.sensor_manager] INFO: 📡 Signal Detected: ADXFilter -> SHORT
-10:38:00 [decision.aggregator] INFO: ⚖️ Conflict resolved | Winner: BollingerTouch (SHORT, 0.963) | Loser: ExtremeCandleRatio (LONG, 0.333)
-10:38:00 [decision.aggregator] INFO: 📊 Selected: BollingerTouch (SHORT) | Score: 0.963 | Total signals: 5
-10:38:01 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-10:38:11 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 77.15
-10:38:33 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 77.14
-10:39:02 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 77.22
-10:39:02 [core.candle_maker] INFO: 🕯️ Candle Closed: 77.1 | Vol: 70657019.519
-10:39:02 [core.sensor_manager] INFO: 📡 Signal Detected: VolumeImbalance -> SHORT
-10:39:02 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-10:39:02 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-10:39:02 [decision.aggregator] INFO: 📊 Selected: VolumeImbalance (SHORT) | Score: 0.331 | Total signals: 1
-10:39:03 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-10:39:26 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 77.04
-10:39:50 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.99
-10:40:00 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.98 | Vol: 70664043.10000001
-10:40:00 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-10:40:00 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-10:40:01 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-10:40:13 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.97
-10:40:41 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.98
-10:41:00 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.98 | Vol: 65012282.972
-10:41:00 [core.sensor_manager] INFO: 📡 Signal Detected: InsideBarBreakout -> SHORT
-10:41:00 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-10:41:00 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-10:41:00 [core.sensor_manager] INFO: 📡 Signal Detected: CCIReversion -> SHORT
-10:41:00 [decision.aggregator] INFO: 📊 Selected: CCIReversion (SHORT) | Score: 0.393 | Total signals: 2
-10:41:01 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-10:41:09 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.98
-10:41:36 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.98
-10:42:02 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.98 | Vol: 59359523.001
-10:42:02 [core.sensor_manager] INFO: 📡 Signal Detected: VCPPattern -> SHORT
-10:42:02 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-10:42:02 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-10:42:02 [core.sensor_manager] INFO: 📡 Signal Detected: KeltnerReversion -> SHORT
-10:42:02 [core.sensor_manager] INFO: 📡 Signal Detected: WilliamsRReversion -> SHORT
-10:42:02 [core.sensor_manager] INFO: 📡 Signal Detected: FVGRetest -> SHORT
-10:42:03 [decision.aggregator] INFO: 📊 Selected: WilliamsRReversion (SHORT) | Score: 0.374 | Total signals: 4
-10:42:03 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-10:42:05 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.98
-10:42:25 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.98
-10:42:49 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.98
-10:43:01 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.98 | Vol: 76319436.17400002
-10:43:01 [core.sensor_manager] INFO: 📡 Signal Detected: MACDCrossover -> SHORT
-10:43:01 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-10:43:01 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-10:43:01 [core.sensor_manager] INFO: 📡 Signal Detected: ADXFilter -> SHORT
-10:43:01 [decision.aggregator] INFO: 📊 Selected: MACDCrossover (SHORT) | Score: 0.339 | Total signals: 2
-10:43:01 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-10:43:09 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.98
-10:43:29 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.98
-10:43:49 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.98
-10:44:02 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.98 | Vol: 84800329.22799999
-10:44:02 [core.sensor_manager] INFO: 📡 Signal Detected: RSIReversion -> LONG
-10:44:02 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-10:44:02 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-10:44:02 [decision.aggregator] INFO: 📊 Selected: RSIReversion (LONG) | Score: 0.328 | Total signals: 1
-10:44:03 [BinanceConnector] ERROR: ❌ Error fetching positions: binance 418 I'm a teapot {"code":-1003,"msg":"Way too many requests; IP(15.158.210.74) banned until 1764600342219. Please use the websocket for live updates to avoid bans."}
-10:44:03 [ExchangeStateSync] ERROR: ❌ Error sincronizando posiciones: binance 418 I'm a teapot {"code":-1003,"msg":"Way too many requests; IP(15.158.210.74) banned until 1764600342219. Please use the websocket for live updates to avoid bans."}
-10:44:03 [Croupier] ERROR: ❌ Error durante reconciliación de LTC/USDT:USDT: binance 418 I'm a teapot {"code":-1003,"msg":"Way too many requests; IP(15.158.210.74) banned until 1764600342219. Please use the websocket for live updates to avoid bans."}
-Traceback (most recent call last):
-  File "/home/chesterbelle/Casino-V2/croupier/croupier.py", line 241, in reconcile_positions
-    exchange_positions = await self.state_sync.sync_positions()
-                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/chesterbelle/Casino-V2/exchanges/adapters/exchange_state_sync.py", line 164, in sync_positions
-    raw_positions = await self.connector.fetch_positions()
-                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/chesterbelle/Casino-V2/exchanges/connectors/binance/binance_connector.py", line 797, in fetch_positions
-    positions = await self._safe_ccxt_call("fetch_positions", symbols)
-                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/chesterbelle/Casino-V2/exchanges/connectors/binance/binance_connector.py", line 561, in _safe_ccxt_call
-    return await method(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/chesterbelle/Casino-V2/exchanges/connectors/binance/binance_connector.py", line 121, in fetch_positions
-    response = await self.fapiPrivateV2GetPositionRisk(params)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/chesterbelle/Casino-V2/.venv/lib/python3.13/site-packages/ccxt/async_support/binance.py", line 11460, in request
-    response = await self.fetch2(path, api, method, params, headers, body, config)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/chesterbelle/Casino-V2/.venv/lib/python3.13/site-packages/ccxt/async_support/base/exchange.py", line 984, in fetch2
-    raise e
-  File "/home/chesterbelle/Casino-V2/.venv/lib/python3.13/site-packages/ccxt/async_support/base/exchange.py", line 975, in fetch2
-    return await self.fetch(request['url'], request['method'], request['headers'], request['body'])
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/chesterbelle/Casino-V2/.venv/lib/python3.13/site-packages/ccxt/async_support/base/exchange.py", line 263, in fetch
-    self.handle_errors(http_status_code, http_status_text, url, method, headers, http_response, json_response, request_headers, request_body)
-    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/chesterbelle/Casino-V2/.venv/lib/python3.13/site-packages/ccxt/async_support/binance.py", line 11375, in handle_errors
-    raise DDoSProtection(self.id + ' ' + str(code) + ' ' + reason + ' ' + body)
-ccxt.base.errors.DDoSProtection: binance 418 I'm a teapot {"code":-1003,"msg":"Way too many requests; IP(15.158.210.74) banned until 1764600342219. Please use the websocket for live updates to avoid bans."}
-10:44:11 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.98
-10:44:37 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.98
-10:45:00 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.98
-10:45:00 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.98 | Vol: 67844723.985
-10:45:00 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-10:45:00 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-10:45:01 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-10:45:23 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.98
-10:45:48 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 77.22
-10:46:02 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.98 | Vol: 76304582.85500002
-10:46:02 [core.sensor_manager] INFO: 📡 Signal Detected: PinBarReversal -> SHORT
-10:46:02 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-10:46:02 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-10:46:02 [core.sensor_manager] INFO: 📡 Signal Detected: CCIReversion -> SHORT
-10:46:02 [decision.aggregator] INFO: 📊 Selected: PinBarReversal (SHORT) | Score: 0.397 | Total signals: 2
-10:46:04 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-10:46:09 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.98
-10:46:29 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.98
-10:46:56 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.98
-10:47:00 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.98 | Vol: 70223345.80200002
-10:47:00 [core.sensor_manager] INFO: 📡 Signal Detected: KeltnerReversion -> SHORT
-10:47:00 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-10:47:00 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-10:47:00 [core.sensor_manager] INFO: 📡 Signal Detected: WilliamsRReversion -> SHORT
-10:47:00 [decision.aggregator] INFO: 📊 Selected: WilliamsRReversion (SHORT) | Score: 0.374 | Total signals: 2
-10:47:02 [BinanceConnector] ERROR: ❌ Error fetching open orders: binance 418 I'm a teapot {"code":-1003,"msg":"Way too many requests; IP(15.158.210.74) banned until 1764600462342. Please use the websocket for live updates to avoid bans."}
-10:47:02 [Croupier] ERROR: ❌ Error durante reconciliación de LTC/USDT:USDT: binance 418 I'm a teapot {"code":-1003,"msg":"Way too many requests; IP(15.158.210.74) banned until 1764600462342. Please use the websocket for live updates to avoid bans."}
-Traceback (most recent call last):
-  File "/home/chesterbelle/Casino-V2/croupier/croupier.py", line 242, in reconcile_positions
-    exchange_orders = await self.exchange_adapter.connector.fetch_open_orders(symbol)
-                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/chesterbelle/Casino-V2/exchanges/connectors/binance/binance_connector.py", line 1294, in fetch_open_orders
-    orders = await self._safe_ccxt_call("fetch_open_orders", binance_symbol)
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/chesterbelle/Casino-V2/exchanges/connectors/binance/binance_connector.py", line 561, in _safe_ccxt_call
-    return await method(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/chesterbelle/Casino-V2/.venv/lib/python3.13/site-packages/ccxt/async_support/binance.py", line 6851, in fetch_open_orders
-    response = await self.fapiPrivateGetOpenOrders(self.extend(request, params))
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/chesterbelle/Casino-V2/.venv/lib/python3.13/site-packages/ccxt/async_support/binance.py", line 11460, in request
-    response = await self.fetch2(path, api, method, params, headers, body, config)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/chesterbelle/Casino-V2/.venv/lib/python3.13/site-packages/ccxt/async_support/base/exchange.py", line 984, in fetch2
-    raise e
-  File "/home/chesterbelle/Casino-V2/.venv/lib/python3.13/site-packages/ccxt/async_support/base/exchange.py", line 975, in fetch2
-    return await self.fetch(request['url'], request['method'], request['headers'], request['body'])
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/chesterbelle/Casino-V2/.venv/lib/python3.13/site-packages/ccxt/async_support/base/exchange.py", line 263, in fetch
-    self.handle_errors(http_status_code, http_status_text, url, method, headers, http_response, json_response, request_headers, request_body)
-    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/chesterbelle/Casino-V2/.venv/lib/python3.13/site-packages/ccxt/async_support/binance.py", line 11375, in handle_errors
-    raise DDoSProtection(self.id + ' ' + str(code) + ' ' + reason + ' ' + body)
-ccxt.base.errors.DDoSProtection: binance 418 I'm a teapot {"code":-1003,"msg":"Way too many requests; IP(15.158.210.74) banned until 1764600462342. Please use the websocket for live updates to avoid bans."}
-10:47:20 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.98
-10:47:45 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.98
-10:48:01 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.98 | Vol: 73032289.73500001
-10:48:01 [core.sensor_manager] INFO: 📡 Signal Detected: ADXFilter -> SHORT
-10:48:01 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-10:48:01 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-10:48:01 [decision.aggregator] INFO: 📊 Selected: ADXFilter (SHORT) | Score: 0.241 | Total signals: 1
-10:48:02 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-10:48:06 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.98
-10:48:28 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.83
-10:48:51 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.83
-10:49:01 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.83 | Vol: 73053039.60399999
-10:49:01 [core.sensor_manager] INFO: 📡 Signal Detected: ExtremeCandleRatio -> SHORT
-10:49:01 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-10:49:01 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-10:49:01 [core.sensor_manager] INFO: 📡 Signal Detected: RSIReversion -> LONG
-10:49:01 [core.sensor_manager] INFO: 📡 Signal Detected: Supertrend -> SHORT
-10:49:01 [core.sensor_manager] INFO: 📡 Signal Detected: VolumeImbalance -> SHORT
-10:49:01 [decision.aggregator] INFO: ⚖️ Conflict unresolved | LONG: RSIReversion (0.328) vs SHORT: ExtremeCandleRatio (0.333) | Delta: 0.004 < 0.01
-10:49:01 [decision.aggregator] INFO: 📊 No signal selected (all below threshold or conflict unresolved)
-10:49:02 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-10:49:14 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.83
-10:49:43 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.83
-10:50:02 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.83 | Vol: 67447807.46100001
-10:50:02 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-10:50:02 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-10:50:02 [BinanceConnector] ERROR: ❌ Error fetching positions: binance 418 I'm a teapot {"code":-1003,"msg":"Way too many requests; IP(15.158.210.74) banned until 1764600956599. Please use the websocket for live updates to avoid bans."}
-10:50:02 [ExchangeStateSync] ERROR: ❌ Error sincronizando posiciones: binance 418 I'm a teapot {"code":-1003,"msg":"Way too many requests; IP(15.158.210.74) banned until 1764600956599. Please use the websocket for live updates to avoid bans."}
-10:50:02 [Croupier] ERROR: ❌ Error durante reconciliación de LTC/USDT:USDT: binance 418 I'm a teapot {"code":-1003,"msg":"Way too many requests; IP(15.158.210.74) banned until 1764600956599. Please use the websocket for live updates to avoid bans."}
-Traceback (most recent call last):
-  File "/home/chesterbelle/Casino-V2/croupier/croupier.py", line 241, in reconcile_positions
-    exchange_positions = await self.state_sync.sync_positions()
-                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/chesterbelle/Casino-V2/exchanges/adapters/exchange_state_sync.py", line 164, in sync_positions
-    raw_positions = await self.connector.fetch_positions()
-                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/chesterbelle/Casino-V2/exchanges/connectors/binance/binance_connector.py", line 797, in fetch_positions
-    positions = await self._safe_ccxt_call("fetch_positions", symbols)
-                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/chesterbelle/Casino-V2/exchanges/connectors/binance/binance_connector.py", line 561, in _safe_ccxt_call
-    return await method(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/chesterbelle/Casino-V2/exchanges/connectors/binance/binance_connector.py", line 121, in fetch_positions
-    response = await self.fapiPrivateV2GetPositionRisk(params)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/chesterbelle/Casino-V2/.venv/lib/python3.13/site-packages/ccxt/async_support/binance.py", line 11460, in request
-    response = await self.fetch2(path, api, method, params, headers, body, config)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/chesterbelle/Casino-V2/.venv/lib/python3.13/site-packages/ccxt/async_support/base/exchange.py", line 984, in fetch2
-    raise e
-  File "/home/chesterbelle/Casino-V2/.venv/lib/python3.13/site-packages/ccxt/async_support/base/exchange.py", line 975, in fetch2
-    return await self.fetch(request['url'], request['method'], request['headers'], request['body'])
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/chesterbelle/Casino-V2/.venv/lib/python3.13/site-packages/ccxt/async_support/base/exchange.py", line 263, in fetch
-    self.handle_errors(http_status_code, http_status_text, url, method, headers, http_response, json_response, request_headers, request_body)
-    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/chesterbelle/Casino-V2/.venv/lib/python3.13/site-packages/ccxt/async_support/binance.py", line 11375, in handle_errors
-    raise DDoSProtection(self.id + ' ' + str(code) + ' ' + reason + ' ' + body)
-ccxt.base.errors.DDoSProtection: binance 418 I'm a teapot {"code":-1003,"msg":"Way too many requests; IP(15.158.210.74) banned until 1764600956599. Please use the websocket for live updates to avoid bans."}
-10:50:08 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.83
-10:50:34 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.83
-10:50:59 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.83
-10:51:02 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.83 | Vol: 64637357.708000004
-10:51:02 [core.sensor_manager] INFO: 📡 Signal Detected: FVGRetest -> SHORT
-10:51:02 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-10:51:02 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-10:51:02 [decision.aggregator] INFO: 📊 Selected: FVGRetest (SHORT) | Score: 0.370 | Total signals: 1
-10:51:03 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-10:51:28 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.83
-10:51:51 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.83
-10:52:02 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.83 | Vol: 67447531.08199999
-10:52:02 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-10:52:02 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-10:52:02 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-10:52:13 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.83
-10:52:40 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.83
-10:53:00 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.83 | Vol: 61826863.25699999
-10:53:00 [core.sensor_manager] INFO: 📡 Signal Detected: ADXFilter -> SHORT
-10:53:00 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-10:53:00 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-10:53:00 [decision.aggregator] INFO: 📊 Selected: ADXFilter (SHORT) | Score: 0.241 | Total signals: 1
-10:53:01 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-10:53:06 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.83
-10:53:34 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.83
-10:53:58 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.83
-10:54:00 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.83 | Vol: 67447500.20400001
-10:54:00 [core.sensor_manager] INFO: 📡 Signal Detected: EMACrossover -> SHORT
-10:54:00 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-10:54:00 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-10:54:00 [core.sensor_manager] INFO: 📡 Signal Detected: RSIReversion -> LONG
-10:54:00 [core.sensor_manager] INFO: 📡 Signal Detected: StochasticReversion -> LONG
-10:54:00 [decision.aggregator] INFO: ⚖️ Conflict resolved | Winner: StochasticReversion (LONG, 0.411) | Loser: EMACrossover (SHORT, 0.298)
-10:54:00 [decision.aggregator] INFO: 📊 Selected: StochasticReversion (LONG) | Score: 0.411 | Total signals: 3
-10:54:01 [BinanceConnector] ERROR: ❌ Error fetching positions: binance 418 I'm a teapot {"code":-1003,"msg":"Way too many requests; IP(15.158.210.74) banned until 1764600956599. Please use the websocket for live updates to avoid bans."}
-10:54:01 [ExchangeStateSync] ERROR: ❌ Error sincronizando posiciones: binance 418 I'm a teapot {"code":-1003,"msg":"Way too many requests; IP(15.158.210.74) banned until 1764600956599. Please use the websocket for live updates to avoid bans."}
-10:54:01 [Croupier] ERROR: ❌ Error durante reconciliación de LTC/USDT:USDT: binance 418 I'm a teapot {"code":-1003,"msg":"Way too many requests; IP(15.158.210.74) banned until 1764600956599. Please use the websocket for live updates to avoid bans."}
-Traceback (most recent call last):
-  File "/home/chesterbelle/Casino-V2/croupier/croupier.py", line 241, in reconcile_positions
-    exchange_positions = await self.state_sync.sync_positions()
-                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/chesterbelle/Casino-V2/exchanges/adapters/exchange_state_sync.py", line 164, in sync_positions
-    raw_positions = await self.connector.fetch_positions()
-                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/chesterbelle/Casino-V2/exchanges/connectors/binance/binance_connector.py", line 797, in fetch_positions
-    positions = await self._safe_ccxt_call("fetch_positions", symbols)
-                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/chesterbelle/Casino-V2/exchanges/connectors/binance/binance_connector.py", line 561, in _safe_ccxt_call
-    return await method(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/chesterbelle/Casino-V2/exchanges/connectors/binance/binance_connector.py", line 121, in fetch_positions
-    response = await self.fapiPrivateV2GetPositionRisk(params)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/chesterbelle/Casino-V2/.venv/lib/python3.13/site-packages/ccxt/async_support/binance.py", line 11460, in request
-    response = await self.fetch2(path, api, method, params, headers, body, config)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/chesterbelle/Casino-V2/.venv/lib/python3.13/site-packages/ccxt/async_support/base/exchange.py", line 984, in fetch2
-    raise e
-  File "/home/chesterbelle/Casino-V2/.venv/lib/python3.13/site-packages/ccxt/async_support/base/exchange.py", line 975, in fetch2
-    return await self.fetch(request['url'], request['method'], request['headers'], request['body'])
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/chesterbelle/Casino-V2/.venv/lib/python3.13/site-packages/ccxt/async_support/base/exchange.py", line 263, in fetch
-    self.handle_errors(http_status_code, http_status_text, url, method, headers, http_response, json_response, request_headers, request_body)
-    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/chesterbelle/Casino-V2/.venv/lib/python3.13/site-packages/ccxt/async_support/binance.py", line 11375, in handle_errors
-    raise DDoSProtection(self.id + ' ' + str(code) + ' ' + reason + ' ' + body)
-ccxt.base.errors.DDoSProtection: binance 418 I'm a teapot {"code":-1003,"msg":"Way too many requests; IP(15.158.210.74) banned until 1764600956599. Please use the websocket for live updates to avoid bans."}
-10:54:18 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.83
-10:54:41 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.83
-10:55:03 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.83
-10:55:03 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.83 | Vol: 81499698.149
-10:55:03 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-10:55:03 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-10:55:03 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-10:55:29 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.83
-10:55:52 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.83
-10:56:01 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.83 | Vol: 67445159.88599999
-10:56:01 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-10:56:01 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-10:56:02 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-10:56:17 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.91
-10:56:45 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.96
-10:57:03 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.99 | Vol: 64634904.99700001
-10:57:03 [core.sensor_manager] INFO: 📡 Signal Detected: EMA50Support -> LONG
-10:57:03 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-10:57:03 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-10:57:03 [core.sensor_manager] INFO: 📡 Signal Detected: ExtremeCandleRatio -> LONG
-10:57:03 [core.sensor_manager] INFO: 📡 Signal Detected: KeltnerReversion -> SHORT
-10:57:03 [core.sensor_manager] INFO: 📡 Signal Detected: WilliamsRReversion -> SHORT
-10:57:03 [core.sensor_manager] INFO: 📡 Signal Detected: MomentumBurst -> LONG
-10:57:03 [decision.aggregator] INFO: ⚖️ Conflict resolved | Winner: MomentumBurst (LONG, 0.426) | Loser: WilliamsRReversion (SHORT, 0.374)
-10:57:03 [decision.aggregator] INFO: 📊 Selected: MomentumBurst (LONG) | Score: 0.426 | Total signals: 5
-10:57:04 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-10:57:11 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.96
-10:57:40 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.89
-10:58:00 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.86 | Vol: 59013737.107999995
-10:58:00 [core.sensor_manager] INFO: 📡 Signal Detected: PinBarReversal -> SHORT
-10:58:00 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-10:58:00 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-10:58:00 [core.sensor_manager] INFO: 📡 Signal Detected: CCIReversion -> SHORT
-10:58:00 [core.sensor_manager] INFO: 📡 Signal Detected: ADXFilter -> LONG
-10:58:00 [decision.aggregator] INFO: ⚖️ Conflict resolved | Winner: PinBarReversal (SHORT, 0.397) | Loser: ADXFilter (LONG, 0.241)
-10:58:00 [decision.aggregator] INFO: 📊 Selected: PinBarReversal (SHORT) | Score: 0.397 | Total signals: 3
-10:58:01 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-10:58:04 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.86
-10:58:27 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.83
-10:58:49 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.83
-10:59:01 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.83 | Vol: 78686645.17500001
-10:59:01 [core.sensor_manager] INFO: 📡 Signal Detected: RSIReversion -> SHORT
-10:59:01 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-10:59:01 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-10:59:01 [core.sensor_manager] INFO: 📡 Signal Detected: StochasticReversion -> LONG
-10:59:01 [core.sensor_manager] INFO: 📡 Signal Detected: VolumeImbalance -> SHORT
-10:59:01 [decision.aggregator] INFO: ⚖️ Conflict resolved | Winner: StochasticReversion (LONG, 0.411) | Loser: VolumeImbalance (SHORT, 0.331)
-10:59:01 [decision.aggregator] INFO: 📊 Selected: StochasticReversion (LONG) | Score: 0.411 | Total signals: 3
-10:59:02 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-10:59:11 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.83
-10:59:33 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.83
-10:59:56 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.83
-11:00:03 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.83 | Vol: 75879032.192
-11:00:03 [core.sensor_manager] INFO: 📡 Signal Detected: DecelerationCandles -> LONG
-11:00:03 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-11:00:03 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-11:00:03 [decision.aggregator] INFO: 📊 Selected: DecelerationCandles (LONG) | Score: 0.265 | Total signals: 1
-11:00:04 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-11:00:19 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.83
-11:00:39 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.83
-11:01:00 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 76.83
-11:01:00 [core.candle_maker] INFO: 🕯️ Candle Closed: 76.83 | Vol: 75879926.251
-11:01:00 [core.execution] INFO: 🔄 Running periodic reconciliation (every 1 candles)
-11:01:00 [Croupier] INFO: 🔍 Iniciando reconciliación para LTC/USDT:USDT
-11:01:00 [Croupier] INFO: ✅ Reconciliación completada para LTC/USDT:USDT
-11:01:10 [Casino-V3] INFO: 🧹 Cleaning up resources...
-11:01:10 [core.engine] INFO: 🛑 Stopping Engine...
-11:01:10 [core.feed] INFO: 🔌 Disconnecting Data Feed...
-11:01:10 [BinanceConnector] INFO: 🔌 WebSocket connection closed
-11:01:11 [BinanceConnector] INFO: 🔌 Connection to Binance closed
-11:01:11 [core.engine] INFO: 👋 Engine stopped.
-11:01:11 [asyncio] ERROR: Exception in callback <function Client.receive_loop.<locals>.after_interrupt at 0x7f2873328f40>
-handle: <Handle Client.receive_loop.<locals>.after_interrupt>
-Traceback (most recent call last):
-  File "uvloop/cbhandles.pyx", line 63, in uvloop.loop.Handle._run
-  File "/home/chesterbelle/Casino-V2/.venv/lib/python3.13/site-packages/ccxt/async_support/base/ws/client.py", line 136, in after_interrupt
-    exception = resolved.exception()
-  File "/home/chesterbelle/Casino-V2/.venv/lib/python3.13/site-packages/aiohttp/client_ws.py", line 315, in receive
-    msg = await self._reader.read()
-          ^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/chesterbelle/Casino-V2/.venv/lib/python3.13/site-packages/aiohttp/streams.py", line 685, in read
-    return await super().read()
-           ^^^^^^^^^^^^^^^^^^^^
-  File "/home/chesterbelle/Casino-V2/.venv/lib/python3.13/site-packages/aiohttp/streams.py", line 644, in read
-    await self._waiter
-asyncio.exceptions.CancelledError
-11:01:11 [core.execution] INFO: 🛑 OrderManager stopped
-11:01:11 [Casino-V3] INFO: 🧹 Force closing 3 open positions...
-11:01:11 [exchanges.adapters.ccxt_adapter] INFO: 🔍 get_current_price | requested_symbol=LTC/USDT:USDT | adapter_symbol=LTC/USDT:USDT
-11:01:11 [exchanges.adapters.ccxt_adapter] INFO: 💰 Current price for LTC/USDT:USDT: 77.22
-11:01:11 [Croupier] INFO: 🧹 Ejecutando limpieza robusta para LTC/USDT:USDT...
-11:01:12 [BinanceConnector] INFO: ✅ Order cancelled: 875464451
-11:01:13 [BinanceConnector] INFO: ✅ Order cancelled: 875464454
-11:01:13 [BinanceConnector] INFO: ✅ Order cancelled: 875464880
-11:01:14 [BinanceConnector] INFO: ✅ Order cancelled: 875464881
-11:01:14 [BinanceConnector] INFO: ✅ Order cancelled: 875468725
-11:01:15 [BinanceConnector] INFO: ✅ Order cancelled: 875468726
-11:01:15 [BinanceConnector] INFO: 📋 Creating order: symbol=LTC/USDT:USDT, side=sell, amount=0.003, price=None, type=market
-11:01:15 [BinanceConnector] INFO: ✅ Order created | LTC/USDT:USDT SELL 0.003 @ market | avgPrice: 0.0
-11:01:17 [BinanceConnector] INFO: 📋 Creating order: symbol=LTC/USDT:USDT, side=buy, amount=5.227, price=None, type=market
-11:01:18 [BinanceConnector] INFO: ✅ Order created | LTC/USDT:USDT BUY 5.227 @ market | avgPrice: 0.0
-11:01:21 [Croupier] INFO: ✅ Limpieza para LTC/USDT:USDT completada.
-11:01:21 [Casino-V3] INFO: 📊 Generating Session Report...
-11:01:21 [Casino-V3] INFO: 💰 Fetching final balance from exchange...
-DEBUG: Processing candle 0
-
-========================================
-📊 SESSION REPORT - LTC/USDT:USDT
-========================================
-   Trades Total          : 1
-   Wins / Losses         : 0 / 1
-   WinRate               : 0.00%
-   Comisiones (Est)      : 0.00
-   Balance Inicial       : 3498.71
-   Balance Final (Real)  : 3495.31
-   PnL Total             : -3.40 (-0.10%)
-========================================
-
-Traceback (most recent call last):
-  File "/usr/lib/python3.13/asyncio/runners.py", line 118, in run
-    return self._loop.run_until_complete(task)
-           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "uvloop/loop.pyx", line 1518, in uvloop.loop.Loop.run_until_complete
-  File "/home/chesterbelle/Casino-V2/main.py", line 158, in main
-    await asyncio.sleep(1)
-  File "/usr/lib/python3.13/asyncio/tasks.py", line 718, in sleep
-    return await future
-           ^^^^^^^^^^^^
-asyncio.exceptions.CancelledError
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "/home/chesterbelle/Casino-V2/main.py", line 230, in <module>
-    asyncio.run(main())
-    ~~~~~~~~~~~^^^^^^^^
-  File "/usr/lib/python3.13/asyncio/runners.py", line 195, in run
-    return runner.run(main)
-           ~~~~~~~~~~^^^^^^
-  File "/usr/lib/python3.13/asyncio/runners.py", line 123, in run
-    raise KeyboardInterrupt()
-KeyboardInterrupt
-11:01:25 [ccxt.base.exchange] WARNING: binance requires to release all resources with an explicit call to the .close() coroutine. If you are using the exchange instance with async coroutines, add `await exchange.close()` to your code into a place when you're done with the exchange and don't need the exchange instance anymore (at the end of your async coroutine).
-11:01:25 [asyncio] ERROR: Unclosed client session
-client_session: <aiohttp.client.ClientSession object at 0x7f2890fca990>
-Exception ignored in: <function ClientResponse.__del__ at 0x7f2894820680>
-Traceback (most recent call last):
-  File "/home/chesterbelle/Casino-V2/.venv/lib/python3.13/site-packages/aiohttp/client_reqrep.py", line 974, in __del__
-    self._connection.release()
-  File "/home/chesterbelle/Casino-V2/.venv/lib/python3.13/site-packages/aiohttp/connector.py", line 197, in release
-    self._connector._release(self._key, self._protocol)
-  File "/home/chesterbelle/Casino-V2/.venv/lib/python3.13/site-packages/aiohttp/connector.py", line 704, in _release
-    protocol.close()
-  File "/home/chesterbelle/Casino-V2/.venv/lib/python3.13/site-packages/aiohttp/client_proto.py", line 69, in close
-    transport.close()
-  File "uvloop/sslproto.pyx", line 51, in uvloop.loop._SSLProtocolTransport.close
-  File "uvloop/sslproto.pyx", line 572, in uvloop.loop.SSLProtocol._start_shutdown
-  File "uvloop/loop.pyx", line 1315, in uvloop.loop.Loop.call_later
-  File "uvloop/loop.pyx", line 705, in uvloop.loop.Loop._check_closed
-RuntimeError: Event loop is closed
-11:01:25 [ccxt.base.exchange] WARNING: binance requires to release all resources with an explicit call to the .close() coroutine. If you are using the exchange instance with async coroutines, add `await exchange.close()` to your code into a place when you're done with the exchange and don't need the exchange instance anymore (at the end of your async coroutine).
-11:01:25 [asyncio] ERROR: Unclosed connector
-connections: ['[(<aiohttp.client_proto.ResponseHandler object at 0x7f286a8c46b0>, 129390.509715484)]']
-connector: <aiohttp.connector.TCPConnector object at 0x7f286b924c30>
+14:34:06 [Casino-V3] INFO: 🚀 Starting Casino-V3 | Exchange: binance | Mode: demo
+14:34:06 [BinanceConnector] INFO: ℹ️ WebSocket habilitado: ccxt.pro puede tener bugs de concurrencia. Se aplicaron mitigaciones (pre-auth, sin snapshots, espejado de markets).
+14:34:06 [BinanceConnector] INFO: 📝 Loading Binance credentials from environment...
+14:34:06 [BinanceConnector] INFO: 🌐 Initializing Binance Futures connection (demo)...
+14:34:06 [BinanceConnector] INFO: 🧪 Testnet mode enabled. Using custom BinanceTestnet class.
+14:34:06 [BinanceConnector] INFO: 🔌 WebSocket enabled - will initialize on connect()
+14:34:06 [BinanceConnector] INFO: ✅ Binance connector initialized | Mode: DEMO
+14:34:06 [exchanges.adapters.ccxt_adapter] INFO: Stateless CCXTAdapter initialized | Symbol: LTC/USDT:USDT | Timeframe: 1m
+14:34:06 [PositionTracker] INFO: PositionTracker inicializado | Max positions: 10
+14:34:06 [ExchangeStateSync] INFO: ExchangeStateSync inicializado
+14:34:06 [BinanceConnector] INFO: ✅ Order update callback registered
+14:34:06 [Croupier] INFO: ✅ Registered for WebSocket order updates
+14:34:06 [Croupier] INFO: 🎯 Croupier initialized as State Owner | Balance: $10,000.00
+14:34:06 [Croupier] INFO: ✅ OCO Manual enabled in PositionTracker
+14:34:06 [core.sensor_manager] INFO: ✅ SensorManager loaded 27 sensors for timeframe 1m.
+14:34:06 [decision.sensor_tracker] INFO: ✅ Loaded stats for 25 sensors from state/sensor_stats.json
+14:34:06 [decision.sensor_tracker] INFO: ✅ SensorTracker initialized | Sensors: 25
+14:34:06 [decision.aggregator] INFO: ✅ SignalAggregator initialized with intelligent scoring
+14:34:06 [players.fixed] INFO: ✅ FixedPlayer initialized | Bet Size: 1.0% | Max Positions: 3
+14:34:08 [Casino-V3] INFO: 💰 Initial Balance for Report: 3489.42 USDT
+14:34:08 [BinanceConnector] INFO: 🔌 Connecting to Binance Futures...
+14:34:08 [BinanceConnector] INFO: ✅ Markets loaded | Count: 646
+14:34:08 [BinanceConnector] INFO: ✅ Balance fetched | USDT: 3489.41706978
+14:34:08 [BinanceConnector] INFO: 🔌 Starting WebSocket initialization...
+14:34:09 [BinanceConnector] INFO: 🔌 Initializing WebSocket connection...
+14:34:09 [BinanceConnector] INFO: 🧪 Using BinanceTestnetPro for WebSocket demo (API: NbcYL8ma...)
+14:34:09 [BinanceConnector] INFO: 🔑 WebSocket authenticated and listenKey provisioned (future)
+14:34:09 [BinanceConnector] INFO: ✅ WebSocket connection initialized
+14:34:09 [BinanceConnector] INFO: 👁️ Order monitoring started
+14:34:09 [BinanceConnector] INFO: ✅ Binance connector ready | Mode: DEMO
+14:34:09 [core.execution] INFO: 🚀 OrderManager started
+14:34:09 [core.engine] INFO: 🚀 Starting Casino-V3 Engine...
+14:34:09 [core.feed] INFO: 🔌 Connecting Data Feed...
+14:34:09 [BinanceConnector] INFO: 🔌 Connecting to Binance Futures...
+14:34:09 [BinanceConnector] INFO: ✅ Markets loaded | Count: 646
+14:34:10 [BinanceConnector] INFO: ✅ Balance fetched | USDT: 3489.41655409
+14:34:10 [BinanceConnector] INFO: 🔌 Starting WebSocket initialization...
+14:34:10 [BinanceConnector] INFO: 🔌 Initializing WebSocket connection...
+14:34:10 [BinanceConnector] INFO: 🧪 Using BinanceTestnetPro for WebSocket demo (API: NbcYL8ma...)
+14:34:11 [BinanceConnector] INFO: 🔑 WebSocket authenticated and listenKey provisioned (future)
+14:34:11 [BinanceConnector] INFO: ✅ WebSocket connection initialized
+14:34:11 [BinanceConnector] INFO: 👁️ Order monitoring started
+14:34:11 [BinanceConnector] INFO: ✅ Binance connector ready | Mode: DEMO
+14:34:11 [core.engine] INFO: ✅ Engine running. Waiting for events...
+14:34:11 [Casino-V3] INFO: 📡 Subscribing to LTC/USDT:USDT...
+14:34:11 [core.feed] INFO: 📡 Subscribing to ticker: LTC/USDT:USDT
+14:34:11 [Casino-V3] INFO: ✅ Casino-V3 Running | Press Ctrl+C to stop
+14:34:35 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 75.86
+14:34:57 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 75.84
+14:35:01 [core.candle_maker] INFO: 🕯️ Candle Closed: 75.84 | Vol: 81138925.42600001
+14:35:21 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 75.85
+14:35:42 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 75.82
+14:36:02 [core.candle_maker] INFO: 🕯️ Candle Closed: 75.82 | Vol: 113595073.031
+14:36:02 [core.sensor_manager] INFO: 📡 Signal Detected: PinBarReversal -> SHORT
+14:36:02 [decision.aggregator] INFO: 📊 Selected: PinBarReversal (SHORT) | Score: 0.397 | Total signals: 1
+14:36:02 [players.fixed] INFO: 🎯 Decision: SHORT | Fixed Bet: 1.00% of 10000.00
+14:36:02 [core.execution] INFO: 📩 Decision Received: LTC/USDT:USDT SHORT (Size: 1.00%, Step: 0)
+14:36:02 [exchanges.adapters.ccxt_adapter] INFO: 🔍 get_current_price | requested_symbol=LTC/USDT:USDT | adapter_symbol=LTC/USDT:USDT
+14:36:03 [exchanges.adapters.ccxt_adapter] INFO: 💰 Current price for LTC/USDT:USDT: 75.82
+14:36:03 [Croupier] INFO: 📊 Orden convertida | Fracción: 0.0100 | Notional: 100.00 USDT | Precio: 75.82000000 | Cantidad: 1.318913 contratos
+14:36:03 [BinanceConnector] INFO: 📋 Creating order: symbol=LTC/USDT:USDT, side=sell, amount=1.318, price=None, type=market
+14:36:03 [BinanceConnector] INFO: ✅ Order created | LTC/USDT:USDT SELL 1.318 @ market | avgPrice: 0.0
+14:36:03 [BinanceConnector] INFO: 🔍 watch_orders() returned: type=<class 'list'>, length=1
+14:36:03 [Croupier] INFO: ⚡ WebSocket Order Update: ID=875493411, Symbol=LTC/USDT:USDT, Status=open
+14:36:03 [Croupier] INFO: ✅ Orden ejecutada: 875493411
+14:36:03 [Croupier] INFO: 📊 OCO Monitor | Entry: $75.82000000 | TP: $75.44090000 | SL: $78.05778939
+14:36:03 [Croupier] INFO: 🔧 Rounded TP/SL to exchange precision | TP: 75.4409 -> 75.44 | SL: 78.05778938999998 -> 78.06
+14:36:03 [exchanges.adapters.ccxt_adapter] INFO: 🔍 get_current_price | requested_symbol=LTC/USDT:USDT | adapter_symbol=LTC/USDT:USDT
+14:36:03 [BinanceConnector] INFO: 🔍 watch_orders() returned: type=<class 'list'>, length=1
+14:36:03 [Croupier] INFO: ⚡ WebSocket Order Update: ID=875493411, Symbol=LTC/USDT:USDT, Status=closed
+14:36:03 [Croupier] INFO: 🔍 OCO Check: Searching for 875493411 in 0 positions
+14:36:03 [BinanceConnector] INFO: 🔍 watch_orders() returned: type=<class 'list'>, length=1
+14:36:03 [Croupier] INFO: ⚡ WebSocket Order Update: ID=875493411, Symbol=LTC/USDT:USDT, Status=open
+14:36:03 [BinanceConnector] INFO: 🔍 watch_orders() returned: type=<class 'list'>, length=1
+14:36:03 [Croupier] INFO: ⚡ WebSocket Order Update: ID=875493411, Symbol=LTC/USDT:USDT, Status=open
+14:36:04 [exchanges.adapters.ccxt_adapter] INFO: 💰 Current price for LTC/USDT:USDT: 75.82
+14:36:04 [BinanceConnector] INFO: 📋 Creating order: symbol=LTC/USDT:USDT, side=buy, amount=1.318, price=None, type=take_profit_market
+14:36:04 [BinanceConnector] INFO: 📋 Creating order: symbol=LTC/USDT:USDT, side=buy, amount=1.318, price=None, type=stop_market
+14:36:04 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 75.82
+14:36:06 [BinanceConnector] INFO: 🔍 watch_orders() returned: type=<class 'list'>, length=1
+14:36:06 [Croupier] INFO: ⚡ WebSocket Order Update: ID=875493412, Symbol=LTC/USDT:USDT, Status=open
+14:36:06 [BinanceConnector] INFO: 🔍 watch_orders() returned: type=<class 'list'>, length=1
+14:36:06 [Croupier] INFO: ⚡ WebSocket Order Update: ID=875493412, Symbol=LTC/USDT:USDT, Status=open
+14:36:06 [BinanceConnector] INFO: 🔍 watch_orders() returned: type=<class 'list'>, length=1
+14:36:06 [Croupier] INFO: ⚡ WebSocket Order Update: ID=875493412, Symbol=LTC/USDT:USDT, Status=open
+14:36:06 [BinanceConnector] INFO: ✅ Order created | LTC/USDT:USDT BUY 1.318 @ market | avgPrice: 0.0
+14:36:06 [BinanceConnector] INFO: 🔍 watch_orders() returned: type=<class 'list'>, length=1
+14:36:06 [Croupier] INFO: ⚡ WebSocket Order Update: ID=875493413, Symbol=LTC/USDT:USDT, Status=open
+14:36:06 [BinanceConnector] INFO: 🔍 watch_orders() returned: type=<class 'list'>, length=1
+14:36:06 [Croupier] INFO: ⚡ WebSocket Order Update: ID=875493413, Symbol=LTC/USDT:USDT, Status=open
+14:36:06 [BinanceConnector] INFO: 🔍 watch_orders() returned: type=<class 'list'>, length=1
+14:36:06 [Croupier] INFO: ⚡ WebSocket Order Update: ID=875493413, Symbol=LTC/USDT:USDT, Status=open
+14:36:06 [BinanceConnector] INFO: ✅ Order created | LTC/USDT:USDT BUY 1.318 @ market | avgPrice: 0.0
+14:36:06 [Croupier] INFO: ✅ TP order created: 875493412 @ $75.44000000
+14:36:06 [Croupier] INFO: ✅ SL order created: 875493413 @ $78.06000000
+14:36:06 [PositionTracker] INFO: 📈 OPEN | LTC/USDT:USDT SHORT | Entry: 75.82 | TP: 75.44 | SL: 78.02 | Notional: 100.00 | Margin: 100.00
+14:36:06 [core.execution] WARNING: ⚠️ Order Result: {'status': 'closed', 'id': '875493411', 'price': 75.82, 'amount': 1.318, 'balance': 10000.0, 'equity': 10000.0, 'main_order_id': '875493411', 'tp_order_id': '875493412', 'sl_order_id': '875493413', 'reason': None, 'order_create_ts': 1764614163572, 'ws_confirm_ts': 1764614163853, 'used_ws_confirm': True, 'used_rest_fallback': False, 'ws_latency_ms': 281, 'tp_attempts': [], 'sl_attempts': []}
+14:36:28 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 75.8
+14:36:52 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 75.79
+14:37:00 [core.candle_maker] INFO: 🕯️ Candle Closed: 75.8 | Vol: 101424297.767
+14:37:00 [core.sensor_manager] INFO: 📡 Signal Detected: RSIReversion -> LONG
+14:37:01 [decision.aggregator] INFO: 📊 Selected: RSIReversion (LONG) | Score: 0.328 | Total signals: 1
+14:37:01 [players.fixed] INFO: 🎯 Decision: LONG | Fixed Bet: 1.00% of 10000.00
+14:37:01 [core.execution] INFO: 📩 Decision Received: LTC/USDT:USDT LONG (Size: 1.00%, Step: 0)
+14:37:01 [exchanges.adapters.ccxt_adapter] INFO: 🔍 get_current_price | requested_symbol=LTC/USDT:USDT | adapter_symbol=LTC/USDT:USDT
+14:37:02 [exchanges.adapters.ccxt_adapter] INFO: 💰 Current price for LTC/USDT:USDT: 75.78
+14:37:02 [Croupier] INFO: 📊 Orden convertida | Fracción: 0.0100 | Notional: 100.00 USDT | Precio: 75.78000000 | Cantidad: 1.319609 contratos
+14:37:02 [BinanceConnector] INFO: 📋 Creating order: symbol=LTC/USDT:USDT, side=buy, amount=1.319, price=None, type=market
+14:37:02 [BinanceConnector] INFO: 🔍 watch_orders() returned: type=<class 'list'>, length=1
+14:37:02 [Croupier] INFO: ⚡ WebSocket Order Update: ID=875493495, Symbol=LTC/USDT:USDT, Status=open
+14:37:02 [BinanceConnector] INFO: 🔍 watch_orders() returned: type=<class 'list'>, length=1
+14:37:02 [Croupier] INFO: ⚡ WebSocket Order Update: ID=875493495, Symbol=LTC/USDT:USDT, Status=open
+14:37:02 [BinanceConnector] INFO: 🔍 watch_orders() returned: type=<class 'list'>, length=1
+14:37:02 [Croupier] INFO: ⚡ WebSocket Order Update: ID=875493495, Symbol=LTC/USDT:USDT, Status=open
+14:37:02 [BinanceConnector] INFO: 🔍 watch_orders() returned: type=<class 'list'>, length=1
+14:37:02 [Croupier] INFO: ⚡ WebSocket Order Update: ID=875493495, Symbol=LTC/USDT:USDT, Status=closed
+14:37:02 [Croupier] INFO: 🔍 OCO Check: Searching for 875493495 in 1 positions
+14:37:02 [Croupier] INFO:    - Checking Pos V3_1764614162493: TP=875493412 SL=875493413
+14:37:02 [BinanceConnector] INFO: 🔍 watch_orders() returned: type=<class 'list'>, length=1
+14:37:02 [Croupier] INFO: ⚡ WebSocket Order Update: ID=875493495, Symbol=LTC/USDT:USDT, Status=closed
+14:37:02 [Croupier] INFO: 🔍 OCO Check: Searching for 875493495 in 1 positions
+14:37:02 [Croupier] INFO:    - Checking Pos V3_1764614162493: TP=875493412 SL=875493413
+14:37:02 [BinanceConnector] INFO: 🔍 watch_orders() returned: type=<class 'list'>, length=1
+14:37:02 [Croupier] INFO: ⚡ WebSocket Order Update: ID=875493495, Symbol=LTC/USDT:USDT, Status=closed
+14:37:02 [Croupier] INFO: 🔍 OCO Check: Searching for 875493495 in 1 positions
+14:37:02 [Croupier] INFO:    - Checking Pos V3_1764614162493: TP=875493412 SL=875493413
+14:37:02 [BinanceConnector] INFO: ✅ Order created | LTC/USDT:USDT BUY 1.319 @ market | avgPrice: 0.0
+14:37:04 [Croupier] INFO: ✅ Orden ejecutada: 875493495
+14:37:04 [Croupier] INFO: 📊 OCO Monitor | Entry: $76.10000000 | TP: $76.55660000 | SL: $73.78009150
+14:37:04 [Croupier] INFO: 🔧 Rounded TP/SL to exchange precision | TP: 76.55659999999999 -> 76.56 | SL: 73.7800915 -> 73.78
+14:37:04 [exchanges.adapters.ccxt_adapter] INFO: 🔍 get_current_price | requested_symbol=LTC/USDT:USDT | adapter_symbol=LTC/USDT:USDT
+14:37:05 [exchanges.adapters.ccxt_adapter] INFO: 💰 Current price for LTC/USDT:USDT: 75.8
+14:37:05 [BinanceConnector] INFO: 📋 Creating order: symbol=LTC/USDT:USDT, side=sell, amount=1.319, price=None, type=take_profit_market
+14:37:05 [BinanceConnector] INFO: 📋 Creating order: symbol=LTC/USDT:USDT, side=sell, amount=1.319, price=None, type=stop_market
+14:37:06 [BinanceConnector] INFO: ✅ Order created | LTC/USDT:USDT SELL 1.319 @ market | avgPrice: 0.0
+14:37:07 [BinanceConnector] INFO: ✅ Order created | LTC/USDT:USDT SELL 1.319 @ market | avgPrice: 0.0
+14:37:07 [Croupier] INFO: ✅ TP order created: 875493500 @ $76.56000000
+14:37:07 [Croupier] INFO: ✅ SL order created: 875493503 @ $73.78000000
+14:37:07 [PositionTracker] INFO: 📈 OPEN | LTC/USDT:USDT LONG | Entry: 76.10 | TP: 76.56 | SL: 73.82 | Notional: 100.00 | Margin: 100.00
+14:37:07 [core.execution] WARNING: ⚠️ Order Result: {'status': 'closed', 'id': '875493495', 'price': 76.1, 'amount': 1.319, 'balance': 10000.0, 'equity': 10000.0, 'main_order_id': '875493495', 'tp_order_id': '875493500', 'sl_order_id': '875493503', 'reason': None, 'order_create_ts': 1764614222027, 'ws_confirm_ts': 1764614224808, 'used_ws_confirm': False, 'used_rest_fallback': True, 'ws_latency_ms': 2781, 'tp_attempts': [], 'sl_attempts': []}
+14:37:13 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 75.8
+14:37:40 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 75.8
+14:38:00 [core.candle_maker] INFO: 🕯️ Candle Closed: 75.78 | Vol: 93309577.22899999
+14:38:07 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 75.78
+14:38:31 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 75.8
+14:38:55 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 75.77
+14:39:03 [core.candle_maker] INFO: 🕯️ Candle Closed: 75.81 | Vol: 105478800.94000001
+14:39:25 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 75.79
+14:39:51 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 75.77

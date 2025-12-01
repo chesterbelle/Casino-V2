@@ -25,8 +25,9 @@ from core.data_sources import BacktestDataSource, LiveDataSource, TestingDataSou
 
 # from core.trading import TradingSession
 from croupier.croupier import Croupier
-from exchanges.adapters.ccxt_adapter import CCXTAdapter
+from exchanges.adapters import ExchangeAdapter
 from exchanges.connectors import BybitConnector, KrakenConnector, ResilientConnector
+from exchanges.connectors.binance.binance_connector import BinanceConnector
 
 
 def setup_logging():
@@ -46,32 +47,33 @@ logger = logging.getLogger("CroupierValidator")
 
 
 class CroupierValidator:
-    """Test robusto de ciclo de vida OCO en testnet."""
+    """
+    Validador de la integración Croupier -> Adapter -> Connector.
+    """
 
-    def __init__(
-        self,
-        exchange_name: str,
-        symbol: str,
-        mode: str,
-        size: float,
-        tp: float,
-        sl: float,
-        leverage: int,
-        wait: int,
-        side: str = "LONG",
-    ):
-        self.exchange_name = exchange_name.lower()
+    def __init__(self, exchange_id="binance", symbol="BTC/USDT:USDT", mode="demo"):
+        self.logger = logging.getLogger("CroupierValidator")
         self.symbol = symbol
         self.mode = mode
-        self.size = size
-        self.tp = tp
-        self.sl = sl
-        self.leverage = leverage
-        self.wait = wait
-        self.side = side.upper()
-        self.croupier = None
-        self.adapter = None
-        self.connector = None
+
+        # 1. Init Connector
+        if exchange_id == "binance":
+            self.connector = BinanceConnector(
+                api_key=os.getenv("BINANCE_API_KEY"),
+                secret=os.getenv("BINANCE_API_SECRET"),
+                mode=mode,
+            )
+        elif exchange_id == "kraken":
+            self.connector = KrakenConnector(
+                api_key=os.getenv("KRAKEN_API_KEY"),
+                secret=os.getenv("KRAKEN_SECRET"),
+                testnet=(mode != "live"),
+            )
+        else:
+            raise ValueError(f"Unknown exchange: {exchange_id}")
+
+        # 2. Init Adapter
+        self.adapter = ExchangeAdapter(self.connector, self.symbol)
 
     async def setup(self):
         logger.info(f"--- Configurando para Exchange: {self.exchange_name.upper()} ---")
@@ -95,7 +97,7 @@ class CroupierValidator:
             raise ValueError(f"Exchange '{self.exchange_name}' no soportado.")
         self.connector = ResilientConnector(connector=base_connector)
         await self.connector.connect()
-        self.adapter = CCXTAdapter(self.connector, self.symbol)
+        self.adapter = ExchangeAdapter(self.connector, self.symbol)
         # Balance real del exchange
         balance_data = await self.connector.fetch_balance()
         # Support both USDT (Binance) and USDC (Hyperliquid)

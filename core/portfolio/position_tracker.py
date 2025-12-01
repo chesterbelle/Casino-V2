@@ -35,7 +35,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 if TYPE_CHECKING:
-    from exchanges.adapters.ccxt_adapter import CCXTAdapter
+    from exchanges.adapters import ExchangeAdapter
 
 import config.trading
 
@@ -99,13 +99,13 @@ class PositionTracker:
     def __init__(
         self,
         max_concurrent_positions: int = 10,
-        adapter: Optional["CCXTAdapter"] = None,
+        adapter: Optional["ExchangeAdapter"] = None,
         on_close_callback: Optional[callable] = None,
     ):
         """
         Args:
             max_concurrent_positions: Máximo número de posiciones simultáneas permitidas
-            adapter: CCXTAdapter para OCO manual (agnóstico del conector)
+            adapter: ExchangeAdapter para OCO manual (agnóstico del conector)
         """
         self.open_positions: List[OpenPosition] = []
         self.blocked_capital: float = 0.0

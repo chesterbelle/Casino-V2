@@ -23,11 +23,12 @@ from core.feed import StreamManager
 from core.sensor_manager import SensorManager
 from croupier.croupier import Croupier
 from decision.aggregator import SignalAggregatorV3
-from exchanges.adapters.ccxt_adapter import CCXTAdapter
-from exchanges.connectors import BybitConnector
-from exchanges.connectors.binance.binance_connector import BinanceConnector
-from exchanges.connectors.hyperliquid.hyperliquid_connector import HyperliquidConnector
-from players.paroli import ParoliV3
+from exchanges.adapters import ExchangeAdapter
+from exchanges.connectors import (
+    BinanceNativeConnector,
+    BybitConnector,
+    HyperliquidNativeConnector,
+)
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(levelname)s: %(message)s", datefmt="%H:%M:%S")
@@ -72,18 +73,20 @@ async def main():
     connector = None
 
     if args.exchange == "binance":
-        # Binance Connector
-        connector = BinanceConnector(
+        # Binance Native Connector (SDK)
+        connector = BinanceNativeConnector(
             api_key=args.wallet or exchange_config.BINANCE_API_KEY,
             secret=args.key or exchange_config.BINANCE_API_SECRET,
             mode="demo" if args.mode != "live" else "live",
         )
     elif args.exchange == "hyperliquid":
-        # Hyperliquid Connector
-        connector = HyperliquidConnector(
-            api_key=args.wallet,
-            secret=args.key,
-            mode="testing" if args.mode in ["testing", "demo"] else "live",
+        # Hyperliquid Native Connector
+        import os
+
+        connector = HyperliquidNativeConnector(
+            api_key=args.key or os.getenv("HYPERLIQUID_API_SECRET"),  # Agent Private Key
+            account_address=args.wallet or os.getenv("HYPERLIQUID_MAIN_WALLET"),  # Main Account Address
+            mode="demo" if args.mode != "live" else "live",
             enable_websocket=True,
         )
     elif args.exchange == "bybit":
@@ -95,7 +98,7 @@ async def main():
         )
 
     # Initialize Adapter
-    adapter = CCXTAdapter(connector, symbol=args.symbol)
+    adapter = ExchangeAdapter(connector, symbol=args.symbol)
 
     # 2. Initialize Core Engine
     engine = Engine()
@@ -135,14 +138,15 @@ async def main():
     # Hook callback into PositionTracker
     croupier.position_tracker.on_close_callback = on_trade_close
 
+    # Start components
+    await connector.connect()
+
     # Store initial balance for PnL calc
     # Note: In demo/live, this might be the exchange balance
     initial_balance = await connector.fetch_balance()
     initial_balance = initial_balance.get("total", {}).get("USDT", 0.0)
     logger.info(f"💰 Initial Balance for Report: {initial_balance:.2f} USDT")
 
-    # Start components
-    await connector.connect()
     await order_manager.start()
     await engine.start(blocking=False)
 
@@ -173,12 +177,11 @@ async def main():
 
                 # Get current price for forced close
                 try:
-                    current_price = await adapter.get_current_price(args.symbol)
+                    await adapter.get_current_price(args.symbol)
                 except Exception:
                     logger.warning("⚠️ Could not fetch current price for forced close, using last known")
-                    current_price = 0.0  # Should ideally get from last candle or tick
+                    # Should ideally get from last candle or tick
 
-                import time
             await croupier.cleanup_symbol(args.symbol)
         except Exception as e:
             logger.error(f"❌ Error during cleanup: {e}")
@@ -213,9 +216,9 @@ async def main():
         # Calculate fees from closed trades for reference (approximate)
         total_fees = sum(t.get("fee", 0.0) for t in closed_trades)
 
-        print(f"\n========================================")
+        print("\n========================================")
         print(f"📊 SESSION REPORT - {args.symbol}")
-        print(f"========================================")
+        print("========================================")
         print(f"   Trades Total          : {total_trades}")
         print(f"   Wins / Losses         : {wins} / {losses}")
         print(f"   WinRate               : {win_rate:.2f}%")
@@ -223,7 +226,7 @@ async def main():
         print(f"   Balance Inicial       : {initial_balance:.2f}")
         print(f"   Balance Final (Real)  : {real_final_balance:.2f}")
         print(f"   PnL Total             : {total_pnl_real:.2f} ({pnl_pct:.2f}%)")
-        print(f"========================================\n")
+        print("========================================\n")
 
 
 if __name__ == "__main__":

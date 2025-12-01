@@ -46,7 +46,7 @@ import asyncio
 import logging
 import os
 import time
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Awaitable, Callable, Dict, List, Literal, Optional
 
 import ccxt.async_support as ccxt_async
 import ccxt.pro as ccxtpro
@@ -535,6 +535,7 @@ class BinanceConnector(BaseConnector):
         self._clock_task = None
         self._clock_running = False
         self._last_tick = 0
+        self._order_update_callback = None  # Callback for order updates (OCO)
 
         if self.enable_websocket:
             self.logger.info("🔌 WebSocket enabled - will initialize on connect()")
@@ -598,11 +599,23 @@ class BinanceConnector(BaseConnector):
     def status_dict(self) -> Dict[str, bool]:
         """
         Get connector status dictionary.
-
-        Returns:
-            Dictionary with connection status
         """
-        return {"connected": self._connected, "ready": self._ready}
+        return {
+            "connected": self._connected,
+            "ready": self._ready,
+            "ws_connected": self._ws_connected,
+        }
+
+    def set_order_update_callback(self, callback: Callable[[Dict], Awaitable[None]]) -> None:
+        """
+        Register a callback for order updates.
+        Used by Croupier for OCO logic.
+
+        Args:
+            callback: Async function taking order dict
+        """
+        self._order_update_callback = callback
+        self.logger.info("✅ Order update callback registered")
 
     # =========================================================
     # 🔐 CREDENTIALS
@@ -1693,7 +1706,17 @@ class BinanceConnector(BaseConnector):
                         # ⚠️  DEPRECATED: Order update handling moved to PositionTracker
                         # The connector no longer processes order updates for OCO logic
                         # This is now handled by PositionTracker.monitor_oco_execution()
-                        self.logger.debug(f"📋 Order update received (handled by PositionTracker): {order.get('id')}")
+                        # ⚠️  DEPRECATED: Order update handling moved to PositionTracker
+                        # The connector no longer processes order updates for OCO logic
+                        # This is now handled by PositionTracker.monitor_oco_execution()
+                        # BUT we must invoke the callback so Croupier/PositionTracker receives the event!
+                        if self._order_update_callback:
+                            try:
+                                await self._order_update_callback(order)
+                            except Exception as cb_err:
+                                self.logger.error(f"❌ Error in order update callback: {cb_err}")
+                        else:
+                            self.logger.debug(f"📋 Order update received (no callback registered): {order.get('id')}")
 
                 except Exception as e:
                     self.logger.error(f"❌ WebSocket order monitoring error: {e}")

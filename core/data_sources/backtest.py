@@ -89,14 +89,13 @@ class BacktestDataSource(DataSource):
 
         # 2. CCXT Adapter (The Standard Adapter used in Live/Demo)
         # Import here to avoid circular imports
-        from exchanges.adapters.ccxt_adapter import CCXTAdapter
+        from exchanges.adapters.ccxt_adapter import ExchangeAdapter
+        from exchanges.connectors.virtual.virtual_connector import VirtualConnector
 
-        self.adapter = CCXTAdapter(
-            connector=self.connector,
+        self.adapter = ExchangeAdapter(
+            connector=VirtualConnector(initial_balance=10000.0, data_path="data/historical"),
             symbol=self.symbol,
-            timeframe=self.timeframe,
         )
-
         # 3. Croupier (The Brain) - Se inicializará via set_gemini_instance
         self.croupier = None
 

@@ -41,6 +41,15 @@ class OrderManager:
         self.active = True
         logger.info("🚀 OrderManager started")
 
+        # Force reconciliation on startup to restore PositionTracker state
+        # This is CRITICAL for OCO callback to work if there are existing positions
+        try:
+            symbol = self.croupier.exchange_adapter.symbol
+            logger.info(f"🔄 Startup Reconciliation for {symbol}...")
+            await self.croupier.reconcile_positions(symbol)
+        except Exception as e:
+            logger.error(f"❌ Startup Reconciliation failed: {e}")
+
     async def stop(self):
         """Stop the Order Manager."""
         self.active = False
@@ -173,7 +182,7 @@ class OrderManager:
                 logger.warning("⚠️ exchange_adapter has no connector attribute, defaulting to testing mode")
         except Exception as e:
             logger.error(f"❌ Error detecting mode: {e}, defaulting to testing mode")
-        
+
         # Log mode for debugging
         logger.debug(f"🎯 Execution mode for this candle: {mode}")
 

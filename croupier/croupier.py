@@ -164,11 +164,17 @@ class Croupier:
                 return
 
             # Buscar si esta orden pertenece a alguna posición abierta (TP o SL)
-            # Iteramos sobre las posiciones abiertas (son pocas, max 10)
+            # 2. Buscar si la orden pertenece a una posición abierta
             target_position = None
-            exit_reason = None
+            exit_reason = None  # "TP" or "SL"
+
+            # Debug: Log what we are looking for
+            self.logger.info(
+                f"🔍 OCO Check: Searching for {order_id} in {len(self.position_tracker.open_positions)} positions"
+            )
 
             for pos in self.position_tracker.open_positions:
+                self.logger.info(f"   - Checking Pos {pos.trade_id}: TP={pos.tp_order_id} SL={pos.sl_order_id}")
                 if str(pos.tp_order_id) == order_id:
                     target_position = pos
                     exit_reason = "TP"
@@ -186,7 +192,7 @@ class Croupier:
                 self.logger.info(f"⚡ WebSocket Order Update: {exit_reason} filled for {target_position.symbol}")
 
                 # Extraer datos del fill
-                last_trade = order.get("lastTrade", {})  # Binance specific structure sometimes
+                # last_trade = order.get("lastTrade", {})  # Binance specific structure sometimes
                 # CCXT normalized structure
                 fill_price = float(order.get("average") or order.get("price") or order.get("lastPrice") or 0.0)
                 filled_amount = float(order.get("filled") or order.get("amount") or 0.0)
@@ -245,8 +251,14 @@ class Croupier:
             tracker_positions = self.position_tracker.open_positions
 
             # 3. Crear mapas para búsqueda rápida
-            tracker_map = {p.trade_id: p for p in tracker_positions if p.symbol == symbol}
-            exchange_pos_map = {p.symbol: p for p in exchange_positions if p.symbol == symbol}
+            # tracker_map = {p.trade_id: p for p in tracker_positions if p.symbol == symbol}
+            # exchange_pos_map = {p.symbol: p for p in exchange_positions if p.symbol == symbol}
+
+            self.logger.info(
+                f"🔍 Reconciliación debug: Exchange orders: {len(exchange_orders)} | Tracker positions: {len(tracker_positions)}"
+            )
+            for o in exchange_orders:
+                self.logger.info(f"   Order: {o['id']} ({o['type']}) Side: {o['side']} Stop: {o.get('stopPrice')}")
 
             # === VERIFICACIÓN 1: Posiciones del tracker tienen TP/SL completo ===
             for pos in tracker_positions:
@@ -290,7 +302,6 @@ class Croupier:
                         self.logger.error(f"❌ Error cerrando posición sin SL: {e}")
                     continue
 
-            # === VERIFICACIÓN 2: Órdenes huérfanas sin posición ===
             # Obtener todos los IDs de órdenes asociadas a posiciones
             tracked_order_ids = set()
             for pos in tracker_positions:
@@ -301,6 +312,8 @@ class Croupier:
                         tracked_order_ids.add(str(pos.tp_order_id))
                     if pos.sl_order_id:
                         tracked_order_ids.add(str(pos.sl_order_id))
+
+            self.logger.info(f"🔍 Tracked Order IDs: {tracked_order_ids}")
 
             # Cancelar órdenes que no están asociadas a ninguna posición
             for order in exchange_orders:
@@ -341,7 +354,7 @@ class Croupier:
                                 "params": {"reduceOnly": True},
                             }
                         )
-                        self.logger.info(f"✅ Posición no registrada cerrada")
+                        self.logger.info("✅ Posición no registrada cerrada")
                     except Exception as e:
                         self.logger.error(f"❌ Error cerrando posición no registrada: {e}")
 
@@ -728,6 +741,16 @@ class Croupier:
                 for p in list(self.position_tracker.open_positions):
                     if p.symbol == symbol:
                         self.position_tracker.open_positions.remove(p)
+
+                # Obtener estado del exchange
+                exchange_orders = await self.exchange_adapter.connector.fetch_open_orders(symbol)
+                tracker_positions = [p for p in self.position_tracker.open_positions if p.symbol == symbol]
+
+                self.logger.info(
+                    f"🔍 Reconciliación debug: Exchange orders: {len(exchange_orders)} | Tracker positions: {len(tracker_positions)}"
+                )
+                for o in exchange_orders:
+                    self.logger.info(f"   Order: {o['id']} ({o['type']}) Side: {o['side']} Stop: {o.get('stopPrice')}")
 
                 # 4. Verificación final
                 final_orders = await self.exchange_adapter.connector.fetch_open_orders(symbol)

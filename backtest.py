@@ -14,7 +14,7 @@ from core.execution import OrderManager
 from core.sensor_manager import SensorManager
 from croupier.croupier import Croupier
 from decision.aggregator import SignalAggregatorV3
-from exchanges.adapters.ccxt_adapter import CCXTAdapter
+from exchanges.adapters import ExchangeAdapter
 from exchanges.connectors.virtual_exchange import VirtualExchangeConnector
 from players.fixed import FixedPlayer
 from players.paroli import ParoliV3
@@ -66,7 +66,7 @@ async def main():
     # 2. Initialize Virtual Exchange & Adapter
     virtual_exchange = VirtualExchangeConnector(initial_balance=10000.0)
     await virtual_exchange.connect()
-    adapter = CCXTAdapter(virtual_exchange, symbol=symbol)
+    adapter = ExchangeAdapter(virtual_exchange, symbol=symbol)
 
     # 3. Initialize Croupier with Virtual Exchange
     croupier = Croupier(adapter, initial_balance=10000.0)

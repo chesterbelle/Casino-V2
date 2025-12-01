@@ -45,10 +45,10 @@ Architecture:
     → Exchange API (REST + WebSocket)
 """
 
-from .binance import BinanceConnector
+from .binance import BinanceConnector, BinanceNativeConnector
 from .bybit import BybitConnector
 from .connector_base import BaseConnector
-from .hyperliquid import HyperliquidConnector
+from .hyperliquid import HyperliquidNativeConnector
 from .kraken import KrakenConnector
 from .resilient_connector import ResilientConnector
 
@@ -56,7 +56,8 @@ __all__ = [
     "BaseConnector",
     "KrakenConnector",
     "BinanceConnector",
+    "BinanceNativeConnector",
+    "HyperliquidNativeConnector",
     "BybitConnector",
-    "HyperliquidConnector",
     "ResilientConnector",
 ]

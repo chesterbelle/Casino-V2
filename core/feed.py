@@ -8,7 +8,7 @@ import logging
 import time
 from typing import Any, Dict, Set
 
-from exchanges.adapters.ccxt_adapter import CCXTAdapter
+from exchanges.adapters.ccxt_adapter import ExchangeAdapter
 
 from .events import EventType, OrderBookEvent, TickEvent
 
@@ -17,10 +17,10 @@ logger = logging.getLogger(__name__)
 
 class StreamManager:
     """
-    Manages websocket streams and pushes events to the Engine.
+    Manages Websocket streams and dispatches events to the Engine.
     """
 
-    def __init__(self, adapter: CCXTAdapter, engine):
+    def __init__(self, adapter: ExchangeAdapter, engine):
         self.adapter = adapter
         self.engine = engine
         self.running = False

@@ -41,9 +41,11 @@ from .binance_constants import (
     get_urls,
     normalize_symbol,
 )
+from .binance_native_connector import BinanceNativeConnector
 
 __all__ = [
     "BinanceConnector",
+    "BinanceNativeConnector",
     "normalize_symbol",
     "denormalize_symbol",
     "get_urls",

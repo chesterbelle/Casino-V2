@@ -1,8 +1,9 @@
 """
-CCXTAdapter - Adaptador CCXT para Mesas (DataSource).
+ExchangeAdapter - Adaptador Agnóstico para Mesas (DataSource).
 
 Este adaptador envuelve la lógica de negocio del trading y delega
 la comunicación con exchanges a conectores modulares específicos.
+Es compatible tanto con conectores CCXT como con Native SDKs.
 
 ⚠️  ARQUITECTURA MODULAR - IMPORTANTE:
 ================================================================================
@@ -10,14 +11,14 @@ Este adaptador DEBE ser 100% EXCHANGE-AGNOSTIC.
 NO agregar lógica específica de ningún exchange aquí.
 
 Arquitectura (v2.0):
-    Mesa (DataSource) → CCXTAdapter (Adaptador) → Conector (Driver) → CCXT → Exchange
+    Mesa (DataSource) → ExchangeAdapter (Adaptador) → Conector (Driver) → SDK/CCXT → Exchange
 
     Ejemplo:
-    LiveDataSource → CCXTAdapter → KrakenConnector → CCXT → Kraken API
+    LiveDataSource → ExchangeAdapter → BinanceNativeConnector → Binance SDK → Binance API
 
 ================================================================================
 
-📋 RESPONSABILIDADES DEL ADAPTADOR (CCXTAdapter):
+📋 RESPONSABILIDADES DEL ADAPTADOR (ExchangeAdapter):
     ✅ PERMITIDO (Business Logic - Exchange Agnostic):
         - Gestión de balance (BalanceManager)
         - Tracking de posiciones (PositionTracker)
@@ -32,7 +33,7 @@ Arquitectura (v2.0):
         - Parámetros específicos de un exchange
         - Manejo de particularidades de un exchange
 
-📋 RESPONSABILIDADES DEL CONECTOR (KrakenConnector, BinanceConnector, etc.):
+📋 RESPONSABILIDADES DEL CONECTOR (KrakenConnector, BinanceNativeConnector, etc.):
     ✅ PERMITIDO (Exchange-Specific Implementation):
         - Comunicación con el exchange (REST + WebSocket)
         - Normalización de datos del exchange
@@ -46,7 +47,7 @@ Arquitectura (v2.0):
 
 🔄 FLUJO DE EJECUCIÓN DE ÓRDENES CON TP/SL:
 
-    1. CCXTAdapter.execute_order(order):
+    1. ExchangeAdapter.execute_order(order):
        ├── Validar orden (balance, límites) ← Business logic
        ├── Calcular precios TP/SL absolutos ← Business logic
        │   tp_price = current_price * tp_multiplier
@@ -65,7 +66,7 @@ Arquitectura (v2.0):
 📚 REFERENCIAS:
     - Análisis completo: docs/ARQUITECTURA_MODULARIDAD_ANALISIS.md
     - Interface de conectores: exchanges/connectors/connector_base.py
-    - Ejemplo de implementación: exchanges/connectors/kraken/kraken_connector.py
+    - Ejemplo de implementación: exchanges/connectors/binance/binance_native_connector.py
 
 ⚠️  ANTES DE MODIFICAR ESTE ARCHIVO:
     1. Pregúntate: ¿Esta lógica es específica de un exchange?
@@ -77,16 +78,16 @@ Arquitectura (v2.0):
 
 Usage:
     ```python
-    from exchanges.connectors import KrakenConnector
-    from exchanges.adapters import CCXTAdapter
+    from exchanges.connectors import BinanceNativeConnector
+    from exchanges.adapters import ExchangeAdapter
 
     # Create connector (exchange-specific driver)
-    connector = KrakenConnector(testnet=True)
+    connector = BinanceNativeConnector(mode="demo")
 
     # Create adapter (exchange-agnostic business logic)
-    adapter = CCXTAdapter(
+    adapter = ExchangeAdapter(
         connector=connector,
-        symbol="BTC/USD",
+        symbol="BTC/USDT:USDT",
         timeframe="1m"
     )
 
@@ -106,7 +107,7 @@ from typing import Any, Dict, Optional
 from exchanges.connectors.connector_base import BaseConnector
 
 
-class CCXTAdapter:
+class ExchangeAdapter:
     async def fetch_positions(self, symbols: list = None) -> list:
         """
         Fetch open positions, preferring WS if enabled and available.
