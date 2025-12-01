@@ -213,29 +213,43 @@ class PositionTracker:
             margin_used = notional / leverage if leverage > 0 else notional
 
             # Calcular niveles de TP/SL
-            tp_factor = order.get("take_profit", 1.0 + config.trading.TAKE_PROFIT)
-            sl_factor = order.get("stop_loss", 1.0 - config.trading.STOP_LOSS)
+            tp_raw = order.get("take_profit", config.trading.TAKE_PROFIT)
+            sl_raw = order.get("stop_loss", config.trading.STOP_LOSS)
+
+            # Normalizar a multiplicadores si vienen como porcentajes (ej: 0.01 -> 1.01)
+            # Asumimos que si el valor es < 0.5, es un porcentaje
+            if tp_raw < 0.5:
+                tp_mult_long = 1.0 + tp_raw
+                tp_mult_short = 1.0 - tp_raw
+            else:
+                tp_mult_long = tp_raw
+                tp_mult_short = tp_raw
+
+            if sl_raw < 0.5:
+                sl_mult_long = 1.0 - sl_raw
+                sl_mult_short = 1.0 + sl_raw
+            else:
+                sl_mult_long = sl_raw
+                sl_mult_short = sl_raw
 
             if side == "LONG":
-                tp_level = entry_price * tp_factor
-                sl_level = entry_price * sl_factor
-                liquidation_level = entry_price * (1.0 - (1.0 / leverage) + 0.005)  # Aprox liquidation
+                tp_level = entry_price * tp_mult_long
+                sl_level = entry_price * sl_mult_long
+                liquidation_level = entry_price * (1.0 - (1.0 / leverage) + 0.005)
             elif side == "SHORT":
-                # TP Logic: Support both implicit (1.01) and explicit (0.99) multipliers
-                # If tp_factor > 1.0 (e.g., 1.01), it's "LONG-centric" so invert it (2.0 - 1.01 = 0.99)
-                # If tp_factor < 1.0 (e.g., 0.99), it's already correct for SHORT, use directly
-                if tp_factor > 1.0:
-                    tp_level = entry_price * (2.0 - tp_factor)
+                # Para SHORT, el TP debe ser menor al entry (ej: 0.99)
+                # Si recibimos 1.01 (formato LONG), lo invertimos: 2.0 - 1.01 = 0.99
+                if tp_mult_short > 1.0:
+                    tp_level = entry_price * (2.0 - tp_mult_short)
                 else:
-                    tp_level = entry_price * tp_factor
+                    tp_level = entry_price * tp_mult_short
 
-                # SL Logic: Support both implicit (0.99) and explicit (1.015) multipliers
-                # If sl_factor < 1.0 (e.g., 0.99), it's "LONG-centric" loss so invert it (2.0 - 0.99 = 1.01)
-                # If sl_factor > 1.0 (e.g., 1.015), it's already correct for SHORT, use directly
-                if sl_factor < 1.0:
-                    sl_level = entry_price * (2.0 - sl_factor)
+                # Para SL, debe ser mayor al entry (ej: 1.01)
+                # Si recibimos 0.99 (formato LONG), lo invertimos: 2.0 - 0.99 = 1.01
+                if sl_mult_short < 1.0:
+                    sl_level = entry_price * (2.0 - sl_mult_short)
                 else:
-                    sl_level = entry_price * sl_factor
+                    sl_level = entry_price * sl_mult_short
 
                 liquidation_level = entry_price * (1.0 + (1.0 / leverage) - 0.005)
             else:
