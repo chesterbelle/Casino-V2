@@ -88,7 +88,7 @@ class ExchangeRateLimiter:
             self._request_counts[endpoint_type] = self._request_counts.get(endpoint_type, 0) + 1
             self.logger.debug(f"Rate limit acquired: {endpoint_type} ({self._request_counts[endpoint_type]} requests)")
 
-    async def limit(self, endpoint_type: str = "default"):
+    def limit(self, endpoint_type: str = "default"):
         """
         Context manager for rate limiting.
 

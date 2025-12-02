@@ -7,6 +7,10 @@ Parámetros de conexión a exchanges y símbolos.
 """
 
 import os
+
+from dotenv import load_dotenv
+
+load_dotenv()
 from typing import Literal
 
 # =====================================================
@@ -54,8 +58,8 @@ BINANCE_BASE_URL = "https://testnet.binancefuture.com"
 BINANCE_DEFAULT_SYMBOL = "BTC/USDT"
 BINANCE_DEFAULT_INTERVAL = "15m"
 BINANCE_POLL_INTERVAL = 2.0
-BINANCE_API_KEY = None
-BINANCE_API_SECRET = None
+BINANCE_API_KEY = os.getenv("BINANCE_TESTNET_API_KEY")
+BINANCE_API_SECRET = os.getenv("BINANCE_TESTNET_SECRET")
 
 
 # =====================================================
