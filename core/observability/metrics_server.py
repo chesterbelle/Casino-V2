@@ -53,7 +53,7 @@ class MetricsServer:
             async def metrics_handler(request):
                 """Handle /metrics requests."""
                 metrics = generate_latest(REGISTRY)
-                return web.Response(body=metrics, content_type="text/plain; charset=utf-8")
+                return web.Response(body=metrics, content_type="text/plain")
 
             async def health_handler(request):
                 """Handle /health requests."""
