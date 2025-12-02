@@ -74,6 +74,8 @@ class StreamManager:
 
     async def _watch_ticker_loop(self, symbol: str):
         """Continuous loop to watch ticker with error handling and circuit breaker."""
+        logger.info(f"🔍 Starting ticker loop for {symbol}")
+        
         from core.error_handling import RetryConfig, get_error_handler
 
         error_handler = get_error_handler()

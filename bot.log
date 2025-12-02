@@ -1,149 +1,50 @@
-14:34:06 [Casino-V3] INFO: 🚀 Starting Casino-V3 | Exchange: binance | Mode: demo
-14:34:06 [BinanceConnector] INFO: ℹ️ WebSocket habilitado: ccxt.pro puede tener bugs de concurrencia. Se aplicaron mitigaciones (pre-auth, sin snapshots, espejado de markets).
-14:34:06 [BinanceConnector] INFO: 📝 Loading Binance credentials from environment...
-14:34:06 [BinanceConnector] INFO: 🌐 Initializing Binance Futures connection (demo)...
-14:34:06 [BinanceConnector] INFO: 🧪 Testnet mode enabled. Using custom BinanceTestnet class.
-14:34:06 [BinanceConnector] INFO: 🔌 WebSocket enabled - will initialize on connect()
-14:34:06 [BinanceConnector] INFO: ✅ Binance connector initialized | Mode: DEMO
-14:34:06 [exchanges.adapters.ccxt_adapter] INFO: Stateless CCXTAdapter initialized | Symbol: LTC/USDT:USDT | Timeframe: 1m
-14:34:06 [PositionTracker] INFO: PositionTracker inicializado | Max positions: 10
-14:34:06 [ExchangeStateSync] INFO: ExchangeStateSync inicializado
-14:34:06 [BinanceConnector] INFO: ✅ Order update callback registered
-14:34:06 [Croupier] INFO: ✅ Registered for WebSocket order updates
-14:34:06 [Croupier] INFO: 🎯 Croupier initialized as State Owner | Balance: $10,000.00
-14:34:06 [Croupier] INFO: ✅ OCO Manual enabled in PositionTracker
-14:34:06 [core.sensor_manager] INFO: ✅ SensorManager loaded 27 sensors for timeframe 1m.
-14:34:06 [decision.sensor_tracker] INFO: ✅ Loaded stats for 25 sensors from state/sensor_stats.json
-14:34:06 [decision.sensor_tracker] INFO: ✅ SensorTracker initialized | Sensors: 25
-14:34:06 [decision.aggregator] INFO: ✅ SignalAggregator initialized with intelligent scoring
-14:34:06 [players.fixed] INFO: ✅ FixedPlayer initialized | Bet Size: 1.0% | Max Positions: 3
-14:34:08 [Casino-V3] INFO: 💰 Initial Balance for Report: 3489.42 USDT
-14:34:08 [BinanceConnector] INFO: 🔌 Connecting to Binance Futures...
-14:34:08 [BinanceConnector] INFO: ✅ Markets loaded | Count: 646
-14:34:08 [BinanceConnector] INFO: ✅ Balance fetched | USDT: 3489.41706978
-14:34:08 [BinanceConnector] INFO: 🔌 Starting WebSocket initialization...
-14:34:09 [BinanceConnector] INFO: 🔌 Initializing WebSocket connection...
-14:34:09 [BinanceConnector] INFO: 🧪 Using BinanceTestnetPro for WebSocket demo (API: NbcYL8ma...)
-14:34:09 [BinanceConnector] INFO: 🔑 WebSocket authenticated and listenKey provisioned (future)
-14:34:09 [BinanceConnector] INFO: ✅ WebSocket connection initialized
-14:34:09 [BinanceConnector] INFO: 👁️ Order monitoring started
-14:34:09 [BinanceConnector] INFO: ✅ Binance connector ready | Mode: DEMO
-14:34:09 [core.execution] INFO: 🚀 OrderManager started
-14:34:09 [core.engine] INFO: 🚀 Starting Casino-V3 Engine...
-14:34:09 [core.feed] INFO: 🔌 Connecting Data Feed...
-14:34:09 [BinanceConnector] INFO: 🔌 Connecting to Binance Futures...
-14:34:09 [BinanceConnector] INFO: ✅ Markets loaded | Count: 646
-14:34:10 [BinanceConnector] INFO: ✅ Balance fetched | USDT: 3489.41655409
-14:34:10 [BinanceConnector] INFO: 🔌 Starting WebSocket initialization...
-14:34:10 [BinanceConnector] INFO: 🔌 Initializing WebSocket connection...
-14:34:10 [BinanceConnector] INFO: 🧪 Using BinanceTestnetPro for WebSocket demo (API: NbcYL8ma...)
-14:34:11 [BinanceConnector] INFO: 🔑 WebSocket authenticated and listenKey provisioned (future)
-14:34:11 [BinanceConnector] INFO: ✅ WebSocket connection initialized
-14:34:11 [BinanceConnector] INFO: 👁️ Order monitoring started
-14:34:11 [BinanceConnector] INFO: ✅ Binance connector ready | Mode: DEMO
-14:34:11 [core.engine] INFO: ✅ Engine running. Waiting for events...
-14:34:11 [Casino-V3] INFO: 📡 Subscribing to LTC/USDT:USDT...
-14:34:11 [core.feed] INFO: 📡 Subscribing to ticker: LTC/USDT:USDT
-14:34:11 [Casino-V3] INFO: ✅ Casino-V3 Running | Press Ctrl+C to stop
-14:34:35 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 75.86
-14:34:57 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 75.84
-14:35:01 [core.candle_maker] INFO: 🕯️ Candle Closed: 75.84 | Vol: 81138925.42600001
-14:35:21 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 75.85
-14:35:42 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 75.82
-14:36:02 [core.candle_maker] INFO: 🕯️ Candle Closed: 75.82 | Vol: 113595073.031
-14:36:02 [core.sensor_manager] INFO: 📡 Signal Detected: PinBarReversal -> SHORT
-14:36:02 [decision.aggregator] INFO: 📊 Selected: PinBarReversal (SHORT) | Score: 0.397 | Total signals: 1
-14:36:02 [players.fixed] INFO: 🎯 Decision: SHORT | Fixed Bet: 1.00% of 10000.00
-14:36:02 [core.execution] INFO: 📩 Decision Received: LTC/USDT:USDT SHORT (Size: 1.00%, Step: 0)
-14:36:02 [exchanges.adapters.ccxt_adapter] INFO: 🔍 get_current_price | requested_symbol=LTC/USDT:USDT | adapter_symbol=LTC/USDT:USDT
-14:36:03 [exchanges.adapters.ccxt_adapter] INFO: 💰 Current price for LTC/USDT:USDT: 75.82
-14:36:03 [Croupier] INFO: 📊 Orden convertida | Fracción: 0.0100 | Notional: 100.00 USDT | Precio: 75.82000000 | Cantidad: 1.318913 contratos
-14:36:03 [BinanceConnector] INFO: 📋 Creating order: symbol=LTC/USDT:USDT, side=sell, amount=1.318, price=None, type=market
-14:36:03 [BinanceConnector] INFO: ✅ Order created | LTC/USDT:USDT SELL 1.318 @ market | avgPrice: 0.0
-14:36:03 [BinanceConnector] INFO: 🔍 watch_orders() returned: type=<class 'list'>, length=1
-14:36:03 [Croupier] INFO: ⚡ WebSocket Order Update: ID=875493411, Symbol=LTC/USDT:USDT, Status=open
-14:36:03 [Croupier] INFO: ✅ Orden ejecutada: 875493411
-14:36:03 [Croupier] INFO: 📊 OCO Monitor | Entry: $75.82000000 | TP: $75.44090000 | SL: $78.05778939
-14:36:03 [Croupier] INFO: 🔧 Rounded TP/SL to exchange precision | TP: 75.4409 -> 75.44 | SL: 78.05778938999998 -> 78.06
-14:36:03 [exchanges.adapters.ccxt_adapter] INFO: 🔍 get_current_price | requested_symbol=LTC/USDT:USDT | adapter_symbol=LTC/USDT:USDT
-14:36:03 [BinanceConnector] INFO: 🔍 watch_orders() returned: type=<class 'list'>, length=1
-14:36:03 [Croupier] INFO: ⚡ WebSocket Order Update: ID=875493411, Symbol=LTC/USDT:USDT, Status=closed
-14:36:03 [Croupier] INFO: 🔍 OCO Check: Searching for 875493411 in 0 positions
-14:36:03 [BinanceConnector] INFO: 🔍 watch_orders() returned: type=<class 'list'>, length=1
-14:36:03 [Croupier] INFO: ⚡ WebSocket Order Update: ID=875493411, Symbol=LTC/USDT:USDT, Status=open
-14:36:03 [BinanceConnector] INFO: 🔍 watch_orders() returned: type=<class 'list'>, length=1
-14:36:03 [Croupier] INFO: ⚡ WebSocket Order Update: ID=875493411, Symbol=LTC/USDT:USDT, Status=open
-14:36:04 [exchanges.adapters.ccxt_adapter] INFO: 💰 Current price for LTC/USDT:USDT: 75.82
-14:36:04 [BinanceConnector] INFO: 📋 Creating order: symbol=LTC/USDT:USDT, side=buy, amount=1.318, price=None, type=take_profit_market
-14:36:04 [BinanceConnector] INFO: 📋 Creating order: symbol=LTC/USDT:USDT, side=buy, amount=1.318, price=None, type=stop_market
-14:36:04 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 75.82
-14:36:06 [BinanceConnector] INFO: 🔍 watch_orders() returned: type=<class 'list'>, length=1
-14:36:06 [Croupier] INFO: ⚡ WebSocket Order Update: ID=875493412, Symbol=LTC/USDT:USDT, Status=open
-14:36:06 [BinanceConnector] INFO: 🔍 watch_orders() returned: type=<class 'list'>, length=1
-14:36:06 [Croupier] INFO: ⚡ WebSocket Order Update: ID=875493412, Symbol=LTC/USDT:USDT, Status=open
-14:36:06 [BinanceConnector] INFO: 🔍 watch_orders() returned: type=<class 'list'>, length=1
-14:36:06 [Croupier] INFO: ⚡ WebSocket Order Update: ID=875493412, Symbol=LTC/USDT:USDT, Status=open
-14:36:06 [BinanceConnector] INFO: ✅ Order created | LTC/USDT:USDT BUY 1.318 @ market | avgPrice: 0.0
-14:36:06 [BinanceConnector] INFO: 🔍 watch_orders() returned: type=<class 'list'>, length=1
-14:36:06 [Croupier] INFO: ⚡ WebSocket Order Update: ID=875493413, Symbol=LTC/USDT:USDT, Status=open
-14:36:06 [BinanceConnector] INFO: 🔍 watch_orders() returned: type=<class 'list'>, length=1
-14:36:06 [Croupier] INFO: ⚡ WebSocket Order Update: ID=875493413, Symbol=LTC/USDT:USDT, Status=open
-14:36:06 [BinanceConnector] INFO: 🔍 watch_orders() returned: type=<class 'list'>, length=1
-14:36:06 [Croupier] INFO: ⚡ WebSocket Order Update: ID=875493413, Symbol=LTC/USDT:USDT, Status=open
-14:36:06 [BinanceConnector] INFO: ✅ Order created | LTC/USDT:USDT BUY 1.318 @ market | avgPrice: 0.0
-14:36:06 [Croupier] INFO: ✅ TP order created: 875493412 @ $75.44000000
-14:36:06 [Croupier] INFO: ✅ SL order created: 875493413 @ $78.06000000
-14:36:06 [PositionTracker] INFO: 📈 OPEN | LTC/USDT:USDT SHORT | Entry: 75.82 | TP: 75.44 | SL: 78.02 | Notional: 100.00 | Margin: 100.00
-14:36:06 [core.execution] WARNING: ⚠️ Order Result: {'status': 'closed', 'id': '875493411', 'price': 75.82, 'amount': 1.318, 'balance': 10000.0, 'equity': 10000.0, 'main_order_id': '875493411', 'tp_order_id': '875493412', 'sl_order_id': '875493413', 'reason': None, 'order_create_ts': 1764614163572, 'ws_confirm_ts': 1764614163853, 'used_ws_confirm': True, 'used_rest_fallback': False, 'ws_latency_ms': 281, 'tp_attempts': [], 'sl_attempts': []}
-14:36:28 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 75.8
-14:36:52 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 75.79
-14:37:00 [core.candle_maker] INFO: 🕯️ Candle Closed: 75.8 | Vol: 101424297.767
-14:37:00 [core.sensor_manager] INFO: 📡 Signal Detected: RSIReversion -> LONG
-14:37:01 [decision.aggregator] INFO: 📊 Selected: RSIReversion (LONG) | Score: 0.328 | Total signals: 1
-14:37:01 [players.fixed] INFO: 🎯 Decision: LONG | Fixed Bet: 1.00% of 10000.00
-14:37:01 [core.execution] INFO: 📩 Decision Received: LTC/USDT:USDT LONG (Size: 1.00%, Step: 0)
-14:37:01 [exchanges.adapters.ccxt_adapter] INFO: 🔍 get_current_price | requested_symbol=LTC/USDT:USDT | adapter_symbol=LTC/USDT:USDT
-14:37:02 [exchanges.adapters.ccxt_adapter] INFO: 💰 Current price for LTC/USDT:USDT: 75.78
-14:37:02 [Croupier] INFO: 📊 Orden convertida | Fracción: 0.0100 | Notional: 100.00 USDT | Precio: 75.78000000 | Cantidad: 1.319609 contratos
-14:37:02 [BinanceConnector] INFO: 📋 Creating order: symbol=LTC/USDT:USDT, side=buy, amount=1.319, price=None, type=market
-14:37:02 [BinanceConnector] INFO: 🔍 watch_orders() returned: type=<class 'list'>, length=1
-14:37:02 [Croupier] INFO: ⚡ WebSocket Order Update: ID=875493495, Symbol=LTC/USDT:USDT, Status=open
-14:37:02 [BinanceConnector] INFO: 🔍 watch_orders() returned: type=<class 'list'>, length=1
-14:37:02 [Croupier] INFO: ⚡ WebSocket Order Update: ID=875493495, Symbol=LTC/USDT:USDT, Status=open
-14:37:02 [BinanceConnector] INFO: 🔍 watch_orders() returned: type=<class 'list'>, length=1
-14:37:02 [Croupier] INFO: ⚡ WebSocket Order Update: ID=875493495, Symbol=LTC/USDT:USDT, Status=open
-14:37:02 [BinanceConnector] INFO: 🔍 watch_orders() returned: type=<class 'list'>, length=1
-14:37:02 [Croupier] INFO: ⚡ WebSocket Order Update: ID=875493495, Symbol=LTC/USDT:USDT, Status=closed
-14:37:02 [Croupier] INFO: 🔍 OCO Check: Searching for 875493495 in 1 positions
-14:37:02 [Croupier] INFO:    - Checking Pos V3_1764614162493: TP=875493412 SL=875493413
-14:37:02 [BinanceConnector] INFO: 🔍 watch_orders() returned: type=<class 'list'>, length=1
-14:37:02 [Croupier] INFO: ⚡ WebSocket Order Update: ID=875493495, Symbol=LTC/USDT:USDT, Status=closed
-14:37:02 [Croupier] INFO: 🔍 OCO Check: Searching for 875493495 in 1 positions
-14:37:02 [Croupier] INFO:    - Checking Pos V3_1764614162493: TP=875493412 SL=875493413
-14:37:02 [BinanceConnector] INFO: 🔍 watch_orders() returned: type=<class 'list'>, length=1
-14:37:02 [Croupier] INFO: ⚡ WebSocket Order Update: ID=875493495, Symbol=LTC/USDT:USDT, Status=closed
-14:37:02 [Croupier] INFO: 🔍 OCO Check: Searching for 875493495 in 1 positions
-14:37:02 [Croupier] INFO:    - Checking Pos V3_1764614162493: TP=875493412 SL=875493413
-14:37:02 [BinanceConnector] INFO: ✅ Order created | LTC/USDT:USDT BUY 1.319 @ market | avgPrice: 0.0
-14:37:04 [Croupier] INFO: ✅ Orden ejecutada: 875493495
-14:37:04 [Croupier] INFO: 📊 OCO Monitor | Entry: $76.10000000 | TP: $76.55660000 | SL: $73.78009150
-14:37:04 [Croupier] INFO: 🔧 Rounded TP/SL to exchange precision | TP: 76.55659999999999 -> 76.56 | SL: 73.7800915 -> 73.78
-14:37:04 [exchanges.adapters.ccxt_adapter] INFO: 🔍 get_current_price | requested_symbol=LTC/USDT:USDT | adapter_symbol=LTC/USDT:USDT
-14:37:05 [exchanges.adapters.ccxt_adapter] INFO: 💰 Current price for LTC/USDT:USDT: 75.8
-14:37:05 [BinanceConnector] INFO: 📋 Creating order: symbol=LTC/USDT:USDT, side=sell, amount=1.319, price=None, type=take_profit_market
-14:37:05 [BinanceConnector] INFO: 📋 Creating order: symbol=LTC/USDT:USDT, side=sell, amount=1.319, price=None, type=stop_market
-14:37:06 [BinanceConnector] INFO: ✅ Order created | LTC/USDT:USDT SELL 1.319 @ market | avgPrice: 0.0
-14:37:07 [BinanceConnector] INFO: ✅ Order created | LTC/USDT:USDT SELL 1.319 @ market | avgPrice: 0.0
-14:37:07 [Croupier] INFO: ✅ TP order created: 875493500 @ $76.56000000
-14:37:07 [Croupier] INFO: ✅ SL order created: 875493503 @ $73.78000000
-14:37:07 [PositionTracker] INFO: 📈 OPEN | LTC/USDT:USDT LONG | Entry: 76.10 | TP: 76.56 | SL: 73.82 | Notional: 100.00 | Margin: 100.00
-14:37:07 [core.execution] WARNING: ⚠️ Order Result: {'status': 'closed', 'id': '875493495', 'price': 76.1, 'amount': 1.319, 'balance': 10000.0, 'equity': 10000.0, 'main_order_id': '875493495', 'tp_order_id': '875493500', 'sl_order_id': '875493503', 'reason': None, 'order_create_ts': 1764614222027, 'ws_confirm_ts': 1764614224808, 'used_ws_confirm': False, 'used_rest_fallback': True, 'ws_latency_ms': 2781, 'tp_attempts': [], 'sl_attempts': []}
-14:37:13 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 75.8
-14:37:40 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 75.8
-14:38:00 [core.candle_maker] INFO: 🕯️ Candle Closed: 75.78 | Vol: 93309577.22899999
-14:38:07 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 75.78
-14:38:31 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 75.8
-14:38:55 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 75.77
-14:39:03 [core.candle_maker] INFO: 🕯️ Candle Closed: 75.81 | Vol: 105478800.94000001
-14:39:25 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 75.79
-14:39:51 [core.feed] INFO: ⚡ Tick: LTC/USDT:USDT 75.77
+nohup: no se tendrá en cuenta la entrada
+🚀 Starting Casino-V3 | Exchange: binance | Mode: demo
+📊 Starting metrics server...
+📊 Metrics server started on http://0.0.0.0:8000/metrics
+🕒 Rate limiter initialized for Binance
+Stateless CCXTAdapter initialized | Symbol: LTC/USDT:USDT | Timeframe: 1m
+⚠️ Connector does not expose 'exchange' attribute (Virtual/Simulated?).
+🔌 Connecting to Binance Native (demo)...
+✅ Server Time: 1764670785776 | Offset: -101ms
+✅ Markets loaded: 647
+🔌 Starting Native WebSocket...
+🔑 ListenKey generated: G8XPkUygWt...
+✅ Subscribed to User Data Stream
+💰 Initial Balance: 3488.28 USDT
+PositionTracker inicializado | Max positions: 10
+ExchangeStateSync inicializado
+🔒 Lock manager initialized
+🎯 Croupier initialized as State Owner | Balance: $3,488.28
+✅ OCO Manual enabled in PositionTracker
+✅ SensorManager loaded 27 sensors for timeframe 1m.
+✅ Loaded stats for 25 sensors from state/sensor_stats.json
+✅ SensorTracker initialized | Sensors: 25
+✅ SignalAggregator initialized with intelligent scoring
+✅ FixedPlayer initialized | Bet Size: 1.0% | Max Positions: 3
+🔄 Attempting state recovery...
+⚠️ No state found to recover
+⚠️ No state found to recover
+📝 Starting fresh session
+📝 Initialized new state: session_1764670787
+🚀 State manager started (auto-save every 5s)
+🚀 State manager started
+💰 Session Initial Balance: 3488.28 USDT
+🚀 OrderManager started
+🔄 Startup Reconciliation for LTC/USDT:USDT...
+🔍 Iniciando reconciliación para LTC/USDT:USDT
+🔍 Reconciliación debug: Exchange orders: 0 | Tracker positions: 0
+🔍 Tracked Order IDs: set()
+✅ Reconciliación completada para LTC/USDT:USDT
+🚀 Starting Casino-V3 Engine...
+🔌 Connecting Data Feed...
+🔌 Connecting to Binance Native (demo)...
+✅ Server Time: 1764670788978 | Offset: -106ms
+✅ Markets loaded: 647
+🔌 Starting Native WebSocket...
+🔑 ListenKey generated: G8XPkUygWt...
+✅ Subscribed to User Data Stream
+✅ Engine running. Waiting for events...
+📡 Subscribing to LTC/USDT:USDT...
+📡 Subscribing to ticker: LTC/USDT:USDT
+✅ Casino-V3 Running | Press Ctrl+C to stop

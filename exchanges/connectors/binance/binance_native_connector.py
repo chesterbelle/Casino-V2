@@ -168,16 +168,23 @@ class BinanceNativeConnector(BaseConnector):
                 message = json.loads(message)
 
             # SDK passes (client, message), so we ignore client (_)
+            
+            # Handle combined stream format
+            if "data" in message:
+                message = message["data"]
+
             event_type = message.get("e")
+            
             if event_type == "ORDER_TRADE_UPDATE":
                 self._handle_order_update(message)
             elif event_type == "ACCOUNT_UPDATE":
                 self._handle_account_update(message)
             elif event_type == "24hrTicker":
+                self.logger.debug(f"📊 Ticker received for {message.get('s')}")
                 self._handle_ticker_update(message)
             elif "id" in message and "result" in message:
                 # Response to subscription/request
-                self.logger.debug(f"WS Response: {message}")
+                self.logger.info(f"✅ WS Subscription Response: {message}")
         except Exception as e:
             self.logger.error(f"❌ WS Message Error: {e}")
 
@@ -344,12 +351,12 @@ class BinanceNativeConnector(BaseConnector):
     async def watch_ticker(self, symbol: str) -> Dict[str, Any]:
         """Watch ticker (WebSocket)."""
         native_symbol = self.normalize_symbol(symbol)
-
+        
         if native_symbol not in self._ticker_queues:
             self.logger.info(f"📡 Subscribing to ticker for {native_symbol}")
             self._ticker_queues[native_symbol] = asyncio.Queue(maxsize=100)
             # Subscribe via SDK
-            self.ws_client.ticker(symbol=native_symbol, id=1)
+            self.ws_client.ticker(symbol=native_symbol.lower(), id=1)
 
         # Wait for next update
         return await self._ticker_queues[native_symbol].get()
