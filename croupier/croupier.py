@@ -135,7 +135,7 @@ class Croupier:
             adapter=exchange_adapter,  # Pasar adapter para OCO manual
             on_close_callback=gemini.on_trade_result if gemini else None,
         )
-        self.state_sync = ExchangeStateSync(exchange_adapter.connector)
+        self.state_sync = ExchangeStateSync(exchange_adapter)
 
         # Lock manager for concurrency control
         self.lock_mgr = get_lock_manager()
