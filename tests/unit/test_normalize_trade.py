@@ -4,8 +4,10 @@ Test para validar que normalize_trade() funciona correctamente en cada conector.
 
 
 def test_binance_normalize_trade_with_close():
-    """Test que BinanceConnector detecta correctamente un trade de cierre."""
-    from exchanges.connectors.binance.binance_connector import BinanceConnector
+    """Test que BinanceNativeConnector detecta correctamente un trade de cierre."""
+    from exchanges.connectors.binance.binance_native_connector import (
+        BinanceNativeConnector,
+    )
 
     # Simular un trade de cierre de Binance
     raw_trade = {
@@ -21,7 +23,7 @@ def test_binance_normalize_trade_with_close():
     }
 
     # Crear conector (sin conectar)
-    connector = BinanceConnector(api_key="test", secret="test", mode="demo")
+    connector = BinanceNativeConnector(api_key="test", secret="test", mode="demo")
 
     # Normalizar trade
     normalized = connector.normalize_trade(raw_trade)
@@ -33,8 +35,10 @@ def test_binance_normalize_trade_with_close():
 
 
 def test_binance_normalize_trade_without_close():
-    """Test que BinanceConnector NO detecta un trade de apertura como cierre."""
-    from exchanges.connectors.binance.binance_connector import BinanceConnector
+    """Test que BinanceNativeConnector NO detecta un trade de apertura como cierre."""
+    from exchanges.connectors.binance.binance_native_connector import (
+        BinanceNativeConnector,
+    )
 
     # Simular un trade de apertura de Binance
     raw_trade = {
@@ -49,117 +53,7 @@ def test_binance_normalize_trade_without_close():
         },
     }
 
-    connector = BinanceConnector(api_key="test", secret="test", mode="demo")
-
-    normalized = connector.normalize_trade(raw_trade)
-
-    # Verificar que NO se detectó como cierre
-    assert normalized["is_close"] is False
-    assert normalized["realized_pnl"] == 0.0
-    assert normalized["close_reason"] is None
-
-
-def test_kraken_normalize_trade_with_close():
-    """Test que KrakenConnector detecta correctamente un trade de cierre."""
-    from exchanges.connectors.kraken.kraken_connector import KrakenConnector
-
-    # Simular un trade de cierre de Kraken
-    raw_trade = {
-        "id": "12345",
-        "symbol": "BTC/USD",
-        "side": "sell",
-        "price": 45000.0,
-        "amount": 0.1,
-        "info": {
-            "reduceOnly": True,  # Kraken usa reduceOnly
-            "realizedPnl": 500.0,
-            "orderType": "stop",
-        },
-    }
-
-    connector = KrakenConnector(api_key="test", secret="test", mode="testing")
-
-    normalized = connector.normalize_trade(raw_trade)
-
-    # Verificar que se detectó como cierre
-    assert normalized["is_close"] is True
-    assert normalized["realized_pnl"] == 500.0
-    assert normalized["close_reason"] == "SL"
-
-
-def test_kraken_normalize_trade_without_close():
-    """Test que KrakenConnector NO detecta un trade de apertura como cierre."""
-    from exchanges.connectors.kraken.kraken_connector import KrakenConnector
-
-    # Simular un trade de apertura de Kraken
-    raw_trade = {
-        "id": "12345",
-        "symbol": "BTC/USD",
-        "side": "buy",
-        "price": 45000.0,
-        "amount": 0.1,
-        "info": {
-            "reduceOnly": False,  # No es cierre
-            "realizedPnl": 0.0,
-            "orderType": "market",
-        },
-    }
-
-    connector = KrakenConnector(api_key="test", secret="test", mode="testing")
-
-    normalized = connector.normalize_trade(raw_trade)
-
-    # Verificar que NO se detectó como cierre
-    assert normalized["is_close"] is False
-    assert normalized["realized_pnl"] == 0.0
-    assert normalized["close_reason"] is None
-
-
-def test_bybit_normalize_trade_with_close():
-    """Test que BybitConnector detecta correctamente un trade de cierre."""
-    from exchanges.connectors.bybit.bybit_connector import BybitConnector
-
-    # Simular un trade de cierre de Bybit
-    raw_trade = {
-        "id": "12345",
-        "symbol": "ETH/USDT:USDT",
-        "side": "sell",
-        "price": 3000.0,
-        "amount": 1.0,
-        "info": {
-            "closedPnl": "50.25",  # Bybit retorna string
-            "orderType": "Market",
-        },
-    }
-
-    connector = BybitConnector(api_key="test", secret="test", mode="demo")
-
-    normalized = connector.normalize_trade(raw_trade)
-
-    # Verificar que se detectó como cierre
-    assert normalized["is_close"] is True
-    assert normalized["realized_pnl"] == 50.25
-    assert normalized["close_reason"] == "MANUAL"
-
-
-def test_bybit_normalize_trade_without_close():
-    """Test que BybitConnector NO detecta un trade de apertura como cierre."""
-    from exchanges.connectors.bybit.bybit_connector import BybitConnector
-
-    # Simular un trade de apertura de Bybit
-    raw_trade = {
-        "id": "12345",
-        "symbol": "ETH/USDT:USDT",
-        "side": "buy",
-        "price": 3000.0,
-        "amount": 1.0,
-        "info": {
-            "closedPnl": "0",  # Sin PnL = apertura
-            "orderType": "Market",
-        },
-    }
-
-    connector = BybitConnector(api_key="test", secret="test", mode="demo")
+    connector = BinanceNativeConnector(api_key="test", secret="test", mode="demo")
 
     normalized = connector.normalize_trade(raw_trade)
 

@@ -7,10 +7,11 @@ This package contains all exchange-related functionality:
 - resilience/: Resilient connector wrappers for fault tolerance
 """
 
-from .adapters.ccxt_adapter import ExchangeAdapter
-from .connectors import KrakenConnector
+from .adapters.exchange_adapter import ExchangeAdapter
+from .connectors import BinanceNativeConnector, HyperliquidNativeConnector
 
 __all__ = [
     "ExchangeAdapter",
-    "KrakenConnector",
+    "BinanceNativeConnector",
+    "HyperliquidNativeConnector",
 ]

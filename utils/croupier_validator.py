@@ -26,8 +26,8 @@ from core.data_sources import BacktestDataSource, LiveDataSource, TestingDataSou
 # from core.trading import TradingSession
 from croupier.croupier import Croupier
 from exchanges.adapters import ExchangeAdapter
-from exchanges.connectors import BybitConnector, KrakenConnector, ResilientConnector
-from exchanges.connectors.binance.binance_connector import BinanceConnector
+from exchanges.connectors import ResilientConnector
+from exchanges.connectors.binance.binance_native_connector import BinanceNativeConnector
 
 
 def setup_logging():
@@ -58,16 +58,10 @@ class CroupierValidator:
 
         # 1. Init Connector
         if exchange_id == "binance":
-            self.connector = BinanceConnector(
+            self.connector = BinanceNativeConnector(
                 api_key=os.getenv("BINANCE_API_KEY"),
                 secret=os.getenv("BINANCE_API_SECRET"),
                 mode=mode,
-            )
-        elif exchange_id == "kraken":
-            self.connector = KrakenConnector(
-                api_key=os.getenv("KRAKEN_API_KEY"),
-                secret=os.getenv("KRAKEN_SECRET"),
-                testnet=(mode != "live"),
             )
         else:
             raise ValueError(f"Unknown exchange: {exchange_id}")
@@ -78,21 +72,17 @@ class CroupierValidator:
     async def setup(self):
         logger.info(f"--- Configurando para Exchange: {self.exchange_name.upper()} ---")
         if self.exchange_name == "binance":
-            from exchanges.connectors.binance import BinanceConnector
+            from exchanges.connectors.binance import BinanceNativeConnector
 
-            base_connector = BinanceConnector(mode=self.mode, enable_websocket=True)
-        elif self.exchange_name == "bybit":
-            base_connector = BybitConnector(mode="demo")
-        elif self.exchange_name == "kraken":
-            base_connector = KrakenConnector(mode="demo")
+            base_connector = BinanceNativeConnector(mode=self.mode, enable_websocket=True)
         elif self.exchange_name == "hyperliquid":
-            from exchanges.connectors.hyperliquid.hyperliquid_connector import (
-                HyperliquidConnector,
+            from exchanges.connectors.hyperliquid.hyperliquid_native_connector import (
+                HyperliquidNativeConnector,
             )
 
             # Map "demo" to "testing" for Hyperliquid
             hl_mode = "testing" if self.mode == "demo" else "live"
-            base_connector = HyperliquidConnector(mode=hl_mode, enable_websocket=True)
+            base_connector = HyperliquidNativeConnector(mode=hl_mode, enable_websocket=True)
         else:
             raise ValueError(f"Exchange '{self.exchange_name}' no soportado.")
         self.connector = ResilientConnector(connector=base_connector)

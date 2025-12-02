@@ -22,10 +22,10 @@ from typing import Dict, Literal
 # =====================================================
 # 🎯 VERSIÓN ACTUAL
 # =====================================================
-__version__ = "1.9.3"
-__version_name__ = "Testing & Validation"
-__release_date__ = "2025-11-05"
-__status__: Literal["stable", "beta", "alpha", "dev"] = "dev"
+__version__ = "2.0.0"
+__version_name__ = "Native SDK Migration"
+__release_date__ = "2025-12-01"
+__status__: Literal["stable", "beta", "alpha", "dev"] = "beta"
 
 # =====================================================
 # 📝 CHANGELOG RESUMIDO
@@ -83,10 +83,21 @@ CHANGELOG = {
             "Table multiasset eliminada",
         ],
     },
-    "1.6": {
-        "name": "WebSocket Integration",
-        "date": "2025-09-30",
-        "highlights": ["WebSocket para datos en tiempo real", "CCXTAdapter implementado", "Mejoras en live trading"],
+    "2.0.0": {
+        "name": "Native SDK Migration",
+        "date": "2025-12-01",
+        "highlights": [
+            "Migración completa a Native SDKs (Binance Futures, Hyperliquid)",
+            "Eliminación de dependencia CCXT",
+            "Refactorización de ExchangeAdapter",
+            "Soporte para Agent Wallet en Hyperliquid",
+            "Mejoras en sincronización de tiempo y WebSockets",
+        ],
+    },
+    "1.9.3": {
+        "name": "Testing & Validation",
+        "date": "2025-11-05",
+        "highlights": ["Testing & Validation phase"],
     },
 }
 
@@ -101,7 +112,7 @@ NEXT_VERSION_ETA = "2026-01-31"
 # 🔥 BLOQUEANTES ACTUALES
 # =====================================================
 BLOCKERS = [
-    "Implementar BinanceConnector completo (v2.0 - CRÍTICO)",
+    "Expandir cobertura de tests para Native SDKs",
 ]
 
 

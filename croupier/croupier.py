@@ -49,6 +49,7 @@ import logging
 import time
 from typing import Any, Dict, List, Optional
 
+from core.concurrency import get_lock_manager
 from core.portfolio.balance_manager import BalanceManager
 from core.portfolio.position_tracker import PositionTracker
 from core.portfolio.utils import calculate_position_pnl
@@ -135,6 +136,10 @@ class Croupier:
             on_close_callback=gemini.on_trade_result if gemini else None,
         )
         self.state_sync = ExchangeStateSync(exchange_adapter.connector)
+
+        # Lock manager for concurrency control
+        self.lock_mgr = get_lock_manager()
+        self.logger.info("🔒 Lock manager initialized")
         # --------------------------------------------
 
         # Register for order updates if supported
@@ -398,14 +403,8 @@ class Croupier:
 
     async def execute_order(self, order: dict, wait_for_fill_confirmation: bool = True) -> dict:
         """
-        Wrapper para mantener compatibilidad con código existente.
-        Delega a oco_bracketed_order que es el método principal.
-
-        Args:
-            order: diccionario de orden (ver contrato)
-            wait_for_fill_confirmation: si True, solicitar al adaptador que espere
-            la confirmación de fill/avgPrice vía WebSocket antes de proceder
-            con la creación de TP/SL. Por defecto True (nuevo flujo market-first).
+        la confirmación de fill/avgPrice vía WebSocket antes de proceder
+        con la creación de TP/SL. Por defecto True (nuevo flujo market-first).
         """
         return await self.oco_bracketed_order(order, wait_for_fill_confirmation=wait_for_fill_confirmation)
 

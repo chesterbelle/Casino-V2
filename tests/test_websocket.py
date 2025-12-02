@@ -1,12 +1,12 @@
 """
-Test para WebSocket de Kraken
-
-Verifica que el WebSocket se conecta y funciona correctamente.
+Test para WebSocket de Binance Native
 """
 
 import asyncio
 import sys
+import unittest
 from pathlib import Path
+from unittest.mock import MagicMock
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
@@ -14,107 +14,50 @@ sys.path.insert(0, str(project_root))
 
 import pytest
 
-from exchanges.connectors.kraken import KrakenConnector
+from exchanges.connectors.binance.binance_native_connector import BinanceNativeConnector
 
 
 @pytest.mark.asyncio
-@pytest.mark.integration
-async def test_websocket_connection():
-    """Test básico de conexión WebSocket."""
+async def test_websocket_structure():
+    """Test básico de estructura WebSocket (Mocked)."""
     print("=" * 80)
-    print("🧪 TEST: WebSocket Connection")
+    print("🧪 TEST: WebSocket Structure (Binance Native)")
     print("=" * 80)
 
-    # 1. Crear conector CON WebSocket habilitado
-    print("\n📝 Creando conector con WebSocket...")
-    connector = KrakenConnector(mode="testing", enable_websocket=True)
+    # 1. Crear conector
+    connector = BinanceNativeConnector(mode="demo", enable_websocket=True)
 
-    # 2. Conectar
-    print("🔌 Conectando...")
-    await connector.connect()
+    # Mock SDK client
+    connector.client = MagicMock()
+    connector.client.time.return_value = {"serverTime": 1699000000000}
+    connector.client.exchange_info.return_value = {"symbols": []}
+    connector.client.new_listen_key.return_value = {"listenKey": "test_key"}
 
-    # 3. Verificar estado
-    status = connector.status_dict
-    if not status or not status.get("connected"):
-        pytest.skip("Connector not connected; skipping WebSocket integration test")
-    print(f"\n📊 Estado del conector:")
-    print(f"   Connected: {status['connected']}")
-    print(f"   Markets loaded: {status['markets_loaded']}")
-    print(f"   WebSocket active: {status['websocket_active']}")
-    print(f"   Ready: {status['ready']}")
+    # Mock WebSocket client class
+    with unittest.mock.patch(
+        "exchanges.connectors.binance.binance_native_connector.UMFuturesWebsocketClient"
+    ) as MockWS:
+        mock_ws_instance = MockWS.return_value
 
-    # 4. Verificar métricas de WebSocket
-    if connector._ws:
-        metrics = connector._ws.get_metrics()
-        print(f"\n📊 Métricas de WebSocket:")
-        print(f"   Connected: {metrics['connected']}")
-        print(f"   Messages received: {metrics['messages_received']}")
-        print(f"   Reconnect count: {metrics['reconnect_count']}")
-        print(f"   Subscriptions: {metrics['subscriptions']}")
+        # 2. Conectar (Mocked)
+        await connector.connect()
 
-    # 5. Esperar un poco para recibir mensajes
-    print("\n⏳ Esperando mensajes del WebSocket (5s)...")
-    await asyncio.sleep(5)
+        assert connector.is_connected
+        assert connector.ws_client is not None
+        assert connector.ws_client == mock_ws_instance
 
-    # 6. Verificar métricas nuevamente
-    if connector._ws:
-        metrics = connector._ws.get_metrics()
-        print(f"\n📊 Métricas después de 5s:")
-        print(f"   Messages received: {metrics['messages_received']}")
-        print(f"   Time since last message: {metrics['time_since_last_message']:.2f}s")
+        # Verify subscription
+        mock_ws_instance.user_data.assert_called()
+        print("✅ WebSocket client initialized and subscribed to user data")
 
-    # 7. Cerrar
-    print("\n🔌 Cerrando conexión...")
+    # 3. Simulate Message
+    msg = {"e": "ORDER_TRADE_UPDATE", "o": {"i": "123", "s": "BTCUSDT", "X": "FILLED"}}
+    connector._on_ws_message(None, msg)
+    # (Verification of internal state update would go here)
+
     await connector.close()
-
-    print("\n" + "=" * 80)
-    if status["websocket_active"]:
-        print("✅ TEST PASSED: WebSocket conectado exitosamente")
-    else:
-        print("⚠️ TEST WARNING: WebSocket no conectó (usando REST fallback)")
-    print("=" * 80)
-
-
-@pytest.mark.asyncio
-@pytest.mark.integration
-async def test_websocket_fallback():
-    """Test de fallback a REST cuando WebSocket no está disponible."""
-    print("\n" + "=" * 80)
-    print("🧪 TEST: WebSocket Fallback to REST")
-    print("=" * 80)
-
-    # 1. Crear conector SIN WebSocket
-    print("\n📝 Creando conector SIN WebSocket...")
-    connector = KrakenConnector(mode="testing", enable_websocket=False)
-
-    # 2. Conectar
-    print("🔌 Conectando...")
-    await connector.connect()
-
-    # 3. Verificar estado
-    status = connector.status_dict
-    if not status or not status.get("connected"):
-        pytest.skip("Connector not connected; skipping WebSocket integration test")
-    print(f"\n📊 Estado del conector:")
-    print(f"   Connected: {status['connected']}")
-    print(f"   WebSocket active: {status['websocket_active']}")
-
-    assert not status["websocket_active"], "WebSocket NO debe estar activo"
-    assert status["connected"], "REST debe estar conectado"
-
-    # 4. Verificar que puede obtener datos (usando REST)
-    print("\n📊 Obteniendo datos vía REST...")
-    balance = await connector.fetch_balance()
-    print(f"   Balance obtenido: {bool(balance)}")
-
-    # 5. Cerrar
-    await connector.close()
-
-    print("\n" + "=" * 80)
-    print("✅ TEST PASSED: Fallback a REST funciona correctamente")
-    print("=" * 80)
+    print("✅ Connection closed")
 
 
 if __name__ == "__main__":
-    asyncio.run(test_websocket_connection())
-    asyncio.run(test_websocket_fallback())
+    asyncio.run(test_websocket_structure())

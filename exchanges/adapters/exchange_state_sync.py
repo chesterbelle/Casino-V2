@@ -22,9 +22,10 @@ from __future__ import annotations
 import logging
 import time
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
-from exchanges.connectors.connector_base import BaseConnector
+if TYPE_CHECKING:
+    from .exchange_adapter import ExchangeAdapter
 
 
 @dataclass
@@ -127,14 +128,15 @@ class ExchangeStateSync:
                 print(f"Cierre confirmado: {fill.price:.2f}")
     """
 
-    def __init__(self, connector: BaseConnector):
+    def __init__(self, adapter: "ExchangeAdapter"):
         """
         Initialize ExchangeStateSync.
 
         Args:
-            connector: Exchange connector (e.g., KrakenConnector)
+            adapter: ExchangeAdapter instance
         """
-        self.connector = connector
+        self.adapter = adapter
+        self.connector = adapter.connector
         self.logger = logging.getLogger("ExchangeStateSync")
 
         # Tracking de última sincronización

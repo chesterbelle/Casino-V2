@@ -89,7 +89,7 @@ class BacktestDataSource(DataSource):
 
         # 2. CCXT Adapter (The Standard Adapter used in Live/Demo)
         # Import here to avoid circular imports
-        from exchanges.adapters.ccxt_adapter import ExchangeAdapter
+        from exchanges.adapters import ExchangeAdapter
         from exchanges.connectors.virtual.virtual_connector import VirtualConnector
 
         self.adapter = ExchangeAdapter(

@@ -8,6 +8,7 @@ import time
 
 import config.trading
 from core.events import EventType
+from core.observability import metrics
 from croupier.croupier import Croupier
 
 logger = logging.getLogger(__name__)
@@ -104,18 +105,42 @@ class OrderManager:
         sensor_id = getattr(event, "selected_sensor", "Unknown")
         self.pending_trades[trade_id] = (event, sensor_id)
 
-        # Execute via Croupier
+        # Execute via Croupier with error handling
+        from core.error_handling import RetryConfig, get_error_handler
+
+        error_handler = get_error_handler()
+
         try:
-            result = await self.croupier.execute_order(order_payload)
+            result = await error_handler.execute(
+                self.croupier.execute_order,
+                order_payload,
+                retry_config=RetryConfig(
+                    max_retries=3,
+                    backoff_base=2.0,
+                    backoff_max=30.0,
+                ),
+                context=f"execute_order_{event.symbol}",
+            )
 
             if result.get("status") == "filled":
                 logger.info(f"✅ Order Executed: {result.get('id')}")
+                # Record successful order
+                metrics.record_order_filled(
+                    exchange=self.croupier.exchange_adapter.connector.__class__.__name__.replace("NativeConnector", ""),
+                    symbol=event.symbol,
+                    side=event.side,
+                )
                 # TODO: Track order to get outcome and update Paroli
             else:
                 logger.warning(f"⚠️ Order Result: {result}")
 
         except Exception as e:
-            logger.error(f"❌ Execution Failed: {e}", exc_info=True)
+            logger.error(f"❌ Execution Failed after retries: {e}", exc_info=True)
+            # Record failed order
+            metrics.record_order_failed(
+                exchange=self.croupier.exchange_adapter.connector.__class__.__name__.replace("NativeConnector", ""),
+                reason=str(e)[:50],  # Truncate reason
+            )
 
     def handle_trade_outcome(self, trade_id: str, won: bool, pnl: float = 0.0):
         """
@@ -151,10 +176,22 @@ class OrderManager:
         if self.candle_count >= self.reconciliation_interval:
             self.candle_count = 0
             logger.info(f"🔄 Running periodic reconciliation (every {self.reconciliation_interval} candles)")
+            from core.error_handling import RetryConfig, get_error_handler
+
+            error_handler = get_error_handler()
             try:
-                await self.croupier.reconcile_positions(event.symbol)
+                await error_handler.execute(
+                    self.croupier.reconcile_positions,
+                    event.symbol,
+                    retry_config=RetryConfig(
+                        max_retries=2,
+                        backoff_base=5.0,
+                        backoff_max=30.0,
+                    ),
+                    context="reconcile_positions",
+                )
             except Exception as e:
-                logger.error(f"❌ Error during reconciliation: {e}", exc_info=True)
+                logger.error(f"❌ Reconciliation failed after retries: {e}", exc_info=True)
 
         # Convert event to dict for Croupier
         candle_dict = {

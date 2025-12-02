@@ -14,12 +14,12 @@ from typing import Literal
 # =====================================================
 
 _EXCHANGE_ENV_VAR = "CASINO_EXCHANGE"
-_ALLOWED_EXCHANGES = {"KRAKEN", "BINANCE", "BYBIT", "HYPERLIQUID"}
+_ALLOWED_EXCHANGES = {"BINANCE", "HYPERLIQUID"}
 
 
 def _get_exchange(
-    default: Literal["KRAKEN", "BINANCE", "BYBIT", "HYPERLIQUID"],
-) -> Literal["KRAKEN", "BINANCE", "BYBIT", "HYPERLIQUID"]:
+    default: Literal["BINANCE", "HYPERLIQUID"],
+) -> Literal["BINANCE", "HYPERLIQUID"]:
     value = os.getenv(_EXCHANGE_ENV_VAR)
     if value:
         normalized = value.strip().upper()
@@ -31,11 +31,9 @@ def _get_exchange(
 
 # Exchange activo (se usa en modos testing/live)
 # Opciones actuales:
-#  - "KRAKEN"     → Kraken Futures (demo en testing, real en live)
 #  - "BINANCE"    → Binance Futures
-#  - "BYBIT"      → Bybit (testnet en testing, real en live)
 #  - "HYPERLIQUID"→ Hyperliquid
-EXCHANGE: Literal["KRAKEN", "BINANCE", "BYBIT", "HYPERLIQUID"] = _get_exchange("BYBIT")
+EXCHANGE: Literal["BINANCE", "HYPERLIQUID"] = _get_exchange("BINANCE")
 
 # Perfil del exchange (usa el JSON de tables/data/exchange_profiles)
 EXCHANGE_PROFILE = "kraken_futures_demo"
@@ -46,19 +44,6 @@ TIMEFRAME = "15m"
 
 # Moneda base para cálculos de balance y PnL
 BASE_CURRENCY = "USDT"
-
-
-# =====================================================
-# KRAKEN FUTURES — PARÁMETROS DEMO/LIVE
-# =====================================================
-
-KRAKEN_FUTURES_BASE_URL = "https://demo-futures.kraken.com/derivatives/api/"
-KRAKEN_FUTURES_CHARTS_URL = "https://demo-futures.kraken.com/api/charts/v1/"
-KRAKEN_FUTURES_SYMBOL = "LTC"
-KRAKEN_FUTURES_INTERVAL = "1m"
-KRAKEN_POLL_INTERVAL = 2.0
-KRAKEN_FUTURES_API_KEY = None
-KRAKEN_FUTURES_API_SECRET = None
 
 
 # =====================================================
@@ -85,19 +70,6 @@ HYPERLIQUID_POLL_INTERVAL = 1.0
 HYPERLIQUID_API_KEY = None
 HYPERLIQUID_API_SECRET = None
 HYPERLIQUID_VAULT_ADDRESS = None  # Para vault trading
-
-
-# =====================================================
-# BYBIT — PARÁMETROS TESTNET/LIVE
-# =====================================================
-
-BYBIT_BASE_URL_TESTNET = "https://api-testnet.bybit.com"
-BYBIT_BASE_URL_LIVE = "https://api.bybit.com"
-BYBIT_DEFAULT_SYMBOL = "BTC/USDT:USDT"
-BYBIT_DEFAULT_INTERVAL = "1m"
-BYBIT_POLL_INTERVAL = 2.0
-BYBIT_API_KEY = None
-BYBIT_API_SECRET = None
 
 
 # =====================================================

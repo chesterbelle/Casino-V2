@@ -8,7 +8,7 @@ import logging
 import time
 from typing import Any, Dict, Set
 
-from exchanges.adapters.ccxt_adapter import ExchangeAdapter
+from exchanges.adapters import ExchangeAdapter
 
 from .events import EventType, OrderBookEvent, TickEvent
 
@@ -73,23 +73,76 @@ class StreamManager:
             logger.info(f"📝 Queued order book subscription: {symbol}")
 
     async def _watch_ticker_loop(self, symbol: str):
-        """Continuous loop to watch ticker."""
+        """Continuous loop to watch ticker with error handling and circuit breaker."""
+        from core.error_handling import RetryConfig, get_error_handler
+
+        error_handler = get_error_handler()
+        breaker_name = f"ticker_stream_{symbol}"
+        consecutive_failures = 0
+        max_consecutive_failures = 10
+
         while self.running:
             try:
-                ticker = await self.adapter.watch_ticker(symbol)
+                # Use error handler with circuit breaker
+                ticker = await error_handler.execute_with_breaker(
+                    breaker_name,
+                    self.adapter.watch_ticker,
+                    symbol,
+                    retry_config=RetryConfig(
+                        max_retries=3,
+                        backoff_base=1.0,
+                        backoff_max=30.0,
+                    ),
+                )
                 await self.on_ticker(ticker)
 
+                # Reset failure count on success
+                consecutive_failures = 0
+
             except asyncio.CancelledError:
+                logger.info(f"📡 Ticker stream for {symbol} cancelled")
                 break
             except Exception as e:
-                logger.error(f"❌ Error in ticker stream for {symbol}: {e}")
-                await asyncio.sleep(1)  # Backoff on error
+                consecutive_failures += 1
+                logger.error(
+                    f"❌ Error in ticker stream for {symbol} "
+                    f"(consecutive failures: {consecutive_failures}/{max_consecutive_failures}): {e}"
+                )
+
+                # If too many consecutive failures, stop the stream
+                if consecutive_failures >= max_consecutive_failures:
+                    logger.critical(
+                        f"🔴 Ticker stream for {symbol} failed {max_consecutive_failures} times. " f"Stopping stream."
+                    )
+                    break
+
+                # Exponential backoff
+                backoff = min(2**consecutive_failures, 60)
+                logger.info(f"⏳ Backing off for {backoff}s before retry")
+                await asyncio.sleep(backoff)
 
     async def _watch_order_book_loop(self, symbol: str):
-        """Continuous loop to watch order book."""
+        """Continuous loop to watch order book with error handling and circuit breaker."""
+        from core.error_handling import RetryConfig, get_error_handler
+
+        error_handler = get_error_handler()
+        breaker_name = f"orderbook_stream_{symbol}"
+        consecutive_failures = 0
+        max_consecutive_failures = 10
+
         while self.running:
             try:
-                ob = await self.adapter.watch_order_book(symbol)
+                # Use error handler with circuit breaker
+                ob = await error_handler.execute_with_breaker(
+                    breaker_name,
+                    self.adapter.watch_order_book,
+                    symbol,
+                    retry_config=RetryConfig(
+                        max_retries=3,
+                        backoff_base=1.0,
+                        backoff_max=30.0,
+                    ),
+                )
 
                 # Create and dispatch event
                 event = OrderBookEvent(
@@ -101,11 +154,31 @@ class StreamManager:
                 )
                 await self.engine.dispatch(event)
 
+                # Reset failure count on success
+                consecutive_failures = 0
+
             except asyncio.CancelledError:
+                logger.info(f"📡 Order book stream for {symbol} cancelled")
                 break
             except Exception as e:
-                logger.error(f"❌ Error in order book stream for {symbol}: {e}")
-                await asyncio.sleep(1)  # Backoff on error
+                consecutive_failures += 1
+                logger.error(
+                    f"❌ Error in order book stream for {symbol} "
+                    f"(consecutive failures: {consecutive_failures}/{max_consecutive_failures}): {e}"
+                )
+
+                # If too many consecutive failures, stop the stream
+                if consecutive_failures >= max_consecutive_failures:
+                    logger.critical(
+                        f"🔴 Order book stream for {symbol} failed {max_consecutive_failures} times. "
+                        f"Stopping stream."
+                    )
+                    break
+
+                # Exponential backoff
+                backoff = min(2**consecutive_failures, 60)
+                logger.info(f"⏳ Backing off for {backoff}s before retry")
+                await asyncio.sleep(backoff)
 
     async def on_ticker(self, ticker: Dict[str, Any]):
         """Handle ticker update."""

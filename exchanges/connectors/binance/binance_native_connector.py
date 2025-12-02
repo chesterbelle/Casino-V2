@@ -17,6 +17,7 @@ from binance.um_futures import UMFutures
 from binance.websocket.um_futures.websocket_client import UMFuturesWebsocketClient
 
 from exchanges.connectors.connector_base import BaseConnector
+from exchanges.rate_limiter import BinanceRateLimiter
 
 
 class BinanceNativeConnector(BaseConnector):
@@ -60,10 +61,14 @@ class BinanceNativeConnector(BaseConnector):
         if not self._api_key or not self._secret:
             self.logger.warning(f"⚠️ Missing API Keys for mode {self._mode}. Operations requiring auth will fail.")
 
-        # Initialize SDK Client
-        self.client = UMFutures(key=self._api_key, secret=self._secret, base_url=self._base_url)
+        # Initialize REST client
+        self.client = UMFutures(key=api_key, secret=secret, base_url=self._base_url)
 
-        # WebSocket Client (Initialized in connect)
+        # Initialize rate limiter
+        self.rate_limiter = BinanceRateLimiter()
+        self.logger.info("🕒 Rate limiter initialized for Binance")
+
+        # WebSocket client (initialized in connect())
         self.ws_client = None
         self._connected = False
         self._markets = {}
@@ -182,7 +187,104 @@ class BinanceNativeConnector(BaseConnector):
     def _on_ws_error(self, _, error):
         self.logger.error(f"❌ WebSocket Error: {error}")
 
-    # ... (skipping unchanged parts) ...
+    def _handle_order_update(self, msg):
+        """Process ORDER_TRADE_UPDATE event from WebSocket."""
+        try:
+            order_data = msg.get("o", {})
+            if not order_data:
+                self.logger.warning("⚠️ ORDER_TRADE_UPDATE without order data")
+                return
+
+            order_id = str(order_data.get("i"))
+            symbol = order_data.get("s")
+            status = order_data.get("X")  # NEW, PARTIALLY_FILLED, FILLED, CANCELED, REJECTED, EXPIRED
+            side = order_data.get("S", "").lower()
+            order_type = order_data.get("o", "").lower()
+            price = float(order_data.get("p", 0) or 0)
+            avg_price = float(order_data.get("ap", 0) or 0)
+            quantity = float(order_data.get("q", 0))
+            filled_qty = float(order_data.get("z", 0))
+
+            # Update internal orders cache
+            normalized_order = {
+                "id": order_id,
+                "symbol": symbol,
+                "status": status.lower(),
+                "side": side,
+                "type": order_type,
+                "price": avg_price if avg_price > 0 else price,
+                "amount": quantity,
+                "filled": filled_qty,
+                "timestamp": msg.get("E", int(time.time() * 1000)),
+                "info": order_data,
+            }
+
+            # Store in orders cache
+            if not hasattr(self, "_orders_cache"):
+                self._orders_cache = {}
+            self._orders_cache[order_id] = normalized_order
+
+            self.logger.debug(
+                f"📬 Order Update: {order_id} | {symbol} | {status} | " f"{side} {quantity} @ {avg_price or price}"
+            )
+
+        except Exception as e:
+            self.logger.error(f"❌ Error handling order update: {e}")
+
+    def _handle_account_update(self, msg):
+        """Process ACCOUNT_UPDATE event from WebSocket."""
+        try:
+            account_data = msg.get("a", {})
+            if not account_data:
+                self.logger.warning("⚠️ ACCOUNT_UPDATE without account data")
+                return
+
+            # Update balances
+            balances = account_data.get("B", [])
+            if balances:
+                if not hasattr(self, "_balance_cache"):
+                    self._balance_cache = {"total": {}, "free": {}, "used": {}}
+
+                for balance in balances:
+                    asset = balance.get("a")
+                    wallet_balance = float(balance.get("wb", 0))
+                    available_balance = float(balance.get("cw", 0))
+
+                    self._balance_cache["total"][asset] = wallet_balance
+                    self._balance_cache["free"][asset] = available_balance
+                    self._balance_cache["used"][asset] = wallet_balance - available_balance
+
+                self.logger.debug(f"💰 Balance Updated: {len(balances)} assets")
+
+            # Update positions
+            positions = account_data.get("P", [])
+            if positions:
+                if not hasattr(self, "_positions_cache"):
+                    self._positions_cache = []
+
+                self._positions_cache = []
+                for pos in positions:
+                    amt = float(pos.get("pa", 0))
+                    if amt == 0:
+                        continue
+
+                    self._positions_cache.append(
+                        {
+                            "symbol": pos.get("s"),
+                            "side": "LONG" if amt > 0 else "SHORT",
+                            "size": abs(amt),
+                            "entry_price": float(pos.get("ep", 0)),
+                            "mark_price": float(pos.get("mp", 0) or 0),
+                            "unrealized_pnl": float(pos.get("up", 0)),
+                            "timestamp": msg.get("E", int(time.time() * 1000)),
+                            "info": pos,
+                        }
+                    )
+
+                self.logger.debug(f"📊 Positions Updated: {len(self._positions_cache)} open")
+
+        except Exception as e:
+            self.logger.error(f"❌ Error handling account update: {e}")
 
     def _handle_ticker_update(self, msg):
         """Process ticker update event."""
@@ -259,7 +361,8 @@ class BinanceNativeConnector(BaseConnector):
     async def fetch_balance(self) -> Dict[str, Any]:
         """Fetch account balance."""
         try:
-            account = self.client.account(timestamp=self._get_timestamp(), recvWindow=20000)
+            async with self.rate_limiter.limit("account"):
+                account = self.client.account(timestamp=self._get_timestamp(), recvWindow=20000)
             # Normalize to CCXT format for compatibility
             total = {}
             free = {}
@@ -373,7 +476,10 @@ class BinanceNativeConnector(BaseConnector):
             args["recvWindow"] = 20000
 
             self.logger.info(f"📋 Sending Order: {args}")
-            response = self.client.new_order(**args)
+
+            # Apply rate limiting for order creation
+            async with self.rate_limiter.limit("orders"):
+                response = self.client.new_order(**args)
 
             return self._normalize_order(response)
 
@@ -387,12 +493,16 @@ class BinanceNativeConnector(BaseConnector):
     async def cancel_order(self, order_id: str, symbol: str) -> Dict[str, Any]:
         """Cancel an order."""
         try:
-            response = self.client.cancel_order(
-                symbol=self.normalize_symbol(symbol),
-                orderId=order_id,
-                timestamp=self._get_timestamp(),
-                recvWindow=20000,
-            )
+            native_symbol = self.normalize_symbol(symbol)
+
+            # Apply rate limiting for order cancellation
+            async with self.rate_limiter.limit("orders"):
+                response = self.client.cancel_order(
+                    symbol=native_symbol,
+                    orderId=order_id,
+                    timestamp=self._get_timestamp(),
+                    recvWindow=20000,
+                )
             return self._normalize_order(response)
         except Exception as e:
             self.logger.error(f"❌ Cancel Failed: {e}")
@@ -427,4 +537,69 @@ class BinanceNativeConnector(BaseConnector):
             "side": response["side"].lower(),
             "timestamp": response["updateTime"],
             "info": response,
+        }
+
+    async def fetch_my_trades(self, symbol: str = None, since: int = None, limit: int = 100) -> List[Dict[str, Any]]:
+        """
+        Fetch user's trade history.
+
+        Args:
+            symbol: Trading pair symbol (optional)
+            since: Timestamp in ms to fetch trades from (optional)
+            limit: Maximum number of trades to fetch (default: 100)
+
+        Returns:
+            List of normalized trade dictionaries
+        """
+        try:
+            kwargs = {}
+            if symbol:
+                kwargs["symbol"] = self.normalize_symbol(symbol)
+            if since:
+                kwargs["startTime"] = since
+            if limit:
+                kwargs["limit"] = min(limit, 1000)  # Binance max is 1000
+
+            kwargs["timestamp"] = self._get_timestamp()
+            kwargs["recvWindow"] = 20000
+
+            trades = self.client.get_account_trades(**kwargs)
+
+            return [self._normalize_trade(t) for t in trades]
+        except ClientError as e:
+            self.logger.error(f"❌ fetch_my_trades failed: {e.error_message}")
+            raise
+        except Exception as e:
+            self.logger.error(f"❌ fetch_my_trades failed: {e}")
+            raise
+
+    def _normalize_trade(self, raw_trade: Dict) -> Dict:
+        """Normalize trade response to standard format."""
+        return {
+            "id": str(raw_trade["id"]),
+            "order": str(raw_trade["orderId"]),
+            "symbol": raw_trade["symbol"],
+            "side": raw_trade["side"].lower(),
+            "price": float(raw_trade["price"]),
+            "amount": float(raw_trade["qty"]),
+            "cost": float(raw_trade["quoteQty"]),
+            "fee": {"cost": float(raw_trade["commission"]), "currency": raw_trade["commissionAsset"]},
+            "timestamp": raw_trade["time"],
+            "datetime": None,  # Can be calculated from timestamp if needed
+            "info": raw_trade,
+        }
+
+    def normalize_trade(self, raw_trade: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Normalize a trade to standard format and detect closes.
+        """
+        info = raw_trade.get("info", {})
+        # Binance Futures API returns 'realizedPnl' in trade/order update events
+        realized_pnl = float(info.get("realizedPnl", 0) or 0)
+
+        return {
+            **raw_trade,
+            "is_close": realized_pnl != 0,
+            "realized_pnl": realized_pnl,
+            "close_reason": "MANUAL" if realized_pnl != 0 else None,  # Simplified logic
         }

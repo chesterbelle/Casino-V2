@@ -20,18 +20,23 @@ from core.candle_maker import CandleMaker
 from core.engine import Engine
 from core.execution import OrderManager
 from core.feed import StreamManager
+
+# Setup observability
+from core.observability import (
+    configure_logging,
+    start_metrics_server,
+    stop_metrics_server,
+    update_balance,
+)
+from core.observability.metrics import bot_info
 from core.sensor_manager import SensorManager
 from croupier.croupier import Croupier
 from decision.aggregator import SignalAggregatorV3
 from exchanges.adapters import ExchangeAdapter
-from exchanges.connectors import (
-    BinanceNativeConnector,
-    BybitConnector,
-    HyperliquidNativeConnector,
-)
+from exchanges.connectors import BinanceNativeConnector, HyperliquidNativeConnector
 
-# Setup logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(levelname)s: %(message)s", datefmt="%H:%M:%S")
+# Configure structured logging (console format for development)
+configure_logging(log_level="INFO", log_format="console")
 logger = logging.getLogger("Casino-V3")
 
 
@@ -43,7 +48,7 @@ def parse_args():
         "--exchange",
         type=str,
         default="binance",
-        choices=["binance", "hyperliquid", "bybit"],
+        choices=["binance", "hyperliquid"],
         help="Exchange to trade on (default: binance)",
     )
 
@@ -69,6 +74,22 @@ async def main():
 
     logger.info(f"🚀 Starting Casino-V3 | Exchange: {args.exchange} | Mode: {args.mode}")
 
+    # 0. Start Metrics Server
+    logger.info("📊 Starting metrics server...")
+    try:
+        await start_metrics_server(port=8000)
+        # Set bot info
+        bot_info.info(
+            {
+                "version": "3.0.0",
+                "exchange": args.exchange,
+                "mode": args.mode,
+                "symbol": args.symbol,
+            }
+        )
+    except Exception as e:
+        logger.warning(f"⚠️ Failed to start metrics server: {e}")
+
     # 1. Initialize Exchange Adapter
     connector = None
 
@@ -89,14 +110,6 @@ async def main():
             mode="demo" if args.mode != "live" else "live",
             enable_websocket=True,
         )
-    elif args.exchange == "bybit":
-        # Bybit Connector
-        connector = BybitConnector(
-            api_key=args.wallet or exchange_config.BYBIT_API_KEY,
-            api_secret=args.key or exchange_config.BYBIT_API_SECRET,
-            testnet=(args.mode != "live"),
-        )
-
     # Initialize Adapter
     adapter = ExchangeAdapter(connector, symbol=args.symbol)
 
@@ -104,7 +117,13 @@ async def main():
     engine = Engine()
 
     # 3. Initialize Croupier (Execution Layer)
-    croupier = Croupier(exchange_adapter=adapter, initial_balance=10000.0)  # TODO: Fetch actual balance
+    # Fetch actual balance from exchange
+    await connector.connect()
+    initial_balance_data = await connector.fetch_balance()
+    initial_balance = initial_balance_data.get("total", {}).get("USDT", 10000.0)
+    logger.info(f"💰 Initial Balance: {initial_balance:.2f} USDT")
+
+    croupier = Croupier(exchange_adapter=adapter, initial_balance=initial_balance)
 
     # 4. Initialize Data Feed
     data_feed = StreamManager(adapter, engine)
@@ -138,14 +157,47 @@ async def main():
     # Hook callback into PositionTracker
     croupier.position_tracker.on_close_callback = on_trade_close
 
-    # Start components
-    await connector.connect()
+    # 10. Initialize State Manager (for crash recovery)
+    from core.state import StateManager
 
-    # Store initial balance for PnL calc
-    # Note: In demo/live, this might be the exchange balance
-    initial_balance = await connector.fetch_balance()
-    initial_balance = initial_balance.get("total", {}).get("USDT", 0.0)
-    logger.info(f"💰 Initial Balance for Report: {initial_balance:.2f} USDT")
+    state_manager = StateManager(
+        position_tracker=croupier.position_tracker,
+        balance_manager=croupier.balance_manager,
+        state_dir="./state",
+        save_interval=5,
+    )
+
+    # Attempt recovery from previous session
+    logger.info("🔄 Attempting state recovery...")
+    recovered = await state_manager.recover()
+
+    if recovered:
+        logger.info("✅ State recovered from previous session")
+        # Reconcile with exchange to ensure consistency
+        try:
+            await croupier.reconcile_positions(args.symbol)
+        except Exception as e:
+            logger.error(f"❌ Post-recovery reconciliation failed: {e}")
+    else:
+        logger.info("📝 Starting fresh session")
+        await state_manager.start(initial_balance)
+
+    # Start components (connector already connected for balance fetch)
+    # await connector.connect()  # Already connected above
+
+    # Store initial balance for PnL calc (use recovered or fresh)
+    state = state_manager.persistent_state.get_state()
+    if state:
+        initial_balance = state.initial_balance
+    logger.info(f"💰 Session Initial Balance: {initial_balance:.2f} USDT")
+
+    # Update initial balance metrics
+    update_balance(
+        exchange=args.exchange,
+        total=initial_balance,
+        available=initial_balance,
+        allocated=0.0,
+    )
 
     await order_manager.start()
     await engine.start(blocking=False)
@@ -169,7 +221,14 @@ async def main():
         await engine.stop()
         await order_manager.stop()
 
-        # 2. Force close open positions
+        # 2. Sync final state before closing positions
+        logger.info("💾 Syncing final state...")
+        try:
+            await state_manager.sync_to_persistent()
+        except Exception as e:
+            logger.error(f"❌ Error syncing final state: {e}")
+
+        # 3. Force close open positions
         try:
             open_positions = croupier.get_open_positions()
             if open_positions:
@@ -186,7 +245,21 @@ async def main():
         except Exception as e:
             logger.error(f"❌ Error during cleanup: {e}")
 
-        # 3. Generate Session Report (using tracker state which should be updated by cleanup)
+        # 4. Stop state manager (final save)
+        logger.info("🛑 Stopping state manager...")
+        try:
+            await state_manager.stop()
+        except Exception as e:
+            logger.error(f"❌ Error stopping state manager: {e}")
+
+        # 5. Stop metrics server
+        logger.info("📊 Stopping metrics server...")
+        try:
+            await stop_metrics_server()
+        except Exception as e:
+            logger.error(f"❌ Error stopping metrics server: {e}")
+
+        # 6. Generate Session Report (using tracker state which should be updated by cleanup)
         logger.info("📊 Generating Session Report...")
 
         # Get closed trades from our collection list

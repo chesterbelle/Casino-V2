@@ -51,12 +51,12 @@ class ResilientConnector(BaseConnector):
 
     Usage:
         ```python
-        # Crear conector base
-        kraken = KrakenConnector(api_key, secret, testnet=True)
+        # Create native connector
+    connector = BinanceNativeConnector(...)api_key, secret, testnet=True)
 
         # Envolver con resiliencia
         resilient_kraken = ResilientConnector(
-            connector=kraken,
+            connector=connector,
             connection_config={
                 'max_retries': 10,
                 'base_delay': 2.0,

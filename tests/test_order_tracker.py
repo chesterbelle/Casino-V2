@@ -1,12 +1,11 @@
 """
 Test para Order Tracker
-
-Verifica que el tracking de órdenes funciona correctamente.
 """
 
 import asyncio
 import sys
 from pathlib import Path
+from unittest.mock import MagicMock
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
@@ -14,21 +13,29 @@ sys.path.insert(0, str(project_root))
 
 import pytest
 
-from exchanges.connectors.kraken import KrakenConnector
+from exchanges.connectors.binance.binance_native_connector import BinanceNativeConnector
 from exchanges.connectors.resilient_connector import ResilientConnector
 
 
 @pytest.mark.asyncio
 async def test_order_tracking():
-    """Test básico de order tracking."""
+    """Test básico de order tracking con Binance Native."""
     print("=" * 80)
-    print("🧪 TEST: Order Tracking")
+    print("🧪 TEST: Order Tracking (Binance Native)")
     print("=" * 80)
 
     # 1. Crear conector
-    kraken = KrakenConnector(mode="testing")
+    binance = BinanceNativeConnector(mode="demo")
+
+    # Mock SDK client
+    binance.client = MagicMock()
+    binance.client.time.return_value = {"serverTime": 1699000000000}
+    binance.client.exchange_info.return_value = {"symbols": []}
+    binance.client.new_listen_key.return_value = {"listenKey": "test_key"}
+    binance.ws_client = MagicMock()
+
     connector = ResilientConnector(
-        connector=kraken,
+        connector=binance,
         enable_state_recovery=False,  # Deshabilitado para test
     )
 
@@ -47,7 +54,7 @@ async def test_order_tracking():
 
     tracked_order = tracker.start_tracking(
         client_order_id=client_order_id,
-        symbol="BTC/USD",
+        symbol="BTC/USDT",
         side="buy",
         amount=0.001,
         order_type="market",
