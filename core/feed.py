@@ -76,12 +76,16 @@ class StreamManager:
         """Continuous loop to watch ticker with error handling and circuit breaker."""
         logger.info(f"🔍 Starting ticker loop for {symbol}")
         
-        from core.error_handling import RetryConfig, get_error_handler
+        try:
+            from core.error_handling import RetryConfig, get_error_handler
 
-        error_handler = get_error_handler()
-        breaker_name = f"ticker_stream_{symbol}"
-        consecutive_failures = 0
-        max_consecutive_failures = 10
+            error_handler = get_error_handler()
+            breaker_name = f"ticker_stream_{symbol}"
+            consecutive_failures = 0
+            max_consecutive_failures = 10
+        except Exception as e:
+            logger.critical(f"❌ Failed to initialize ticker loop: {e}", exc_info=True)
+            return
 
         while self.running:
             try:
