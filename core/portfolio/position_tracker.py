@@ -516,6 +516,13 @@ class PositionTracker:
             "max_concurrent": self.max_concurrent_positions,
         }
 
+    def set_stats(self, total_closed: int, total_wins: int, total_losses: int):
+        """Restores statistics from persistent state."""
+        self.total_trades_closed = total_closed
+        self.total_wins = total_wins
+        self.total_losses = total_losses
+        logger.info(f"📊 Stats restored: Closed={total_closed} | Wins={total_wins} | Losses={total_losses}")
+
     def force_close_all_positions(self, current_candle: Dict[str, Any]) -> List[Dict[str, Any]]:
         """
         Fuerza cierre de todas las posiciones abiertas (ej. fin del backtest).

@@ -173,16 +173,6 @@ async def main():
     # 9. Initialize Order Manager (Decision → Execution)
     order_manager = OrderManager(engine, croupier, player, tracker)
 
-    # --- Stats Collection ---
-    closed_trades = []
-
-    def on_trade_close(trade_id, result):
-        """Callback to collect closed trade results."""
-        closed_trades.append(result)
-
-    # Hook callback into PositionTracker
-    croupier.position_tracker.on_close_callback = on_trade_close
-
     # 10. Initialize State Manager (for crash recovery)
     from core.state import StateManager
 
@@ -192,6 +182,18 @@ async def main():
         state_dir="./state",
         save_interval=5,
     )
+
+    # --- Stats Collection ---
+    closed_trades = []
+
+    def on_trade_close(trade_id, result):
+        """Callback to collect closed trade results."""
+        closed_trades.append(result)
+        # Sync stats to persistent state immediately
+        asyncio.create_task(state_manager.sync_to_persistent())
+
+    # Hook callback into PositionTracker
+    croupier.position_tracker.on_close_callback = on_trade_close
 
     # Attempt recovery from previous session
     logger.info("🔄 Attempting state recovery...")

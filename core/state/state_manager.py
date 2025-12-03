@@ -13,7 +13,7 @@ from typing import Optional
 from core.portfolio.balance_manager import BalanceManager
 from core.portfolio.position_tracker import OpenPosition, PositionTracker
 
-from .persistent_state import BotState, PersistentState, PositionState
+from .persistent_state import PersistentState, PositionState
 
 
 class StateManager:
@@ -102,6 +102,14 @@ class StateManager:
                 allocated=0.0,
             )
 
+            # Sync stats
+            tracker_stats = self.position_tracker.get_stats()
+            await self.persistent_state.update_stats(
+                total_trades=tracker_stats.get("total_closed", 0),
+                total_wins=tracker_stats.get("total_wins", 0),
+                total_losses=tracker_stats.get("total_losses", 0),
+            )
+
             # Sync positions
             for position in self.position_tracker.open_positions:
                 position_state = PositionState(
@@ -139,6 +147,13 @@ class StateManager:
 
             # Sync balance
             self.balance_manager.set_balance(state.current_balance)
+
+            # Sync stats
+            self.position_tracker.set_stats(
+                total_closed=state.total_trades,
+                total_wins=state.total_wins,
+                total_losses=state.total_losses,
+            )
 
             # Sync positions
             self.position_tracker.open_positions = []

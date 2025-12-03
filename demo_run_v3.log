@@ -1,0 +1,741 @@
+🚀 Starting Casino-V3 | Exchange: binance | Mode: demo
+📊 Starting metrics server...
+📊 Metrics server started on http://0.0.0.0:8000/metrics
+🕒 Rate limiter initialized for Binance
+Stateless CCXTAdapter initialized | Symbol: LTCUSDT | Timeframe: 1m
+⚠️ Connector does not expose 'exchange' attribute (Virtual/Simulated?).
+🔌 Connecting to Binance Native (demo)...
+✅ Server Time: 1764763648293 | Offset: -101ms
+✅ Markets loaded: 647
+✅ Account is in One-Way Mode
+🔌 Starting Native WebSocket...
+✅ Listen key created: qEcUDEpEscr2882a0zKW...
+🔌 Connecting to User Data Stream...
+✅ User Data Stream connected
+💰 Initial Balance: 3443.17 USDT
+PositionTracker inicializado | Max positions: 10
+ExchangeStateSync inicializado
+🔒 Lock manager initialized
+✅ ErrorClassifier initialized
+✅ Order update callback registered
+✅ Registered for WebSocket order updates
+🎯 Croupier initialized as State Owner | Balance: $3,443.17
+✅ OCO Manual enabled in PositionTracker
+✅ SensorManager loaded 27 sensors for timeframe 1m.
+✅ Loaded stats for 25 sensors from state/sensor_stats.json
+✅ SensorTracker initialized | Sensors: 25
+✅ SignalAggregator initialized with intelligent scoring
+🎰 Using Paroli Player
+📂 Loaded state: step=0, unit=34.8162201679
+✅ ParoliV3 initialized (step=0, unit=34.8162201679, max_positions=1)
+🔄 Attempting state recovery...
+⚠️ No state found to recover
+⚠️ No state found to recover
+📝 Starting fresh session
+📝 Initialized new state: session_1764763652
+🚀 State manager started (auto-save every 5s)
+🚀 State manager started
+💰 Session Initial Balance: 3443.17 USDT
+🚀 OrderManager started
+🔄 Startup Reconciliation for LTCUSDT...
+🔍 Iniciando reconciliación para LTCUSDT
+🔍 Reconciliación debug: Exchange positions: 0 | Exchange orders: 0 | Tracker positions: 0
+🔍 Tracked Order IDs: set()
+✅ Reconciliación completada para LTCUSDT
+🚀 Starting Casino-V3 Engine...
+🔌 Connecting Data Feed...
+🔌 Connecting to Binance Native (demo)...
+✅ Server Time: 1764763653449 | Offset: -100ms
+✅ Markets loaded: 647
+✅ Account is in One-Way Mode
+🔌 Starting Native WebSocket...
+✅ Listen key created: qEcUDEpEscr2882a0zKW...
+🔌 Connecting to User Data Stream...
+🔄 Keepalive task started
+✅ User Data Stream connected
+✅ Engine running. Waiting for events...
+📡 Subscribing to LTCUSDT...
+📡 Subscribing to ticker: LTCUSDT
+✅ Casino-V3 Running | Press Ctrl+C to stop
+🔄 Keepalive task started
+🔍 Starting ticker loop for LTCUSDT
+✅ ErrorClassifier initialized
+📡 Subscribing to ticker for LTCUSDT
+✅ WS Subscription Response: {'result': None, 'id': 1}
+🕯️ Candle Closed: 85.57 | Vol: 12938369.209999999
+DEBUG: Processing candle 0
+📡 Signal Detected: PinBarReversal -> LONG
+📊 Selected: PinBarReversal (LONG) | Score: 0.397 | Total signals: 1
+💾 State Saved | Step: 0 | Unit: 34.82
+📩 Decision Received: LTCUSDT LONG (Size: 1.01%, Step: 0)
+🔍 get_current_price | requested_symbol=LTCUSDT | adapter_symbol=LTCUSDT
+💰 Current price for LTCUSDT: 85.57
+📊 Orden convertida | Fracción: 0.0101 | Notional: 34.82 USDT | Precio: 85.57000000 | Cantidad: 0.407000 contratos
+📋 Sending Order: {'symbol': 'LTCUSDT', 'side': 'BUY', 'type': 'MARKET', 'quantity': 0.407, 'leverage': 1, 'timestamp': 1764763682540, 'recvWindow': 20000}
+✅ Orden ejecutada: 875699433
+🔍 Fetching order 875699433 to get execution price...
+📋 Fetched order data: {'id': '875699433', 'symbol': 'LTCUSDT', 'status': 'filled', 'price': 85.63, 'amount': 0.407, 'filled': 0.407, 'type': 'market', 'side': 'buy', 'timestamp': 1764763682744, 'info': {'orderId': 875699433, 'symbol': 'LTCUSDT', 'status': 'FILLED', 'clientOrderId': 'fc9cyjpAgBVqZTrIjAarMU', 'price': '0.00', 'avgPrice': '85.63000', 'origQty': '0.407', 'executedQty': '0.407', 'cumQuote': '34.85141', 'timeInForce': 'GTC', 'type': 'MARKET', 'reduceOnly': False, 'closePosition': False, 'side': 'BUY', 'positionSide': 'BOTH', 'stopPrice': '0.00', 'workingType': 'CONTRACT_PRICE', 'priceProtect': False, 'origType': 'MARKET', 'priceMatch': 'NONE', 'selfTradePreventionMode': 'EXPIRE_MAKER', 'goodTillDate': 0, 'time': 1764763682744, 'updateTime': 1764763682744}}
+💰 Extracted entry_price: 85.63
+📊 OCO Monitor | Entry: $85.63000000 | TP: $86.05815000 | SL: $83.10515664
+🔧 Rounded TP/SL to exchange precision | TP: 86.05814999999998 -> 86.06 | SL: 83.105156635 -> 83.11
+🔍 get_current_price | requested_symbol=LTCUSDT | adapter_symbol=LTCUSDT
+💰 Current price for LTCUSDT: 85.63
+📋 Sending Order: {'symbol': 'LTCUSDT', 'side': 'SELL', 'type': 'TAKE_PROFIT_MARKET', 'quantity': 0.407, 'stopPrice': 86.06, 'reduceOnly': 'true', 'timestamp': 1764763683172, 'recvWindow': 20000}
+📋 Sending Order: {'symbol': 'LTCUSDT', 'side': 'SELL', 'type': 'STOP_MARKET', 'quantity': 0.407, 'stopPrice': 83.11, 'reduceOnly': 'true', 'timestamp': 1764763683399, 'recvWindow': 20000}
+⚡ Tick: LTCUSDT 85.63
+⚡ WebSocket Order Update: ID=875699433, Symbol=LTCUSDT, Status=new
+⚡ WebSocket Order Update: ID=875699433, Symbol=LTCUSDT, Status=filled
+🔍 OCO Check: Searching for 875699433 in 0 positions
+⚡ WebSocket Order Update: ID=875699433, Symbol=LTCUSDT, Status=new
+⚡ WebSocket Order Update: ID=875699433, Symbol=LTCUSDT, Status=filled
+🔍 OCO Check: Searching for 875699433 in 0 positions
+✅ TP order created: 875699434 @ $86.06000000
+✅ SL order created: 875699435 @ $83.11000000
+📈 OPEN | LTCUSDT LONG | Entry: 85.63 | TP: 86.06 | SL: 83.15 | Notional: 34.82 | Margin: 34.82
+⚠️ Order Result: {'status': 'new', 'id': '875699433', 'price': 0.0, 'amount': 0.407, 'balance': 3443.17455005, 'equity': 3443.17455005, 'main_order_id': '875699433', 'tp_order_id': '875699434', 'sl_order_id': '875699435', 'reason': None, 'used_rest_fallback': True, 'tp_attempts': [], 'sl_attempts': []}
+⚡ WebSocket Order Update: ID=875699434, Symbol=LTCUSDT, Status=new
+⚡ WebSocket Order Update: ID=875699435, Symbol=LTCUSDT, Status=new
+⚡ WebSocket Order Update: ID=875699434, Symbol=LTCUSDT, Status=new
+⚡ WebSocket Order Update: ID=875699435, Symbol=LTCUSDT, Status=new
+🎯 Decision: LONG | Step 0 | Bet: 34.8162 (1.01% of equity)
+⚡ Tick: LTCUSDT 85.56
+⚡ Tick: LTCUSDT 85.56
+🕯️ Candle Closed: 85.54 | Vol: 43666995.296000004
+⚡ Tick: LTCUSDT 85.54
+⚡ Tick: LTCUSDT 85.54
+🕯️ Candle Closed: 85.58 | Vol: 37197810.640999995
+⚡ Tick: LTCUSDT 85.57
+⚡ Tick: LTCUSDT 85.58
+⚡ Tick: LTCUSDT 85.52
+🕯️ Candle Closed: 85.52 | Vol: 42049684.789000005
+⚡ Tick: LTCUSDT 85.5
+⚡ Tick: LTCUSDT 85.47
+⚡ Tick: LTCUSDT 85.48
+🕯️ Candle Closed: 85.48 | Vol: 43668571.927
+📡 Signal Detected: RSIReversion -> LONG
+📊 Selected: RSIReversion (LONG) | Score: 0.328 | Total signals: 1
+⚡ Tick: LTCUSDT 85.51
+⚡ Tick: LTCUSDT 85.51
+🕯️ Candle Closed: 85.5 | Vol: 43669024.324999996
+⚡ Tick: LTCUSDT 85.47
+⚡ Tick: LTCUSDT 85.47
+⚡ Tick: LTCUSDT 85.47
+🕯️ Candle Closed: 85.47 | Vol: 40439614.324999996
+📡 Signal Detected: PinBarReversal -> SHORT
+📊 Selected: PinBarReversal (SHORT) | Score: 0.397 | Total signals: 1
+⚡ Tick: LTCUSDT 85.47
+⚡ Tick: LTCUSDT 85.51
+🕯️ Candle Closed: 85.48 | Vol: 40441084.55499999
+📡 Signal Detected: RailsPattern -> LONG
+📊 Selected: RailsPattern (LONG) | Score: 0.335 | Total signals: 1
+⚡ Tick: LTCUSDT 85.47
+⚡ Tick: LTCUSDT 85.49
+⚡ Tick: LTCUSDT 85.45
+🕯️ Candle Closed: 85.45 | Vol: 43676375.97100001
+⚡ Tick: LTCUSDT 85.45
+⚡ Tick: LTCUSDT 85.45
+⚡ Tick: LTCUSDT 85.44
+🕯️ Candle Closed: 85.44 | Vol: 43676989.28499999
+📡 Signal Detected: RSIReversion -> LONG
+📊 Selected: RSIReversion (LONG) | Score: 0.328 | Total signals: 1
+⚡ Tick: LTCUSDT 85.44
+⚡ Tick: LTCUSDT 85.44
+⚡ Tick: LTCUSDT 85.43
+🕯️ Candle Closed: 85.43 | Vol: 45295823.574
+📡 Signal Detected: DecelerationCandles -> LONG
+📊 Selected: DecelerationCandles (LONG) | Score: 0.265 | Total signals: 1
+⚡ Tick: LTCUSDT 85.43
+⚡ Tick: LTCUSDT 85.43
+🕯️ Candle Closed: 85.42 | Vol: 40443031.172
+⚡ Tick: LTCUSDT 85.42
+⚡ Tick: LTCUSDT 85.45
+⚡ Tick: LTCUSDT 85.43
+🕯️ Candle Closed: 85.42 | Vol: 38822707.53699999
+📡 Signal Detected: PinBarReversal -> SHORT
+📊 Selected: PinBarReversal (SHORT) | Score: 0.397 | Total signals: 1
+⚡ Tick: LTCUSDT 85.52
+⚡ Tick: LTCUSDT 85.48
+🕯️ Candle Closed: 85.52 | Vol: 38822766.91
+⚡ Tick: LTCUSDT 85.53
+⚡ Tick: LTCUSDT 85.53
+⚡ Tick: LTCUSDT 85.5
+🕯️ Candle Closed: 85.5 | Vol: 43674472.459
+⚡ Tick: LTCUSDT 85.47
+⚡ Tick: LTCUSDT 85.5
+🕯️ Candle Closed: 85.52 | Vol: 37204070.569000006
+📡 Signal Detected: RailsPattern -> LONG
+📡 Signal Detected: VCPPattern -> SHORT
+📡 Signal Detected: RSIReversion -> SHORT
+⚖️ Conflict unresolved | LONG: RailsPattern (0.335) vs SHORT: RSIReversion (0.328) | Delta: 0.007 < 0.01
+📊 No signal selected (all below threshold or conflict unresolved)
+⚡ Tick: LTCUSDT 85.51
+⚡ Tick: LTCUSDT 85.56
+🕯️ Candle Closed: 85.56 | Vol: 40436662.60299999
+⚡ Tick: LTCUSDT 85.6
+⚡ Tick: LTCUSDT 85.6
+⚡ Tick: LTCUSDT 85.62
+🕯️ Candle Closed: 85.61 | Vol: 33968842.656
+📡 Signal Detected: WilliamsRReversion -> SHORT
+📊 Selected: WilliamsRReversion (SHORT) | Score: 0.374 | Total signals: 1
+⚡ Tick: LTCUSDT 85.62
+⚡ Tick: LTCUSDT 85.62
+🕯️ Candle Closed: 85.62 | Vol: 38819375.986
+📡 Signal Detected: PinBarReversal -> LONG
+📡 Signal Detected: StochasticReversion -> SHORT
+⚖️ Conflict resolved | Winner: StochasticReversion (SHORT, 0.411) | Loser: PinBarReversal (LONG, 0.397)
+📊 Selected: StochasticReversion (SHORT) | Score: 0.411 | Total signals: 2
+⚡ Tick: LTCUSDT 85.58
+⚡ Tick: LTCUSDT 85.55
+🕯️ Candle Closed: 85.56 | Vol: 37201911.459
+📡 Signal Detected: InsideBarBreakout -> SHORT
+📊 Selected: InsideBarBreakout (SHORT) | Score: 0.332 | Total signals: 1
+⚡ Tick: LTCUSDT 85.59
+⚡ Tick: LTCUSDT 85.56
+⚡ Tick: LTCUSDT 85.54
+🕯️ Candle Closed: 85.54 | Vol: 38819372.23300001
+📡 Signal Detected: RailsPattern -> SHORT
+📡 Signal Detected: RSIReversion -> SHORT
+📊 Selected: RailsPattern (SHORT) | Score: 0.335 | Total signals: 2
+⚡ Tick: LTCUSDT 85.53
+⚡ Tick: LTCUSDT 85.49
+🕯️ Candle Closed: 85.47 | Vol: 40456324.38199999
+📡 Signal Detected: VolumeImbalance -> SHORT
+📊 Selected: VolumeImbalance (SHORT) | Score: 0.331 | Total signals: 1
+⚡ Tick: LTCUSDT 85.45
+⚡ Tick: LTCUSDT 85.43
+⚡ Tick: LTCUSDT 85.43
+🕯️ Candle Closed: 85.42 | Vol: 43693622.254999995
+📡 Signal Detected: Supertrend -> SHORT
+📡 Signal Detected: CCIReversion -> LONG
+📡 Signal Detected: WilliamsRReversion -> LONG
+⚖️ Conflict resolved | Winner: CCIReversion (LONG, 0.393) | Loser: Supertrend (SHORT, 0.332)
+📊 Selected: CCIReversion (LONG) | Score: 0.393 | Total signals: 3
+⚡ Tick: LTCUSDT 85.43
+⚡ Tick: LTCUSDT 85.44
+🕯️ Candle Closed: 85.42 | Vol: 35602139.363
+📡 Signal Detected: DecelerationCandles -> LONG
+📡 Signal Detected: VCPPattern -> SHORT
+⚖️ Conflict resolved | Winner: VCPPattern (SHORT, 0.319) | Loser: DecelerationCandles (LONG, 0.265)
+📊 Selected: VCPPattern (SHORT) | Score: 0.319 | Total signals: 2
+⚡ Tick: LTCUSDT 85.42
+⚡ Tick: LTCUSDT 85.41
+⚡ Tick: LTCUSDT 85.41
+🕯️ Candle Closed: 85.41 | Vol: 40456989.385000005
+⚡ Tick: LTCUSDT 85.4
+⚡ Tick: LTCUSDT 85.38
+🕯️ Candle Closed: 85.36 | Vol: 42075180.725999996
+📡 Signal Detected: KeltnerReversion -> LONG
+📡 Signal Detected: StochasticReversion -> LONG
+📊 Selected: StochasticReversion (LONG) | Score: 0.411 | Total signals: 2
+⚡ Tick: LTCUSDT 85.34
+⚡ Tick: LTCUSDT 85.4
+🕯️ Candle Closed: 85.37 | Vol: 37220353.054
+📡 Signal Detected: RSIReversion -> LONG
+📊 Selected: RSIReversion (LONG) | Score: 0.328 | Total signals: 1
+⚡ Tick: LTCUSDT 85.41
+⚡ Tick: LTCUSDT 85.4
+⚡ Tick: LTCUSDT 85.39
+🕯️ Candle Closed: 85.39 | Vol: 42075328.852000006
+📡 Signal Detected: EMACrossover -> SHORT
+📡 Signal Detected: PinBarReversal -> SHORT
+📡 Signal Detected: WilliamsRReversion -> LONG
+📡 Signal Detected: VolumeImbalance -> SHORT
+⚖️ Conflict resolved | Winner: PinBarReversal (SHORT, 0.397) | Loser: WilliamsRReversion (LONG, 0.374)
+📊 Selected: PinBarReversal (SHORT) | Score: 0.397 | Total signals: 4
+⚡ Tick: LTCUSDT 85.37
+⚡ Tick: LTCUSDT 85.44
+🕯️ Candle Closed: 85.45 | Vol: 38774974.462000005
+📡 Signal Detected: CCIReversion -> LONG
+📊 Selected: CCIReversion (LONG) | Score: 0.393 | Total signals: 1
+⚡ Tick: LTCUSDT 85.44
+⚡ Tick: LTCUSDT 85.4
+⚡ Tick: LTCUSDT 85.43
+🕯️ Candle Closed: 85.43 | Vol: 35387885.51
+⚡ Tick: LTCUSDT 85.41
+❌ Error renewing listen key: renew_listen_key() missing 1 required positional argument: 'listenKey'
+❌ Error renewing listen key: renew_listen_key() missing 1 required positional argument: 'listenKey'
+⚡ Tick: LTCUSDT 85.43
+🕯️ Candle Closed: 85.39 | Vol: 39809124.449
+📡 Signal Detected: StochasticReversion -> LONG
+📊 Selected: StochasticReversion (LONG) | Score: 0.411 | Total signals: 1
+⚡ Tick: LTCUSDT 85.4
+⚡ Tick: LTCUSDT 85.34
+🕯️ Candle Closed: 85.34 | Vol: 36624377.452999994
+📡 Signal Detected: KeltnerReversion -> LONG
+📊 Selected: KeltnerReversion (LONG) | Score: 0.166 | Total signals: 1
+⚡ Tick: LTCUSDT 85.33
+⚡ Tick: LTCUSDT 85.33
+⚡ Tick: LTCUSDT 85.37
+🕯️ Candle Closed: 85.36 | Vol: 39809103.065
+📡 Signal Detected: WilliamsRReversion -> LONG
+📊 Selected: WilliamsRReversion (LONG) | Score: 0.374 | Total signals: 1
+⚡ Tick: LTCUSDT 85.34
+⚡ Tick: LTCUSDT 85.33
+⚡ Tick: LTCUSDT 85.31
+🕯️ Candle Closed: 85.31 | Vol: 42993810.684
+📡 Signal Detected: CCIReversion -> LONG
+📡 Signal Detected: VolumeImbalance -> SHORT
+⚖️ Conflict resolved | Winner: CCIReversion (LONG, 0.393) | Loser: VolumeImbalance (SHORT, 0.331)
+📊 Selected: CCIReversion (LONG) | Score: 0.393 | Total signals: 2
+⚡ Tick: LTCUSDT 85.33
+⚡ Tick: LTCUSDT 85.33
+🕯️ Candle Closed: 85.33 | Vol: 31847207.375999995
+📡 Signal Detected: VCPPattern -> SHORT
+📊 Selected: VCPPattern (SHORT) | Score: 0.319 | Total signals: 1
+⚡ Tick: LTCUSDT 85.32
+⚡ Tick: LTCUSDT 85.32
+🕯️ Candle Closed: 85.31 | Vol: 35031900.360999994
+📡 Signal Detected: RailsPattern -> SHORT
+📡 Signal Detected: StochasticReversion -> LONG
+⚖️ Conflict resolved | Winner: StochasticReversion (LONG, 0.411) | Loser: RailsPattern (SHORT, 0.335)
+📊 Selected: StochasticReversion (LONG) | Score: 0.411 | Total signals: 2
+⚡ Tick: LTCUSDT 85.31
+⚡ Tick: LTCUSDT 85.3
+🕯️ Candle Closed: 85.3 | Vol: 39808873.98999999
+📡 Signal Detected: RSIReversion -> LONG
+📡 Signal Detected: KeltnerReversion -> LONG
+📊 Selected: RSIReversion (LONG) | Score: 0.328 | Total signals: 2
+⚡ Tick: LTCUSDT 85.3
+⚡ Tick: LTCUSDT 85.31
+⚡ Tick: LTCUSDT 85.33
+🕯️ Candle Closed: 85.33 | Vol: 36623679.134
+📡 Signal Detected: WilliamsRReversion -> LONG
+📊 Selected: WilliamsRReversion (LONG) | Score: 0.374 | Total signals: 1
+⚡ Tick: LTCUSDT 85.3
+⚡ Tick: LTCUSDT 85.32
+🕯️ Candle Closed: 85.32 | Vol: 41400113.275
+📡 Signal Detected: PinBarReversal -> LONG
+📡 Signal Detected: CCIReversion -> LONG
+📊 Selected: PinBarReversal (LONG) | Score: 0.397 | Total signals: 2
+⚡ Tick: LTCUSDT 85.31
+⚡ Tick: LTCUSDT 85.33
+🕯️ Candle Closed: 85.34 | Vol: 33438538.268999998
+⚡ Tick: LTCUSDT 85.34
+⚡ Tick: LTCUSDT 85.4
+⚡ Tick: LTCUSDT 85.36
+🕯️ Candle Closed: 85.35 | Vol: 41400085.087000005
+📡 Signal Detected: StochasticReversion -> LONG
+📊 Selected: StochasticReversion (LONG) | Score: 0.411 | Total signals: 1
+⚡ Tick: LTCUSDT 85.38
+⚡ Tick: LTCUSDT 85.41
+🕯️ Candle Closed: 85.43 | Vol: 39807766.561000004
+📡 Signal Detected: ExtremeCandleRatio -> LONG
+📡 Signal Detected: RSIReversion -> SHORT
+📡 Signal Detected: MACDCrossover -> LONG
+📡 Signal Detected: VolumeImbalance -> LONG
+⚖️ Conflict resolved | Winner: MACDCrossover (LONG, 0.339) | Loser: RSIReversion (SHORT, 0.328)
+📊 Selected: MACDCrossover (LONG) | Score: 0.339 | Total signals: 4
+⚡ Tick: LTCUSDT 85.46
+⚡ Tick: LTCUSDT 85.52
+⚡ Tick: LTCUSDT 85.5
+🕯️ Candle Closed: 85.56 | Vol: 39807825.267000005
+📡 Signal Detected: BollingerTouch -> SHORT
+📡 Signal Detected: Supertrend -> LONG
+📡 Signal Detected: ZScoreReversion -> SHORT
+⚖️ Conflict resolved | Winner: BollingerTouch (SHORT, 0.963) | Loser: Supertrend (LONG, 0.332)
+📊 Selected: BollingerTouch (SHORT) | Score: 0.963 | Total signals: 3
+⚡ Tick: LTCUSDT 85.51
+⚡ Tick: LTCUSDT 85.53
+🕯️ Candle Closed: 85.53 | Vol: 35031078.940000005
+📡 Signal Detected: PinBarReversal -> SHORT
+📊 Selected: PinBarReversal (SHORT) | Score: 0.397 | Total signals: 1
+⚡ Tick: LTCUSDT 85.53
+⚡ Tick: LTCUSDT 85.59
+127.0.0.1 [03/Dec/2025:08:51:34 -0400] "GET /favicon.ico HTTP/1.1" 404 175 "http://0.0.0.0:8000/metrics" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36"
+⚡ Tick: LTCUSDT 85.63
+🕯️ Candle Closed: 85.63 | Vol: 41372392.37399999
+📡 Signal Detected: KeltnerReversion -> SHORT
+📡 Signal Detected: CCIReversion -> SHORT
+📡 Signal Detected: WilliamsRReversion -> SHORT
+📡 Signal Detected: ADXFilter -> LONG
+⚖️ Conflict resolved | Winner: CCIReversion (SHORT, 0.393) | Loser: ADXFilter (LONG, 0.241)
+📊 Selected: CCIReversion (SHORT) | Score: 0.393 | Total signals: 4
+⚡ Tick: LTCUSDT 85.64
+⚡ Tick: LTCUSDT 85.65
+⚡ Tick: LTCUSDT 85.67
+🕯️ Candle Closed: 85.67 | Vol: 44608778.397
+⚡ Tick: LTCUSDT 85.68
+⚡ Tick: LTCUSDT 85.69
+🕯️ Candle Closed: 85.69 | Vol: 44638338.730000004
+📡 Signal Detected: EMACrossover -> LONG
+📡 Signal Detected: DecelerationCandles -> SHORT
+📡 Signal Detected: RSIReversion -> SHORT
+📡 Signal Detected: VolumeImbalance -> LONG
+⚖️ Conflict unresolved | LONG: VolumeImbalance (0.331) vs SHORT: RSIReversion (0.328) | Delta: 0.003 < 0.01
+📊 No signal selected (all below threshold or conflict unresolved)
+⚡ Tick: LTCUSDT 85.7
+⚡ Tick: LTCUSDT 85.7
+⚡ Tick: LTCUSDT 85.7
+🕯️ Candle Closed: 85.71 | Vol: 38262123.898
+📡 Signal Detected: BollingerTouch -> SHORT
+📡 Signal Detected: StochasticReversion -> SHORT
+📡 Signal Detected: ZScoreReversion -> SHORT
+📊 Selected: BollingerTouch (SHORT) | Score: 0.963 | Total signals: 3
+⚡ Tick: LTCUSDT 85.72
+⚡ Tick: LTCUSDT 85.72
+🕯️ Candle Closed: 85.72 | Vol: 36667862.084
+⚡ Tick: LTCUSDT 85.72
+⚡ Tick: LTCUSDT 85.66
+⚡ Tick: LTCUSDT 85.65
+🕯️ Candle Closed: 85.65 | Vol: 39841194.06199999
+📡 Signal Detected: ExtremeCandleRatio -> SHORT
+📡 Signal Detected: CCIReversion -> SHORT
+📡 Signal Detected: WilliamsRReversion -> SHORT
+📡 Signal Detected: ADXFilter -> LONG
+⚖️ Conflict resolved | Winner: CCIReversion (SHORT, 0.393) | Loser: ADXFilter (LONG, 0.241)
+📊 Selected: CCIReversion (SHORT) | Score: 0.393 | Total signals: 4
+⚡ Tick: LTCUSDT 85.7
+⚡ Tick: LTCUSDT 85.72
+🕯️ Candle Closed: 85.7 | Vol: 36657909.967
+📡 Signal Detected: KeltnerReversion -> SHORT
+📊 Selected: KeltnerReversion (SHORT) | Score: 0.166 | Total signals: 1
+⚡ Tick: LTCUSDT 85.67
+⚡ Tick: LTCUSDT 85.66
+🕯️ Candle Closed: 85.65 | Vol: 41440428.48900001
+📡 Signal Detected: RailsPattern -> SHORT
+📡 Signal Detected: VolumeImbalance -> SHORT
+📊 Selected: RailsPattern (SHORT) | Score: 0.335 | Total signals: 2
+⚡ Tick: LTCUSDT 85.67
+⚡ Tick: LTCUSDT 85.67
+⚡ Tick: LTCUSDT 85.65
+🕯️ Candle Closed: 85.64 | Vol: 41440665.166999996
+📡 Signal Detected: RSIReversion -> LONG
+📡 Signal Detected: StochasticReversion -> SHORT
+📡 Signal Detected: ZScoreReversion -> SHORT
+⚖️ Conflict resolved | Winner: StochasticReversion (SHORT, 0.411) | Loser: RSIReversion (LONG, 0.328)
+📊 Selected: StochasticReversion (SHORT) | Score: 0.411 | Total signals: 3
+⚡ Tick: LTCUSDT 85.64
+⚡ Tick: LTCUSDT 85.65
+🕯️ Candle Closed: 85.65 | Vol: 38181625.495000005
+📡 Signal Detected: DecelerationCandles -> LONG
+📊 Selected: DecelerationCandles (LONG) | Score: 0.265 | Total signals: 1
+⚡ Tick: LTCUSDT 85.65
+⚡ Tick: LTCUSDT 85.65
+⚡ Tick: LTCUSDT 85.65
+🕯️ Candle Closed: 85.65 | Vol: 44267096.677999996
+📡 Signal Detected: PinBarReversal -> SHORT
+📡 Signal Detected: CCIReversion -> SHORT
+📡 Signal Detected: WilliamsRReversion -> SHORT
+📡 Signal Detected: ADXFilter -> LONG
+⚖️ Conflict resolved | Winner: PinBarReversal (SHORT, 0.397) | Loser: ADXFilter (LONG, 0.241)
+📊 Selected: PinBarReversal (SHORT) | Score: 0.397 | Total signals: 4
+⚡ Tick: LTCUSDT 85.65
+⚡ Tick: LTCUSDT 85.65
+⚡ Tick: LTCUSDT 85.58
+🕯️ Candle Closed: 85.57 | Vol: 41054373.38199999
+📡 Signal Detected: ExtremeCandleRatio -> SHORT
+📊 Selected: ExtremeCandleRatio (SHORT) | Score: 0.333 | Total signals: 1
+⚡ Tick: LTCUSDT 85.53
+⚡ Tick: LTCUSDT 85.53
+⚡ Tick: LTCUSDT 85.49
+🕯️ Candle Closed: 85.49 | Vol: 42650381.831
+📡 Signal Detected: MACDCrossover -> SHORT
+📡 Signal Detected: Supertrend -> SHORT
+📡 Signal Detected: MomentumBurst -> SHORT
+📡 Signal Detected: VolumeImbalance -> SHORT
+📊 Selected: MomentumBurst (SHORT) | Score: 0.426 | Total signals: 4
+⚡ Tick: LTCUSDT 85.47
+⚡ Tick: LTCUSDT 85.5
+🕯️ Candle Closed: 85.54 | Vol: 37912649.008
+📡 Signal Detected: EMA50Support -> LONG
+📡 Signal Detected: VCPPattern -> SHORT
+📡 Signal Detected: RSIReversion -> LONG
+⚖️ Conflict unresolved | LONG: RSIReversion (0.328) vs SHORT: VCPPattern (0.319) | Delta: 0.009 < 0.01
+📊 No signal selected (all below threshold or conflict unresolved)
+⚡ Tick: LTCUSDT 85.48
+⚡ Tick: LTCUSDT 85.47
+⚡ Tick: LTCUSDT 85.47
+🕯️ Candle Closed: 85.47 | Vol: 45807473.86800001
+📡 Signal Detected: RailsPattern -> SHORT
+📊 Selected: RailsPattern (SHORT) | Score: 0.335 | Total signals: 1
+⚡ Tick: LTCUSDT 85.46
+⚡ Tick: LTCUSDT 85.45
+🕯️ Candle Closed: 85.45 | Vol: 39489208.046
+📡 Signal Detected: ADXFilter -> LONG
+📊 Selected: ADXFilter (LONG) | Score: 0.241 | Total signals: 1
+⚡ Tick: LTCUSDT 85.45
+⚡ Tick: LTCUSDT 85.45
+❌ Error renewing listen key: renew_listen_key() missing 1 required positional argument: 'listenKey'
+❌ Error renewing listen key: renew_listen_key() missing 1 required positional argument: 'listenKey'
+⚡ Tick: LTCUSDT 85.44
+🕯️ Candle Closed: 85.45 | Vol: 42648343.930999994
+📡 Signal Detected: DecelerationCandles -> LONG
+📊 Selected: DecelerationCandles (LONG) | Score: 0.265 | Total signals: 1
+⚡ Tick: LTCUSDT 85.44
+⚡ Tick: LTCUSDT 85.43
+⚡ Tick: LTCUSDT 85.42
+🕯️ Candle Closed: 85.42 | Vol: 41068749.78699999
+📡 Signal Detected: VolumeImbalance -> SHORT
+📊 Selected: VolumeImbalance (SHORT) | Score: 0.331 | Total signals: 1
+⚡ Tick: LTCUSDT 85.41
+⚡ Tick: LTCUSDT 85.4
+🕯️ Candle Closed: 85.39 | Vol: 41069993.416
+📡 Signal Detected: PinBarReversal -> SHORT
+📡 Signal Detected: RSIReversion -> LONG
+⚖️ Conflict resolved | Winner: PinBarReversal (SHORT, 0.397) | Loser: RSIReversion (LONG, 0.328)
+📊 Selected: PinBarReversal (SHORT) | Score: 0.397 | Total signals: 2
+⚡ Tick: LTCUSDT 85.39
+⚡ Tick: LTCUSDT 85.39
+⚡ Tick: LTCUSDT 85.39
+🕯️ Candle Closed: 85.39 | Vol: 37911093.467
+⚡ Tick: LTCUSDT 85.39
+⚡ Tick: LTCUSDT 85.38
+🕯️ Candle Closed: 85.39 | Vol: 44227784.308
+📡 Signal Detected: StochasticReversion -> LONG
+📡 Signal Detected: ADXFilter -> LONG
+📊 Selected: StochasticReversion (LONG) | Score: 0.411 | Total signals: 2
+⚡ Tick: LTCUSDT 85.41
+⚡ Tick: LTCUSDT 85.38
+⚡ Tick: LTCUSDT 85.36
+🕯️ Candle Closed: 85.35 | Vol: 42648332.094000004
+📡 Signal Detected: EMACrossover -> SHORT
+📡 Signal Detected: WilliamsRReversion -> LONG
+⚖️ Conflict resolved | Winner: WilliamsRReversion (LONG, 0.374) | Loser: EMACrossover (SHORT, 0.298)
+📊 Selected: WilliamsRReversion (LONG) | Score: 0.374 | Total signals: 2
+⚡ Tick: LTCUSDT 85.36
+⚡ Tick: LTCUSDT 85.35
+⚡ Tick: LTCUSDT 85.35
+🕯️ Candle Closed: 85.35 | Vol: 41068749.897999994
+📡 Signal Detected: CCIReversion -> LONG
+📡 Signal Detected: VolumeImbalance -> SHORT
+⚖️ Conflict resolved | Winner: CCIReversion (LONG, 0.393) | Loser: VolumeImbalance (SHORT, 0.331)
+📊 Selected: CCIReversion (LONG) | Score: 0.393 | Total signals: 2
+⚡ Tick: LTCUSDT 85.33
+⚡ Tick: LTCUSDT 85.33
+🕯️ Candle Closed: 85.33 | Vol: 41068760.32199999
+📡 Signal Detected: RSIReversion -> LONG
+📊 Selected: RSIReversion (LONG) | Score: 0.328 | Total signals: 1
+⚡ Tick: LTCUSDT 85.32
+⚡ Tick: LTCUSDT 85.35
+⚡ Tick: LTCUSDT 85.49
+🕯️ Candle Closed: 85.38 | Vol: 39475188.184
+⚡ Tick: LTCUSDT 85.34
+⚡ Tick: LTCUSDT 85.43
+🕯️ Candle Closed: 85.43 | Vol: 37896199.01
+📡 Signal Detected: EMA50Support -> LONG
+📡 Signal Detected: ADXFilter -> LONG
+📊 Selected: EMA50Support (LONG) | Score: 0.318 | Total signals: 2
+⚡ Tick: LTCUSDT 85.4
+⚡ Tick: LTCUSDT 85.45
+⚡ Tick: LTCUSDT 85.42
+🕯️ Candle Closed: 85.73 | Vol: 36315896.405
+📡 Signal Detected: ExtremeCandleRatio -> LONG
+📡 Signal Detected: KeltnerReversion -> SHORT
+📡 Signal Detected: MACDCrossover -> LONG
+📡 Signal Detected: Supertrend -> LONG
+📡 Signal Detected: WilliamsRReversion -> SHORT
+📡 Signal Detected: ZScoreReversion -> SHORT
+📡 Signal Detected: MomentumBurst -> LONG
+📡 Signal Detected: DojiIndecision -> LONG
+⚖️ Conflict resolved | Winner: MomentumBurst (LONG, 0.426) | Loser: WilliamsRReversion (SHORT, 0.374)
+📊 Selected: MomentumBurst (LONG) | Score: 0.426 | Total signals: 8
+⚡ Tick: LTCUSDT 85.45
+⚡ Tick: LTCUSDT 85.4
+🕯️ Candle Closed: 85.4 | Vol: 36306146.392
+📡 Signal Detected: PinBarReversal -> SHORT
+📊 Selected: PinBarReversal (SHORT) | Score: 0.397 | Total signals: 1
+⚡ Tick: LTCUSDT 85.38
+⚡ Tick: LTCUSDT 85.47
+🕯️ Candle Closed: 85.5 | Vol: 41036893.127000004
+⚡ Tick: LTCUSDT 85.51
+⚡ Tick: LTCUSDT 85.43
+⚡ Tick: LTCUSDT 85.41
+🕯️ Candle Closed: 85.37 | Vol: 41036867.052999996
+📡 Signal Detected: VolumeImbalance -> SHORT
+📊 Selected: VolumeImbalance (SHORT) | Score: 0.331 | Total signals: 1
+⚡ Tick: LTCUSDT 85.37
+⚡ Tick: LTCUSDT 85.33
+🕯️ Candle Closed: 85.33 | Vol: 36300119.952999994
+📡 Signal Detected: RSIReversion -> LONG
+📡 Signal Detected: StochasticReversion -> LONG
+📡 Signal Detected: ADXFilter -> LONG
+📊 Selected: StochasticReversion (LONG) | Score: 0.411 | Total signals: 3
+⚡ Tick: LTCUSDT 85.32
+⚡ Tick: LTCUSDT 85.33
+⚡ Tick: LTCUSDT 85.32
+🕯️ Candle Closed: 85.31 | Vol: 38705033.92700001
+📡 Signal Detected: DecelerationCandles -> LONG
+📡 Signal Detected: MACDCrossover -> SHORT
+📡 Signal Detected: CCIReversion -> LONG
+📡 Signal Detected: WilliamsRReversion -> LONG
+⚖️ Conflict resolved | Winner: CCIReversion (LONG, 0.393) | Loser: MACDCrossover (SHORT, 0.339)
+📊 Selected: CCIReversion (LONG) | Score: 0.393 | Total signals: 4
+⚡ Tick: LTCUSDT 85.3
+⚡ Tick: LTCUSDT 85.3
+🕯️ Candle Closed: 85.27 | Vol: 38776349.43999999
+⚡ Tick: LTCUSDT 85.27
+⚡ Tick: LTCUSDT 85.26
+🕯️ Candle Closed: 85.26 | Vol: 32591061.809
+⚡ Tick: LTCUSDT 85.26
+⚡ Tick: LTCUSDT 85.29
+⚡ Tick: LTCUSDT 85.27
+🕯️ Candle Closed: 85.29 | Vol: 38798148.063999996
+⚡ Tick: LTCUSDT 85.29
+⚡ Tick: LTCUSDT 85.34
+🕯️ Candle Closed: 85.34 | Vol: 37246204.013000004
+📡 Signal Detected: StochasticReversion -> LONG
+📡 Signal Detected: ADXFilter -> LONG
+📊 Selected: StochasticReversion (LONG) | Score: 0.411 | Total signals: 2
+⚡ Tick: LTCUSDT 85.33
+⚡ Tick: LTCUSDT 85.34
+⚡ Tick: LTCUSDT 85.35
+🕯️ Candle Closed: 85.35 | Vol: 35693842.56600001
+📡 Signal Detected: PinBarReversal -> LONG
+📡 Signal Detected: DecelerationCandles -> LONG
+📡 Signal Detected: RSIReversion -> SHORT
+📡 Signal Detected: WilliamsRReversion -> LONG
+⚖️ Conflict resolved | Winner: PinBarReversal (LONG, 0.397) | Loser: RSIReversion (SHORT, 0.328)
+📊 Selected: PinBarReversal (LONG) | Score: 0.397 | Total signals: 4
+⚡ Tick: LTCUSDT 85.34
+⚡ Tick: LTCUSDT 85.34
+🕯️ Candle Closed: 85.3 | Vol: 35601429.003000006
+📡 Signal Detected: CCIReversion -> LONG
+📊 Selected: CCIReversion (LONG) | Score: 0.393 | Total signals: 1
+⚡ Tick: LTCUSDT 85.28
+⚡ Tick: LTCUSDT 85.26
+🕯️ Candle Closed: 85.25 | Vol: 38663480.29
+⚡ Tick: LTCUSDT 85.25
+⚡ Tick: LTCUSDT 85.24
+⚡ Tick: LTCUSDT 85.23
+🕯️ Candle Closed: 85.22 | Vol: 38663421.627000004
+⚡ Tick: LTCUSDT 85.21
+⚡ Tick: LTCUSDT 85.17
+⚡ Tick: LTCUSDT 85.15
+🕯️ Candle Closed: 85.15 | Vol: 41756475.713999994
+📡 Signal Detected: StochasticReversion -> LONG
+📡 Signal Detected: ADXFilter -> LONG
+📡 Signal Detected: VolumeImbalance -> SHORT
+⚖️ Conflict resolved | Winner: StochasticReversion (LONG, 0.411) | Loser: VolumeImbalance (SHORT, 0.331)
+📊 Selected: StochasticReversion (LONG) | Score: 0.411 | Total signals: 3
+⚡ Tick: LTCUSDT 85.18
+⚡ Tick: LTCUSDT 85.19
+🕯️ Candle Closed: 85.19 | Vol: 35569233.46599999
+📡 Signal Detected: RSIReversion -> LONG
+📡 Signal Detected: WilliamsRReversion -> LONG
+📊 Selected: WilliamsRReversion (LONG) | Score: 0.374 | Total signals: 2
+⚡ Tick: LTCUSDT 85.25
+⚡ Tick: LTCUSDT 85.15
+🕯️ Candle Closed: 85.3 | Vol: 32476211.627000004
+📡 Signal Detected: ExtremeCandleRatio -> LONG
+📡 Signal Detected: CCIReversion -> LONG
+📊 Selected: CCIReversion (LONG) | Score: 0.393 | Total signals: 2
+⚡ Tick: LTCUSDT 85.27
+⚡ Tick: LTCUSDT 85.28
+🕯️ Candle Closed: 85.31 | Vol: 35567972.376
+📡 Signal Detected: EMA50Support -> LONG
+📊 Selected: EMA50Support (LONG) | Score: 0.318 | Total signals: 1
+⚡ Tick: LTCUSDT 85.29
+⚡ Tick: LTCUSDT 85.29
+⚡ Tick: LTCUSDT 85.3
+🕯️ Candle Closed: 85.32 | Vol: 38660824.236999996
+📡 Signal Detected: PinBarReversal -> LONG
+📡 Signal Detected: DecelerationCandles -> SHORT
+⚖️ Conflict resolved | Winner: PinBarReversal (LONG, 0.397) | Loser: DecelerationCandles (SHORT, 0.265)
+📊 Selected: PinBarReversal (LONG) | Score: 0.397 | Total signals: 2
+⚡ Tick: LTCUSDT 85.26
+⚡ Tick: LTCUSDT 85.2
+🕯️ Candle Closed: 85.24 | Vol: 34020371.65
+📡 Signal Detected: StochasticReversion -> LONG
+📡 Signal Detected: ADXFilter -> LONG
+📡 Signal Detected: MomentumBurst -> LONG
+📊 Selected: MomentumBurst (LONG) | Score: 0.426 | Total signals: 3
+⚡ Tick: LTCUSDT 85.22
+⚡ Tick: LTCUSDT 85.23
+❌ Error renewing listen key: renew_listen_key() missing 1 required positional argument: 'listenKey'
+❌ Error renewing listen key: renew_listen_key() missing 1 required positional argument: 'listenKey'
+⚡ Tick: LTCUSDT 85.28
+🕯️ Candle Closed: 85.28 | Vol: 40178481.627000004
+📡 Signal Detected: VolumeImbalance -> LONG
+📊 Selected: VolumeImbalance (LONG) | Score: 0.331 | Total signals: 1
+⚡ Tick: LTCUSDT 85.25
+⚡ Tick: LTCUSDT 85.25
+🕯️ Candle Closed: 85.17 | Vol: 38633134.2
+📡 Signal Detected: ExtremeCandleRatio -> SHORT
+📡 Signal Detected: CCIReversion -> LONG
+📡 Signal Detected: WilliamsRReversion -> LONG
+⚖️ Conflict resolved | Winner: CCIReversion (LONG, 0.393) | Loser: ExtremeCandleRatio (SHORT, 0.333)
+📊 Selected: CCIReversion (LONG) | Score: 0.393 | Total signals: 3
+⚡ Tick: LTCUSDT 85.18
+⚡ Tick: LTCUSDT 85.15
+⚡ Tick: LTCUSDT 85.14
+🕯️ Candle Closed: 85.14 | Vol: 41720793.499
+📡 Signal Detected: RSIReversion -> LONG
+📊 Selected: RSIReversion (LONG) | Score: 0.328 | Total signals: 1
+⚡ Tick: LTCUSDT 85.16
+⚡ Tick: LTCUSDT 85.17
+🕯️ Candle Closed: 85.18 | Vol: 38631718.179
+📡 Signal Detected: RailsPattern -> LONG
+📊 Selected: RailsPattern (LONG) | Score: 0.335 | Total signals: 1
+⚡ Tick: LTCUSDT 85.18
+⚡ Tick: LTCUSDT 85.17
+⚡ Tick: LTCUSDT 85.16
+🕯️ Candle Closed: 85.16 | Vol: 40176597.80600001
+📡 Signal Detected: PinBarReversal -> SHORT
+📡 Signal Detected: StochasticReversion -> LONG
+📡 Signal Detected: ADXFilter -> LONG
+⚖️ Conflict resolved | Winner: StochasticReversion (LONG, 0.411) | Loser: PinBarReversal (SHORT, 0.397)
+📊 Selected: StochasticReversion (LONG) | Score: 0.411 | Total signals: 3
+⚡ Tick: LTCUSDT 85.16
+⚡ Tick: LTCUSDT 85.16
+⚡ Tick: LTCUSDT 85.16
+🕯️ Candle Closed: 85.16 | Vol: 40173915.399
+⚡ Tick: LTCUSDT 85.16
+⚡ Tick: LTCUSDT 85.16
+🕯️ Candle Closed: 85.16 | Vol: 43264212.180999994
+📡 Signal Detected: CCIReversion -> LONG
+📡 Signal Detected: WilliamsRReversion -> LONG
+📊 Selected: CCIReversion (LONG) | Score: 0.393 | Total signals: 2
+⚡ Tick: LTCUSDT 85.16
+⚡ Tick: LTCUSDT 85.16
+⚡ Tick: LTCUSDT 85.16
+🕯️ Candle Closed: 85.16 | Vol: 44806496.174
+⚡ Tick: LTCUSDT 85.16
+⚡ Tick: LTCUSDT 85.16
+⚡ Tick: LTCUSDT 85.16
+🕯️ Candle Closed: 85.16 | Vol: 40171312.815
+📡 Signal Detected: RSIReversion -> SHORT
+📊 Selected: RSIReversion (SHORT) | Score: 0.328 | Total signals: 1
+⚡ Tick: LTCUSDT 85.16
+⚡ Tick: LTCUSDT 85.16
+⚡ Tick: LTCUSDT 85.16
+🕯️ Candle Closed: 85.16 | Vol: 41716356.19900001
+📡 Signal Detected: MACDCrossover -> LONG
+📡 Signal Detected: StochasticReversion -> LONG
+📡 Signal Detected: ADXFilter -> LONG
+📊 Selected: StochasticReversion (LONG) | Score: 0.411 | Total signals: 3
+⚡ Tick: LTCUSDT 85.16
+⚡ Tick: LTCUSDT 85.16
+🕯️ Candle Closed: 85.16 | Vol: 38626266.485999994
+DEBUG: Processing candle 100
+📡 Signal Detected: PinBarReversal -> LONG
+📊 Selected: PinBarReversal (LONG) | Score: 0.397 | Total signals: 1
+⚡ Tick: LTCUSDT 85.16
+127.0.0.1 [03/Dec/2025:09:48:32 -0400] "GET /favicon.ico HTTP/1.1" 404 175 "http://0.0.0.0:8000/metrics" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36"
+⚡ Tick: LTCUSDT 85.19
+127.0.0.1 [03/Dec/2025:09:48:43 -0400] "GET /metrics HTTP/1.1" 200 5635 "-" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36"
+⚡ Tick: LTCUSDT 85.2
+🕯️ Candle Closed: 85.2 | Vol: 38626625.208000004
+📡 Signal Detected: CCIReversion -> LONG
+📡 Signal Detected: WilliamsRReversion -> LONG
+📊 Selected: CCIReversion (LONG) | Score: 0.393 | Total signals: 2
+⚡ Tick: LTCUSDT 85.18
+⚡ Tick: LTCUSDT 85.2
+🕯️ Candle Closed: 85.21 | Vol: 40175860.206999995
+📡 Signal Detected: VolumeImbalance -> LONG
+📊 Selected: VolumeImbalance (LONG) | Score: 0.331 | Total signals: 1
+⚡ Tick: LTCUSDT 85.22
+⚡ Tick: LTCUSDT 85.23
+⚡ Tick: LTCUSDT 85.25
+🕯️ Candle Closed: 85.24 | Vol: 43266715.283
+📡 Signal Detected: EMA50Support -> LONG
+📡 Signal Detected: RSIReversion -> SHORT
+⚖️ Conflict unresolved | LONG: EMA50Support (0.318) vs SHORT: RSIReversion (0.328) | Delta: 0.010 < 0.01
+📊 No signal selected (all below threshold or conflict unresolved)
+⚠️ User Data Stream connection closed, attempting reconnect...
+⚠️ User Data Stream connection closed, attempting reconnect...
+Websocket exception: Connection timed out
+❌ WebSocket Error: Connection timed out
+Websocket exception: Connection timed out
+❌ WebSocket Error: Connection timed out
+127.0.0.1 [03/Dec/2025:09:54:16 -0400] "GET /metrics HTTP/1.1" 200 5620 "-" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36"
+127.0.0.1 [03/Dec/2025:09:54:16 -0400] "GET /favicon.ico HTTP/1.1" 404 175 "http://0.0.0.0:8000/metrics" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36"

@@ -62,6 +62,11 @@ class BotState:
     # Positions
     open_positions: List[PositionState] = field(default_factory=list)
 
+    # Statistics
+    total_trades: int = 0
+    total_wins: int = 0
+    total_losses: int = 0
+
     # Reconciliation
     last_reconciliation: Optional[float] = None
 
@@ -157,6 +162,9 @@ class PersistentState:
             current_balance=initial_balance,
             available_balance=initial_balance,
             allocated_balance=0.0,
+            total_trades=0,
+            total_wins=0,
+            total_losses=0,
         )
         self._dirty = True
         self.logger.info(f"📝 Initialized new state: {self.session_id}")
@@ -345,6 +353,14 @@ class PersistentState:
             self._state.allocated_balance = allocated
             self._dirty = True
 
+    async def update_stats(self, total_trades: int, total_wins: int, total_losses: int):
+        """Update trade statistics."""
+        if self._state:
+            self._state.total_trades = total_trades
+            self._state.total_wins = total_wins
+            self._state.total_losses = total_losses
+            self._dirty = True
+
     async def add_position(self, position: PositionState):
         """Add open position to state."""
         if self._state:
@@ -383,6 +399,9 @@ class PersistentState:
             "current_balance": self._state.current_balance,
             "available_balance": self._state.available_balance,
             "allocated_balance": self._state.allocated_balance,
+            "total_trades": self._state.total_trades,
+            "total_wins": self._state.total_wins,
+            "total_losses": self._state.total_losses,
             "last_reconciliation": (
                 datetime.fromtimestamp(self._state.last_reconciliation).isoformat()
                 if self._state.last_reconciliation
