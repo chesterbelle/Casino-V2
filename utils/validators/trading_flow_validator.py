@@ -877,6 +877,17 @@ class TradingFlowValidator:
         """Misión 14: Verificar cancelación automática de SL cuando TP se ejecuta."""
         logger.info("--- MISIÓN 14: Real-Time OCO Cancellation ---")
 
+        # Check if order execution is enabled
+        if not getattr(self, "execute_orders", True):
+            logger.warning("⚠️ Misión 14 requiere --execute-orders (crea posición real)")
+            logger.info("✅ Verificación 1/5: Skipped (dry-run mode)")
+            logger.info("✅ Verificación 2/5: Skipped (dry-run mode)")
+            logger.info("✅ Verificación 3/5: Skipped (dry-run mode)")
+            logger.info("✅ Verificación 4/5: Skipped (dry-run mode)")
+            logger.info("✅ Verificación 5/5: Skipped (dry-run mode)")
+            logger.info("--- MISIÓN 14 COMPLETADA (SKIPPED) ---")
+            return
+
         # Cleanup first
         await self.cleanup(post_test=False)
 
@@ -968,6 +979,16 @@ class TradingFlowValidator:
     async def run_mission_15_simulated_websocket_events(self):
         """Misión 15: Test WebSocket event handling con eventos simulados."""
         logger.info("--- MISIÓN 15: Simulated WebSocket Events ---")
+
+        # Check if order execution is enabled
+        if not getattr(self, "execute_orders", True):
+            logger.warning("⚠️ Misión 15 requiere --execute-orders (crea posición real)")
+            logger.info("✅ Verificación 1/4: Skipped (dry-run mode)")
+            logger.info("✅ Verificación 2/4: Skipped (dry-run mode)")
+            logger.info("✅ Verificación 3/4: Skipped (dry-run mode)")
+            logger.info("✅ Verificación 4/4: Skipped (dry-run mode)")
+            logger.info("--- MISIÓN 15 COMPLETADA (SKIPPED) ---")
+            return
 
         # Cleanup
         await self.cleanup(post_test=False)

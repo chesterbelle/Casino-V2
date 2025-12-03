@@ -915,6 +915,10 @@ class Croupier:
         if amount < 0.001:
             amount = 0.0
 
+        # Format amount to exchange precision
+        if hasattr(self.exchange_adapter, "amount_to_precision"):
+            amount = float(self.exchange_adapter.amount_to_precision(position_to_close.symbol, amount))
+
         close_order = {
             "symbol": position_to_close.symbol,
             "type": "market",
