@@ -41,6 +41,11 @@ def setup_logging():
         handlers=[logging.FileHandler(log_filename), logging.StreamHandler()],
     )
 
+    # Enable DEBUG for critical components
+    logging.getLogger("OCOManager").setLevel(logging.DEBUG)
+    logging.getLogger("BinanceNativeConnector").setLevel(logging.DEBUG)
+    logging.getLogger("OrderExecutor").setLevel(logging.DEBUG)
+
 
 logger = logging.getLogger("ValidatorV2")
 

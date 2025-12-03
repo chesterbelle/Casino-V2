@@ -663,6 +663,9 @@ class BinanceNativeConnector(BaseConnector):
 
             if price:
                 args["price"] = price
+                # LIMIT orders require timeInForce
+                if native_type == "LIMIT" and "timeInForce" not in args:
+                    args["timeInForce"] = "GTC"
 
             if params:
                 args.update(params)
@@ -767,7 +770,7 @@ class BinanceNativeConnector(BaseConnector):
         return {
             "id": str(response["orderId"]),
             "symbol": response["symbol"],
-            "status": response["status"].lower(),
+            "status": self._normalize_order_status(response["status"]),
             "price": price,
             "amount": float(response["origQty"]),
             "filled": float(response["executedQty"]),

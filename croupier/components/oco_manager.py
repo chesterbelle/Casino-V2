@@ -230,15 +230,22 @@ class OCOManager:
             try:
                 # Fetch order status from exchange (pass symbol for Binance)
                 order_info = await self.adapter.fetch_order(order_id, symbol)
+                status = order_info.get("status")
 
-                if order_info.get("status") == "closed":
+                # DEBUG: Log status during polling
+                self.logger.debug(f"⏳ Polling order {order_id}: status={status}")
+
+                if status == "closed":
                     fill_price = order_info.get("average") or order_info.get("price")
-                    return fill_price
+                    if fill_price and float(fill_price) > 0:
+                        return float(fill_price)
 
+                await asyncio.sleep(1)
             except Exception as e:
                 self.logger.warning(f"⚠️ Error fetching order status: {e}")
 
-            await asyncio.sleep(0.5)  # Poll every 500ms
+            # The sleep is now inside the try block, so this one is removed.
+            # await asyncio.sleep(0.5)  # Poll every 500ms
 
         raise TimeoutError(f"Order {order_id} not filled within {timeout}s")
 
