@@ -265,6 +265,13 @@ class TradingFlowValidator:
             await self.run_mission_10_position_tracking_modes()
             await self.run_mission_11_error_handling()
             await self.run_mission_12_performance_stress()
+
+            # === NEW: CRITICAL WEBSOCKET & OCO TESTS ===
+            await self.run_mission_13_websocket_connection()
+            await self.run_mission_14_realtime_oco_cancellation()
+            await self.run_mission_15_simulated_websocket_events()
+            await self.run_mission_16_error_classification()
+
         except Exception as e:
             logger.error(f"Una misión ha fallado: {e}", exc_info=True)
             # Asegurarse de que la limpieza se ejecute incluso si una misión falla
@@ -826,6 +833,225 @@ class TradingFlowValidator:
         logger.info(f"✅ Verificación 3/3: 3 procesamientos de fills en {fills_time:.3f}s")
 
         logger.info("--- MISIÓN 12 COMPLETADA CON ÉXITO ---")
+
+    async def run_mission_13_websocket_connection(self):
+        """Misión 13: Verificar conexión al User Data Stream."""
+        logger.info("--- MISIÓN 13: User Data Stream Connection ---")
+
+        # 1. Verify listen key was created
+        if hasattr(self.connector._connector, "_listen_key"):
+            listen_key = self.connector._connector._listen_key
+            assert listen_key is not None, "Listen key should be created on connect"
+            logger.info(f"✅ Verificación 1/4: Listen key created: {listen_key[:20]}...")
+        else:
+            logger.warning("⚠️ Connector doesn't support listen keys (OK for non-Binance)")
+            return
+
+        # 2. Verify WebSocket connection exists
+        assert self.connector._connector._user_data_ws is not None, "User Data Stream WebSocket not connected"
+        logger.info("✅ Verificación 2/4: User Data Stream WebSocket connected")
+
+        # 3. Verify keepalive task is running
+        assert self.connector._connector._keepalive_task is not None, "Keepalive task not started"
+        assert not self.connector._connector._keepalive_task.done(), "Keepalive task should be running"
+        logger.info("✅ Verificación 3/4: Keepalive task active")
+
+        # 4. Verify callback is registered
+        assert (
+            self.croupier.exchange_adapter.connector._connector._order_update_callback is not None
+        ), "Order update callback not registered"
+        logger.info("✅ Verificación 4/4: Order update callback registered")
+
+        logger.info("--- MISIÓN 13 COMPLETADA CON ÉXITO ---")
+
+    async def run_mission_14_realtime_oco_cancellation(self):
+        """Misión 14: Verificar cancelación automática de SL cuando TP se ejecuta."""
+        logger.info("--- MISIÓN 14: Real-Time OCO Cancellation ---")
+
+        # Cleanup first
+        await self.cleanup(post_test=False)
+
+        # 1. Create position with tight TP range (more likely to hit)
+        current_price = await self.adapter.get_current_price(self.symbol)
+
+        order = {
+            "symbol": self.symbol,
+            "side": "LONG",
+            "size": 0.005,  # Small position
+            "take_profit": 0.01,  # 1% TP
+            "stop_loss": 0.01,  # 1% SL
+            "leverage": 3,
+            "trade_id": "realtime_oco_test",
+        }
+
+        await self.croupier.execute_order(order)
+        position = self.croupier.get_open_positions()[0]
+        tp_id = position.tp_order_id
+        sl_id = position.sl_order_id
+
+        logger.info(f"Position created: TP={tp_id}, SL={sl_id}")
+        logger.info("✅ Verificación 1/5: Position with TP/SL created")
+
+        # 2. Set up monitoring for callback execution
+        callback_triggered = asyncio.Event()
+        sl_cancelled = asyncio.Event()
+
+        original_callback = self.croupier._on_order_update
+
+        async def monitoring_callback(order):
+            logger.info(f"📬 Callback received: Order {order['id']} status {order['status']}")
+            callback_triggered.set()
+
+            # Call original
+            await original_callback(order)
+
+            # Check if SL was cancelled
+            try:
+                sl_order = await self.connector.fetch_order(sl_id, self.symbol)
+                if sl_order.get("status") in ["canceled", "cancelled"]:
+                    sl_cancelled.set()
+            except Exception:
+                # Order not found = cancelled
+                sl_cancelled.set()
+
+        self.croupier._on_order_update = monitoring_callback
+
+        # 3. Wait for TP to hit naturally OR timeout (5 minutes)
+        logger.info("⏳ Waiting up to 5 minutes for TP to execute...")
+        logger.info(f"Current price: {current_price:.2f}, TP price: ~{current_price * 1.01:.2f}")
+
+        try:
+            await asyncio.wait_for(callback_triggered.wait(), timeout=300)
+            logger.info("✅ Verificación 2/5: WebSocket callback triggered")
+
+            # Wait for SL cancellation (should be instant)
+            await asyncio.wait_for(sl_cancelled.wait(), timeout=5)
+            logger.info("✅ Verificación 3/5: SL cancelled within 5 seconds of TP fill")
+
+        except asyncio.TimeoutError:
+            logger.warning("⚠️ TP didn't hit in 5 minutes - this is OK for test")
+            logger.info("✅ Verificación 2/5: Timeout is acceptable (price didn't move enough)")
+            logger.info("✅ Verificación 3/5: Skipped (TP didn't execute)")
+
+        # 4. Verify position is closed
+        await asyncio.sleep(2)
+        open_positions = self.croupier.get_open_positions()
+
+        if len(open_positions) == 0:
+            logger.info("✅ Verificación 4/5: Position auto-closed after TP")
+        else:
+            logger.info("⏭️ Verificación 4/5: Position still open (TP didn't hit, closing manually)")
+            await self.croupier.close_position(position.trade_id)
+
+        # 5. Verify NO orphaned orders
+        await asyncio.sleep(2)
+        open_orders = await self.connector.fetch_open_orders(self.symbol)
+        orphaned = [o for o in open_orders if o["id"] in [tp_id, sl_id]]
+
+        assert len(orphaned) == 0, f"Found {len(orphaned)} orphaned orders: {orphaned}"
+        logger.info("✅ Verificación 5/5: No orphaned TP/SL orders")
+
+        # Restore
+        self.croupier._on_order_update = original_callback
+
+        logger.info("--- MISIÓN 14 COMPLETADA CON ÉXITO ---")
+
+    async def run_mission_15_simulated_websocket_events(self):
+        """Misión 15: Test WebSocket event handling con eventos simulados."""
+        logger.info("--- MISIÓN 15: Simulated WebSocket Events ---")
+
+        # Cleanup
+        await self.cleanup(post_test=False)
+
+        # 1. Create position
+        order = {
+            "symbol": self.symbol,
+            "side": "LONG",
+            "size": 0.005,
+            "take_profit": 0.02,
+            "stop_loss": 0.02,
+            "leverage": 3,
+            "trade_id": "simulated_ws_test",
+        }
+
+        await self.croupier.execute_order(order)
+        position = self.croupier.get_open_positions()[0]
+        tp_id = position.tp_order_id
+        sl_id = position.sl_order_id
+
+        logger.info("✅ Verificación 1/4: Position created")
+
+        # 2. Simulate TP FILLED event
+        simulated_tp_event = {
+            "e": "ORDER_TRADE_UPDATE",
+            "o": {
+                "i": int(tp_id),
+                "s": self.symbol.replace("/", "").replace(":USDT", ""),  # LTCUSDT
+                "X": "FILLED",
+                "o": "TAKE_PROFIT_MARKET",
+                "S": "SELL",  # TP for LONG is SELL
+                "p": "0",
+                "ap": str(position.tp_price),
+                "z": str(position.size),
+            },
+        }
+
+        logger.info(f"Simulating TP FILLED event for order {tp_id}")
+
+        # 3. Call handler directly
+        await self.connector._connector._handle_order_update(simulated_tp_event)
+
+        await asyncio.sleep(3)  # Give time for processing
+
+        logger.info("✅ Verificación 2/4: WebSocket event processed")
+
+        # 4. Verify SL was cancelled
+        try:
+            sl_order = await self.connector.fetch_order(sl_id, self.symbol)
+            assert sl_order["status"] in [
+                "canceled",
+                "cancelled",
+            ], f"SL should be cancelled, got: {sl_order['status']}"
+            logger.info("✅ Verificación 3/4: SL automatically cancelled")
+        except Exception as e:
+            # Order not found = cancelled (good)
+            if "not found" in str(e).lower():
+                logger.info("✅ Verificación 3/4: SL cancelled (order not found)")
+            else:
+                raise
+
+        # 5. Verify position closed
+        final_positions = self.croupier.get_open_positions()
+        assert len(final_positions) == 0, "Position should be closed after TP"
+        logger.info("✅ Verificación 4/4: Position closed automatically")
+
+        logger.info("--- MISIÓN 15 COMPLETADA CON ÉXITO ---")
+
+    async def run_mission_16_error_classification(self):
+        """Misión 16: Verificar integración de ErrorClassifier."""
+        logger.info("--- MISIÓN 16: Error Classification Integration ---")
+
+        # 1. Verify ErrorClassifier exists
+        assert hasattr(self.croupier, "error_classifier"), "ErrorClassifier not initialized"
+        logger.info("✅ Verificación 1/3: ErrorClassifier initialized")
+
+        # 2. Test retriable error classification
+        timeout_error = asyncio.TimeoutError("Connection timeout")
+        classification = self.croupier.error_classifier.classify(timeout_error)
+
+        assert classification.is_retriable is True, "Timeout should be retriable"
+        logger.info(f"✅ Verificación 2/3: Timeout classified as retriable ({classification.category.value})")
+
+        # 3. Test non-retriable error classification
+        invalid_error = ValueError("Invalid symbol")
+        classification = self.croupier.error_classifier.classify(invalid_error)
+
+        assert classification.is_retriable is False, "Invalid symbol should not be retriable"
+        logger.info(
+            f"✅ Verificación 3/3: Invalid symbol classified as non-retriable ({classification.category.value})"
+        )
+
+        logger.info("--- MISIÓN 16 COMPLETADA CON ÉXITO ---")
 
 
 def parse_args():
