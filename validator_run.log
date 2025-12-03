@@ -1,0 +1,157 @@
+2025-12-03 01:19:11,711 | BinanceNativeConnector    | INFO     | 🕒 Rate limiter initialized for Binance
+2025-12-03 01:19:11,711 | exchanges.adapters.exchange_adapter | INFO     | Stateless CCXTAdapter initialized | Symbol: LTCUSDT | Timeframe: 1m
+2025-12-03 01:19:11,711 | exchanges.adapters.exchange_adapter | INFO     | ⚠️ Connector does not expose 'exchange' attribute (Virtual/Simulated?).
+2025-12-03 01:19:11,711 | TradingFlowValidator      | INFO     | 🚀 Ejecutando suite completa de 12 misiones...
+2025-12-03 01:19:11,711 | TradingFlowValidator      | INFO     | --- INICIANDO SIMULADOR DE VUELO --- 
+2025-12-03 01:19:11,711 | TradingFlowValidator      | INFO     | --- Configurando para Exchange: BINANCE ---
+2025-12-03 01:19:11,711 | BinanceNativeConnector    | INFO     | 🕒 Rate limiter initialized for Binance
+2025-12-03 01:19:11,711 | StateRecovery             | INFO     | 📁 StateRecovery inicializado | dir=state
+2025-12-03 01:19:11,711 | ResilientConnector[BinanceNativeConnector] | INFO     | StateRecovery habilitado
+2025-12-03 01:19:11,711 | OrderTracker              | INFO     | ✅ OrderTracker initialized
+2025-12-03 01:19:11,711 | ErrorClassifier           | INFO     | ✅ ErrorClassifier initialized
+2025-12-03 01:19:11,711 | ResilientConnector[BinanceNativeConnector] | INFO     | ResilientConnector inicializado | connector=BinanceNativeConnector | connection_mgr=True | state_recovery=True
+2025-12-03 01:19:11,711 | ResilientConnector[BinanceNativeConnector] | INFO     | Conectando con resiliencia...
+2025-12-03 01:19:11,711 | BinanceNativeConnector    | INFO     | 🔌 Connecting to Binance Native (demo)...
+2025-12-03 01:19:17,438 | BinanceNativeConnector    | INFO     | ✅ Server Time: 1764739157319 | Offset: -119ms
+2025-12-03 01:19:18,357 | BinanceNativeConnector    | INFO     | ✅ Markets loaded: 647
+2025-12-03 01:19:18,587 | BinanceNativeConnector    | INFO     | ✅ Account is in One-Way Mode
+2025-12-03 01:19:18,587 | BinanceNativeConnector    | INFO     | 🔌 Starting Native WebSocket...
+2025-12-03 01:19:20,183 | BinanceNativeConnector    | INFO     | ✅ Listen key created: IfwvkakVW1SeX2zmmJmG...
+2025-12-03 01:19:20,183 | BinanceNativeConnector    | INFO     | 🔌 Connecting to User Data Stream...
+2025-12-03 01:19:21,136 | BinanceNativeConnector    | INFO     | ✅ User Data Stream connected
+2025-12-03 01:19:21,137 | ResilientConnector[BinanceNativeConnector] | INFO     | ✅ Conectado al exchange
+2025-12-03 01:19:21,137 | ResilientConnector[BinanceNativeConnector] | INFO     | 🔄 Auto-guardado iniciado
+2025-12-03 01:19:21,137 | exchanges.adapters.exchange_adapter | INFO     | Stateless CCXTAdapter initialized | Symbol: LTCUSDT | Timeframe: 1m
+2025-12-03 01:19:21,137 | exchanges.adapters.exchange_adapter | INFO     | ⚠️ Connector does not expose 'exchange' attribute (Virtual/Simulated?).
+2025-12-03 01:19:21,837 | TradingFlowValidator      | INFO     | Balance real obtenido: $3,480.68
+2025-12-03 01:19:21,837 | PositionTracker           | INFO     | PositionTracker inicializado | Max positions: 10
+2025-12-03 01:19:21,837 | ExchangeStateSync         | INFO     | ExchangeStateSync inicializado
+2025-12-03 01:19:21,837 | Croupier                  | INFO     | 🔒 Lock manager initialized
+2025-12-03 01:19:21,837 | ErrorClassifier           | INFO     | ✅ ErrorClassifier initialized
+2025-12-03 01:19:21,837 | BinanceNativeConnector    | INFO     | ✅ Order update callback registered
+2025-12-03 01:19:21,837 | Croupier                  | INFO     | ✅ Registered for WebSocket order updates
+2025-12-03 01:19:21,837 | Croupier                  | INFO     | 🎯 Croupier initialized as State Owner | Balance: $3,480.68
+2025-12-03 01:19:21,837 | Croupier                  | INFO     | ✅ OCO Manual enabled in PositionTracker
+2025-12-03 01:19:21,837 | TradingFlowValidator      | INFO     | --- Limpieza PRE-TEST ---
+2025-12-03 01:19:21,837 | TradingFlowValidator      | INFO     | 🧹 Limpiando estado...
+2025-12-03 01:19:25,623 | TradingFlowValidator      | INFO     | ✅ Estado limpiado correctamente
+2025-12-03 01:19:25,624 | ResilientConnector[BinanceNativeConnector] | INFO     | Cerrando conexión...
+2025-12-03 01:19:33,433 | binance.websocket.websocket_client | WARNING  | CLOSE frame received, closing websocket connection
+2025-12-03 01:19:33,433 | BinanceNativeConnector    | WARNING  | ⚠️ WebSocket Closed
+2025-12-03 01:19:33,634 | ResilientConnector[BinanceNativeConnector] | INFO     | ✅ Conexión cerrada
+2025-12-03 01:19:33,634 | TradingFlowValidator      | INFO     | ✅ Conexión al exchange cerrada
+2025-12-03 01:19:34,135 | TradingFlowValidator      | INFO     | --- LIMPIEZA PRE-TEST completada ---
+2025-12-03 01:19:34,135 | TradingFlowValidator      | INFO     | --- MISIÓN 1: Apertura de Posición LONG y Verificación OCO ---
+2025-12-03 01:19:34,135 | TradingFlowValidator      | INFO     | Ejecutando orden LONG para LTCUSDT...
+2025-12-03 01:19:34,135 | exchanges.adapters.exchange_adapter | INFO     | 🔍 get_current_price | requested_symbol=LTCUSDT | adapter_symbol=LTCUSDT
+2025-12-03 01:19:34,843 | exchanges.adapters.exchange_adapter | INFO     | 💰 Current price for LTCUSDT: 85.14
+2025-12-03 01:19:34,843 | Croupier                  | INFO     | 📊 Orden convertida | Fracción: 0.0100 | Notional: 34.81 USDT | Precio: 85.14000000 | Cantidad: 0.409000 contratos
+2025-12-03 01:19:34,843 | OrderTracker              | INFO     | 📝 Tracking started | Order: CASINO_1764739174843_1045fcca | BUY 0.409 LTCUSDT @ MARKET
+2025-12-03 01:19:34,843 | BinanceNativeConnector    | INFO     | 📋 Sending Order: {'symbol': 'LTCUSDT', 'side': 'BUY', 'type': 'MARKET', 'quantity': 0.409, 'leverage': 5, 'timestamp': 1764739174724, 'recvWindow': 20000}
+2025-12-03 01:19:35,084 | OrderTracker              | INFO     | ✅ Order submitted | Local: CASINO_1764739174843_1045fcca | Exchange: 875675398
+2025-12-03 01:19:35,084 | Croupier                  | INFO     | ✅ Orden ejecutada: 875675398
+2025-12-03 01:19:35,085 | Croupier                  | INFO     | 🔍 Fetching order 875675398 to get execution price...
+2025-12-03 01:19:35,917 | Croupier                  | INFO     | 📋 Fetched order data: {'id': '875675398', 'symbol': 'LTCUSDT', 'status': 'filled', 'price': 85.14949, 'amount': 0.409, 'filled': 0.409, 'type': 'market', 'side': 'buy', 'timestamp': 1764739174951, 'info': {'orderId': 875675398, 'symbol': 'LTCUSDT', 'status': 'FILLED', 'clientOrderId': 'KPxaoHWmFcuIZJVGOXCQGz', 'price': '0.00', 'avgPrice': '85.14949', 'origQty': '0.409', 'executedQty': '0.409', 'cumQuote': '34.82614', 'timeInForce': 'GTC', 'type': 'MARKET', 'reduceOnly': False, 'closePosition': False, 'side': 'BUY', 'positionSide': 'BOTH', 'stopPrice': '0.00', 'workingType': 'CONTRACT_PRICE', 'priceProtect': False, 'origType': 'MARKET', 'priceMatch': 'NONE', 'selfTradePreventionMode': 'EXPIRE_MAKER', 'goodTillDate': 0, 'time': 1764739174951, 'updateTime': 1764739174951}}
+2025-12-03 01:19:35,917 | Croupier                  | INFO     | 💰 Extracted entry_price: 85.14949
+2025-12-03 01:19:35,917 | Croupier                  | INFO     | 📊 OCO Monitor | Entry: $85.14949000 | TP: $89.40696450 | SL: $80.85156949
+2025-12-03 01:19:35,917 | Croupier                  | INFO     | 🔧 Rounded TP/SL to exchange precision | TP: 89.4069645 -> 89.41 | SL: 80.85156949225001 -> 80.85
+2025-12-03 01:19:35,917 | exchanges.adapters.exchange_adapter | INFO     | 🔍 get_current_price | requested_symbol=LTCUSDT | adapter_symbol=LTCUSDT
+2025-12-03 01:19:36,662 | exchanges.adapters.exchange_adapter | INFO     | 💰 Current price for LTCUSDT: 85.16
+2025-12-03 01:19:36,662 | OrderTracker              | INFO     | 📝 Tracking started | Order: CASINO_1764739176662_9c4e9fa0 | SELL 0.409 LTCUSDT @ MARKET
+2025-12-03 01:19:36,663 | BinanceNativeConnector    | INFO     | 📋 Sending Order: {'symbol': 'LTCUSDT', 'side': 'SELL', 'type': 'TAKE_PROFIT_MARKET', 'quantity': 0.409, 'stopPrice': 89.41, 'reduceOnly': 'true', 'timestamp': 1764739176544, 'recvWindow': 20000}
+2025-12-03 01:19:37,366 | OrderTracker              | INFO     | ✅ Order submitted | Local: CASINO_1764739176662_9c4e9fa0 | Exchange: 875675404
+2025-12-03 01:19:37,367 | OrderTracker              | INFO     | 📝 Tracking started | Order: CASINO_1764739177367_2ebb49a6 | SELL 0.409 LTCUSDT @ MARKET
+2025-12-03 01:19:37,367 | BinanceNativeConnector    | INFO     | 📋 Sending Order: {'symbol': 'LTCUSDT', 'side': 'SELL', 'type': 'STOP_MARKET', 'quantity': 0.409, 'stopPrice': 80.85, 'reduceOnly': 'true', 'timestamp': 1764739177248, 'recvWindow': 20000}
+2025-12-03 01:19:37,619 | OrderTracker              | INFO     | ✅ Order submitted | Local: CASINO_1764739177367_2ebb49a6 | Exchange: 875675405
+2025-12-03 01:19:37,619 | Croupier                  | INFO     | ✅ TP order created: 875675404 @ $89.41000000
+2025-12-03 01:19:37,619 | Croupier                  | INFO     | ✅ SL order created: 875675405 @ $80.85000000
+2025-12-03 01:19:37,619 | PositionTracker           | INFO     | 📈 OPEN | LTCUSDT LONG | Entry: 85.15 | TP: 89.41 | SL: 80.89 | Notional: 174.03 | Margin: 34.81
+2025-12-03 01:19:37,619 | TradingFlowValidator      | INFO     | ✅ Verificación 1/3: La orden market fue creada (status: new, esperando ejecución).
+2025-12-03 01:19:37,619 | TradingFlowValidator      | INFO     | ✅ Verificación 2/3: La posición se registró en el PositionTracker.
+2025-12-03 01:19:37,619 | TradingFlowValidator      | INFO     | ✅ Verificación 3/3: IDs de órdenes OCO registrados. TP: 875675404, SL: 875675405
+2025-12-03 01:19:37,619 | TradingFlowValidator      | INFO     | --- MISIÓN 1 COMPLETADA CON ÉXITO ---
+2025-12-03 01:19:37,619 | TradingFlowValidator      | INFO     | --- MISIÓN 2: Posiciones Concurrentes (Modo Hybrid) ---
+2025-12-03 01:19:37,619 | TradingFlowValidator      | INFO     | Ejecutando segunda orden LONG (posición concurrente)...
+2025-12-03 01:19:37,619 | exchanges.adapters.exchange_adapter | INFO     | 🔍 get_current_price | requested_symbol=LTCUSDT | adapter_symbol=LTCUSDT
+2025-12-03 01:19:38,353 | exchanges.adapters.exchange_adapter | INFO     | 💰 Current price for LTCUSDT: 85.16
+2025-12-03 01:19:38,353 | Croupier                  | INFO     | 📊 Orden convertida | Fracción: 0.0100 | Notional: 34.81 USDT | Precio: 85.16000000 | Cantidad: 0.409000 contratos
+2025-12-03 01:19:38,353 | OrderTracker              | INFO     | 📝 Tracking started | Order: CASINO_1764739178353_0cd46b6d | BUY 0.409 LTCUSDT @ MARKET
+2025-12-03 01:19:38,353 | BinanceNativeConnector    | INFO     | 📋 Sending Order: {'symbol': 'LTCUSDT', 'side': 'BUY', 'type': 'MARKET', 'quantity': 0.409, 'leverage': 5, 'timestamp': 1764739178234, 'recvWindow': 20000}
+2025-12-03 01:19:39,077 | OrderTracker              | INFO     | ✅ Order submitted | Local: CASINO_1764739178353_0cd46b6d | Exchange: 875675408
+2025-12-03 01:19:39,077 | Croupier                  | INFO     | ✅ Orden ejecutada: 875675408
+2025-12-03 01:19:39,077 | Croupier                  | INFO     | 🔍 Fetching order 875675408 to get execution price...
+2025-12-03 01:19:39,779 | Croupier                  | INFO     | 📋 Fetched order data: {'id': '875675408', 'symbol': 'LTCUSDT', 'status': 'filled', 'price': 85.1835, 'amount': 0.409, 'filled': 0.409, 'type': 'market', 'side': 'buy', 'timestamp': 1764739178943, 'info': {'orderId': 875675408, 'symbol': 'LTCUSDT', 'status': 'FILLED', 'clientOrderId': 'id6vRMzwramP49Ud4emKZD', 'price': '0.00', 'avgPrice': '85.18350', 'origQty': '0.409', 'executedQty': '0.409', 'cumQuote': '34.84005', 'timeInForce': 'GTC', 'type': 'MARKET', 'reduceOnly': False, 'closePosition': False, 'side': 'BUY', 'positionSide': 'BOTH', 'stopPrice': '0.00', 'workingType': 'CONTRACT_PRICE', 'priceProtect': False, 'origType': 'MARKET', 'priceMatch': 'NONE', 'selfTradePreventionMode': 'EXPIRE_MAKER', 'goodTillDate': 0, 'time': 1764739178943, 'updateTime': 1764739178943}}
+2025-12-03 01:19:39,779 | Croupier                  | INFO     | 💰 Extracted entry_price: 85.1835
+2025-12-03 01:19:39,779 | Croupier                  | INFO     | 📊 OCO Monitor | Entry: $85.18350000 | TP: $87.73900500 | SL: $83.43809008
+2025-12-03 01:19:39,779 | Croupier                  | INFO     | 🔧 Rounded TP/SL to exchange precision | TP: 87.73900499999999 -> 87.74 | SL: 83.438090085 -> 83.44
+2025-12-03 01:19:39,779 | exchanges.adapters.exchange_adapter | INFO     | 🔍 get_current_price | requested_symbol=LTCUSDT | adapter_symbol=LTCUSDT
+2025-12-03 01:19:40,504 | exchanges.adapters.exchange_adapter | INFO     | 💰 Current price for LTCUSDT: 85.19
+2025-12-03 01:19:40,504 | OrderTracker              | INFO     | 📝 Tracking started | Order: CASINO_1764739180504_8cea25c9 | SELL 0.409 LTCUSDT @ MARKET
+2025-12-03 01:19:40,504 | BinanceNativeConnector    | INFO     | 📋 Sending Order: {'symbol': 'LTCUSDT', 'side': 'SELL', 'type': 'TAKE_PROFIT_MARKET', 'quantity': 0.409, 'stopPrice': 87.74, 'reduceOnly': 'true', 'timestamp': 1764739180385, 'recvWindow': 20000}
+2025-12-03 01:19:41,226 | OrderTracker              | INFO     | ✅ Order submitted | Local: CASINO_1764739180504_8cea25c9 | Exchange: 875675413
+2025-12-03 01:19:41,227 | OrderTracker              | INFO     | 📝 Tracking started | Order: CASINO_1764739181227_c2d7e7d8 | SELL 0.409 LTCUSDT @ MARKET
+2025-12-03 01:19:41,227 | BinanceNativeConnector    | INFO     | 📋 Sending Order: {'symbol': 'LTCUSDT', 'side': 'SELL', 'type': 'STOP_MARKET', 'quantity': 0.409, 'stopPrice': 83.44, 'reduceOnly': 'true', 'timestamp': 1764739181108, 'recvWindow': 20000}
+2025-12-03 01:19:41,954 | OrderTracker              | INFO     | ✅ Order submitted | Local: CASINO_1764739181227_c2d7e7d8 | Exchange: 875675414
+2025-12-03 01:19:41,955 | Croupier                  | INFO     | ✅ TP order created: 875675413 @ $87.74000000
+2025-12-03 01:19:41,955 | Croupier                  | INFO     | ✅ SL order created: 875675414 @ $83.44000000
+2025-12-03 01:19:41,955 | PositionTracker           | INFO     | 📈 OPEN | LTCUSDT LONG | Entry: 85.18 | TP: 87.74 | SL: 83.48 | Notional: 174.03 | Margin: 34.81
+2025-12-03 01:19:41,955 | TradingFlowValidator      | INFO     | ✅ Verificación 1/2: Segunda orden ejecutada correctamente (modo hybrid permite concurrentes).
+2025-12-03 01:19:41,955 | TradingFlowValidator      | INFO     | ✅ Verificación 2/2: Sistema permite 2 posiciones concurrentes (modo hybrid).
+2025-12-03 01:19:41,955 | TradingFlowValidator      | INFO     | --- MISIÓN 2 COMPLETADA CON ÉXITO ---
+2025-12-03 01:19:41,955 | TradingFlowValidator      | INFO     | --- MISIÓN 3: Cierre Manual y Verificación de Cancelación OCO ---
+2025-12-03 01:19:41,955 | TradingFlowValidator      | INFO     | Posiciones abiertas: 2
+2025-12-03 01:19:41,955 | TradingFlowValidator      | INFO     | Iniciando cierre de 2 posiciones...
+2025-12-03 01:19:41,955 | TradingFlowValidator      | INFO     | [1/2] Cerrando manualmente la posición croupier_val_long_01...
+2025-12-03 01:19:41,955 | Croupier                  | INFO     | Intentando cerrar manualmente la posición: croupier_val_long_01
+2025-12-03 01:19:42,759 | Croupier                  | INFO     | ✅ Orden TP cancelada exitosamente: 875675404
+2025-12-03 01:19:43,260 | Croupier                  | WARNING  | 🚨 ATOMICITY VIOLATION | Position croupier_val_long_01 missing protective orders: TP
+2025-12-03 01:19:43,260 | Croupier                  | INFO     | 🛡️ Closing position croupier_val_long_01 to maintain atomicity
+2025-12-03 01:19:43,260 | Croupier                  | INFO     | Intentando cerrar manualmente la posición: croupier_val_long_01
+2025-12-03 01:19:43,965 | Croupier                  | INFO     | ℹ️ Orden TP 875675404 ya está canceled, no necesita cancelación
+2025-12-03 01:19:45,013 | Croupier                  | INFO     | ✅ Orden SL cancelada exitosamente: 875675405
+2025-12-03 01:19:46,000 | Croupier                  | WARNING  | 🚨 ATOMICITY VIOLATION | Position croupier_val_long_01 missing protective orders: TP, SL
+2025-12-03 01:19:46,000 | Croupier                  | INFO     | 🛡️ Closing position croupier_val_long_01 to maintain atomicity
+2025-12-03 01:19:46,000 | Croupier                  | INFO     | Intentando cerrar manualmente la posición: croupier_val_long_01
+2025-12-03 01:19:46,758 | Croupier                  | INFO     | ℹ️ Orden TP 875675404 ya está canceled, no necesita cancelación
+2025-12-03 01:19:47,512 | Croupier                  | INFO     | ℹ️ Orden SL 875675405 ya está canceled, no necesita cancelación
+2025-12-03 01:19:47,512 | OrderTracker              | INFO     | 📝 Tracking started | Order: CASINO_1764739187512_962d2abd | SELL 2.044 LTCUSDT @ MARKET
+2025-12-03 01:19:47,512 | BinanceNativeConnector    | INFO     | 📋 Sending Order: {'symbol': 'LTCUSDT', 'side': 'SELL', 'type': 'MARKET', 'quantity': 2.044, 'timestamp': 1764739187393, 'recvWindow': 20000}
+2025-12-03 01:19:47,747 | OrderTracker              | INFO     | ✅ Order submitted | Local: CASINO_1764739187512_962d2abd | Exchange: 875675430
+2025-12-03 01:19:47,747 | PositionTracker           | INFO     | ✅ CONFIRMED CLOSE | LTCUSDT LONG | Exit: 0.00 (MANUAL) | PnL REAL: +0.00 | Fee: 0.00 | Bars: 0
+2025-12-03 01:19:47,747 | Croupier                  | INFO     | ✅ Position croupier_val_long_01 closed successfully (PROTECTIVE_CLOSE)
+2025-12-03 01:19:47,747 | OrderTracker              | INFO     | 📝 Tracking started | Order: CASINO_1764739187747_10bfab6c | SELL 2.044 LTCUSDT @ MARKET
+2025-12-03 01:19:47,747 | BinanceNativeConnector    | INFO     | 📋 Sending Order: {'symbol': 'LTCUSDT', 'side': 'SELL', 'type': 'MARKET', 'quantity': 2.044, 'timestamp': 1764739187628, 'recvWindow': 20000}
+2025-12-03 01:19:48,299 | OrderTracker              | INFO     | ✅ Order submitted | Local: CASINO_1764739187747_10bfab6c | Exchange: 875675431
+2025-12-03 01:19:48,299 | PositionTracker           | WARNING  | ⚠️ No se encontró posición para confirmar: croupier_val_long_01
+2025-12-03 01:19:48,299 | Croupier                  | INFO     | ✅ Position croupier_val_long_01 closed successfully (PROTECTIVE_CLOSE)
+2025-12-03 01:19:49,019 | Croupier                  | INFO     | ℹ️ Orden SL 875675405 ya está canceled, no necesita cancelación
+2025-12-03 01:19:49,019 | OrderTracker              | INFO     | 📝 Tracking started | Order: CASINO_1764739189019_6a5a2df3 | SELL 2.044 LTCUSDT @ MARKET
+2025-12-03 01:19:49,019 | BinanceNativeConnector    | INFO     | 📋 Sending Order: {'symbol': 'LTCUSDT', 'side': 'SELL', 'type': 'MARKET', 'quantity': 2.044, 'timestamp': 1764739188900, 'recvWindow': 20000}
+2025-12-03 01:19:49,752 | OrderTracker              | INFO     | ✅ Order submitted | Local: CASINO_1764739189019_6a5a2df3 | Exchange: 875675432
+2025-12-03 01:19:49,752 | PositionTracker           | WARNING  | ⚠️ No se encontró posición para confirmar: croupier_val_long_01
+2025-12-03 01:19:49,752 | TradingFlowValidator      | INFO     | [1/1] Posición croupier_val_long_01 cerrada.
+2025-12-03 01:19:49,752 | TradingFlowValidator      | INFO     | 🔄 Sincronizando estado del PositionTracker...
+2025-12-03 01:19:50,732 | TradingFlowValidator      | INFO     | ⏳ Esperando que el cierre se procese...
+2025-12-03 01:20:01,471 | TradingFlowValidator      | ERROR    | Una misión ha fallado: La orden TP/SL 875675413 no fue cancelada.
+Traceback (most recent call last):
+  File "/home/chesterbelle/Casino-V2/utils/validators/trading_flow_validator.py", line 256, in run_missions
+    await self.run_mission_3_manual_close()
+  File "/home/chesterbelle/Casino-V2/utils/validators/trading_flow_validator.py", line 404, in run_mission_3_manual_close
+    assert tp_sl_id not in order_ids, f"La orden TP/SL {tp_sl_id} no fue cancelada."
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: La orden TP/SL 875675413 no fue cancelada.
+2025-12-03 01:20:01,472 | TradingFlowValidator      | INFO     | --- SIMULADOR DE VUELO COMPLETADO --- 
+2025-12-03 01:20:01,472 | TradingFlowValidator      | INFO     | 🧹 Limpiando estado...
+2025-12-03 01:20:01,703 | OrderTracker              | INFO     | 📝 Tracking started | Order: CASINO_1764739201703_d7bbd003 | BUY 5.314 LTCUSDT @ MARKET
+2025-12-03 01:20:01,703 | BinanceNativeConnector    | INFO     | 📋 Sending Order: {'symbol': 'LTCUSDT', 'side': 'BUY', 'type': 'MARKET', 'quantity': 5.314, 'positionSide': 'SHORT', 'timestamp': 1764739201584, 'recvWindow': 20000}
+2025-12-03 01:20:02,408 | BinanceNativeConnector    | ERROR    | ❌ Order Failed: Order's position side does not match user's setting.
+2025-12-03 01:20:02,409 | OrderTracker              | ERROR    | ❌ Order failed | CASINO_1764739201703_d7bbd003 | Error: (400, -4061, "Order's position side does not match user's setting.", {'Content-Type': 'application/json', 'Content-Length': '75', 'Connection': 'keep-alive', 'Date': 'Wed, 03 Dec 2025 05:20:02 GMT', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS', 'Server': 'Bengine', 'x-mbx-used-weight-1m': '-1', 'x-mbx-order-count-10s': '1', 'x-mbx-order-count-1m': '1', 'x-response-time': '0ms', 'Access-Control-Allow-Origin': '*', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 928f1961c378066cb1011db467e62422.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'ATL59-P14', 'X-Amz-Cf-Id': 'OkARYbWbJFf_79gWcqhU_z_7AReL6wbJ6-RQfWtOJcqpyE4r3PO6Bw=='})
+2025-12-03 01:20:02,409 | ResilientConnector[BinanceNativeConnector] | ERROR    | ❌ create_order falló | CASINO_1764739201703_d7bbd003 | (400, -4061, "Order's position side does not match user's setting.", {'Content-Type': 'application/json', 'Content-Length': '75', 'Connection': 'keep-alive', 'Date': 'Wed, 03 Dec 2025 05:20:02 GMT', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS', 'Server': 'Bengine', 'x-mbx-used-weight-1m': '-1', 'x-mbx-order-count-10s': '1', 'x-mbx-order-count-1m': '1', 'x-response-time': '0ms', 'Access-Control-Allow-Origin': '*', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 928f1961c378066cb1011db467e62422.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'ATL59-P14', 'X-Amz-Cf-Id': 'OkARYbWbJFf_79gWcqhU_z_7AReL6wbJ6-RQfWtOJcqpyE4r3PO6Bw=='})
+2025-12-03 01:20:02,409 | TradingFlowValidator      | WARNING  | ⚠️ Error cerrando posición: (400, -4061, "Order's position side does not match user's setting.", {'Content-Type': 'application/json', 'Content-Length': '75', 'Connection': 'keep-alive', 'Date': 'Wed, 03 Dec 2025 05:20:02 GMT', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS', 'Server': 'Bengine', 'x-mbx-used-weight-1m': '-1', 'x-mbx-order-count-10s': '1', 'x-mbx-order-count-1m': '1', 'x-response-time': '0ms', 'Access-Control-Allow-Origin': '*', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 928f1961c378066cb1011db467e62422.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'ATL59-P14', 'X-Amz-Cf-Id': 'OkARYbWbJFf_79gWcqhU_z_7AReL6wbJ6-RQfWtOJcqpyE4r3PO6Bw=='})
+2025-12-03 01:20:03,849 | TradingFlowValidator      | INFO     | ❌ Orden 875675413 cancelada
+2025-12-03 01:20:04,596 | TradingFlowValidator      | INFO     | ❌ Orden 875675414 cancelada
+2025-12-03 01:20:07,597 | TradingFlowValidator      | INFO     | ✅ Estado limpiado correctamente
+2025-12-03 01:20:07,597 | ResilientConnector[BinanceNativeConnector] | INFO     | Cerrando conexión...
+2025-12-03 01:20:07,597 | binance.websocket.websocket_client | WARNING  | Websocket already closed
+2025-12-03 01:20:07,797 | ResilientConnector[BinanceNativeConnector] | INFO     | ✅ Conexión cerrada
+2025-12-03 01:20:07,798 | TradingFlowValidator      | INFO     | ✅ Conexión al exchange cerrada
