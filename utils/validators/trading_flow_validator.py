@@ -864,6 +864,14 @@ class TradingFlowValidator:
 
         # 3. Verify keepalive task is running
         assert self.connector._connector._keepalive_task is not None, "Keepalive task not started"
+
+        if self.connector._connector._keepalive_task.done():
+            try:
+                exc = self.connector._connector._keepalive_task.exception()
+                logger.error(f"❌ Keepalive task failed with exception: {exc}")
+            except Exception as e:
+                logger.error(f"❌ Keepalive task finished (unknown reason): {e}")
+
         assert not self.connector._connector._keepalive_task.done(), "Keepalive task should be running"
         logger.info("✅ Verificación 3/4: Keepalive task active")
 
