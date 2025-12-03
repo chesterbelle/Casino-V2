@@ -10,6 +10,7 @@ Version: 3.0.0
 import logging
 from typing import Optional
 
+from core.error_handling import RetryConfig, get_error_handler
 from core.portfolio.balance_manager import BalanceManager
 from core.portfolio.position_tracker import OpenPosition, PositionTracker
 
@@ -66,6 +67,9 @@ class StateManager:
 
         self.persistent_state = PersistentState(state_dir=state_dir, save_interval=save_interval, session_id=session_id)
 
+        # Add ErrorHandler for resilient operations
+        self.error_handler = get_error_handler()
+
         self.logger = logging.getLogger("StateManager")
 
     async def start(self, initial_balance: float):
@@ -94,49 +98,53 @@ class StateManager:
         self.logger.info("🛑 State manager stopped")
 
     async def sync_to_persistent(self):
-        """Sync current component state to persistent storage."""
-        try:
-            # Sync balance
-            await self.persistent_state.update_balance(
-                current=self.balance_manager.get_balance(),
-                available=self.balance_manager.get_balance(),  # BalanceManager doesn't track allocated separately
-                allocated=0.0,
+        """Sync current component state to persistent storage with retry."""
+        await self.error_handler.execute(
+            self._do_sync_to_persistent,
+            retry_config=RetryConfig(max_retries=2, backoff_base=0.5, backoff_factor=2.0),
+            context="state_sync",
+        )
+
+    async def _do_sync_to_persistent(self):
+        """Internal sync logic (called with retry wrapper)."""
+        # Sync balance
+        await self.persistent_state.update_balance(
+            current=self.balance_manager.get_balance(),
+            available=self.balance_manager.get_balance(),
+            allocated=0.0,
+        )
+
+        # Sync stats
+        tracker_stats = self.position_tracker.get_stats()
+        await self.persistent_state.update_stats(
+            total_trades=tracker_stats.get("total_closed", 0),
+            total_wins=tracker_stats.get("total_wins", 0),
+            total_losses=tracker_stats.get("total_losses", 0),
+        )
+
+        # Sync positions
+        for position in self.position_tracker.open_positions:
+            position_state = PositionState(
+                trade_id=position.trade_id,
+                symbol=position.symbol,
+                side=position.side,
+                entry_price=position.entry_price,
+                entry_timestamp=position.entry_timestamp,
+                margin_used=position.margin_used,
+                notional=position.notional,
+                leverage=position.leverage,
+                tp_level=position.tp_level,
+                sl_level=position.sl_level,
+                main_order_id=position.main_order_id,
+                tp_order_id=position.tp_order_id,
+                sl_order_id=position.sl_order_id,
+                bars_held=position.bars_held,
+                funding_accrued=position.funding_accrued,
+                contributors=position.contributors or [],
             )
+            await self.persistent_state.add_position(position_state)
 
-            # Sync stats
-            tracker_stats = self.position_tracker.get_stats()
-            await self.persistent_state.update_stats(
-                total_trades=tracker_stats.get("total_closed", 0),
-                total_wins=tracker_stats.get("total_wins", 0),
-                total_losses=tracker_stats.get("total_losses", 0),
-            )
-
-            # Sync positions
-            for position in self.position_tracker.open_positions:
-                position_state = PositionState(
-                    trade_id=position.trade_id,
-                    symbol=position.symbol,
-                    side=position.side,
-                    entry_price=position.entry_price,
-                    entry_timestamp=position.entry_timestamp,
-                    margin_used=position.margin_used,
-                    notional=position.notional,
-                    leverage=position.leverage,
-                    tp_level=position.tp_level,
-                    sl_level=position.sl_level,
-                    main_order_id=position.main_order_id,
-                    tp_order_id=position.tp_order_id,
-                    sl_order_id=position.sl_order_id,
-                    bars_held=position.bars_held,
-                    funding_accrued=position.funding_accrued,
-                    contributors=position.contributors or [],
-                )
-                await self.persistent_state.add_position(position_state)
-
-            self.logger.debug("💾 Synced state to persistent storage")
-
-        except Exception as e:
-            self.logger.error(f"❌ Failed to sync state: {e}", exc_info=True)
+        self.logger.debug("💾 Synced state to persistent storage")
 
     async def sync_from_persistent(self):
         """Sync persistent state to components."""
@@ -192,35 +200,42 @@ class StateManager:
 
     async def recover(self) -> bool:
         """
-        Recover state from disk.
+        Recover state from disk with retry.
 
         Returns:
             True if recovery successful, False otherwise
         """
         try:
-            # Attempt recovery
-            state = await self.persistent_state.recover()
-
-            if state:
-                # Sync to components
-                await self.sync_from_persistent()
-
-                # Start auto-save
-                await self.persistent_state.start()
-
-                self.logger.info(
-                    f"✅ State recovered successfully: "
-                    f"session={state.session_id}, "
-                    f"positions={len(state.open_positions)}, "
-                    f"balance={state.current_balance:.2f}"
-                )
-                return True
-            else:
-                self.logger.warning("⚠️ No state found to recover")
-                return False
-
+            return await self.error_handler.execute(
+                self._do_recover,
+                retry_config=RetryConfig(max_retries=3, backoff_base=1.0, backoff_factor=2.0),
+                context="state_recovery",
+            )
         except Exception as e:
-            self.logger.error(f"❌ State recovery failed: {e}", exc_info=True)
+            self.logger.error(f"❌ State recovery failed after retries: {e}", exc_info=True)
+            return False
+
+    async def _do_recover(self) -> bool:
+        """Internal recovery logic (called with retry wrapper)."""
+        # Attempt recovery
+        state = await self.persistent_state.recover()
+
+        if state:
+            # Sync to components
+            await self.sync_from_persistent()
+
+            # Start auto-save
+            await self.persistent_state.start()
+
+            self.logger.info(
+                f"✅ State recovered successfully: "
+                f"session={state.session_id}, "
+                f"positions={len(state.open_positions)}, "
+                f"balance={state.current_balance:.2f}"
+            )
+            return True
+        else:
+            self.logger.warning("⚠️ No state found to recover")
             return False
 
     def get_stats(self):
