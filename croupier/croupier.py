@@ -57,6 +57,8 @@ class Croupier:
             max_concurrent_positions: Max number of concurrent positions
         """
         self.adapter = exchange_adapter
+        # Backward compatibility: some components expect exchange_adapter
+        self.exchange_adapter = exchange_adapter
         self.logger = logging.getLogger("Croupier")
 
         # Initialize core components
