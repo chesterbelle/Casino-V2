@@ -238,7 +238,7 @@ class BinanceNativeConnector(BaseConnector):
                     event_type = data.get("e")
 
                     if event_type == "ORDER_TRADE_UPDATE":
-                        await self._handle_order_update(data)
+                        self._handle_order_update(data)
                     elif event_type == "ACCOUNT_UPDATE":
                         # Could handle balance/position updates here
                         pass
@@ -407,6 +407,14 @@ class BinanceNativeConnector(BaseConnector):
             self.logger.debug(
                 f"📬 Order Update: {order_id} | {symbol} | {status} | " f"{side} {quantity} @ {avg_price or price}"
             )
+
+            # Invoke callback if registered
+            if hasattr(self, "_order_update_callback") and self._order_update_callback:
+                if asyncio.iscoroutinefunction(self._order_update_callback):
+                    asyncio.create_task(self._order_update_callback(normalized_order))
+                else:
+                    self._order_update_callback(normalized_order)
+                self.logger.debug(f"📞 Invoked order update callback for {order_id}")
 
         except Exception as e:
             self.logger.error(f"❌ Error handling order update: {e}")
