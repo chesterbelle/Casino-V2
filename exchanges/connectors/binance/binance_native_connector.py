@@ -749,11 +749,26 @@ class BinanceNativeConnector(BaseConnector):
 
     def _normalize_order(self, response: Dict) -> Dict:
         """Normalize order response."""
+        price = float(response.get("avgPrice", 0) or 0)
+
+        # Calculate fill price from cumQuote/executedQty if avgPrice is 0 (Market Order fix)
+        if price == 0:
+            cum_quote = float(response.get("cumQuote", 0) or 0)
+            executed_qty = float(response.get("executedQty", 0) or 0)
+
+            # DEBUG LOGGING
+            if cum_quote > 0 or executed_qty > 0:
+                self.logger.info(f"🔍 DEBUG Connector: avgPrice=0, cumQuote={cum_quote}, executedQty={executed_qty}")
+
+            if cum_quote > 0 and executed_qty > 0:
+                price = cum_quote / executed_qty
+                self.logger.info(f"🔍 DEBUG Connector: Calculated price = {price}")
+
         return {
             "id": str(response["orderId"]),
             "symbol": response["symbol"],
             "status": response["status"].lower(),
-            "price": float(response.get("avgPrice", 0) or 0),
+            "price": price,
             "amount": float(response["origQty"]),
             "filled": float(response["executedQty"]),
             "type": response["type"].lower(),

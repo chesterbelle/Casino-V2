@@ -1,3 +1,4 @@
+nohup: no se tendrá en cuenta la entrada
 🚀 Starting Casino-V3 | Exchange: binance | Mode: demo
 📊 Starting metrics server...
 📊 Metrics server started on http://0.0.0.0:8000/metrics
@@ -5,132 +6,190 @@
 Stateless CCXTAdapter initialized | Symbol: LTC/USDT:USDT | Timeframe: 1m
 ⚠️ Connector does not expose 'exchange' attribute (Virtual/Simulated?).
 🔌 Connecting to Binance Native (demo)...
-✅ Server Time: 1764737133083 | Offset: -111ms
+✅ Server Time: 1764790625454 | Offset: -104ms
 ✅ Markets loaded: 647
 ✅ Account is in One-Way Mode
 🔌 Starting Native WebSocket...
-✅ Listen key created: IfwvkakVW1SeX2zmmJmG...
+✅ Listen key created: t3u6K5oWQdQqDSgEj8ib...
 🔌 Connecting to User Data Stream...
 ✅ User Data Stream connected
-💰 Initial Balance: 3480.81 USDT
-PositionTracker inicializado | Max positions: 10
-ExchangeStateSync inicializado
-🔒 Lock manager initialized
+💰 Initial Balance: 3429.11 USDT
 ✅ ErrorClassifier initialized
-✅ Order update callback registered
-✅ Registered for WebSocket order updates
-🎯 Croupier initialized as State Owner | Balance: $3,480.81
-✅ OCO Manual enabled in PositionTracker
+PositionTracker inicializado | Max positions: 10
+✅ Croupier initialized | Balance: 3429.11071575 | Max Positions: 10
 ✅ SensorManager loaded 27 sensors for timeframe 1m.
 ✅ Loaded stats for 25 sensors from state/sensor_stats.json
 ✅ SensorTracker initialized | Sensors: 25
 ✅ SignalAggregator initialized with intelligent scoring
-🎰 Using Paroli Player
-📂 Loaded state: step=0, unit=34.8162201679
-✅ ParoliV3 initialized (step=0, unit=34.8162201679, max_positions=1)
+🎰 Using Fixed Player (bet_size=5.00%, max_positions=1)
+✅ FixedPlayer initialized | Bet Size: 5.0% | Max Positions: 1
 🔄 Attempting state recovery...
 ⚠️ No state found to recover
 ⚠️ No state found to recover
 📝 Starting fresh session
-📝 Initialized new state: session_1764737136
+📝 Initialized new state: session_1764790628
 🚀 State manager started (auto-save every 5s)
 🚀 State manager started
-💰 Session Initial Balance: 3480.81 USDT
+💰 Session Initial Balance: 3429.11 USDT
 🚀 OrderManager started
 🔄 Startup Reconciliation for LTC/USDT:USDT...
-🔍 Iniciando reconciliación para LTC/USDT:USDT
-🔍 Reconciliación debug: Exchange positions: 1 | Exchange orders: 2 | Tracker positions: 0
-   Position: LTCUSDT Size: 0.413 Side: LONG
-   Order: 875671123 (stop_market) Side: sell Stop: None
-   Order: 875671122 (take_profit_market) Side: sell Stop: None
-🔍 Tracked Order IDs: set()
-⚠️ Orden huérfana detectada: 875671123 (STOP_MARKET)
-✅ Orden huérfana 875671123 cancelada
-⚠️ Orden huérfana detectada: 875671122 (TAKE_PROFIT_MARKET)
-✅ Orden huérfana 875671122 cancelada
-⚠️ Posición en exchange no registrada: LTC/USDT:USDT (size: 0.413)
-🧹 Cerrando posición no registrada en LTC/USDT:USDT
-📋 Sending Order: {'symbol': 'LTCUSDT', 'side': 'SELL', 'type': 'MARKET', 'quantity': 0.413, 'reduceOnly': 'true', 'timestamp': 1764737137745, 'recvWindow': 20000}
-✅ Posición no registrada cerrada
-✅ Reconciliación completada para LTC/USDT:USDT
+🔄 Starting reconciliation for LTC/USDT:USDT
+❌ Failed to fetch exchange positions: 'BinanceNativeConnector' object has no attribute 'watch_positions'
+✅ Reconciliation complete: 0 fixed, 0 closed, 0 orders cancelled
 🚀 Starting Casino-V3 Engine...
 🔌 Connecting Data Feed...
 🔌 Connecting to Binance Native (demo)...
-✅ Server Time: 1764737138214 | Offset: -106ms
+✅ Server Time: 1764790629481 | Offset: -101ms
 ✅ Markets loaded: 647
 ✅ Account is in One-Way Mode
 🔌 Starting Native WebSocket...
-✅ Listen key created: IfwvkakVW1SeX2zmmJmG...
+✅ Listen key created: t3u6K5oWQdQqDSgEj8ib...
 🔌 Connecting to User Data Stream...
-❌ Error processing User Data Stream message: object NoneType can't be used in 'await' expression
-❌ Error processing User Data Stream message: object NoneType can't be used in 'await' expression
-❌ Error processing User Data Stream message: object NoneType can't be used in 'await' expression
-❌ Error processing User Data Stream message: object NoneType can't be used in 'await' expression
+🔄 Keepalive task started
 ✅ User Data Stream connected
 ✅ Engine running. Waiting for events...
 📡 Subscribing to LTC/USDT:USDT...
 📡 Subscribing to ticker: LTC/USDT:USDT
 ✅ Casino-V3 Running | Press Ctrl+C to stop
+🔄 Keepalive task started
 🔍 Starting ticker loop for LTC/USDT:USDT
-✅ ErrorClassifier initialized
 📡 Subscribing to ticker for LTCUSDT
 ✅ WS Subscription Response: {'result': None, 'id': 1}
-⚡ Tick: LTCUSDT 84.47
-🕯️ Candle Closed: 84.46 | Vol: 13161989.139999997
+⚡ Tick: LTCUSDT 85.98
+⚡ Tick: LTCUSDT 85.94
+🕯️ Candle Closed: 85.92 | Vol: 33624583.389000006
 DEBUG: Processing candle 0
-🧹 Cleaning up resources...
-🛑 Stopping Engine...
-🔌 Disconnecting Data Feed...
-📡 Ticker stream for LTC/USDT:USDT cancelled
-CLOSE frame received, closing websocket connection
-⚠️ WebSocket Closed
-👋 Engine stopped.
-🛑 OrderManager stopped
-💾 Syncing final state...
-🧹 Ejecutando limpieza robusta para LTC/USDT:USDT...
-🔍 Reconciliación debug: Exchange orders: 0 | Tracker positions: 0
-✅ Limpieza para LTC/USDT:USDT completada.
-🛑 Stopping state manager...
-🛑 State manager stopped
-🛑 State manager stopped
-📊 Stopping metrics server...
-🛑 Metrics server stopped
-📊 Generating Session Report...
-💰 Fetching final balance from exchange...
+📡 Signal Detected: PinBarReversal -> LONG
+📊 Selected: PinBarReversal (LONG) | Score: 0.397 | Total signals: 1
+🎯 Decision: LONG | Fixed Bet: 5.00% of 3429.11
+📩 Decision Received: LTC/USDT:USDT LONG (Size: 5.00%, Step: 0)
+🔍 get_current_price | requested_symbol=LTC/USDT:USDT | adapter_symbol=LTC/USDT:USDT
+💰 Current price for LTC/USDT:USDT: 85.9
+📊 Order calculation: Equity=3429.11 | Size=5.00% | Value=171.46 | Price=85.90 | Amount=1.99600000 (raw=1.995989939319)
+📥 Execute order request: LONG LTC/USDT:USDT
+🎯 Creating OCO bracket: LONG LTC/USDT:USDT | TP: 0.0050 | SL: 0.0290
+📤 Executing market order: buy 1.996 LTC/USDT:USDT
+📋 Sending Order: {'symbol': 'LTCUSDT', 'side': 'BUY', 'type': 'MARKET', 'quantity': 1.996, 'timestamp': 1764790682587, 'recvWindow': 20000}
+✅ Market order executed: None | Status: new
+🔍 DEBUG: main_order keys = ['id', 'symbol', 'status', 'price', 'amount', 'filled', 'type', 'side', 'timestamp', 'info']
+🔍 DEBUG: avgPrice = None
+🔍 DEBUG: average = None
+🔍 DEBUG: price = 0.0
+🔍 DEBUG: info object found, keys = ['orderId', 'symbol', 'status', 'clientOrderId', 'price', 'avgPrice', 'origQty', 'executedQty', 'cumQty', 'cumQuote', 'timeInForce', 'type', 'reduceOnly', 'closePosition', 'side', 'positionSide', 'stopPrice', 'workingType', 'priceProtect', 'origType', 'priceMatch', 'selfTradePreventionMode', 'goodTillDate', 'updateTime']
+🔍 DEBUG: info.avgPrice = 0.00
+✅ Main order filled @ 0.0
+📈 Creating TP order @ 0.0
+❌ OCO bracket creation failed: Invalid price: 0.0
+🧹 Cleaning up partial OCO bracket...
+⚠️ Unknown error type: OCOAtomicityError | Message: failed to create oco bracket: invalid price: 0.0
+⚠️ Error in execute_order_LTC/USDT:USDT (attempt 1/3): unknown | Failed to create OCO bracket: Invalid price: 0.0
+❌ Non-retriable error in execute_order_LTC/USDT:USDT: unknown | Unknown error: failed to create oco bracket: invalid price: 0.0
+❌ Execution Failed after retries: Failed to create OCO bracket: Invalid price: 0.0
+Traceback (most recent call last):
+  File "/home/chesterbelle/Casino-V2/croupier/components/oco_manager.py", line 182, in create_bracketed_order
+    tp_order = await self._create_tp_order(symbol, side, main_order["amount"], tp_price)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/chesterbelle/Casino-V2/croupier/components/oco_manager.py", line 289, in _create_tp_order
+    return await self.executor.execute_limit_order(symbol=symbol, side=tp_side, amount=amount, price=tp_price)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/chesterbelle/Casino-V2/croupier/components/order_executor.py", line 102, in execute_limit_order
+    self._validate_limit_order(order)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^
+  File "/home/chesterbelle/Casino-V2/croupier/components/order_executor.py", line 177, in _validate_limit_order
+    raise ValueError(f"Invalid price: {order['price']}")
+ValueError: Invalid price: 0.0
 
-========================================
-📊 SESSION REPORT - LTC/USDT:USDT
-========================================
-   Trades Total          : 0
-   Wins / Losses         : 0 / 0
-   WinRate               : 0.00%
-   Comisiones (Est)      : 0.00
-   Balance Inicial       : 3480.81
-   Balance Final (Real)  : 3480.83
-   PnL Total             : 0.02 (0.00%)
-========================================
+The above exception was the direct cause of the following exception:
 
 Traceback (most recent call last):
-  File "/usr/lib/python3.13/asyncio/runners.py", line 118, in run
-    return self._loop.run_until_complete(task)
-           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "uvloop/loop.pyx", line 1518, in uvloop.loop.Loop.run_until_complete
-  File "/home/chesterbelle/Casino-V2/main.py", line 238, in main
-    await asyncio.sleep(1)
-  File "/usr/lib/python3.13/asyncio/tasks.py", line 718, in sleep
-    return await future
-           ^^^^^^^^^^^^
-asyncio.exceptions.CancelledError
+  File "/home/chesterbelle/Casino-V2/core/execution.py", line 153, in on_decision
+    result = await error_handler.execute(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<8 lines>...
+    )
+    ^
+  File "/home/chesterbelle/Casino-V2/core/error_handling/error_handler.py", line 124, in execute
+    result = await func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/chesterbelle/Casino-V2/croupier/croupier.py", line 104, in execute_order
+    result = await self.oco_manager.create_bracketed_order(order, wait_for_fill=wait_for_fill)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/chesterbelle/Casino-V2/croupier/components/oco_manager.py", line 208, in create_bracketed_order
+    raise OCOAtomicityError(f"Failed to create OCO bracket: {e}") from e
+croupier.components.oco_manager.OCOAtomicityError: Failed to create OCO bracket: Invalid price: 0.0
+⚡ Tick: LTCUSDT 85.84
+⚡ Tick: LTCUSDT 85.8
+⚡ Tick: LTCUSDT 85.82
+🕯️ Candle Closed: 85.82 | Vol: 41265835.60000001
+⚡ Tick: LTCUSDT 85.87
+⚡ Tick: LTCUSDT 85.87
+🕯️ Candle Closed: 85.87 | Vol: 36727209.467999995
+⚡ Tick: LTCUSDT 85.86
+⚡ Tick: LTCUSDT 85.86
+🕯️ Candle Closed: 85.87 | Vol: 35212904.21300001
+📡 Signal Detected: VCPPattern -> LONG
+📡 Signal Detected: RSIReversion -> SHORT
+⚖️ Conflict unresolved | LONG: VCPPattern (0.319) vs SHORT: RSIReversion (0.328) | Delta: 0.009 < 0.02
+📊 No signal selected (all below threshold or conflict unresolved)
+⚡ Tick: LTCUSDT 85.87
+⚡ Tick: LTCUSDT 85.86
+⚡ Tick: LTCUSDT 85.74
+🕯️ Candle Closed: 85.74 | Vol: 36833237.895
+📡 Signal Detected: InsideBarBreakout -> SHORT
+📊 Selected: InsideBarBreakout (SHORT) | Score: 0.332 | Total signals: 1
+🎯 Decision: SHORT | Fixed Bet: 5.00% of 3429.11
+📩 Decision Received: LTC/USDT:USDT SHORT (Size: 5.00%, Step: 0)
+🔍 get_current_price | requested_symbol=LTC/USDT:USDT | adapter_symbol=LTC/USDT:USDT
+💰 Current price for LTC/USDT:USDT: 85.72
+📊 Order calculation: Equity=3429.11 | Size=5.00% | Value=171.46 | Price=85.72 | Amount=2.00000000 (raw=2.000181238772)
+📥 Execute order request: SHORT LTC/USDT:USDT
+🎯 Creating OCO bracket: SHORT LTC/USDT:USDT | TP: 0.0060 | SL: 0.0300
+📤 Executing market order: sell 2.0 LTC/USDT:USDT
+📋 Sending Order: {'symbol': 'LTCUSDT', 'side': 'SELL', 'type': 'MARKET', 'quantity': 2.0, 'timestamp': 1764790923135, 'recvWindow': 20000}
+✅ Market order executed: None | Status: new
+🔍 DEBUG: main_order keys = ['id', 'symbol', 'status', 'price', 'amount', 'filled', 'type', 'side', 'timestamp', 'info']
+🔍 DEBUG: avgPrice = None
+🔍 DEBUG: average = None
+🔍 DEBUG: price = 0.0
+🔍 DEBUG: info object found, keys = ['orderId', 'symbol', 'status', 'clientOrderId', 'price', 'avgPrice', 'origQty', 'executedQty', 'cumQty', 'cumQuote', 'timeInForce', 'type', 'reduceOnly', 'closePosition', 'side', 'positionSide', 'stopPrice', 'workingType', 'priceProtect', 'origType', 'priceMatch', 'selfTradePreventionMode', 'goodTillDate', 'updateTime']
+🔍 DEBUG: info.avgPrice = 0.00
+✅ Main order filled @ 0.0
+📈 Creating TP order @ 0.0
+❌ OCO bracket creation failed: Invalid price: 0.0
+🧹 Cleaning up partial OCO bracket...
+⚠️ Unknown error type: OCOAtomicityError | Message: failed to create oco bracket: invalid price: 0.0
+⚠️ Error in execute_order_LTC/USDT:USDT (attempt 1/3): unknown | Failed to create OCO bracket: Invalid price: 0.0
+❌ Non-retriable error in execute_order_LTC/USDT:USDT: unknown | Unknown error: failed to create oco bracket: invalid price: 0.0
+❌ Execution Failed after retries: Failed to create OCO bracket: Invalid price: 0.0
+Traceback (most recent call last):
+  File "/home/chesterbelle/Casino-V2/croupier/components/oco_manager.py", line 182, in create_bracketed_order
+    tp_order = await self._create_tp_order(symbol, side, main_order["amount"], tp_price)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/chesterbelle/Casino-V2/croupier/components/oco_manager.py", line 289, in _create_tp_order
+    return await self.executor.execute_limit_order(symbol=symbol, side=tp_side, amount=amount, price=tp_price)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/chesterbelle/Casino-V2/croupier/components/order_executor.py", line 102, in execute_limit_order
+    self._validate_limit_order(order)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^
+  File "/home/chesterbelle/Casino-V2/croupier/components/order_executor.py", line 177, in _validate_limit_order
+    raise ValueError(f"Invalid price: {order['price']}")
+ValueError: Invalid price: 0.0
 
-During handling of the above exception, another exception occurred:
+The above exception was the direct cause of the following exception:
 
 Traceback (most recent call last):
-  File "/home/chesterbelle/Casino-V2/main.py", line 330, in <module>
-    asyncio.run(main())
-    ~~~~~~~~~~~^^^^^^^^
-  File "/usr/lib/python3.13/asyncio/runners.py", line 195, in run
-    return runner.run(main)
-           ~~~~~~~~~~^^^^^^
-  File "/usr/lib/python3.13/asyncio/runners.py", line 123, in run
-    raise KeyboardInterrupt()
-KeyboardInterrupt
+  File "/home/chesterbelle/Casino-V2/core/execution.py", line 153, in on_decision
+    result = await error_handler.execute(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<8 lines>...
+    )
+    ^
+  File "/home/chesterbelle/Casino-V2/core/error_handling/error_handler.py", line 124, in execute
+    result = await func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/chesterbelle/Casino-V2/croupier/croupier.py", line 104, in execute_order
+    result = await self.oco_manager.create_bracketed_order(order, wait_for_fill=wait_for_fill)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/chesterbelle/Casino-V2/croupier/components/oco_manager.py", line 208, in create_bracketed_order
+    raise OCOAtomicityError(f"Failed to create OCO bracket: {e}") from e
+croupier.components.oco_manager.OCOAtomicityError: Failed to create OCO bracket: Invalid price: 0.0

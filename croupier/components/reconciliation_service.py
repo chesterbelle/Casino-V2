@@ -78,7 +78,8 @@ class ReconciliationService:
 
         try:
             # Get local and exchange positions
-            local_positions = self.tracker.get_positions_by_symbol(symbol)
+            # Filter positions by symbol manually (PositionTracker doesn't have get_positions_by_symbol)
+            local_positions = [pos for pos in self.tracker.open_positions if pos.symbol == symbol]
             exchange_positions = await self._fetch_exchange_positions(symbol)
 
             report["positions_checked"] = len(local_positions)
@@ -187,19 +188,19 @@ class ReconciliationService:
             # Cancel existing TP/SL if they exist
             if position.tp_order_id:
                 try:
-                    await self.adapter.connector.cancel_order(position.tp_order_id)
+                    await self.adapter.cancel_order(position.tp_order_id)
                 except Exception:
                     pass
 
             if position.sl_order_id:
                 try:
-                    await self.adapter.connector.cancel_order(position.sl_order_id)
+                    await self.adapter.cancel_order(position.sl_order_id)
                 except Exception:
                     pass
 
             # Close position with market order
             # Note: This uses rough estimate of amount, ideally fetch from exchange
-            await self.adapter.connector.create_market_order(
+            await self.adapter.create_market_order(
                 symbol=position.symbol,
                 side=close_side,
                 amount=position.notional / position.entry_price,  # Rough estimate
@@ -250,7 +251,7 @@ class ReconciliationService:
             self.logger.warning(f"🧹 Closing unknown position: {symbol} {side} {contracts} contracts")
 
             # Close with market order
-            await self.adapter.connector.create_market_order(symbol=symbol, side=close_side, amount=contracts)
+            await self.adapter.create_market_order(symbol=symbol, side=close_side, amount=contracts)
 
             self.logger.info(f"✅ Closed unknown position: {symbol}")
 
@@ -266,7 +267,7 @@ class ReconciliationService:
         """
         try:
             # Fetch all open orders for symbol
-            open_orders = await self.adapter.connector.fetch_open_orders(symbol)
+            open_orders = await self.adapter.fetch_open_orders(symbol)
 
             if not open_orders:
                 return 0
@@ -288,7 +289,7 @@ class ReconciliationService:
                 order_id = order.get("id")
                 if order_id and order_id not in tracked_order_ids:
                     try:
-                        await self.adapter.connector.cancel_order(order_id)
+                        await self.adapter.cancel_order(order_id)
                         self.logger.info(f"🧹 Cancelled orphaned order: {order_id}")
                         cancelled_count += 1
                     except Exception as e:

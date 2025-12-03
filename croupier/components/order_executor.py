@@ -74,7 +74,7 @@ class OrderExecutor:
         self.logger.info(f"📤 Executing market order: {order['side']} {order['amount']} {order['symbol']}")
 
         result = await self.error_handler.execute_with_breaker(
-            "exchange_orders", self.adapter.execute_order, order, retry_config=retry_cfg, context="market_order"
+            "exchange_orders", self.adapter.execute_order, order, retry_config=retry_cfg
         )
 
         self.logger.info(f"✅ Market order executed: {result.get('order_id')} | " f"Status: {result.get('status')}")
@@ -106,7 +106,7 @@ class OrderExecutor:
         self.logger.info(f"📤 Executing limit order: {side} {amount} {symbol} @ {price}")
 
         result = await self.error_handler.execute_with_breaker(
-            "exchange_orders", self.adapter.execute_order, order, retry_config=retry_cfg, context="limit_order"
+            "exchange_orders", self.adapter.execute_order, order, retry_config=retry_cfg
         )
 
         self.logger.info(f"✅ Limit order executed: {result.get('order_id')}")
@@ -138,7 +138,7 @@ class OrderExecutor:
         self.logger.info(f"📤 Executing stop order: {side} {amount} {symbol} @ stop {stop_price}")
 
         result = await self.error_handler.execute_with_breaker(
-            "exchange_orders", self.adapter.execute_order, order, retry_config=retry_cfg, context="stop_order"
+            "exchange_orders", self.adapter.execute_order, order, retry_config=retry_cfg
         )
 
         self.logger.info(f"✅ Stop order executed: {result.get('order_id')}")

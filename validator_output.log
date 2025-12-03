@@ -1,0 +1,73 @@
+2025-12-03 15:42:30,882 | BinanceNativeConnector    | INFO     | 🕒 Rate limiter initialized for Binance
+2025-12-03 15:42:30,882 | exchanges.adapters.exchange_adapter | INFO     | Stateless CCXTAdapter initialized | Symbol: LTCUSDT | Timeframe: 1m
+2025-12-03 15:42:30,882 | exchanges.adapters.exchange_adapter | INFO     | ⚠️ Connector does not expose 'exchange' attribute (Virtual/Simulated?).
+2025-12-03 15:42:30,882 | TradingFlowValidator      | INFO     | 🔄 Ejecutando test rápido de ciclo de vida...
+2025-12-03 15:42:30,882 | TradingFlowValidator      | INFO     | --- INICIANDO TEST DE CICLO DE VIDA OCO ---
+2025-12-03 15:42:30,882 | TradingFlowValidator      | INFO     | --- Configurando para Exchange: BINANCE ---
+2025-12-03 15:42:30,883 | BinanceNativeConnector    | INFO     | 🕒 Rate limiter initialized for Binance
+2025-12-03 15:42:30,883 | StateRecovery             | INFO     | 📁 StateRecovery inicializado | dir=state
+2025-12-03 15:42:30,883 | ResilientConnector[BinanceNativeConnector] | INFO     | StateRecovery habilitado
+2025-12-03 15:42:30,883 | OrderTracker              | INFO     | ✅ OrderTracker initialized
+2025-12-03 15:42:30,883 | ErrorClassifier           | INFO     | ✅ ErrorClassifier initialized
+2025-12-03 15:42:30,883 | ResilientConnector[BinanceNativeConnector] | INFO     | ResilientConnector inicializado | connector=BinanceNativeConnector | connection_mgr=True | state_recovery=True
+2025-12-03 15:42:30,883 | ResilientConnector[BinanceNativeConnector] | INFO     | Conectando con resiliencia...
+2025-12-03 15:42:30,883 | BinanceNativeConnector    | INFO     | 🔌 Connecting to Binance Native (demo)...
+2025-12-03 15:42:31,374 | BinanceNativeConnector    | INFO     | ✅ Server Time: 1764790951273 | Offset: -101ms
+2025-12-03 15:42:31,622 | BinanceNativeConnector    | INFO     | ✅ Markets loaded: 647
+2025-12-03 15:42:31,828 | BinanceNativeConnector    | INFO     | ✅ Account is in One-Way Mode
+2025-12-03 15:42:31,828 | BinanceNativeConnector    | INFO     | 🔌 Starting Native WebSocket...
+2025-12-03 15:42:33,294 | BinanceNativeConnector    | INFO     | ✅ Listen key created: t3u6K5oWQdQqDSgEj8ib...
+2025-12-03 15:42:33,294 | BinanceNativeConnector    | INFO     | 🔌 Connecting to User Data Stream...
+2025-12-03 15:42:34,102 | BinanceNativeConnector    | INFO     | ✅ User Data Stream connected
+2025-12-03 15:42:34,102 | ResilientConnector[BinanceNativeConnector] | INFO     | ✅ Conectado al exchange
+2025-12-03 15:42:34,102 | ResilientConnector[BinanceNativeConnector] | INFO     | 🔄 Auto-guardado iniciado
+2025-12-03 15:42:34,103 | exchanges.adapters.exchange_adapter | INFO     | Stateless CCXTAdapter initialized | Symbol: LTCUSDT | Timeframe: 1m
+2025-12-03 15:42:34,103 | exchanges.adapters.exchange_adapter | INFO     | ⚠️ Connector does not expose 'exchange' attribute (Virtual/Simulated?).
+2025-12-03 15:42:34,648 | TradingFlowValidator      | INFO     | Balance real obtenido: $3,113.65
+2025-12-03 15:42:34,648 | ErrorClassifier           | INFO     | ✅ ErrorClassifier initialized
+2025-12-03 15:42:34,648 | PositionTracker           | INFO     | PositionTracker inicializado | Max positions: 10
+2025-12-03 15:42:34,648 | Croupier                  | INFO     | ✅ Croupier initialized | Balance: 3113.65306252 | Max Positions: 10
+2025-12-03 15:42:34,648 | TradingFlowValidator      | INFO     | --- Limpieza PRE-TEST ---
+2025-12-03 15:42:34,648 | TradingFlowValidator      | INFO     | 🧹 Limpiando estado...
+2025-12-03 15:42:34,648 | TradingFlowValidator      | WARNING  | ⚠️ Error en cleanup: 'Croupier' object has no attribute 'state_sync'
+2025-12-03 15:42:34,648 | TradingFlowValidator      | INFO     | 🔄 Continuando...
+2025-12-03 15:42:34,648 | TradingFlowValidator      | INFO     | --- LIMPIEZA PRE-TEST completada ---
+2025-12-03 15:42:34,648 | TradingFlowValidator      | INFO     | Ejecutando orden LONG: {'symbol': 'LTCUSDT', 'side': 'LONG', 'size': 0.05, 'take_profit': 0.02, 'stop_loss': 0.02, 'leverage': 5, 'trade_id': 'validator_1764790954'}
+2025-12-03 15:42:34,648 | Croupier                  | INFO     | 📥 Execute order request: LONG LTCUSDT
+2025-12-03 15:42:34,649 | OCOManager                | INFO     | 🎯 Creating OCO bracket: LONG LTCUSDT | TP: 0.0200 | SL: 0.0200
+2025-12-03 15:42:34,649 | OCOManager                | ERROR    | ❌ OCO bracket creation failed: Invalid amount: 0
+2025-12-03 15:42:34,649 | OCOManager                | WARNING  | 🧹 Cleaning up partial OCO bracket...
+2025-12-03 15:42:34,649 | TradingFlowValidator      | ERROR    | La validación falló con un error inesperado: Failed to create OCO bracket: Invalid amount: 0
+Traceback (most recent call last):
+  File "/home/chesterbelle/Casino-V2/croupier/components/oco_manager.py", line 108, in create_bracketed_order
+    main_order = await self._execute_main_order(order)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/chesterbelle/Casino-V2/croupier/components/oco_manager.py", line 220, in _execute_main_order
+    return await self.executor.execute_market_order(exchange_order)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/chesterbelle/Casino-V2/croupier/components/order_executor.py", line 69, in execute_market_order
+    self._validate_market_order(order)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^
+  File "/home/chesterbelle/Casino-V2/croupier/components/order_executor.py", line 164, in _validate_market_order
+    raise ValueError(f"Invalid amount: {order['amount']}")
+ValueError: Invalid amount: 0
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/chesterbelle/Casino-V2/utils/validators/trading_flow_validator.py", line 1186, in main
+    await validator.run_lifecycle_test()
+  File "/home/chesterbelle/Casino-V2/utils/validators/trading_flow_validator.py", line 170, in run_lifecycle_test
+    result = await self.croupier.execute_order(order)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/chesterbelle/Casino-V2/croupier/croupier.py", line 104, in execute_order
+    result = await self.oco_manager.create_bracketed_order(order, wait_for_fill=wait_for_fill)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/chesterbelle/Casino-V2/croupier/components/oco_manager.py", line 208, in create_bracketed_order
+    raise OCOAtomicityError(f"Failed to create OCO bracket: {e}") from e
+croupier.components.oco_manager.OCOAtomicityError: Failed to create OCO bracket: Invalid amount: 0
+2025-12-03 15:42:34,650 | TradingFlowValidator      | INFO     | 🧹 Limpiando estado...
+2025-12-03 15:42:34,650 | TradingFlowValidator      | WARNING  | ⚠️ Error en cleanup: 'Croupier' object has no attribute 'state_sync'
+2025-12-03 15:42:34,650 | TradingFlowValidator      | INFO     | 🔄 Continuando...
+2025-12-03 15:42:34,651 | BinanceNativeConnector    | INFO     | 🔄 Keepalive task started
+2025-12-03 15:42:34,651 | BinanceNativeConnector    | INFO     | 🛑 Keepalive task cancelled

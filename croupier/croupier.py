@@ -75,7 +75,7 @@ class Croupier:
             f"✅ Croupier initialized | Balance: {initial_balance} | " f"Max Positions: {max_concurrent_positions}"
         )
 
-    async def execute_order(self, order: Dict[str, Any], wait_for_fill: bool = True) -> Dict[str, Any]:
+    async def execute_order(self, order: Dict[str, Any], wait_for_fill: bool = False) -> Dict[str, Any]:
         """
         Execute order with full OCO bracket.
 
@@ -86,11 +86,11 @@ class Croupier:
             order: Order dict with:
                 - symbol: Trading symbol
                 - side: "LONG" or "SHORT"
-                - size: Position size (will be calculated)
-                - amount: Order amount in contracts
+                - size: Position size fraction (e.g., 0.05 = 5% of equity)
+                - amount: Order amount in contracts (optional, calculated from size if missing)
                 - take_profit: TP multiplier
                 - stop_loss: SL multiplier
-            wait_for_fill: Wait for main order fill confirmation
+            wait_for_fill: Wait for main order fill confirmation (default: False for speed)
 
         Returns:
             OCO result dict with main_order, tp_order, sl_order
@@ -100,7 +100,47 @@ class Croupier:
         """
         self.logger.info(f"📥 Execute order request: {order['side']} {order['symbol']}")
 
-        # Delegate to OCOManager
+        # Calculate amount from size if not provided
+        if "amount" not in order or order.get("amount") == 0:
+            if "size" in order:
+                # size is a fraction of equity (e.g., 0.05 = 5%)
+                current_equity = self.get_equity()
+                position_value = current_equity * order["size"]
+
+                # Get current price
+                try:
+                    current_price = await self.exchange_adapter.get_current_price(order["symbol"])
+                except Exception as e:
+                    self.logger.error(f"❌ Failed to get current price for {order['symbol']}: {e}")
+                    raise
+
+                # Calculate amount in contracts
+                amount_raw = position_value / current_price
+
+                # Round to exchange precision
+                amount = float(self.exchange_adapter.amount_to_precision(order["symbol"], amount_raw))
+
+                # Validate minimum amount
+                if amount <= 0:
+                    raise ValueError(
+                        f"Order too small after precision rounding: "
+                        f"raw={amount_raw:.12f} → rounded={amount:.8f} | "
+                        f"Equity={current_equity:.2f} | Size={order['size']:.2%}"
+                    )
+
+                # Add calculated amount to order
+                order = order.copy()
+                order["amount"] = amount
+
+                self.logger.info(
+                    f"📊 Calculated order amount: Equity={current_equity:.2f} | "
+                    f"Size={order['size']:.2%} | Value={position_value:.2f} | "
+                    f"Price={current_price:.2f} | Amount={amount:.8f}"
+                )
+            else:
+                raise ValueError("Order must have either 'amount' or 'size'")
+
+        # Delegate to OCOManager (don't wait for fill in demo/live, market orders are instant)
         result = await self.oco_manager.create_bracketed_order(order, wait_for_fill=wait_for_fill)
 
         # Register position in tracker

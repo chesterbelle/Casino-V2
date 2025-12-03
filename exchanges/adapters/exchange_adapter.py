@@ -441,6 +441,65 @@ class ExchangeAdapter:
             raise
 
     # =========================================================
+    # 📋 ORDER MANAGEMENT (Added for component abstraction)
+    # =========================================================
+
+    async def fetch_order(self, order_id: str, symbol: str = None) -> Dict[str, Any]:
+        """
+        Fetch order status from exchange.
+
+        Args:
+            order_id: Order ID to fetch
+            symbol: Trading symbol (uses self.symbol if not provided)
+
+        Returns:
+            Order dict with status, filled amount, etc.
+        """
+        symbol = symbol or self.symbol
+        return await self.connector.fetch_order(order_id, symbol)
+
+    async def cancel_order(self, order_id: str, symbol: str = None) -> Dict[str, Any]:
+        """
+        Cancel an open order.
+
+        Args:
+            order_id: Order ID to cancel
+            symbol: Trading symbol (uses self.symbol if not provided)
+
+        Returns:
+            Cancellation result
+        """
+        symbol = symbol or self.symbol
+        return await self.connector.cancel_order(order_id, symbol)
+
+    async def create_market_order(self, symbol: str, side: str, amount: float) -> Dict[str, Any]:
+        """
+        Create a simple market order (for reconciliation/cleanup).
+
+        Args:
+            symbol: Trading symbol
+            side: "buy" or "sell"
+            amount: Order amount
+
+        Returns:
+            Order result
+        """
+        return await self.connector.create_market_order(symbol=symbol, side=side, amount=amount)
+
+    async def fetch_open_orders(self, symbol: str = None) -> list:
+        """
+        Fetch all open orders for a symbol.
+
+        Args:
+            symbol: Trading symbol (uses self.symbol if not provided)
+
+        Returns:
+            List of open orders
+        """
+        symbol = symbol or self.symbol
+        return await self.connector.fetch_open_orders(symbol)
+
+    # =========================================================
     # 📊 PROPERTIES
     # =========================================================
 
@@ -448,18 +507,6 @@ class ExchangeAdapter:
     def exchange_name(self) -> str:
         """Get exchange name."""
         return self.connector.exchange_name
-
-    async def cancel_order(self, order_id: str, symbol: str) -> Dict:
-        """
-        Cancela una orden.
-        """
-        return await self.connector.cancel_order(order_id, symbol)
-
-    async def fetch_order(self, order_id: str, symbol: str) -> Dict:
-        """
-        Obtiene información de una orden.
-        """
-        return await self.connector.fetch_order(order_id, symbol)
 
     async def disconnect(self) -> None:
         """

@@ -93,11 +93,47 @@ class OrderManager:
         tp_pct = getattr(event, "tp_pct", None) or config.trading.TAKE_PROFIT
         sl_pct = getattr(event, "sl_pct", None) or config.trading.STOP_LOSS
 
+        # Calculate amount from size (fraction of equity)
+        # Get current equity from croupier
+        current_equity = self.croupier.get_equity()
+        position_value = current_equity * event.bet_size  # Value in USDT
+
+        # Get current price to calculate amount in contracts
+        try:
+            current_price = await self.croupier.exchange_adapter.get_current_price(event.symbol)
+        except Exception as e:
+            logger.error(f"❌ Failed to get current price for {event.symbol}: {e}")
+            return
+
+        # Calculate amount in contracts (for BTC/USDT, 1 contract = 1 BTC worth of notional)
+        # For perpetuals: amount = position_value / price
+        amount_raw = position_value / current_price
+
+        # Round to exchange precision (Binance has specific precision requirements)
+        amount = float(self.croupier.exchange_adapter.amount_to_precision(event.symbol, amount_raw))
+
+        # Validate minimum amount after precision rounding
+        if amount <= 0:
+            logger.error(
+                f"❌ Order too small after precision rounding: "
+                f"raw={amount_raw:.12f} → rounded={amount:.8f} | "
+                f"Equity={current_equity:.2f} | Size={event.bet_size:.2%} | "
+                f"Suggestion: Increase bet size or use higher equity"
+            )
+            return
+
+        logger.info(
+            f"📊 Order calculation: Equity={current_equity:.2f} | "
+            f"Size={event.bet_size:.2%} | Value={position_value:.2f} | "
+            f"Price={current_price:.2f} | Amount={amount:.8f} (raw={amount_raw:.12f})"
+        )
+
         order_payload = {
             "trade_id": trade_id,
             "symbol": event.symbol,
             "side": event.side,
             "size": event.bet_size,  # Fraction of equity
+            "amount": amount,  # Calculated amount in contracts
             "take_profit": tp_pct,  # Pass as percentage (e.g. 0.01)
             "stop_loss": sl_pct,  # Pass as percentage (e.g. 0.01)
             "timestamp": str(event.timestamp),

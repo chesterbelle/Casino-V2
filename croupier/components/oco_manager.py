@@ -107,15 +107,56 @@ class OCOManager:
             # Step 1: Execute main market order
             main_order = await self._execute_main_order(order)
 
-            # Step 2: Wait for fill confirmation
-            if wait_for_fill:
-                fill_price = await self._wait_for_fill(main_order["order_id"], timeout=fill_timeout)
-            else:
-                # Use order price (for backtesting or immediate execution)
-                fill_price = main_order.get("average", main_order.get("price"))
+            # Log the response for debugging
+            self.logger.debug(f"Main order response: {main_order}")
 
-            if not fill_price:
-                raise OCOAtomicityError("Failed to get fill price for main order")
+            # Validate main_order has required fields
+            if not main_order:
+                raise OCOAtomicityError("Main order returned None")
+
+            if "order_id" not in main_order and "id" not in main_order:
+                self.logger.error(f"Main order missing order_id. Response: {main_order}")
+                raise OCOAtomicityError(f"Main order missing order_id. Got: {list(main_order.keys())}")
+
+            # Normalize order_id field (some exchanges use 'id' instead of 'order_id')
+            order_id = main_order.get("order_id") or main_order.get("id")
+
+            # Step 2: Wait for fill confirmation or use immediate response
+            if wait_for_fill:
+                fill_price = await self._wait_for_fill(order_id, symbol, timeout=fill_timeout)
+            else:
+                # For market orders, use response price immediately (faster)
+                # The connector is responsible for normalizing the price (including calculating from cumQuote if needed)
+
+                # DEBUG: Log the full response
+                self.logger.info(f"🔍 DEBUG: main_order keys = {list(main_order.keys())}")
+
+                # Use standard normalized fields
+                fill_price = main_order.get("price") or main_order.get("avgPrice") or main_order.get("average")
+
+                if fill_price and float(fill_price) > 0:
+                    fill_price = float(fill_price)
+                    self.logger.info(f"🔍 DEBUG: Using normalized fill_price = {fill_price}")
+                else:
+                    fill_price = None
+
+                # Last resort: check fills array (standard CCXT structure)
+                if not fill_price and main_order.get("fills"):
+                    fills = main_order["fills"]
+                    if fills and len(fills) > 0:
+                        fill_price = fills[0].get("price")
+                        if fill_price:
+                            fill_price = float(fill_price)
+                            self.logger.info(f"🔍 DEBUG: From fills[0], fill_price = {fill_price}")
+
+            # If we still don't have a price (e.g. order status is NEW), we MUST wait for fill
+            if not fill_price or fill_price <= 0:
+                self.logger.info("⏳ Fill price not in response (status NEW?), waiting for fill...")
+                try:
+                    fill_price = await self._wait_for_fill(order_id, symbol, timeout=fill_timeout)
+                except Exception as e:
+                    self.logger.error(f"❌ Failed to wait for fill: {e}")
+                    raise OCOAtomicityError(f"Failed to get fill price: {e}")
 
             self.logger.info(f"✅ Main order filled @ {fill_price}")
 
@@ -165,12 +206,13 @@ class OCOManager:
 
         return await self.executor.execute_market_order(exchange_order)
 
-    async def _wait_for_fill(self, order_id: str, timeout: float = 30.0) -> Optional[float]:
+    async def _wait_for_fill(self, order_id: str, symbol: str, timeout: float = 30.0) -> Optional[float]:
         """
         Wait for order fill confirmation via WebSocket or polling.
 
         Args:
             order_id: Order ID to wait for
+            symbol: Trading symbol (required by some connectors)
             timeout: Timeout in seconds
 
         Returns:
@@ -186,8 +228,8 @@ class OCOManager:
 
         while time.time() - start_time < timeout:
             try:
-                # Fetch order status from exchange
-                order_info = await self.adapter.connector.fetch_order(order_id)
+                # Fetch order status from exchange (pass symbol for Binance)
+                order_info = await self.adapter.fetch_order(order_id, symbol)
 
                 if order_info.get("status") == "closed":
                     fill_price = order_info.get("average") or order_info.get("price")
@@ -291,7 +333,7 @@ class OCOManager:
 
         for order_type, order_id in orders_to_cancel:
             try:
-                await self.adapter.connector.cancel_order(order_id)
+                await self.adapter.cancel_order(order_id)
                 self.logger.info(f"✅ Cancelled {order_type} order: {order_id}")
             except Exception as e:
                 self.logger.error(f"❌ Failed to cancel {order_type} order {order_id}: {e}")
