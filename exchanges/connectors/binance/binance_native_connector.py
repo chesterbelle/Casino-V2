@@ -146,6 +146,8 @@ class BinanceNativeConnector(BaseConnector):
 
     async def close(self) -> None:
         """Close connections."""
+        self.logger.info("🔌 BinanceNativeConnector.close() called")
+
         # Stop User Data Stream keepalive task
         if self._keepalive_task:
             self._keepalive_task.cancel()
@@ -153,6 +155,7 @@ class BinanceNativeConnector(BaseConnector):
                 await self._keepalive_task
             except asyncio.CancelledError:
                 pass
+            self._keepalive_task = None
 
         # Close User Data Stream WebSocket
         if self._user_data_ws:
@@ -160,6 +163,7 @@ class BinanceNativeConnector(BaseConnector):
                 await self._user_data_ws.close()
             except Exception as e:
                 self.logger.warning(f"⚠️ Error closing user data stream: {e}")
+            self._user_data_ws = None
 
         # Close market data WebSocket
         if self.ws_client:
@@ -184,6 +188,7 @@ class BinanceNativeConnector(BaseConnector):
 
     async def _keepalive_listen_key(self):
         """Keep listen key alive by refreshing every 30 minutes."""
+        self.logger.info("🔄 Keepalive task started")
         while True:
             try:
                 await asyncio.sleep(1800)  # 30 minutes
@@ -191,6 +196,7 @@ class BinanceNativeConnector(BaseConnector):
                     self.client.renew_listen_key()
                     self.logger.debug("🔄 Listen key renewed")
             except asyncio.CancelledError:
+                self.logger.info("🛑 Keepalive task cancelled")
                 break
             except Exception as e:
                 self.logger.error(f"❌ Error renewing listen key: {e}")

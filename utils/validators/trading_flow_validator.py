@@ -858,6 +858,13 @@ class TradingFlowValidator:
             logger.warning("⚠️ Connector doesn't support listen keys (OK for non-Binance)")
             return
 
+        # 1. Ensure connector is connected (Mission 12 might have closed it?)
+        if not self.connector.is_connected:
+            logger.warning("⚠️ Connector was disconnected! Reconnecting for Mission 13...")
+            await self.connector.connect()
+            # Give it a moment to establish WS
+            await asyncio.sleep(2)
+
         # 2. Verify WebSocket connection exists
         assert self.connector._connector._user_data_ws is not None, "User Data Stream WebSocket not connected"
         logger.info("✅ Verificación 2/4: User Data Stream WebSocket connected")
