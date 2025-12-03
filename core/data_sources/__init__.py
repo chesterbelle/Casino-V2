@@ -1,5 +1,5 @@
 """
-Data Sources Module - Casino V2
+Data Sources Module - Casino V3
 
 Provides unified interface for different data sources:
 - BacktestDataSource: Historical data (CSV, Parquet, DataFrame)

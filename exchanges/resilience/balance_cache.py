@@ -1,5 +1,5 @@
 """
-Balance Cache - Casino V2
+Balance Cache - Casino V3
 
 Sistema de cache y fallback para balance inspirado en Hummingbot.
 Evita crashes cuando el exchange falla temporalmente.
@@ -11,7 +11,7 @@ Características:
 - Múltiples fuentes de balance
 - Métricas de confiabilidad
 
-Author: Casino V2 Team
+Author: Casino V3 Team
 Version: 2.0.0
 """
 

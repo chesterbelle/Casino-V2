@@ -9,7 +9,7 @@ Este módulo implementa:
 - Health checks periódicos
 - Métricas de conexión
 
-Author: Casino V2 Team
+Author: Casino V3 Team
 Version: 2.0.0
 """
 

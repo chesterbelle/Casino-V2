@@ -1,5 +1,5 @@
 """
-Backtest Data Source - Casino V2
+Backtest Data Source - Casino V3
 
 Provides historical data for backtesting strategies.
 Uses Croupier + CCXTAdapter + VirtualExchangeConnector for modular architecture.

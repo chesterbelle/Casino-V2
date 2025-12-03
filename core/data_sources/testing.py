@@ -1,5 +1,5 @@
 """
-Testing Data Source - Casino V2
+Testing Data Source - Casino V3
 
 Provides real-time data from an exchange for demo/live trading.
 Delegates all order execution and state management to the Croupier.

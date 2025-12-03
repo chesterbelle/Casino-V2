@@ -1,5 +1,5 @@
 """
-Virtual Exchange Connector - Casino V2
+Virtual Exchange Connector - Casino V3
 
 A self-contained simulated exchange that mimics the behavior of a real exchange
 (like Binance or Kraken) but runs locally in memory.

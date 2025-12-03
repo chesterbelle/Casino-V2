@@ -1,5 +1,5 @@
 """
-Parameter validation utilities for Casino V2.
+Parameter validation utilities for Casino V3.
 
 This module provides robust validation functions for all input parameters
 used throughout the trading system.

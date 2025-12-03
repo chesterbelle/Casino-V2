@@ -1,5 +1,5 @@
 """
-Centralized logging system for Casino V2.
+Centralized logging system for Casino V3.
 
 This module provides a unified logging interface with structured logging,
 performance monitoring, and configurable output formats.

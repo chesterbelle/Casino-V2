@@ -4,7 +4,7 @@ High-Level State Manager for Casino V3.
 Coordinates state persistence across all components.
 
 Author: Casino V3 Team
-Version: 2.0.0
+Version: 3.0.0
 """
 
 import logging
@@ -22,9 +22,10 @@ class StateManager:
 
     Responsibilities:
     - Initialize persistent state
-    - Sync state between components
+    - Sync state between components (balance, positions, **statistics**)
     - Coordinate recovery
     - Provide unified state API
+    - Trigger immediate saves on trade close
 
     Example:
         state_mgr = StateManager(

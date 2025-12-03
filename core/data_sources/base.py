@@ -1,5 +1,5 @@
 """
-Base DataSource Interface - Casino V2
+Base DataSource Interface - Casino V3
 
 Defines the contract that all data sources must implement.
 This ensures that trading logic can work with any data source

@@ -23,8 +23,8 @@ Features:
     - Métricas detalladas
     - Agnóstico de exchange
 
-Author: Casino V2 Team
-Version: 1.9.1
+Author: Casino V3 Team
+Version: 3.0.0
 """
 
 import asyncio

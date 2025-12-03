@@ -1,5 +1,5 @@
 """
-Custom exceptions for Casino V2 trading system.
+Custom exceptions for Casino V3 trading system.
 
 This module defines all custom exceptions used throughout the application
 for consistent error handling and better debugging.
@@ -9,7 +9,7 @@ from typing import Any, Dict, Optional
 
 
 class CasinoError(Exception):
-    """Base exception for all Casino V2 errors."""
+    """Base exception for all Casino V3 errors."""
 
     def __init__(self, message: str, details: Optional[Dict[str, Any]] = None):
         super().__init__(message)

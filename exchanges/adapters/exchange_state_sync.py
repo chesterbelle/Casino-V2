@@ -1,5 +1,5 @@
 """
-🔄 Exchange State Synchronization - Casino V2
+🔄 Exchange State Synchronization - Casino V3
 ==============================================
 
 Componente que sincroniza estado real del exchange con el sistema interno.

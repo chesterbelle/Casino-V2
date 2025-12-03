@@ -1,5 +1,5 @@
 """
-Portfolio management for Casino V2.
+Portfolio management for Casino V3.
 
 This package contains all portfolio-related functionality:
 - portfolio_manager: Unified portfolio management (NEW)

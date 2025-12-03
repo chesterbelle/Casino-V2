@@ -1,5 +1,5 @@
 """
-Exchange adapters for Casino V2.
+Exchange adapters for Casino V3.
 
 Adapters provide a unified interface to different exchange implementations.
 """

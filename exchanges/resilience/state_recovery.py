@@ -8,7 +8,7 @@ Este módulo implementa:
 - Continuación desde último punto conocido
 - Detección de fills perdidos
 
-Author: Casino V2 Team
+Author: Casino V3 Team
 Version: 2.0.0
 """
 

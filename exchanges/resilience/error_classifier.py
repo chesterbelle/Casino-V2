@@ -1,5 +1,5 @@
 """
-Error Classifier - Casino V2
+Error Classifier - Casino V3
 
 Sistema de clasificación de errores para determinar si son retriables.
 Inspirado en Hummingbot's error handling.
@@ -10,7 +10,7 @@ Características:
 - Sugiere acciones correctivas
 - Métricas de errores
 
-Author: Casino V2 Team
+Author: Casino V3 Team
 Version: 2.0.0
 """
 

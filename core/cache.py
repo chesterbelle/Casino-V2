@@ -1,5 +1,5 @@
 """
-Caching system for Casino V2.
+Caching system for Casino V3.
 
 This module provides caching utilities to optimize performance for
 repeated operations like sensor calculations and data processing.

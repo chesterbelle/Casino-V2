@@ -1,5 +1,5 @@
 """
-Live Data Source - Casino V2
+Live Data Source - Casino V3
 
 Provides real-time data from live exchange (REAL MONEY).
 """

@@ -1,5 +1,5 @@
 """
-Core modules for Casino V2 trading system.
+Core modules for Casino V3 trading system.
 
 This package contains:
 - Trading session and pipeline (core.trading)

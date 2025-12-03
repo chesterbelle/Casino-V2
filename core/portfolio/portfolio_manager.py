@@ -1,5 +1,5 @@
 """
-Portfolio Manager - Casino V2
+Portfolio Manager - Casino V3
 
 Centraliza la gestión de balance y posiciones.
 Gestiona balance y tracking simple de posiciones.

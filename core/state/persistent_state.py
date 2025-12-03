@@ -7,9 +7,10 @@ Provides automatic state persistence to disk with:
 - JSON serialization
 - Corruption detection
 - Automatic recovery
+- **Persistent statistics** (total trades, wins, losses)
 
 Author: Casino V3 Team
-Version: 2.0.0
+Version: 3.0.0
 """
 
 import asyncio

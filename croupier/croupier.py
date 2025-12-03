@@ -1,45 +1,58 @@
 """
 ====================================================
-🎯 Croupier V2 — Tablero de Control del Casino
+🎯 Croupier V3 — Trading Execution & Portfolio Manager
 ====================================================
 
-Rol:
-----
-El Croupier es el tablero de control centralizado del Casino.
-Gestiona el portfolio completo (balance + posiciones) y coordina
-la ejecución de órdenes con el exchange adapter.
+Role:
+-----
+Croupier is the centralized trading execution and portfolio management layer.
+Manages complete portfolio (balance + positions) and coordinates order execution
+with exchange adapters using event-driven WebSocket architecture.
 
-Responsabilidades:
-------------------
-• Gestionar portfolio (PortfolioManager)
-• Validar órdenes antes de ejecutar
-• Coordinar ejecución con exchange adapter
-• Proveer información consolidada del portfolio
-• Mantener el estado del trading
+Responsibilities:
+-----------------
+• Portfolio management (BalanceManager + PositionTracker)
+• Order validation before execution
+• Coordinate execution with exchange adapter
+• **WebSocket order update handling** (OCO Manual)
+• Provide consolidated portfolio information
+• Maintain trading state with persistence
 
-API Pública:
-------------
-Información:
+Casino V3 Architecture:
+-----------------------
+Event-driven with WebSocket callbacks:
+1. Execute order → TP/SL placed on exchange
+2. WebSocket receives order fills
+3. _on_order_update() callback triggers
+4. Opposite order cancelled (OCO Manual)
+5. Position confirmed closed
+
+Public API:
+-----------
+Information:
 - get_balance() -> float
 - get_equity() -> float
 - get_open_positions() -> List[Dict]
 - get_portfolio_state() -> Dict
 
-Ejecución:
+Execution:
 - execute_order(order: dict) -> dict
+- close_position(trade_id: str) -> dict
 
-Contrato de la orden:
----------------------
+Order Contract:
+---------------
 {
     "trade_id": str,
     "symbol": str,
     "side": "LONG" | "SHORT",
-    "size": float,            # fracción del equity a arriesgar
-    "take_profit": float,     # factor multiplicativo (ej. 1.01 => +1%)
-    "stop_loss": float,       # factor multiplicativo (ej. 0.992 => -0.8%)
+    "size": float,            # fraction of equity to risk
+    "take_profit": float,     # multiplier (e.g. 1.01 => +1%)
+    "stop_loss": float,       # multiplier (e.g. 0.992 => -0.8%)
     "timestamp": str | None,
-    "ghost": bool             # True = shadow (entrena sin tocar balance)
+    "ghost": bool             # True = shadow (training mode)
 }
+
+Version: 3.0.0
 """
 
 from __future__ import annotations

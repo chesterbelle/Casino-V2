@@ -1,31 +1,26 @@
 """
-Position Tracker for Casino V2 - Gestión de Posiciones Abiertas
-===============================================================
+Position Tracker for Casino V3 - Position Management & WebSocket Confirmation
+==============================================================================
 
-Este módulo implementa el tracking de posiciones abiertas con soporte para
-confirmación de cierres con datos reales del exchange.
+Manages open positions with real-time WebSocket confirmation from exchange.
 
-VERSIÓN v1.9.1: Modo Híbrido
------------------------------
-- **simulation**: Simula cierres con OHLC (para backtest)
-- **confirmed**: Solo cierra con confirmación del exchange (para live)
-- **hybrid**: Detecta TP/SL + espera confirmación (mejor de ambos mundos)
+Architecture:
+-------------
+Casino V3 uses event-driven position tracking with WebSocket order updates:
+- Positions are opened with TP/SL orders on the exchange
+- WebSocket callbacks confirm fills in real-time
+- Capital is blocked proportionally to margin used
+- Positions close automatically via TP/SL execution
 
-Problema que resuelve:
-----------------------
-- Backtest actual permite múltiples posiciones simultáneas sin límite
-- No bloquea capital durante la duración del trade
-- Simula cierres inmediatos en lugar de esperar TP/SL naturales
-- NO confirma cierres con datos reales del exchange (v1.9)
+Key Features:
+-------------
+- Real-time position tracking with WebSocket confirmation
+- Capital blocking during active positions
+- Automatic position closure via OCO orders (TP/SL)
+- Persistent statistics (trades, wins, losses)
+- Exchange reconciliation support
 
-Solución v1.9.1:
-----------------
-- Track de posiciones abiertas con TP/SL pendientes
-- Bloqueo de capital proporcional al margen usado
-- Validación de capital disponible antes de abrir posiciones
-- Monitoreo vela-por-vela de TP/SL hits
-- **NUEVO**: Confirmación de cierres con datos reales del exchange
-- **NUEVO**: Modo híbrido (detecta + confirma)
+Version: 3.0.0
 """
 
 from __future__ import annotations
@@ -68,32 +63,49 @@ class OpenPosition:
 
 class PositionTracker:
     """
-    Gestiona posiciones abiertas y capital bloqueado con soporte para confirmación.
+    Manages open positions with real-time WebSocket confirmation.
 
-    VERSIÓN v1.9.1: Modo Híbrido
-    -----------------------------
-    - **simulation**: Simula cierres con OHLC (para backtest)
-    - **confirmed**: Solo cierra con confirmación del exchange (para live)
-    - **hybrid**: Detecta TP/SL + espera confirmación (recomendado)
+    Casino V3 Architecture:
+    -----------------------
+    Positions are tracked with capital blocking and confirmed via WebSocket events:
 
-    Ejemplo:
-        # Modo simulation (backtest)
-        tracker = PositionTracker(mode="simulation")
+    1. Position opened → Capital blocked
+    2. TP/SL orders placed on exchange
+    3. WebSocket monitors order fills
+    4. On fill → confirm_close() called → Capital released
 
-        # Modo hybrid (testing/live)
-        tracker = PositionTracker(mode="hybrid")
+    Usage Example:
+    --------------
+    ```python
+    tracker = PositionTracker(max_concurrent_positions=10)
 
-        # Detectar cierres
-        closes = tracker.check_and_close_positions(candle)
+    # Open position (called by Croupier)
+    position = tracker.open_position(
+        order=order_dict,
+        entry_price=50000.0,
+        entry_timestamp="2024-01-01T00:00:00Z",
+        available_equity=10000.0,
+        main_order_id="12345",
+        tp_order_id="12346",
+        sl_order_id="12347"
+    )
 
-        # Confirmar cierre con datos reales
-        result = tracker.confirm_close(
-            trade_id="trade_123",
-            exit_price=50000.0,  # Precio REAL del fill
-            exit_reason="TP",
-            pnl=150.0,  # PnL REAL
-            fee=2.5
-        )
+    # Confirm close when WebSocket receives fill event
+    result = tracker.confirm_close(
+        trade_id="trade_123",
+        exit_price=51000.0,  # Real fill price from exchange
+        exit_reason="TP",     # TP, SL, MANUAL, etc.
+        pnl=150.0,           # Real PnL
+        fee=2.5              # Real fee
+    )
+    ```
+
+    Statistics:
+    -----------
+    Tracks persistent statistics across sessions:
+    - total_trades_closed: Total closed positions
+    - total_wins: Positions closed via TP
+    - total_losses: Positions closed via SL/other
     """
 
     def __init__(
@@ -404,34 +416,19 @@ class PositionTracker:
         self, trade_id: str, exit_price: float, exit_reason: str, pnl: float, fee: float = 0.0
     ) -> Optional[Dict[str, Any]]:
         """
-        NUEVO v1.9.1: Confirma cierre con datos REALES del exchange.
+        Confirms position close with real exchange data.
 
-        Este método debe ser llamado cuando se recibe un fill confirmado del exchange
-        que cierra una posición.
+        Called by WebSocket callbacks when TP/SL fills are received from exchange.
 
         Args:
-            trade_id: ID del trade
-            exit_price: Precio de salida REAL (del fill)
-            exit_reason: Razón CONFIRMADA ("TP" | "SL" | "MANUAL" | "LIQUIDATION")
-            pnl: PnL REAL (incluye fees, slippage)
-            fee: Fee REAL
+            trade_id: ID of the trade to close
+            exit_price: Actual fill price from exchange
+            exit_reason: Confirmed reason ("TP", "SL", "MANUAL", "LIQUIDATION")
+            pnl: Real PnL (includes fees, slippage)
+            fee: Real trading fee
 
         Returns:
-            Resultado confirmado o None si no existe la posición
-
-        Ejemplo:
-            # Cuando llega fill del exchange
-            result = tracker.confirm_close(
-                trade_id="trade_123",
-                exit_price=50150.0,  # Precio REAL del fill
-                exit_reason="TP",
-                pnl=150.0,  # PnL REAL
-                fee=2.5
-            )
-
-            if result:
-                print(f"Cierre confirmado: {result['result']}")
-                gemini.on_trade_result(trade_id, result)
+            Confirmed close result or None if position not found
         """
         # Buscar posición
         position = None

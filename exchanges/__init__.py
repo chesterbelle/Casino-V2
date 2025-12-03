@@ -1,5 +1,5 @@
 """
-Exchange integrations for Casino V2.
+Exchange integrations for Casino V3.
 
 This package contains all exchange-related functionality:
 - connectors/: Exchange API connectors (Kraken, Binance, etc.)

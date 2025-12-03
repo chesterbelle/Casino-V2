@@ -1,9 +1,9 @@
 """
 ====================================================
-📌 VERSION - Casino V2
+📌 VERSION - Casino V3
 ====================================================
 
-Versión única del sistema Casino V2.
+Versión única del sistema Casino V3.
 Este es la ÚNICA fuente de verdad para la versión del proyecto.
 
 IMPORTANTE: Si cambias la versión aquí, debes actualizar:
@@ -136,7 +136,7 @@ def get_version_info() -> Dict[str, str]:
 
 def get_full_version_string() -> str:
     """Retorna string completo de versión para logs."""
-    return f"Casino V2 v{__version__} ({__version_name__}) - {__status__}"
+    return f"Casino V3 v{__version__} ({__version_name__}) - {__status__}"
 
 
 def get_changelog(version: str = None) -> Dict:

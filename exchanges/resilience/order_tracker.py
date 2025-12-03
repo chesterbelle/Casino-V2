@@ -1,5 +1,5 @@
 """
-Order Tracker - Casino V2
+Order Tracker - Casino V3
 
 Sistema de tracking de órdenes inspirado en Hummingbot.
 Trackea órdenes ANTES de enviarlas al exchange para evitar pérdidas.
@@ -11,7 +11,7 @@ Características:
 - Reconciliación con exchange
 - Métricas y auditoría
 
-Author: Casino V2 Team
+Author: Casino V3 Team
 Version: 2.0.0
 """
 
