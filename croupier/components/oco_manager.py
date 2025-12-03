@@ -250,26 +250,26 @@ class OCOManager:
         raise TimeoutError(f"Order {order_id} not filled within {timeout}s")
 
     def _calculate_tp_sl_prices(
-        self, entry_price: float, side: str, tp_multiplier: float, sl_multiplier: float
+        self, entry_price: float, side: str, tp_pct: float, sl_pct: float
     ) -> tuple[float, float]:
         """
-        Calculate absolute TP/SL prices from multipliers.
+        Calculate absolute TP/SL prices from percentages.
 
         Args:
             entry_price: Entry price
             side: "LONG" or "SHORT"
-            tp_multiplier: TP multiplier (e.g., 1.01 for +1%)
-            sl_multiplier: SL multiplier (e.g., 0.99 for -1%)
+            tp_pct: TP percentage (e.g., 0.01 for 1%)
+            sl_pct: SL percentage (e.g., 0.01 for 1%)
 
         Returns:
             (tp_price, sl_price) tuple
         """
         if side == "LONG":
-            tp_price = entry_price * tp_multiplier
-            sl_price = entry_price * sl_multiplier
+            tp_price = entry_price * (1 + tp_pct)
+            sl_price = entry_price * (1 - sl_pct)
         else:  # SHORT
-            tp_price = entry_price * sl_multiplier  # TP is lower for shorts
-            sl_price = entry_price * tp_multiplier  # SL is higher for shorts
+            tp_price = entry_price * (1 - tp_pct)
+            sl_price = entry_price * (1 + sl_pct)
 
         return tp_price, sl_price
 

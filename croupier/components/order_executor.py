@@ -82,58 +82,63 @@ class OrderExecutor:
         return result
 
     async def execute_limit_order(
-        self, symbol: str, side: str, amount: float, price: float, retry_config: Optional[RetryConfig] = None
+        self, symbol: str, side: str, amount: float, price: float, params: Dict = None
     ) -> Dict[str, Any]:
         """
-        Execute limit order with retry logic.
 
-        Args:
-            symbol: Trading symbol
-            side: 'buy' or 'sell'
-            amount: Order amount
-            price: Limit price
-            retry_config: Optional retry configuration
-
-        Returns:
-            Order result dict
+        Execute a limit order with retry logic.
         """
-        order = {"symbol": symbol, "type": "limit", "side": side, "amount": amount, "price": price}
+        # Round amount and price to exchange precision
+        amount = float(self.adapter.amount_to_precision(symbol, amount))
+        price = float(self.adapter.price_to_precision(symbol, price))
 
+        # Validate
+        order = {
+            "symbol": symbol,
+            "side": side,
+            "type": "limit",
+            "amount": amount,
+            "price": price,
+            "params": params or {},
+        }
         self._validate_limit_order(order)
 
-        retry_cfg = retry_config or RetryConfig(max_retries=3)
+        retry_cfg = self._get_retry_config("limit")
 
         self.logger.info(f"📤 Executing limit order: {side} {amount} {symbol} @ {price}")
 
-        result = await self.error_handler.execute_with_breaker(
-            "exchange_orders", self.adapter.execute_order, order, retry_config=retry_cfg
-        )
-
-        self.logger.info(f"✅ Limit order executed: {result.get('order_id')}")
-
-        return result
+        try:
+            result = await self.error_handler.execute_with_breaker(
+                "exchange_orders", self.adapter.execute_order, order, retry_config=retry_cfg
+            )
+            self._log_execution(result, "Limit")
+            return result
+        except Exception as e:
+            self.logger.error(f"❌ Limit order failed: {e}")
+            raise
 
     async def execute_stop_order(
-        self, symbol: str, side: str, amount: float, stop_price: float, retry_config: Optional[RetryConfig] = None
+        self, symbol: str, side: str, amount: float, stop_price: float, params: Dict = None
     ) -> Dict[str, Any]:
         """
-        Execute stop order with retry logic.
-
-        Args:
-            symbol: Trading symbol
-            side: 'buy' or 'sell'
-            amount: Order amount
-            stop_price: Stop trigger price
-            retry_config: Optional retry configuration
-
-        Returns:
-            Order result dict
+        Execute a stop order (Stop Loss) with retry logic.
         """
-        order = {"symbol": symbol, "type": "stop", "side": side, "amount": amount, "stopPrice": stop_price}
+        # Round amount and price to exchange precision
+        amount = float(self.adapter.amount_to_precision(symbol, amount))
+        stop_price = float(self.adapter.price_to_precision(symbol, stop_price))
 
+        # Validate
+        order = {
+            "symbol": symbol,
+            "side": side,
+            "type": "stop_market",  # Default to stop_market for SL
+            "amount": amount,
+            "stop_price": stop_price,  # CCXT standard field
+            "params": params or {},
+        }
         self._validate_stop_order(order)
 
-        retry_cfg = retry_config or RetryConfig(max_retries=3)
+        retry_cfg = self._get_retry_config("stop")
 
         self.logger.info(f"📤 Executing stop order: {side} {amount} {symbol} @ stop {stop_price}")
 
@@ -185,3 +190,15 @@ class OrderExecutor:
 
         if order["stopPrice"] <= 0:
             raise ValueError(f"Invalid stopPrice: {order['stopPrice']}")
+
+    def _get_retry_config(self, order_type: str) -> RetryConfig:
+        """Get retry configuration based on order type."""
+        # More aggressive retries for market orders, conservative for limit/stop
+        if order_type == "market":
+            return RetryConfig(max_retries=3, backoff_base=1.0, backoff_factor=2.0, jitter=True)
+        else:
+            return RetryConfig(max_retries=3, backoff_base=1.0, backoff_factor=2.0, jitter=True)
+
+    def _log_execution(self, result: Dict[str, Any], order_type: str) -> None:
+        """Log successful execution."""
+        self.logger.info(f"✅ {order_type} order executed: {result.get('order_id')} | Status: {result.get('status')}")
