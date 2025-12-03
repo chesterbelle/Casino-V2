@@ -62,6 +62,22 @@ def parse_args():
         help="Execution mode (default: testing)",
     )
 
+    parser.add_argument(
+        "--interval",
+        type=str,
+        default="1m",
+        choices=["1m", "5m", "15m", "1h"],
+        help="Candle timeframe (default: 1m)",
+    )
+
+    parser.add_argument(
+        "--player",
+        type=str,
+        default="paroli",
+        choices=["paroli", "fixed"],
+        help="Strategy player to use (default: paroli)",
+    )
+
     parser.add_argument("--wallet", type=str, help="Wallet address (overrides env)")
     parser.add_argument("--key", type=str, help="Private key (overrides env)")
 
@@ -130,7 +146,10 @@ async def main():
     engine.data_feed = data_feed  # Important for sensors
 
     # 5. Initialize Candle Maker (Tick → Candle)
-    CandleMaker(engine, timeframe_seconds=60)
+    # Convert interval to seconds
+    interval_map = {"1m": 60, "5m": 300, "15m": 900, "1h": 3600}
+    timeframe_seconds = interval_map.get(args.interval, 60)
+    CandleMaker(engine, timeframe_seconds=timeframe_seconds)
 
     # 6. Initialize Sensor Manager (Candle → Signal)
     SensorManager(engine)
@@ -139,10 +158,17 @@ async def main():
     aggregator = SignalAggregatorV3(engine)
     tracker = aggregator.tracker  # Get tracker from aggregator
 
-    # 8. Initialize Fixed Player (Aggregated Signal → Decision)
-    from players.fixed import FixedPlayer
+    # 8. Initialize Player (Aggregated Signal → Decision)
+    if args.player == "fixed":
+        from players.fixed import FixedPlayer
 
-    player = FixedPlayer(engine, croupier, fixed_pct=0.01, max_positions=3)
+        logger.info("🎰 Using Fixed Player")
+        player = FixedPlayer(engine, croupier, fixed_pct=0.01, max_positions=1)
+    else:
+        from players.paroli import ParoliV3
+
+        logger.info("🎰 Using Paroli Player")
+        player = ParoliV3(engine, croupier)
 
     # 9. Initialize Order Manager (Decision → Execution)
     order_manager = OrderManager(engine, croupier, player, tracker)

@@ -360,6 +360,9 @@ class ExchangeAdapter:
             order_copy = order.copy()
             order_type = order_copy.pop("type", "market")
 
+            # Remove Croupier-specific parameters that connectors don't accept
+            order_copy.pop("confirm_with_ws", None)
+
             result = await self.connector.create_order(order_type=order_type, **order_copy)
             return result
         except Exception as e:
@@ -462,7 +465,27 @@ class ExchangeAdapter:
         """
         Desconecta el adaptador y su conector subyacente.
         """
-        if hasattr(self.connector, "disconnect"):
-            await self.connector.disconnect()
-        elif hasattr(self.connector, "close"):
+        if hasattr(self.connector, "close"):
             await self.connector.close()
+
+    def price_to_precision(self, symbol: str, price: float) -> str:
+        """
+        Format price to symbol precision.
+        """
+        if hasattr(self.connector, "price_to_precision"):
+            return self.connector.price_to_precision(symbol, price)
+        # Fallback to exchange object if available (CCXT)
+        if self.exchange and hasattr(self.exchange, "price_to_precision"):
+            return self.exchange.price_to_precision(symbol, price)
+        return str(price)
+
+    def amount_to_precision(self, symbol: str, amount: float) -> str:
+        """
+        Format amount to symbol precision.
+        """
+        if hasattr(self.connector, "amount_to_precision"):
+            return self.connector.amount_to_precision(symbol, amount)
+        # Fallback to exchange object if available (CCXT)
+        if self.exchange and hasattr(self.exchange, "amount_to_precision"):
+            return self.exchange.amount_to_precision(symbol, amount)
+        return str(amount)

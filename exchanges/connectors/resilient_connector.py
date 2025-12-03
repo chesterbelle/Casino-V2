@@ -443,7 +443,14 @@ class ResilientConnector(BaseConnector):
             params: Parámetros adicionales
         """
         try:
-            result = await self._connector.cancel_order(order_id, symbol, params)
+            # Check if connector's cancel_order accepts params argument
+            import inspect
+
+            sig = inspect.signature(self._connector.cancel_order)
+            if len(sig.parameters) >= 3:  # order_id, symbol, params
+                result = await self._connector.cancel_order(order_id, symbol, params)
+            else:  # order_id, symbol only
+                result = await self._connector.cancel_order(order_id, symbol)
 
             # Actualizar tracking si es client_order_id
             tracked_order = self._order_tracker.get_order(order_id)

@@ -358,12 +358,17 @@ class PositionTracker:
 
             if exit_reason:
                 # Calcular PnL teórico (para referencia)
-                if position.side == "LONG":
-                    pnl_pct = (exit_price - position.entry_price) / position.entry_price
+                # Protección contra división por cero
+                if position.entry_price == 0:
+                    logger.warning(f"⚠️ Position {position.trade_id} has entry_price=0, skipping PnL calculation")
+                    pnl_pct = 0.0
+                    pnl_value = 0.0
                 else:
-                    pnl_pct = (position.entry_price - exit_price) / position.entry_price
-
-                pnl_value = position.notional * pnl_pct
+                    if position.side == "LONG":
+                        pnl_pct = (exit_price - position.entry_price) / position.entry_price
+                    else:
+                        pnl_pct = (position.entry_price - exit_price) / position.entry_price
+                    pnl_value = position.notional * pnl_pct
 
                 # Marcar como pending (NO confirmar aún)
                 pending_result = {

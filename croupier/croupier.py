@@ -140,6 +140,13 @@ class Croupier:
         # Lock manager for concurrency control
         self.lock_mgr = get_lock_manager()
         self.logger.info("🔒 Lock manager initialized")
+        # LAYER 2 ATOMICITY PROTECTION: Flag for conditional validation
+        self.integrity_check_failed = False
+
+        # Error classifier for smart validation triggering
+        from exchanges.resilience.error_classifier import ErrorClassifier
+
+        self.error_classifier = ErrorClassifier()
         # --------------------------------------------
 
         # Register for order updates if supported
@@ -260,8 +267,10 @@ class Croupier:
             # exchange_pos_map = {p.symbol: p for p in exchange_positions if p.symbol == symbol}
 
             self.logger.info(
-                f"🔍 Reconciliación debug: Exchange orders: {len(exchange_orders)} | Tracker positions: {len(tracker_positions)}"
+                f"🔍 Reconciliación debug: Exchange positions: {len(exchange_positions)} | Exchange orders: {len(exchange_orders)} | Tracker positions: {len(tracker_positions)}"
             )
+            for p in exchange_positions:
+                self.logger.info(f"   Position: {p.symbol} Size: {p.size} Side: {getattr(p, 'side', 'N/A')}")
             for o in exchange_orders:
                 self.logger.info(f"   Order: {o['id']} ({o['type']}) Side: {o['side']} Stop: {o.get('stopPrice')}")
 
@@ -338,7 +347,17 @@ class Croupier:
 
             # === VERIFICACIÓN 3: Posiciones en exchange no registradas ===
             for ex_pos in exchange_positions:
-                if ex_pos.symbol != symbol or ex_pos.size == 0:
+                # Normalize symbols for comparison (handle LTC/USDT:USDT vs LTCUSDT)
+                # LTCUSDT is the native format, LTC/USDT:USDT is the CCXT format
+                # We need to extract just the base symbol for comparison
+                ex_symbol_clean = ex_pos.symbol.replace("/", "").replace(":", "").upper()
+                target_symbol_clean = (
+                    symbol.split("/")[0] + symbol.split("/")[1].split(":")[0]
+                    if "/" in symbol
+                    else symbol.replace(":", "").upper()
+                )
+
+                if ex_symbol_clean != target_symbol_clean or ex_pos.size == 0:
                     continue
 
                 # Buscar si existe en el tracker
@@ -349,12 +368,15 @@ class Croupier:
                     # Cerrar posición no registrada
                     self.logger.info(f"🧹 Cerrando posición no registrada en {symbol}")
                     try:
-                        side = "sell" if ex_pos.size > 0 else "buy"
+                        # One-Way Mode: Close by opening opposite order with reduceOnly
+                        close_side = (
+                            "SHORT" if ex_pos.size > 0 else "LONG"
+                        )  # If ex_pos.size > 0, it's a LONG position, so close with SHORT
                         await self.exchange_adapter.execute_order(
                             {
                                 "symbol": symbol,
                                 "type": "market",
-                                "side": side,
+                                "side": close_side,
                                 "amount": abs(ex_pos.size),
                                 "params": {"reduceOnly": True},
                             }
@@ -367,6 +389,58 @@ class Croupier:
 
         except Exception as e:
             self.logger.error(f"❌ Error durante reconciliación de {symbol}: {e}", exc_info=True)
+
+    async def validate_all_positions_integrity(self):
+        """LAYER 2 ATOMICITY PROTECTION: Valida que todas las posiciones tengan sus órdenes TP/SL activas.
+
+        Este método debe llamarse periódicamente (ej: cada 5 minutos) para detectar y cerrar
+        posiciones que perdieron sus órdenes protectoras por cualquier razón.
+        """
+        try:
+            open_positions = self.position_tracker.open_positions
+            if not open_positions:
+                return
+
+            self.logger.debug(f"🔍 Validating integrity of {len(open_positions)} open positions")
+
+            for position in list(open_positions):  # Use list() to avoid modification during iteration
+                try:
+                    # Fetch all open orders for this symbol
+                    exchange_orders = await self.exchange_adapter.connector.fetch_open_orders(position.symbol)
+                    order_ids = {str(o["id"]) for o in exchange_orders}
+
+                    # Check if TP and SL orders exist
+                    tp_exists = str(position.tp_order_id) in order_ids if position.tp_order_id else False
+                    sl_exists = str(position.sl_order_id) in order_ids if position.sl_order_id else False
+
+                    # If any protective order is missing, close the position
+                    if not tp_exists or not sl_exists:
+                        missing_orders = []
+                        if not tp_exists:
+                            missing_orders.append(f"TP({position.tp_order_id})")
+                        if not sl_exists:
+                            missing_orders.append(f"SL({position.sl_order_id})")
+
+                        self.logger.warning(
+                            f"🚨 PERIODIC VALIDATION | Position {position.trade_id} missing orders: {', '.join(missing_orders)}"
+                        )
+                        self.logger.info(f"🛡️ Closing unprotected position {position.trade_id}")
+
+                        try:
+                            await self.close_position(position.trade_id, skip_confirm_close=False)
+                            self.logger.info(
+                                f"✅ Unprotected position {position.trade_id} closed (PERIODIC_VALIDATION)"
+                            )
+                        except Exception as e:
+                            self.logger.error(f"❌ Failed to close unprotected position {position.trade_id}: {e}")
+
+                except Exception as e:
+                    self.logger.error(f"❌ Error validating position {position.trade_id}: {e}")
+
+            self.logger.debug("✅ Position integrity validation complete")
+
+        except Exception as e:
+            self.logger.error(f"❌ Error during periodic position validation: {e}", exc_info=True)
 
     # ========================================
     # API Pública: Información del Portfolio
@@ -467,6 +541,14 @@ class Croupier:
                 amount = MIN_NOTIONAL / current_price
                 notional_desired = MIN_NOTIONAL
 
+            # Round amount to exchange precision
+            try:
+                if hasattr(self.exchange_adapter, "amount_to_precision"):
+                    astr = self.exchange_adapter.amount_to_precision(symbol, amount)
+                    amount = float(astr)
+            except Exception:
+                pass
+
             self.logger.info(
                 f"📊 Orden convertida | Fracción: {size_fraction:.4f} | "
                 f"Notional: {notional_desired:.2f} USDT | Precio: {current_price:.8f} | "
@@ -481,12 +563,12 @@ class Croupier:
             # 5. Ejecutar orden principal
             main_order_payload = {
                 "symbol": symbol,
-                "side": "buy" if order["side"] == "LONG" else "sell",
+                "side": order["side"],  # Use LONG/SHORT directly
                 "type": "market",
                 "amount": amount,
                 "params": {
-                    # Don't send reduceOnly for entry orders in Hedge Mode
-                    # Binance infers this from positionSide automatically
+                    # For entry orders, reduceOnly should not be true.
+                    # Leverage is handled by the exchange adapter.
                     "leverage": order.get("leverage", 1),
                     **order.get("params", {}),
                 },
@@ -508,6 +590,7 @@ class Croupier:
             # 6. Configurar TP/SL (siempre se configuran)
             tp_order_id = None
             sl_order_id = None
+            entry_price_from_oco = None
             # Instrumentation placeholders for attempt metadata (defined here so
             # outer scope can safely attach them to the result dict). The
             # detailed attempt logs are recorded inside _setup_oco_orders, but
@@ -516,37 +599,44 @@ class Croupier:
             tp_attempts = []
             sl_attempts = []
             try:
-                tp_order_id, sl_order_id = await self._setup_oco_orders(order, main_order)
+                tp_order_id, sl_order_id, entry_price_from_oco = await self._setup_oco_orders(order, main_order)
             except (TPOrderCreationError, SLOrderCreationError, OCOConfigurationError) as e:
                 self.logger.error(f"❌ Error crítico en OCO: {e}")
                 self.logger.error("❌ Cancelando todas las órdenes y cerrando posición por fallo en TP/SL")
 
-                # Cancelar TODAS las órdenes que se hayan creado
-                await self._cancel_all_orders(
-                    symbol=symbol,
-                    main_order_id=main_order.get("id"),
-                    tp_order_id=tp_order_id,
-                    sl_order_id=sl_order_id,
-                )
+                # Intentar cancelar TP/SL si se crearon
+                if tp_order_id:
+                    try:
+                        await self.exchange_adapter.cancel_order(tp_order_id, symbol)
+                        self.logger.info(f"🔄 TP {tp_order_id} cancelado tras fallo en OCO")
+                    except Exception as cancel_err:
+                        self.logger.error(f"❌ Error cancelando TP {tp_order_id}: {cancel_err}")
 
-                # Cerrar la posición abierta para evitar órdenes huérfanas
+                if sl_order_id:
+                    try:
+                        await self.exchange_adapter.cancel_order(sl_order_id, symbol)
+                        self.logger.info(f"🔄 SL {sl_order_id} cancelado tras fallo en OCO")
+                    except Exception as cancel_err:
+                        self.logger.error(f"❌ Error cancelando SL {sl_order_id}: {cancel_err}")
+
+                # Cerrar posición principal
                 try:
-                    close_side = "sell" if order["side"] == "LONG" else "buy"
+                    close_side = "SHORT" if order["side"] == "LONG" else "LONG"
                     await self.exchange_adapter.execute_order(
                         {
                             "symbol": symbol,
-                            "side": close_side,
-                            "amount": main_order.get("amount", 0),
                             "type": "market",
+                            "side": close_side,
+                            "amount": amount,
                             "params": {"reduceOnly": True},
                         }
                     )
-                    self.logger.info("✅ Posición cerrada por fallo en OCO")
-                except Exception as close_error:
-                    self.logger.error(f"❌ Failed to close position after OCO error: {close_error}")
+                    self.logger.info("🔄 Posición principal cerrada tras fallo en OCO")
+                except Exception as close_err:
+                    self.logger.error(f"❌ Error cerrando posición principal: {close_err}")
 
                 return {
-                    "status": "rejected",
+                    "status": "error",
                     "reason": f"OCO setup failed: {str(e)}",
                     "main_order_id": None,
                     "tp_order_id": None,
@@ -566,7 +656,7 @@ class Croupier:
 
                 # Cerrar la posición abierta para evitar órdenes huérfanas
                 try:
-                    close_side = "sell" if order["side"] == "LONG" else "buy"
+                    close_side = "SHORT" if order["side"] == "LONG" else "LONG"
                     await self.exchange_adapter.execute_order(
                         {
                             "symbol": symbol,
@@ -578,7 +668,7 @@ class Croupier:
                     )
                     self.logger.info("✅ Posición cerrada por error inesperado en OCO")
                 except Exception as close_error:
-                    self.logger.error(f"❌ Failed to close position after unexpected error: {close_error}")
+                    self.logger.error(f"❌ Failed to close position after reconciliation error: {close_error}")
 
                 return {
                     "status": "error",
@@ -589,9 +679,18 @@ class Croupier:
                 }
 
             # 7. Registrar posición
+            # Use entry_price from OCO setup (which fetches the order to get avgPrice)
+            # Fallback to extracting from main_order if OCO didn't return it
+            entry_price = (
+                entry_price_from_oco
+                or main_order.get("avgPrice")
+                or main_order.get("average")
+                or main_order.get("price", 0.0)
+            )
+
             self.position_tracker.open_position(
                 order=order,
-                entry_price=main_order.get("price", 0.0),
+                entry_price=entry_price,
                 entry_timestamp=main_order.get("timestamp", ""),
                 available_equity=self.get_equity(),
                 main_order_id=main_order["id"],
@@ -605,10 +704,10 @@ class Croupier:
 
             # 9. Validar status de la orden principal
             main_status = main_order.get("status")
-            if main_status not in ["open", "opened", "closed"]:
+            if main_status not in ["open", "opened", "closed", "new"]:
                 error_msg = (
                     f"❌ Status inválido en orden principal: '{main_status}'. "
-                    f"Se esperaba 'open', 'opened' o 'closed'. "
+                    f"Se esperaba 'open', 'opened', 'closed' o 'new'. "
                     f"Orden: {main_order}"
                 )
                 self.logger.error(error_msg)
@@ -715,13 +814,13 @@ class Croupier:
                             # compute side and amount from dict or object
                             try:
                                 if isinstance(pos, dict):
-                                    side = "sell" if (pos.get("side") or "").lower() == "long" else "buy"
+                                    side = "SHORT" if (pos.get("side") or "").lower() == "long" else "LONG"
                                     amount = abs(pos.get("contracts", 0) or pos.get("amount", 0))
                                 else:
-                                    side = "sell" if (getattr(pos, "side", "")).upper() == "LONG" else "buy"
+                                    side = "SHORT" if (getattr(pos, "side", "")).upper() == "LONG" else "LONG"
                                     amount = abs(getattr(pos, "contracts", None) or getattr(pos, "size", 0))
                             except Exception:
-                                side = "sell"
+                                side = "SHORT"  # Default to short to close long positions
                                 amount = 0
 
                             await self.exchange_adapter.execute_order(
@@ -776,8 +875,8 @@ class Croupier:
             raise ValueError(f"No se encontró una posición abierta con el trade_id: {trade_id}")
 
         # Cancel TP/SL first to ensure ReduceOnly order isn't rejected due to locked quantity
-        await self._cancel_sibling_order(position_to_close.tp_order_id, "TP", position_to_close.symbol)
-        await self._cancel_sibling_order(position_to_close.sl_order_id, "SL", position_to_close.symbol)
+        await self._cancel_sibling_order(position_to_close.tp_order_id, "TP", position_to_close.symbol, trade_id)
+        await self._cancel_sibling_order(position_to_close.sl_order_id, "SL", position_to_close.symbol, trade_id)
 
         close_side = "sell" if position_to_close.side == "LONG" else "buy"
 
@@ -801,12 +900,27 @@ class Croupier:
         except Exception:
             amount = 0.0
 
+        # Determine amount to close
+        if amount is None:
+            amount = abs(position_to_close.size)
+        else:
+            amount = abs(amount)
+
+        # Skip if position is already closed
+        if amount <= 0:
+            self.logger.info(f"⏭️ Position {trade_id} already closed (size: {amount})")
+            return {"status": "skipped", "reason": "Position already closed"}
+
+        # Ensure minimum notional
+        if amount < 0.001:
+            amount = 0.0
+
         close_order = {
             "symbol": position_to_close.symbol,
             "type": "market",
             "side": close_side,
             "amount": amount,
-            "params": {"reduceOnly": True},
+            "params": {},  # Don't send reduceOnly in Hedge Mode - Binance infers from positionSide
         }
 
         try:
@@ -895,12 +1009,12 @@ class Croupier:
         # El adapter se encarga de manejar TP/SL según el exchange específico
         result = await self.exchange_adapter.execute_order(order)
 
-        # Accept both limit orders (open/opened) and market orders (closed)
+        # Accept both limit orders (open/opened) and market orders (closed/new)
         status = result.get("status")
-        if status not in ["open", "opened", "closed"]:
+        if status not in ["open", "opened", "closed", "new"]:
             error_msg = (
                 f"❌ Status de orden inválido: '{status}'. "
-                f"Se esperaba 'open', 'opened' o 'closed'. "
+                f"Se esperaba 'open', 'opened', 'closed' o 'new'. "
                 f"Orden completa: {result}"
             )
             self.logger.error(error_msg)
@@ -989,14 +1103,22 @@ class Croupier:
             # Como último recurso, intentar fetch_order para obtener average/avgPrice
             if (not entry_price or entry_price <= 0) and main_result.get("id"):
                 try:
+                    self.logger.info(f"🔍 Fetching order {main_result.get('id')} to get execution price...")
                     fetched_order = await self.exchange_adapter.connector.fetch_order(
                         main_result.get("id"), order.get("symbol")
                     )
-                    entry_price = fetched_order.get("average") or fetched_order.get("avgPrice") or entry_price
+                    self.logger.info(f"📋 Fetched order data: {fetched_order}")
+                    entry_price = (
+                        fetched_order.get("average")
+                        or fetched_order.get("avgPrice")
+                        or fetched_order.get("price")
+                        or entry_price
+                    )
+                    self.logger.info(f"💰 Extracted entry_price: {entry_price}")
                     # mark that we used rest fallback for instrumentation
                     main_result["used_rest_fallback"] = True
                 except Exception as e:
-                    self.logger.debug(f"⚠️ fetch_order fallback failed: {e}")
+                    self.logger.warning(f"⚠️ fetch_order fallback failed: {e}", exc_info=True)
         except Exception as e:
             self.logger.warning(f"⚠️ Error obtaining execution price from main_result: {e}")
 
@@ -1032,6 +1154,11 @@ class Croupier:
         # Rounding: intentar ajustar TP/SL al tick size/precision del exchange antes de validar
         def _round_price_to_exchange(sym: str, price: float) -> float:
             try:
+                if hasattr(self.exchange_adapter, "price_to_precision"):
+                    pstr = self.exchange_adapter.price_to_precision(sym, price)
+                    return float(pstr)
+
+                # Legacy fallback
                 exch = getattr(self.exchange_adapter, "exchange", None)
                 if exch and hasattr(exch, "price_to_precision"):
                     # price_to_precision devuelve string formateada
@@ -1126,13 +1253,16 @@ class Croupier:
             raise OCOConfigurationError("SL price is zero or invalid")
 
         # Create TP order (take profit market)
-        # Note: In Hedge Mode, don't send reduceOnly - Binance infers from positionSide
+        # One-Way Mode: reduceOnly=True, side=opposite
         tp_payload = {
             "symbol": symbol,
             "side": close_side,
             "amount": amount,
             "type": "take_profit_market",
-            "params": {"stopPrice": tp_price},
+            "params": {
+                "stopPrice": tp_price,
+                "reduceOnly": True,
+            },
         }
 
         # Validate that TP is sufficiently far from current market to avoid
@@ -1168,13 +1298,16 @@ class Croupier:
             self.logger.warning(f"⚠️ Could not validate TP distance: {e}")
 
         # Create SL order (stop market)
-        # Note: In Hedge Mode, don't send reduceOnly - Binance infers from positionSide
+        # One-Way Mode: reduceOnly=True, side=opposite
         sl_payload = {
             "symbol": symbol,
             "side": close_side,
             "amount": amount,
             "type": "stop_market",
-            "params": {"stopPrice": sl_price},
+            "params": {
+                "stopPrice": sl_price,
+                "reduceOnly": True,
+            },
         }
 
         # Validate SL proximity as well (mirror of TP validation) before creation
@@ -1289,7 +1422,7 @@ class Croupier:
         except Exception:
             pass
 
-        return tp_order_id, sl_order_id
+        return tp_order_id, sl_order_id, entry_price  # Also return entry_price for position tracking
 
     async def _has_open_position(self, symbol: str) -> bool:
         """
@@ -1414,14 +1547,26 @@ class Croupier:
     def _calculate_position_pnl(self, position, exit_price: float, fee: float) -> float:
         return calculate_position_pnl(position, exit_price, fee)
 
-    async def _cancel_sibling_order(self, order_id: Optional[str], order_type: str, symbol: str):
-        """Cancela una orden hermana (TP o SL) si existe y está activa."""
+    async def _cancel_sibling_order(
+        self, order_id: Optional[str], order_type: str, symbol: str, trade_id: Optional[str] = None
+    ):
+        """Cancela una orden hermana (TP o SL) si existe y está activa.
+
+        Args:
+            order_id: ID de la orden a cancelar
+            order_type: Tipo de orden ("TP", "SL", "sibling", etc.)
+            symbol: Símbolo de la orden
+            trade_id: ID del trade asociado (opcional). Si se provee y la orden se cancela,
+                     verificará si la posición quedó sin protección y la cerrará.
+        """
         if not order_id:
             return
 
+        order_was_cancelled = False
+
         try:
             # PASO 1: Verificar si la orden aún existe y está activa
-            should_cancel = True
+            should_cancel = False  # Default to NOT cancel if we can't verify
             try:
                 order_status = await self.exchange_adapter.fetch_order(order_id, symbol)
                 if order_status.get("status") in ["closed", "canceled", "expired"]:
@@ -1429,18 +1574,28 @@ class Croupier:
                         f"ℹ️ Orden {order_type} {order_id} ya está {order_status.get('status')}, no necesita cancelación"
                     )
                     should_cancel = False
+                elif order_status.get("status") in ["open", "new"]:
+                    # Order is active, safe to cancel
+                    should_cancel = True
+                else:
+                    self.logger.warning(
+                        f"⚠️ Orden {order_type} {order_id} tiene estado desconocido: {order_status.get('status')}"
+                    )
+                    should_cancel = False
             except Exception as e:
-                # Si no podemos obtener el estado, intentamos cancelar de todos modos por seguridad
+                # Si no podemos obtener el estado, NO cancelar (podría ser un timeout temporal)
+                # Solo registramos el error y dejamos la orden intacta
                 self.logger.warning(
-                    f"⚠️ No se pudo verificar estado de orden {order_type} {order_id} ({e}). Intentando cancelar por seguridad..."
+                    f"⚠️ No se pudo verificar estado de orden {order_type} {order_id} ({e}). NO cancelando por seguridad."
                 )
-                should_cancel = True
+                should_cancel = False
 
             # PASO 2: Proceder a cancelar si es necesario
             if should_cancel:
                 try:
                     await self.exchange_adapter.cancel_order(order_id, symbol)
                     self.logger.info(f"✅ Orden {order_type} cancelada exitosamente: {order_id}")
+                    order_was_cancelled = True
                 except Exception as e:
                     # Si falla la cancelación, logueamos pero no lanzamos error (puede que ya no exista)
                     self.logger.warning(
@@ -1450,6 +1605,107 @@ class Croupier:
         except Exception as e:
             # Este bloque solo debería ejecutarse si hay un error real inesperado
             self.logger.error(f"❌ Error inesperado cancelando orden {order_type} {order_id}: {e}")
+
+        # PASO 3: ATOMICITY PROTECTION - Si se canceló una orden protectora, verificar integridad de la posición
+        if order_was_cancelled and trade_id:
+            had_errors = await self._check_position_integrity_after_cancellation(trade_id, order_type, symbol)
+            if had_errors:
+                # Set flag to trigger conditional validation
+                self.integrity_check_failed = True
+                self.logger.warning(f"⚠️ Integrity check had errors for {trade_id}, enabling conditional validation")
+
+    async def _check_position_integrity_after_cancellation(
+        self, trade_id: str, cancelled_order_type: str, symbol: str
+    ) -> bool:
+        """Verifica la integridad de una posición después de cancelar una orden protectora.
+
+        Si ambas órdenes TP/SL están canceladas o faltantes, cierra la posición inmediatamente
+        para mantener la atomicidad del sistema de 3 órdenes.
+
+        Args:
+            trade_id: ID del trade
+            cancelled_order_type: Tipo de orden que se acaba de cancelar ("TP", "SL", etc.)
+            symbol: Símbolo de la posición
+
+        Returns:
+            True si hubo errores al verificar/cerrar la posición, False si todo OK
+        """
+        try:
+            # Buscar la posición en el tracker
+            position = self.position_tracker.get_position(trade_id)
+            if not position:
+                self.logger.debug(f"Position {trade_id} not found in tracker, skipping integrity check")
+                return False
+
+            # Verificar si las órdenes TP/SL existen en el exchange
+            tp_exists = False
+            sl_exists = False
+            verification_error = False
+
+            if position.tp_order_id:
+                try:
+                    tp_order = await self._fetch_order_safely(position.tp_order_id, symbol)
+                    tp_exists = tp_order is not None and tp_order.get("status") in ["open", "new"]
+                except Exception as e:
+                    self.logger.warning(f"⚠️ Error verifying TP order {position.tp_order_id}: {e}")
+                    # Classify error to determine if validation is needed
+                    classification = self.error_classifier.classify(e)
+                    if classification.is_retriable:
+                        self.logger.info(
+                            f"🔄 Retriable error ({classification.category.value}), will trigger validation"
+                        )
+                        verification_error = True
+                    else:
+                        self.logger.debug(
+                            f"❌ Non-retriable error ({classification.category.value}), skipping validation trigger"
+                        )
+
+            if position.sl_order_id:
+                try:
+                    sl_order = await self._fetch_order_safely(position.sl_order_id, symbol)
+                    sl_exists = sl_order is not None and sl_order.get("status") in ["open", "new"]
+                except Exception as e:
+                    self.logger.warning(f"⚠️ Error verifying SL order {position.sl_order_id}: {e}")
+                    # Classify error to determine if validation is needed
+                    classification = self.error_classifier.classify(e)
+                    if classification.is_retriable:
+                        self.logger.info(
+                            f"🔄 Retriable error ({classification.category.value}), will trigger validation"
+                        )
+                        verification_error = True
+                    else:
+                        self.logger.debug(
+                            f"❌ Non-retriable error ({classification.category.value}), skipping validation trigger"
+                        )
+
+            # Si falta alguna orden protectora, cerrar la posición
+            if not tp_exists or not sl_exists:
+                missing_orders = []
+                if not tp_exists:
+                    missing_orders.append("TP")
+                if not sl_exists:
+                    missing_orders.append("SL")
+
+                self.logger.warning(
+                    f"🚨 ATOMICITY VIOLATION | Position {trade_id} missing protective orders: {', '.join(missing_orders)}"
+                )
+                self.logger.info(f"🛡️ Closing position {trade_id} to maintain atomicity")
+
+                # Cerrar la posición inmediatamente
+                try:
+                    await self.close_position(trade_id, skip_confirm_close=False)
+                    self.logger.info(f"✅ Position {trade_id} closed successfully (PROTECTIVE_CLOSE)")
+                    return verification_error  # Return True only if there were verification errors
+                except Exception as e:
+                    self.logger.error(f"❌ Failed to close unprotected position {trade_id}: {e}")
+                    return True  # Error closing position
+            else:
+                self.logger.debug(f"✅ Position {trade_id} integrity OK (both TP and SL exist)")
+                return verification_error
+
+        except Exception as e:
+            self.logger.error(f"❌ Error checking position integrity for {trade_id}: {e}", exc_info=True)
+            return True  # Error during check
 
     async def monitor_positions(self) -> List[Dict[str, Any]]:
         """
@@ -1535,12 +1791,12 @@ class Croupier:
 
         if sibling_id:
             self.logger.info(f"🔄 Cancelling sibling order ({reason} counterpart): {sibling_id}")
-            await self._cancel_sibling_order(sibling_id, "sibling", position.symbol)
+            await self._cancel_sibling_order(sibling_id, "sibling", position.symbol, position.trade_id)
 
         # Cancelar el main_order_id si todavía existe y está abierta
         if position.main_order_id:
             self.logger.info(f"🔄 Cancelling main_order_id: {position.main_order_id}")
-            await self._cancel_sibling_order(position.main_order_id, "main_order", position.symbol)
+            await self._cancel_sibling_order(position.main_order_id, "main_order", position.symbol, position.trade_id)
 
         # Calcular PnL y confirmar el cierre
         exit_price = executed_order.get("price", position.entry_price)

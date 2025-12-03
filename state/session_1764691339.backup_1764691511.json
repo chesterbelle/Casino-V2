@@ -1,0 +1,31 @@
+{
+  "session_id": "session_1764691339",
+  "start_time": 1764691339.6872518,
+  "last_update": 1764691511.0088592,
+  "initial_balance": 3484.28200135,
+  "current_balance": 3484.28200135,
+  "available_balance": 3484.28200135,
+  "allocated_balance": 0.0,
+  "open_positions": [
+    {
+      "trade_id": "V3_1764691382791",
+      "symbol": "LTCUSDT",
+      "side": "SHORT",
+      "entry_price": 0.0,
+      "entry_timestamp": 1764691383130,
+      "margin_used": 34.8428200135,
+      "notional": 34.8428200135,
+      "leverage": 1.0,
+      "tp_level": 0.0,
+      "sl_level": 0.0,
+      "main_order_id": "875604194",
+      "tp_order_id": "875604197",
+      "sl_order_id": "875604198",
+      "bars_held": 1,
+      "funding_accrued": 0.0,
+      "contributors": []
+    }
+  ],
+  "last_reconciliation": null,
+  "version": "2.0.0"
+}

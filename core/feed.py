@@ -75,7 +75,7 @@ class StreamManager:
     async def _watch_ticker_loop(self, symbol: str):
         """Continuous loop to watch ticker with error handling and circuit breaker."""
         logger.info(f"🔍 Starting ticker loop for {symbol}")
-        
+
         try:
             from core.error_handling import RetryConfig, get_error_handler
 
@@ -200,7 +200,7 @@ class StreamManager:
             timestamp=ticker["timestamp"] / 1000.0,
             symbol=ticker["symbol"],
             price=ticker["last"],
-            volume=ticker.get("baseVolume", 0.0),
+            volume=ticker.get("volume", 0.0),
         )
         # logger.info(f"debug: dispatching tick {event.price}")
         await self.engine.dispatch(event)

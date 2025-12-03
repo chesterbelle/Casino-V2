@@ -28,8 +28,11 @@ class OrderManager:
         self.active = False
         self.pending_trades = {}  # trade_id -> (decision, sensor_id)
         self.processed_decisions = set()  # Track processed decision IDs to prevent duplicates
-        self.candle_count = 0  # Counter for periodic reconciliation
-        self.reconciliation_interval = 10  # Run reconciliation every 10 candles (avoid IP ban)
+
+        # LAYER 2 ATOMICITY PROTECTION: Conditional validation (only if Layer 1 fails)
+        self.validation_needed = False  # Flag set when cancellation errors occur
+        self.validation_candle_count = 0
+        self.validation_interval = 5  # Run validation every 5 candles if needed
 
         # Subscribe to DECISION events (will come from Paroli)
         self.engine.subscribe(EventType.SYSTEM, self.on_decision)  # Using SYSTEM for now
@@ -167,31 +170,30 @@ class OrderManager:
             del self.pending_trades[trade_id]
 
     async def on_candle(self, event):
-        """Handle new candle to check for position exits."""
+        """Handle new candle to check for potential exits."""
         if not self.active:
             return
 
-        # Increment candle counter and run periodic reconciliation
-        self.candle_count += 1
-        if self.candle_count >= self.reconciliation_interval:
-            self.candle_count = 0
-            logger.info(f"🔄 Running periodic reconciliation (every {self.reconciliation_interval} candles)")
-            from core.error_handling import RetryConfig, get_error_handler
+        # LAYER 2 ATOMICITY PROTECTION: Conditional validation (only if errors occurred)
+        # Check if Croupier flagged integrity issues
+        if hasattr(self.croupier, "integrity_check_failed") and self.croupier.integrity_check_failed:
+            self.validation_needed = True
+            self.croupier.integrity_check_failed = False  # Reset Croupier flag
+            logger.info("🚨 Integrity check failure detected, enabling conditional validation")
 
-            error_handler = get_error_handler()
-            try:
-                await error_handler.execute(
-                    self.croupier.reconcile_positions,
-                    event.symbol,
-                    retry_config=RetryConfig(
-                        max_retries=2,
-                        backoff_base=5.0,
-                        backoff_max=30.0,
-                    ),
-                    context="reconcile_positions",
-                )
-            except Exception as e:
-                logger.error(f"❌ Reconciliation failed after retries: {e}", exc_info=True)
+        if self.validation_needed:
+            self.validation_candle_count += 1
+            if self.validation_candle_count >= self.validation_interval:
+                self.validation_candle_count = 0
+                logger.info("🔍 Running conditional position integrity validation (triggered by previous errors)")
+                try:
+                    await self.croupier.validate_all_positions_integrity()
+                    # Reset flag if validation succeeds
+                    self.validation_needed = False
+                    logger.info("✅ Validation complete, disabling periodic checks")
+                except Exception as e:
+                    logger.error(f"❌ Position validation failed: {e}", exc_info=True)
+                    # Keep flag set to retry
 
         # Convert event to dict for Croupier
         candle_dict = {
@@ -205,7 +207,7 @@ class OrderManager:
             "timeframe": "1m",  # Assuming 1m for now
         }
 
-        # Check for potential exits (TP/SL touched)
+        # Check for potential exits (TP/SL touched via candle analysis)
         potential_exits = self.croupier.position_tracker.check_and_close_positions(candle_dict)
 
         # Determine execution mode - CRITICAL for preventing simulated closures
@@ -264,12 +266,17 @@ class OrderManager:
                 if not position:
                     continue
 
-                if position.side == "LONG":
-                    pnl_pct = (exit_price - position.entry_price) / position.entry_price
+                # Protección contra división por cero
+                if position.entry_price == 0:
+                    logger.warning(f"⚠️ Position {trade_id} has entry_price=0, using exit_price as fallback")
+                    pnl_pct = 0.0
+                    pnl = 0.0
                 else:
-                    pnl_pct = (position.entry_price - exit_price) / position.entry_price
-
-                pnl = position.notional * pnl_pct
+                    if position.side == "LONG":
+                        pnl_pct = (exit_price - position.entry_price) / position.entry_price
+                    else:
+                        pnl_pct = (position.entry_price - exit_price) / position.entry_price
+                    pnl = position.notional * pnl_pct
 
                 # Calculate fee (0.06% taker fee on notional)
                 fee = position.notional * 0.0006

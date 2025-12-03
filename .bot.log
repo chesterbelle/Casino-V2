@@ -1,0 +1,136 @@
+🚀 Starting Casino-V3 | Exchange: binance | Mode: demo
+📊 Starting metrics server...
+📊 Metrics server started on http://0.0.0.0:8000/metrics
+🕒 Rate limiter initialized for Binance
+Stateless CCXTAdapter initialized | Symbol: LTC/USDT:USDT | Timeframe: 1m
+⚠️ Connector does not expose 'exchange' attribute (Virtual/Simulated?).
+🔌 Connecting to Binance Native (demo)...
+✅ Server Time: 1764737133083 | Offset: -111ms
+✅ Markets loaded: 647
+✅ Account is in One-Way Mode
+🔌 Starting Native WebSocket...
+✅ Listen key created: IfwvkakVW1SeX2zmmJmG...
+🔌 Connecting to User Data Stream...
+✅ User Data Stream connected
+💰 Initial Balance: 3480.81 USDT
+PositionTracker inicializado | Max positions: 10
+ExchangeStateSync inicializado
+🔒 Lock manager initialized
+✅ ErrorClassifier initialized
+✅ Order update callback registered
+✅ Registered for WebSocket order updates
+🎯 Croupier initialized as State Owner | Balance: $3,480.81
+✅ OCO Manual enabled in PositionTracker
+✅ SensorManager loaded 27 sensors for timeframe 1m.
+✅ Loaded stats for 25 sensors from state/sensor_stats.json
+✅ SensorTracker initialized | Sensors: 25
+✅ SignalAggregator initialized with intelligent scoring
+🎰 Using Paroli Player
+📂 Loaded state: step=0, unit=34.8162201679
+✅ ParoliV3 initialized (step=0, unit=34.8162201679, max_positions=1)
+🔄 Attempting state recovery...
+⚠️ No state found to recover
+⚠️ No state found to recover
+📝 Starting fresh session
+📝 Initialized new state: session_1764737136
+🚀 State manager started (auto-save every 5s)
+🚀 State manager started
+💰 Session Initial Balance: 3480.81 USDT
+🚀 OrderManager started
+🔄 Startup Reconciliation for LTC/USDT:USDT...
+🔍 Iniciando reconciliación para LTC/USDT:USDT
+🔍 Reconciliación debug: Exchange positions: 1 | Exchange orders: 2 | Tracker positions: 0
+   Position: LTCUSDT Size: 0.413 Side: LONG
+   Order: 875671123 (stop_market) Side: sell Stop: None
+   Order: 875671122 (take_profit_market) Side: sell Stop: None
+🔍 Tracked Order IDs: set()
+⚠️ Orden huérfana detectada: 875671123 (STOP_MARKET)
+✅ Orden huérfana 875671123 cancelada
+⚠️ Orden huérfana detectada: 875671122 (TAKE_PROFIT_MARKET)
+✅ Orden huérfana 875671122 cancelada
+⚠️ Posición en exchange no registrada: LTC/USDT:USDT (size: 0.413)
+🧹 Cerrando posición no registrada en LTC/USDT:USDT
+📋 Sending Order: {'symbol': 'LTCUSDT', 'side': 'SELL', 'type': 'MARKET', 'quantity': 0.413, 'reduceOnly': 'true', 'timestamp': 1764737137745, 'recvWindow': 20000}
+✅ Posición no registrada cerrada
+✅ Reconciliación completada para LTC/USDT:USDT
+🚀 Starting Casino-V3 Engine...
+🔌 Connecting Data Feed...
+🔌 Connecting to Binance Native (demo)...
+✅ Server Time: 1764737138214 | Offset: -106ms
+✅ Markets loaded: 647
+✅ Account is in One-Way Mode
+🔌 Starting Native WebSocket...
+✅ Listen key created: IfwvkakVW1SeX2zmmJmG...
+🔌 Connecting to User Data Stream...
+❌ Error processing User Data Stream message: object NoneType can't be used in 'await' expression
+❌ Error processing User Data Stream message: object NoneType can't be used in 'await' expression
+❌ Error processing User Data Stream message: object NoneType can't be used in 'await' expression
+❌ Error processing User Data Stream message: object NoneType can't be used in 'await' expression
+✅ User Data Stream connected
+✅ Engine running. Waiting for events...
+📡 Subscribing to LTC/USDT:USDT...
+📡 Subscribing to ticker: LTC/USDT:USDT
+✅ Casino-V3 Running | Press Ctrl+C to stop
+🔍 Starting ticker loop for LTC/USDT:USDT
+✅ ErrorClassifier initialized
+📡 Subscribing to ticker for LTCUSDT
+✅ WS Subscription Response: {'result': None, 'id': 1}
+⚡ Tick: LTCUSDT 84.47
+🕯️ Candle Closed: 84.46 | Vol: 13161989.139999997
+DEBUG: Processing candle 0
+🧹 Cleaning up resources...
+🛑 Stopping Engine...
+🔌 Disconnecting Data Feed...
+📡 Ticker stream for LTC/USDT:USDT cancelled
+CLOSE frame received, closing websocket connection
+⚠️ WebSocket Closed
+👋 Engine stopped.
+🛑 OrderManager stopped
+💾 Syncing final state...
+🧹 Ejecutando limpieza robusta para LTC/USDT:USDT...
+🔍 Reconciliación debug: Exchange orders: 0 | Tracker positions: 0
+✅ Limpieza para LTC/USDT:USDT completada.
+🛑 Stopping state manager...
+🛑 State manager stopped
+🛑 State manager stopped
+📊 Stopping metrics server...
+🛑 Metrics server stopped
+📊 Generating Session Report...
+💰 Fetching final balance from exchange...
+
+========================================
+📊 SESSION REPORT - LTC/USDT:USDT
+========================================
+   Trades Total          : 0
+   Wins / Losses         : 0 / 0
+   WinRate               : 0.00%
+   Comisiones (Est)      : 0.00
+   Balance Inicial       : 3480.81
+   Balance Final (Real)  : 3480.83
+   PnL Total             : 0.02 (0.00%)
+========================================
+
+Traceback (most recent call last):
+  File "/usr/lib/python3.13/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "uvloop/loop.pyx", line 1518, in uvloop.loop.Loop.run_until_complete
+  File "/home/chesterbelle/Casino-V2/main.py", line 238, in main
+    await asyncio.sleep(1)
+  File "/usr/lib/python3.13/asyncio/tasks.py", line 718, in sleep
+    return await future
+           ^^^^^^^^^^^^
+asyncio.exceptions.CancelledError
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/chesterbelle/Casino-V2/main.py", line 330, in <module>
+    asyncio.run(main())
+    ~~~~~~~~~~~^^^^^^^^
+  File "/usr/lib/python3.13/asyncio/runners.py", line 195, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.13/asyncio/runners.py", line 123, in run
+    raise KeyboardInterrupt()
+KeyboardInterrupt

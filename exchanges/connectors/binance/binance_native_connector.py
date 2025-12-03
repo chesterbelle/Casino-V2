@@ -7,11 +7,13 @@ to provide robust WebSocket handling and native OCO support.
 """
 
 import asyncio
+import json
 import logging
 import os
 import time
 from typing import Any, Dict, List, Optional
 
+import websockets
 from binance.error import ClientError
 from binance.um_futures import UMFutures
 from binance.websocket.um_futures.websocket_client import UMFuturesWebsocketClient
@@ -77,6 +79,12 @@ class BinanceNativeConnector(BaseConnector):
         self._ticker_queues = {}  # symbol -> asyncio.Queue
         self._time_offset = 0
 
+        # User Data Stream for order updates
+        self._listen_key = None
+        self._user_data_ws = None
+        self._order_update_callback = None
+        self._keepalive_task = None
+
     @property
     def exchange_name(self) -> str:
         return "binance_native"
@@ -84,6 +92,11 @@ class BinanceNativeConnector(BaseConnector):
     @property
     def is_connected(self) -> bool:
         return self._connected
+
+    @property
+    def mode(self) -> str:
+        """Return the current mode (live/demo/testing)."""
+        return self._mode
 
     async def connect(self) -> None:
         """Connect to Binance Futures."""
@@ -101,9 +114,26 @@ class BinanceNativeConnector(BaseConnector):
             self._process_markets(exchange_info)
             self.logger.info(f"✅ Markets loaded: {len(self._markets)}")
 
-            # 3. Start WebSocket if enabled
+            # 3. Force One-Way Mode
+            try:
+                # Check current mode
+                position_mode = self.client.get_position_mode()
+                if position_mode["dualSidePosition"]:
+                    self.logger.info("⚠️ Account is in Hedge Mode. Switching to One-Way Mode...")
+                    self.client.change_position_mode(dualSidePosition="false")
+                    self.logger.info("✅ Switched to One-Way Mode")
+                else:
+                    self.logger.info("✅ Account is in One-Way Mode")
+            except Exception as e:
+                self.logger.warning(f"⚠️ Failed to check/switch position mode: {e}")
+
+            # 4. Start WebSocket if enabled
             if self._enable_websocket:
                 self._start_websocket()
+
+            # 5. Start User Data Stream for order updates
+            if self._api_key and self._secret:
+                await self._start_user_data_stream()
 
             self._connected = True
 
@@ -116,9 +146,124 @@ class BinanceNativeConnector(BaseConnector):
 
     async def close(self) -> None:
         """Close connections."""
+        # Stop User Data Stream keepalive task
+        if self._keepalive_task:
+            self._keepalive_task.cancel()
+            try:
+                await self._keepalive_task
+            except asyncio.CancelledError:
+                pass
+
+        # Close User Data Stream WebSocket
+        if self._user_data_ws:
+            try:
+                await self._user_data_ws.close()
+            except Exception as e:
+                self.logger.warning(f"⚠️ Error closing user data stream: {e}")
+
+        # Close market data WebSocket
         if self.ws_client:
             self.ws_client.stop()
+
         self._connected = False
+
+    # ========================
+    # User Data Stream Methods
+    # ========================
+
+    async def _create_listen_key(self) -> str:
+        """Create a listen key for User Data Stream."""
+        try:
+            response = self.client.new_listen_key()
+            listen_key = response.get("listenKey")
+            self.logger.info(f"✅ Listen key created: {listen_key[:20]}...")
+            return listen_key
+        except Exception as e:
+            self.logger.error(f"❌ Failed to create listen key: {e}")
+            raise
+
+    async def _keepalive_listen_key(self):
+        """Keep listen key alive by refreshing every 30 minutes."""
+        while True:
+            try:
+                await asyncio.sleep(1800)  # 30 minutes
+                if self._listen_key:
+                    self.client.renew_listen_key()
+                    self.logger.debug("🔄 Listen key renewed")
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                self.logger.error(f"❌ Error renewing listen key: {e}")
+
+    async def _start_user_data_stream(self):
+        """Start User Data Stream WebSocket for order updates."""
+        try:
+            # Create listen key
+            self._listen_key = await self._create_listen_key()
+
+            # Build WebSocket URL
+            ws_url = f"wss://fstream.binance.com/ws/{self._listen_key}"
+            if self._mode == "demo":
+                ws_url = f"wss://stream.binancefuture.com/ws/{self._listen_key}"
+
+            self.logger.info("🔌 Connecting to User Data Stream...")
+
+            # Start WebSocket connection
+            self._user_data_ws = await websockets.connect(ws_url)
+
+            # Start keepalive task
+            self._keepalive_task = asyncio.create_task(self._keepalive_listen_key())
+
+            # Start listening task
+            asyncio.create_task(self._listen_user_data_stream())
+
+            self.logger.info("✅ User Data Stream connected")
+
+        except Exception as e:
+            self.logger.error(f"❌ Failed to start User Data Stream: {e}")
+            raise
+
+    async def _listen_user_data_stream(self):
+        """Listen to User Data Stream and process events."""
+        try:
+            async for message in self._user_data_ws:
+                try:
+                    data = json.loads(message)
+                    event_type = data.get("e")
+
+                    if event_type == "ORDER_TRADE_UPDATE":
+                        await self._handle_order_update(data)
+                    elif event_type == "ACCOUNT_UPDATE":
+                        # Could handle balance/position updates here
+                        pass
+
+                except json.JSONDecodeError:
+                    self.logger.warning(f"⚠️ Invalid JSON from User Data Stream: {message}")
+                except Exception as e:
+                    self.logger.error(f"❌ Error processing User Data Stream message: {e}")
+
+        except websockets.exceptions.ConnectionClosed:
+            self.logger.warning("⚠️ User Data Stream connection closed, attempting reconnect...")
+            # Could implement reconnection logic here
+        except Exception as e:
+            self.logger.error(f"❌ Error in User Data Stream listener: {e}")
+
+    def _normalize_order_status(self, binance_status: str) -> str:
+        """Convert Binance order status to CCXT-like status."""
+        status_map = {
+            "NEW": "open",
+            "PARTIALLY_FILLED": "open",
+            "FILLED": "closed",
+            "CANCELED": "canceled",
+            "EXPIRED": "expired",
+            "REJECTED": "rejected",
+        }
+        return status_map.get(binance_status, binance_status.lower())
+
+    def set_order_update_callback(self, callback):
+        """Register a callback for order updates."""
+        self._order_update_callback = callback
+        self.logger.info("✅ Order update callback registered")
 
     def _get_timestamp(self) -> int:
         """Get current timestamp with offset."""
@@ -148,6 +293,28 @@ class BinanceNativeConnector(BaseConnector):
             is_combined=True,
         )
 
+    def price_to_precision(self, symbol: str, price: float) -> str:
+        """
+        Format price to symbol precision.
+        """
+        native_symbol = self.normalize_symbol(symbol)
+        if native_symbol not in self._markets:
+            return str(price)
+
+        precision = self._markets[native_symbol]["precision"]["price"]
+        return "{:0.{p}f}".format(price, p=precision)
+
+    def amount_to_precision(self, symbol: str, amount: float) -> str:
+        """
+        Format amount to symbol precision.
+        """
+        native_symbol = self.normalize_symbol(symbol)
+        if native_symbol not in self._markets:
+            return str(amount)
+
+        precision = self._markets[native_symbol]["precision"]["amount"]
+        return "{:0.{p}f}".format(amount, p=precision)
+
         # Subscribe to User Data Stream (ListenKey)
         # The SDK handles ListenKey keep-alive automatically!
         try:
@@ -168,13 +335,13 @@ class BinanceNativeConnector(BaseConnector):
                 message = json.loads(message)
 
             # SDK passes (client, message), so we ignore client (_)
-            
+
             # Handle combined stream format
             if "data" in message:
                 message = message["data"]
 
             event_type = message.get("e")
-            
+
             if event_type == "ORDER_TRADE_UPDATE":
                 self._handle_order_update(message)
             elif event_type == "ACCOUNT_UPDATE":
@@ -302,7 +469,15 @@ class BinanceNativeConnector(BaseConnector):
 
         # Queue dispatch
         if symbol in self._ticker_queues:
-            ticker = {"symbol": symbol, "last": float(msg.get("c")), "timestamp": int(msg.get("E")), "info": msg}
+            # Extract volume (v for 24hr ticker, V for miniTicker)
+            volume = float(msg.get("v", 0.0))
+            ticker = {
+                "symbol": symbol,
+                "last": float(msg.get("c")),
+                "timestamp": int(msg.get("E")),
+                "volume": volume,
+                "info": msg,
+            }
             try:
                 # Use put_nowait to avoid blocking callback
                 self._ticker_queues[symbol].put_nowait(ticker)
@@ -351,7 +526,7 @@ class BinanceNativeConnector(BaseConnector):
     async def watch_ticker(self, symbol: str) -> Dict[str, Any]:
         """Watch ticker (WebSocket)."""
         native_symbol = self.normalize_symbol(symbol)
-        
+
         if native_symbol not in self._ticker_queues:
             self.logger.info(f"📡 Subscribing to ticker for {native_symbol}")
             self._ticker_queues[native_symbol] = asyncio.Queue(maxsize=100)
@@ -412,12 +587,12 @@ class BinanceNativeConnector(BaseConnector):
                         # Let's keep it simple: return native symbol, adapter can handle or we add helper.
                         "side": "LONG" if amt > 0 else "SHORT",
                         "size": abs(amt),
-                        "entry_price": float(p["entryPrice"]),
-                        "mark_price": float(p["markPrice"]),
-                        "liquidation_price": float(p["liquidationPrice"]),
-                        "unrealized_pnl": float(p["unRealizedProfit"]),
-                        "leverage": float(p["leverage"]),
-                        "timestamp": int(p["updateTime"]),
+                        "entry_price": float(p.get("entryPrice", 0)),
+                        "mark_price": float(p.get("markPrice", 0)),
+                        "liquidation_price": float(p.get("liquidationPrice", 0)),
+                        "unrealized_pnl": float(p.get("unRealizedProfit", 0)),
+                        "leverage": float(p.get("leverage", 1)),  # Default to 1x if not present
+                        "timestamp": int(p.get("updateTime", 0)),
                         "info": p,
                     }
                 )
@@ -478,6 +653,13 @@ class BinanceNativeConnector(BaseConnector):
             if params:
                 args.update(params)
 
+            # Binance Futures One-Way Mode:
+            # - No positionSide needed (default is BOTH, but usually omitted)
+            # - reduceOnly=True for closing orders
+            # - We do NOT automatically infer positionSide anymore
+            if params and params.get("reduceOnly"):
+                args["reduceOnly"] = "true"
+
             # Add timestamp and recvWindow
             args["timestamp"] = self._get_timestamp()
             args["recvWindow"] = 20000
@@ -495,6 +677,26 @@ class BinanceNativeConnector(BaseConnector):
             raise
         except Exception as e:
             self.logger.error(f"❌ Order Failed: {e}")
+            raise
+
+    async def fetch_order(self, order_id: str, symbol: str) -> Dict[str, Any]:
+        """Fetch order by ID."""
+        try:
+            native_symbol = self.normalize_symbol(symbol)
+
+            # Apply rate limiting
+            async with self.rate_limiter.limit("orders"):
+                response = self.client.query_order(
+                    symbol=native_symbol, orderId=int(order_id), timestamp=self._get_timestamp(), recvWindow=20000
+                )
+
+            return self._normalize_order(response)
+
+        except ClientError as e:
+            self.logger.error(f"❌ fetch_order failed: {e.error_message}")
+            raise
+        except Exception as e:
+            self.logger.error(f"❌ fetch_order failed: {e}")
             raise
 
     async def cancel_order(self, order_id: str, symbol: str) -> Dict[str, Any]:

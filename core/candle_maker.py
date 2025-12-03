@@ -29,6 +29,8 @@ class CandleMaker:
     async def on_tick(self, tick: TickEvent):
         """Process incoming tick."""
         # Calculate candle start time (floor to minute)
+        # Calculate candle start time (floor to minute)
+        # Ensure tick_time is int for modulo
         tick_time = int(tick.timestamp)
         candle_start_time = tick_time - (tick_time % self.timeframe)
 

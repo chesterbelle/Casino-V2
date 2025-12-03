@@ -44,7 +44,7 @@ class FixedPlayer:
     Player that bets a fixed percentage of equity.
     """
 
-    def __init__(self, engine, croupier, fixed_pct: float = 0.01, max_positions: int = 3):
+    def __init__(self, engine, croupier, fixed_pct: float = 0.01, max_positions: int = 1):
         self.engine = engine
         self.croupier = croupier
         self.fixed_pct = fixed_pct
