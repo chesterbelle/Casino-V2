@@ -569,9 +569,9 @@ class TradingFlowValidator:
             assert self.symbol in active_orders, "Órdenes OCO no registradas para monitoreo"
             logger.info("✅ Verificación 3/4: Órdenes registradas para monitoreo OCO")
 
-        # 4. Simular sync_and_process_fills
-        await self.croupier.sync_and_process_fills()
-        logger.info("✅ Verificación 4/4: sync_and_process_fills ejecutado sin errores")
+        # 4. Test position monitoring
+        await self.croupier.monitor_positions()
+        logger.info("✅ Verificación 4/4: monitor_positions ejecutado sin errores")
 
         # Limpiar
         await self.croupier.close_position(position.trade_id)
