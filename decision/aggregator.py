@@ -9,16 +9,15 @@ import time
 from collections import defaultdict
 from typing import Any, Dict, List, Optional
 
-from config import paroli
 from core.events import Event, EventType, SignalEvent
 
 from .sensor_tracker import SensorTracker
 
 logger = logging.getLogger(__name__)
 
-# Configuration
-SIGNAL_TIMEOUT_MS = getattr(paroli, "SIGNAL_TIMEOUT_MS", 100)
-CONFLICT_DELTA_THRESHOLD = getattr(paroli, "CONFLICT_DELTA_THRESHOLD", 0.02)  # Min score difference to resolve conflict
+# Configuration (previously from config.paroli)
+SIGNAL_TIMEOUT_MS = 100  # Wait 100ms for all sensors to fire
+CONFLICT_DELTA_THRESHOLD = 0.02  # Min score difference to resolve conflict
 
 
 class AggregatedSignalEvent(Event):

@@ -1,6 +1,6 @@
 """
 Casino V3 - Main Entry Point
-Event-Driven Architecture with Paroli Betting
+Event-Driven Architecture with Fixed Bet Sizing
 """
 
 import argparse
@@ -71,11 +71,17 @@ def parse_args():
     )
 
     parser.add_argument(
-        "--player",
-        type=str,
-        default="paroli",
-        choices=["paroli", "fixed"],
-        help="Strategy player to use (default: paroli)",
+        "--bet-size",
+        type=float,
+        default=0.01,
+        help="Fixed bet size as fraction of equity (default: 0.01 = 1%%)",
+    )
+
+    parser.add_argument(
+        "--max-positions",
+        type=int,
+        default=1,
+        help="Maximum concurrent positions (default: 1)",
     )
 
     parser.add_argument("--wallet", type=str, help="Wallet address (overrides env)")
@@ -159,16 +165,10 @@ async def main():
     tracker = aggregator.tracker  # Get tracker from aggregator
 
     # 8. Initialize Player (Aggregated Signal → Decision)
-    if args.player == "fixed":
-        from players.fixed import FixedPlayer
+    from players.fixed import FixedPlayer
 
-        logger.info("🎰 Using Fixed Player")
-        player = FixedPlayer(engine, croupier, fixed_pct=0.01, max_positions=1)
-    else:
-        from players.paroli import ParoliV3
-
-        logger.info("🎰 Using Paroli Player")
-        player = ParoliV3(engine, croupier)
+    logger.info(f"🎰 Using Fixed Player (bet_size={args.bet_size:.2%}, max_positions={args.max_positions})")
+    player = FixedPlayer(engine, croupier, fixed_pct=args.bet_size, max_positions=args.max_positions)
 
     # 9. Initialize Order Manager (Decision → Execution)
     order_manager = OrderManager(engine, croupier, player, tracker)

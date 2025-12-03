@@ -1,6 +1,6 @@
 """
-Casino V3 - Backtest Entry Point
-Event-Driven Architecture with Paroli Betting
+Casino V3 - Backtesting Module
+Event-Driven Architecture with Fixed Bet Sizing
 """
 
 import asyncio
@@ -17,7 +17,6 @@ from decision.aggregator import SignalAggregatorV3
 from exchanges.adapters import ExchangeAdapter
 from exchanges.connectors.virtual_exchange import VirtualExchangeConnector
 from players.fixed import FixedPlayer
-from players.paroli import ParoliV3
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(levelname)s: %(message)s", datefmt="%H:%M:%S")
@@ -29,7 +28,8 @@ def parse_args():
     data_file = "data/raw/LTCUSDT_1m__1d.csv"
     symbol = "LTC/USDT:USDT"
     delay = 0.0
-    player_type = "paroli"  # Default player
+    # Player configuration
+    bet_size = 0.01  # 1% fixed bet size
     max_positions = 3  # Default for Fixed player
 
     for arg in sys.argv[1:]:
@@ -39,19 +39,19 @@ def parse_args():
             symbol = arg.split("=")[1]
         elif arg.startswith("--delay="):
             delay = float(arg.split("=")[1])
-        elif arg.startswith("--player="):
-            player_type = arg.split("=")[1].lower()
         elif arg.startswith("--max-positions="):
             max_positions = int(arg.split("=")[1])
+        elif arg.startswith("--bet-size="):
+            bet_size = float(arg.split("=")[1])
 
-    return data_file, symbol, delay, player_type, max_positions
+    return data_file, symbol, delay, bet_size, max_positions
 
 
 async def main():
     """Main backtest entry point."""
-    data_file, symbol, delay, player_type, max_positions = parse_args()
+    data_file, symbol, delay, bet_size, max_positions = parse_args()
 
-    logger.info(f"🚀 Starting Casino-V3 Backtest | Data: {data_file} | Player: {player_type}")
+    logger.info(f"🚀 Starting Casino-V3 Backtest | Data: {data_file}")
 
     # Detect timeframe from filename (e.g., LTCUSDT_5m__30d.csv -> 5m)
     import re
@@ -86,11 +86,8 @@ async def main():
     tracker = aggregator.tracker  # Get tracker from aggregator
 
     # 7. Initialize Player (Aggregated Signal → Decision)
-    if player_type == "fixed":
-        player = FixedPlayer(engine, croupier, fixed_pct=0.01, max_positions=max_positions)
-        logger.info(f"📊 FixedPlayer configured with max_positions={max_positions}")
-    else:
-        player = ParoliV3(engine, croupier)
+    logger.info(f"🎰 Initializing FixedPlayer (bet_size={bet_size:.2%}, max_positions={max_positions})")
+    player = FixedPlayer(engine, croupier, fixed_pct=bet_size, max_positions=max_positions)
 
     # 8. Initialize Order Manager (Decision → Execution)
     order_manager = OrderManager(engine, croupier, player, tracker)

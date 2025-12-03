@@ -1,0 +1,300 @@
+"""
+OCOManager - Manages OCO (One-Cancels-Other) bracket orders.
+
+This component is responsible for:
+- Creating bracketed orders (Main + TP + SL)
+- Ensuring atomicity of OCO creation
+- Waiting for fill confirmation via WebSocket
+- Validating OCO integrity (all 3 orders exist)
+- Cleanup on partial failure
+
+Author: Casino V3 Team
+Version: 3.0.0
+"""
+
+import asyncio
+import logging
+import time
+from typing import Any, Dict, Optional
+
+from core.portfolio.position_tracker import PositionTracker
+
+
+class OCOAtomicityError(Exception):
+    """Raised when OCO bracket creation fails atomically."""
+
+    pass
+
+
+class OCOManager:
+    """
+    Manages creation and validation of OCO bracket orders.
+
+    OCO Flow:
+    1. Execute main market order
+    2. Wait for fill confirmation (WebSocket or polling)
+    3. Create TP limit order
+    4. Create SL stop order
+    5. Validate all 3 orders exist
+    6. If any step fails: cleanup and raise error
+
+    Example:
+        oco_manager = OCOManager(order_executor, position_tracker, exchange_adapter)
+
+        result = await oco_manager.create_bracketed_order({
+            "symbol": "BTC/USDT:USDT",
+            "side": "LONG",
+            "size": 0.01,
+            "take_profit": 1.01,
+            "stop_loss": 0.99
+        })
+    """
+
+    def __init__(self, order_executor, position_tracker: PositionTracker, exchange_adapter):
+        """
+        Initialize OCOManager.
+
+        Args:
+            order_executor: OrderExecutor instance
+            position_tracker: PositionTracker instance
+            exchange_adapter: ExchangeAdapter for price fetching
+        """
+        self.executor = order_executor
+        self.tracker = position_tracker
+        self.adapter = exchange_adapter
+        self.logger = logging.getLogger("OCOManager")
+
+    async def create_bracketed_order(
+        self, order: Dict[str, Any], wait_for_fill: bool = True, fill_timeout: float = 30.0
+    ) -> Dict[str, Any]:
+        """
+        Create complete OCO bracket order with atomicity guarantees.
+
+        Args:
+            order: Order dict with:
+                - symbol: Trading symbol
+                - side: "LONG" or "SHORT"
+                - size: Position size (fraction of equity)
+                - take_profit: TP multiplier (e.g., 1.01 = +1%)
+                - stop_loss: SL multiplier (e.g., 0.99 = -1%)
+            wait_for_fill: Whether to wait for main order fill
+            fill_timeout: Timeout for fill confirmation (seconds)
+
+        Returns:
+            Dict with:
+                - main_order: Main order result
+                - tp_order: Take profit order result
+                - sl_order: Stop loss order result
+                - fill_price: Actual fill price
+
+        Raises:
+            OCOAtomicityError: If OCO bracket creation fails
+            TimeoutError: If fill confirmation times out
+        """
+        symbol = order["symbol"]
+        side = order["side"]
+
+        self.logger.info(
+            f"🎯 Creating OCO bracket: {side} {symbol} | "
+            f"TP: {order['take_profit']:.4f} | SL: {order['stop_loss']:.4f}"
+        )
+
+        main_order = None
+        tp_order = None
+        sl_order = None
+
+        try:
+            # Step 1: Execute main market order
+            main_order = await self._execute_main_order(order)
+
+            # Step 2: Wait for fill confirmation
+            if wait_for_fill:
+                fill_price = await self._wait_for_fill(main_order["order_id"], timeout=fill_timeout)
+            else:
+                # Use order price (for backtesting or immediate execution)
+                fill_price = main_order.get("average", main_order.get("price"))
+
+            if not fill_price:
+                raise OCOAtomicityError("Failed to get fill price for main order")
+
+            self.logger.info(f"✅ Main order filled @ {fill_price}")
+
+            # Step 3: Calculate TP/SL prices
+            tp_price, sl_price = self._calculate_tp_sl_prices(
+                fill_price, side, order["take_profit"], order["stop_loss"]
+            )
+
+            # Step 4: Create TP order
+            tp_order = await self._create_tp_order(symbol, side, main_order["amount"], tp_price)
+
+            # Step 5: Create SL order
+            sl_order = await self._create_sl_order(symbol, side, main_order["amount"], sl_price)
+
+            # Step 6: Validate OCO completeness
+            self._validate_oco_complete(main_order, tp_order, sl_order)
+
+            self.logger.info(
+                f"✅ OCO bracket created: Main={main_order['order_id']}, "
+                f"TP={tp_order['order_id']}, SL={sl_order['order_id']}"
+            )
+
+            return {
+                "main_order": main_order,
+                "tp_order": tp_order,
+                "sl_order": sl_order,
+                "fill_price": fill_price,
+                "tp_price": tp_price,
+                "sl_price": sl_price,
+            }
+
+        except Exception as e:
+            # Cleanup on failure
+            self.logger.error(f"❌ OCO bracket creation failed: {e}")
+            await self._cleanup_partial_oco(main_order, tp_order, sl_order)
+            raise OCOAtomicityError(f"Failed to create OCO bracket: {e}") from e
+
+    async def _execute_main_order(self, order: Dict[str, Any]) -> Dict[str, Any]:
+        """Execute main market order."""
+        # Convert from trading order to exchange order format
+        exchange_order = {
+            "symbol": order["symbol"],
+            "type": "market",
+            "side": "buy" if order["side"] == "LONG" else "sell",
+            "amount": order.get("amount", 0),  # Will be calculated by Croupier
+        }
+
+        return await self.executor.execute_market_order(exchange_order)
+
+    async def _wait_for_fill(self, order_id: str, timeout: float = 30.0) -> Optional[float]:
+        """
+        Wait for order fill confirmation via WebSocket or polling.
+
+        Args:
+            order_id: Order ID to wait for
+            timeout: Timeout in seconds
+
+        Returns:
+            Fill price or None if timeout
+
+        Raises:
+            TimeoutError: If fill not confirmed within timeout
+        """
+        start_time = time.time()
+
+        # TODO: Subscribe to WebSocket updates if available
+        # For now, use polling fallback
+
+        while time.time() - start_time < timeout:
+            try:
+                # Fetch order status from exchange
+                order_info = await self.adapter.connector.fetch_order(order_id)
+
+                if order_info.get("status") == "closed":
+                    fill_price = order_info.get("average") or order_info.get("price")
+                    return fill_price
+
+            except Exception as e:
+                self.logger.warning(f"⚠️ Error fetching order status: {e}")
+
+            await asyncio.sleep(0.5)  # Poll every 500ms
+
+        raise TimeoutError(f"Order {order_id} not filled within {timeout}s")
+
+    def _calculate_tp_sl_prices(
+        self, entry_price: float, side: str, tp_multiplier: float, sl_multiplier: float
+    ) -> tuple[float, float]:
+        """
+        Calculate absolute TP/SL prices from multipliers.
+
+        Args:
+            entry_price: Entry price
+            side: "LONG" or "SHORT"
+            tp_multiplier: TP multiplier (e.g., 1.01 for +1%)
+            sl_multiplier: SL multiplier (e.g., 0.99 for -1%)
+
+        Returns:
+            (tp_price, sl_price) tuple
+        """
+        if side == "LONG":
+            tp_price = entry_price * tp_multiplier
+            sl_price = entry_price * sl_multiplier
+        else:  # SHORT
+            tp_price = entry_price * sl_multiplier  # TP is lower for shorts
+            sl_price = entry_price * tp_multiplier  # SL is higher for shorts
+
+        return tp_price, sl_price
+
+    async def _create_tp_order(self, symbol: str, side: str, amount: float, tp_price: float) -> Dict[str, Any]:
+        """Create take profit limit order."""
+        # TP is opposite side of entry
+        tp_side = "sell" if side == "LONG" else "buy"
+
+        self.logger.info(f"📈 Creating TP order @ {tp_price}")
+
+        return await self.executor.execute_limit_order(symbol=symbol, side=tp_side, amount=amount, price=tp_price)
+
+    async def _create_sl_order(self, symbol: str, side: str, amount: float, sl_price: float) -> Dict[str, Any]:
+        """Create stop loss order."""
+        # SL is opposite side of entry
+        sl_side = "sell" if side == "LONG" else "buy"
+
+        self.logger.info(f"📉 Creating SL order @ stop {sl_price}")
+
+        return await self.executor.execute_stop_order(symbol=symbol, side=sl_side, amount=amount, stop_price=sl_price)
+
+    def _validate_oco_complete(
+        self, main_order: Optional[Dict], tp_order: Optional[Dict], sl_order: Optional[Dict]
+    ) -> None:
+        """
+        Validate that all 3 orders exist.
+
+        Raises:
+            OCOAtomicityError: If any order is missing
+        """
+        if not main_order:
+            raise OCOAtomicityError("Main order is missing")
+        if not tp_order:
+            raise OCOAtomicityError("TP order is missing")
+        if not sl_order:
+            raise OCOAtomicityError("SL order is missing")
+
+        # Validate order IDs exist
+        if not main_order.get("order_id"):
+            raise OCOAtomicityError("Main order has no order_id")
+        if not tp_order.get("order_id"):
+            raise OCOAtomicityError("TP order has no order_id")
+        if not sl_order.get("order_id"):
+            raise OCOAtomicityError("SL order has no order_id")
+
+        self.logger.debug("✅ OCO validation passed: all 3 orders exist")
+
+    async def _cleanup_partial_oco(
+        self, main_order: Optional[Dict], tp_order: Optional[Dict], sl_order: Optional[Dict]
+    ) -> None:
+        """
+        Cleanup partial OCO bracket on failure.
+
+        Cancels any orders that were created before failure.
+        """
+        self.logger.warning("🧹 Cleaning up partial OCO bracket...")
+
+        orders_to_cancel = []
+
+        if tp_order and tp_order.get("order_id"):
+            orders_to_cancel.append(("TP", tp_order["order_id"]))
+        if sl_order and sl_order.get("order_id"):
+            orders_to_cancel.append(("SL", sl_order["order_id"]))
+        if main_order and main_order.get("order_id"):
+            # Only cancel main if not filled yet
+            if main_order.get("status") != "closed":
+                orders_to_cancel.append(("Main", main_order["order_id"]))
+
+        for order_type, order_id in orders_to_cancel:
+            try:
+                await self.adapter.connector.cancel_order(order_id)
+                self.logger.info(f"✅ Cancelled {order_type} order: {order_id}")
+            except Exception as e:
+                self.logger.error(f"❌ Failed to cancel {order_type} order {order_id}: {e}")
+
+        if orders_to_cancel:
+            self.logger.warning(f"🧹 Cleaned up {len(orders_to_cancel)} orders")

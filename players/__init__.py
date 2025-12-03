@@ -1,15 +1,12 @@
 """
-Players - Bet Sizing Strategies
-
-This module contains different bet sizing strategies (players) that can be used
-interchangeably in the trading system.
+Players module - Bet sizing strategies for Casino V3.
 
 Available players:
-- ParoliV3: Progressive betting (1-1-3 progression)
-- (Future) KellyPlayer: Kelly criterion based sizing
-- (Future) FixedPlayer: Fixed percentage betting
+- FixedPlayer: Fixed percentage per trade
+
+Author: Casino V3 Team
 """
 
-from .paroli import ParoliV3
+from .fixed import FixedPlayer
 
-__all__ = ["ParoliV3"]
+__all__ = ["FixedPlayer"]
