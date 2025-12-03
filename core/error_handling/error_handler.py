@@ -18,9 +18,9 @@ import random
 from dataclasses import dataclass
 from typing import Any, Callable, Optional, TypeVar
 
-from exchanges.resilience.error_classifier import ErrorAction, ErrorClassifier
+from exchanges.resilience.error_classifier import ErrorClassifier
 
-from .circuit_breaker import CircuitBreaker, CircuitBreakerOpenError
+from .circuit_breaker import CircuitBreaker
 
 T = TypeVar("T")
 

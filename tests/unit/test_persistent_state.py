@@ -3,11 +3,9 @@ Tests for PersistentState and StateManager.
 """
 
 import asyncio
-import json
 import sys
 import tempfile
 from pathlib import Path
-from unittest.mock import MagicMock
 
 # Add project root to path
 project_root = Path(__file__).parent.parent.parent
@@ -17,7 +15,7 @@ import pytest
 
 from core.portfolio.balance_manager import BalanceManager
 from core.portfolio.position_tracker import OpenPosition, PositionTracker
-from core.state import BotState, PersistentState, PositionState, StateManager
+from core.state import PersistentState, PositionState, StateManager
 
 
 class TestPersistentState:

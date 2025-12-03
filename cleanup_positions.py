@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
-"""
-Cleanup script for orphaned positions and orders on Binance Testnet.
-"""
+"""Cleanup script for orphaned positions and orders on Binance Testnet."""
 import asyncio
 import os
 import sys
 
 # Add project root to path
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # noqa: E402
 
-from exchanges.connectors.binance.binance_connector import BinanceConnector
+from exchanges.connectors.binance.binance_connector import (  # noqa: E402
+    BinanceConnector,
+)
 
 
 async def cleanup():

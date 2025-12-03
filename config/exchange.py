@@ -7,11 +7,11 @@ Parámetros de conexión a exchanges y símbolos.
 """
 
 import os
+from typing import Literal
 
 from dotenv import load_dotenv
 
 load_dotenv()
-from typing import Literal
 
 # =====================================================
 # 🏦 EXCHANGE ACTIVO

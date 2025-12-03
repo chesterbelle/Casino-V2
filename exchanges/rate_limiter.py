@@ -7,10 +7,9 @@ Author: Casino V3 Team
 Version: 2.0.0
 """
 
-import asyncio
 import logging
 import time
-from typing import Dict, Optional
+from typing import Dict
 
 from aiolimiter import AsyncLimiter
 

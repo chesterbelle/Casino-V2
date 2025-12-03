@@ -1,16 +1,15 @@
 #!/usr/bin/env python3
-"""
-Sweep Dust Script
-Increases dust positions to minimum notional size and then closes them.
-"""
+"""Sweep dust positions by increasing to min notional and closing."""
 import asyncio
 import os
 import sys
 
 # Add project root to path
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # noqa: E402
 
-from exchanges.connectors.binance.binance_connector import BinanceConnector
+from exchanges.connectors.binance.binance_connector import (  # noqa: E402
+    BinanceConnector,
+)
 
 
 async def sweep_dust():

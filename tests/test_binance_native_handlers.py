@@ -2,10 +2,9 @@
 Tests for BinanceNativeConnector WebSocket handlers and fetch_my_trades.
 """
 
-import asyncio
 import sys
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock
 
 # Add project root to path
 project_root = Path(__file__).parent.parent.parent
