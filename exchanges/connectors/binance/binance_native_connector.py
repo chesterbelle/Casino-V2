@@ -769,6 +769,7 @@ class BinanceNativeConnector(BaseConnector):
 
         return {
             "id": str(response["orderId"]),
+            "order_id": str(response["orderId"]),  # Alias for internal consistency
             "symbol": response["symbol"],
             "status": self._normalize_order_status(response["status"]),
             "price": price,

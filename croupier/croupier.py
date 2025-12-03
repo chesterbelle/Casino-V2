@@ -155,6 +155,75 @@ class Croupier:
 
         return result
 
+    async def close_position(self, trade_id: str) -> Dict[str, Any]:
+        """
+        Close a position manually.
+
+        1. Cancel TP/SL orders
+        2. Execute market close order
+        """
+        # Find position
+        position = None
+        for pos in self.position_tracker.open_positions:
+            if pos.trade_id == trade_id:
+                position = pos
+                break
+
+        if not position:
+            raise ValueError(f"Position not found: {trade_id}")
+
+        self.logger.info(f"📤 Closing position: {trade_id} | {position.symbol} {position.side}")
+
+        # 1. Cancel TP/SL
+        await self.oco_manager.cancel_bracket(position.tp_order_id, position.sl_order_id)
+
+        # 2. Execute market close
+        close_side = "sell" if position.side == "LONG" else "buy"
+
+        # Calculate amount (use remaining amount if partial fills supported, but for now full close)
+        # We need to use the original amount or current size.
+        # OpenPosition has 'order' dict but maybe not current size if partials happened.
+        # Assuming full close for now.
+        amount = position.order.get("amount")
+
+        # If amount is missing in order dict (shouldn't happen with new logic), try to calculate or fail
+        if not amount:
+            # Fallback: try to get from margin/entry if possible, or raise
+            raise ValueError("Position has no amount information")
+
+        close_order = {
+            "symbol": position.symbol,
+            "side": close_side,
+            "type": "market",
+            "amount": amount,
+            "params": {},  # Removed reduceOnly to avoid -2022 error
+        }
+
+        self.logger.info(f"📉 Sending close order: {close_side} {amount} {position.symbol}")
+
+        result = await self.order_executor.execute_market_order(close_order)
+
+        fill_price = float(result.get("average", 0) or result.get("price", 0))
+
+        self.logger.info(f"✅ Position closed: {trade_id} | Fill: {fill_price}")
+
+        # Manually confirm close in tracker since we initiated it
+        # Calculate PnL
+        if position.side == "LONG":
+            pnl = (fill_price - position.entry_price) * position.notional / position.entry_price
+        else:
+            pnl = (position.entry_price - fill_price) * position.notional / position.entry_price
+
+        self.position_tracker.confirm_close(
+            trade_id=trade_id,
+            exit_price=fill_price,
+            exit_reason="MANUAL",
+            pnl=pnl,
+            fee=0.0,  # We don't have fee info here easily without parsing fills
+        )
+
+        return result
+
     async def reconcile_positions(self, symbol: Optional[str] = None):
         """
         Reconcile positions with exchange.
@@ -205,18 +274,32 @@ class Croupier:
         Returns:
             OpenPosition instance
         """
+        # Calculate liquidation level (approximate)
+        entry_price = oco_result["fill_price"]
+        leverage = order.get("leverage", 1)
+        side = order["side"]
+
+        liquidation_level = None
+        if leverage > 0:
+            if side == "LONG":
+                liquidation_level = entry_price * (1.0 - (1.0 / leverage) + 0.005)
+            elif side == "SHORT":
+                liquidation_level = entry_price * (1.0 + (1.0 / leverage) - 0.005)
+
         # Create position object
         position = OpenPosition(
             trade_id=oco_result["main_order"]["order_id"],
             symbol=order["symbol"],
             side=order["side"],
-            entry_price=oco_result["fill_price"],
+            entry_price=entry_price,
             entry_timestamp=oco_result["main_order"].get("timestamp", ""),
             margin_used=order.get("margin_used", 0),
             notional=order.get("notional", 0),
-            leverage=order.get("leverage", 1),
+            leverage=leverage,
             tp_level=oco_result["tp_price"],
             sl_level=oco_result["sl_price"],
+            liquidation_level=liquidation_level,
+            order=order,
             main_order_id=oco_result["main_order"]["order_id"],
             tp_order_id=oco_result["tp_order"]["order_id"],
             sl_order_id=oco_result["sl_order"]["order_id"],
@@ -224,6 +307,7 @@ class Croupier:
 
         # Add to tracker
         self.position_tracker.open_positions.append(position)
+        self.position_tracker.total_trades_opened += 1
 
         return position
 

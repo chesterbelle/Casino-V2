@@ -127,14 +127,18 @@ class OrderExecutor:
         amount = float(self.adapter.amount_to_precision(symbol, amount))
         stop_price = float(self.adapter.price_to_precision(symbol, stop_price))
 
+        # Prepare params with stopPrice (Binance requirement)
+        order_params = params or {}
+        order_params["stopPrice"] = stop_price
+
         # Validate
         order = {
             "symbol": symbol,
             "side": side,
             "type": "stop_market",  # Default to stop_market for SL
             "amount": amount,
-            "stop_price": stop_price,  # CCXT standard field
-            "params": params or {},
+            "stop_price": stop_price,  # Keep CCXT field for reference
+            "params": order_params,
         }
         self._validate_stop_order(order)
 
@@ -185,11 +189,16 @@ class OrderExecutor:
         """Validate stop order parameters."""
         self._validate_market_order(order)
 
-        if "stopPrice" not in order:
-            raise ValueError("Missing required field: stopPrice")
+        # Check params for stopPrice (Binance)
+        params = order.get("params", {})
+        if "stopPrice" not in params:
+            # Also check stop_price in top level as fallback
+            if "stop_price" not in order:
+                raise ValueError("Missing required field: stopPrice")
 
-        if order["stopPrice"] <= 0:
-            raise ValueError(f"Invalid stopPrice: {order['stopPrice']}")
+        stop_price = params.get("stopPrice") or order.get("stop_price")
+        if stop_price <= 0:
+            raise ValueError(f"Invalid stopPrice: {stop_price}")
 
     def _get_retry_config(self, order_type: str) -> RetryConfig:
         """Get retry configuration based on order type."""

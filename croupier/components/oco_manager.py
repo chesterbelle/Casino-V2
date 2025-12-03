@@ -175,8 +175,9 @@ class OCOManager:
             self._validate_oco_complete(main_order, tp_order, sl_order)
 
             self.logger.info(
-                f"✅ OCO bracket created: Main={main_order['order_id']}, "
-                f"TP={tp_order['order_id']}, SL={sl_order['order_id']}"
+                f"✅ OCO bracket created: Main={main_order.get('order_id') or main_order.get('id')}, "
+                f"TP={tp_order.get('order_id') or tp_order.get('id')}, "
+                f"SL={sl_order.get('order_id') or sl_order.get('id')}"
             )
 
             return {
@@ -308,11 +309,11 @@ class OCOManager:
             raise OCOAtomicityError("SL order is missing")
 
         # Validate order IDs exist
-        if not main_order.get("order_id"):
+        if not (main_order.get("order_id") or main_order.get("id")):
             raise OCOAtomicityError("Main order has no order_id")
-        if not tp_order.get("order_id"):
+        if not (tp_order.get("order_id") or tp_order.get("id")):
             raise OCOAtomicityError("TP order has no order_id")
-        if not sl_order.get("order_id"):
+        if not (sl_order.get("order_id") or sl_order.get("id")):
             raise OCOAtomicityError("SL order has no order_id")
 
         self.logger.debug("✅ OCO validation passed: all 3 orders exist")
@@ -347,3 +348,21 @@ class OCOManager:
 
         if orders_to_cancel:
             self.logger.warning(f"🧹 Cleaned up {len(orders_to_cancel)} orders")
+
+    async def cancel_bracket(self, tp_order_id: Optional[str], sl_order_id: Optional[str]) -> None:
+        """
+        Cancel TP and SL orders for a position.
+        """
+        if tp_order_id:
+            try:
+                await self.adapter.cancel_order(tp_order_id)
+                self.logger.info(f"✅ Cancelled TP order: {tp_order_id}")
+            except Exception as e:
+                self.logger.warning(f"⚠️ Failed to cancel TP order {tp_order_id}: {e}")
+
+        if sl_order_id:
+            try:
+                await self.adapter.cancel_order(sl_order_id)
+                self.logger.info(f"✅ Cancelled SL order: {sl_order_id}")
+            except Exception as e:
+                self.logger.warning(f"⚠️ Failed to cancel SL order {sl_order_id}: {e}")

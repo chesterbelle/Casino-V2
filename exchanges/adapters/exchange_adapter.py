@@ -361,9 +361,15 @@ class ExchangeAdapter:
             order_type = order_copy.pop("type", "market")
 
             # Remove Croupier-specific parameters that connectors don't accept
-            order_copy.pop("confirm_with_ws", None)
-
-            result = await self.connector.create_order(order_type=order_type, **order_copy)
+            # Use explicit arguments to avoid passing unsupported kwargs (like stop_price)
+            result = await self.connector.create_order(
+                symbol=order_copy["symbol"],
+                side=order_copy["side"],
+                amount=order_copy["amount"],
+                price=order_copy.get("price"),
+                order_type=order_type,
+                params=order_copy.get("params"),
+            )
             return result
         except Exception as e:
             self.logger.error(f"❌ Error executing order: {e}")
