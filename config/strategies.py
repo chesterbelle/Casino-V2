@@ -19,6 +19,7 @@ from typing import Dict, List, Set
 STRATEGIES: Dict[str, dict] = {
     # -----------------------------------------------------
     # TREND FOLLOWING - Use in trending markets (ADX > 25)
+    # Best for: Strong directional moves
     # -----------------------------------------------------
     "TrendFollowing": {
         "enabled": True,
@@ -31,12 +32,16 @@ STRATEGIES: Dict[str, dict] = {
             "ADXFilter",
             "MomentumBurst",
             "MarubozuMomentum",
+            "ParabolicSAR",
+            "HigherTFTrend",  # Multi-timeframe trend confirmation
+            "MTFImpulse",  # Multi-timeframe impulse
         ],
-        "tp_multiplier": 1.5,  # Larger targets in trends
+        "tp_multiplier": 1.5,
         "max_positions": 2,
     },
     # -----------------------------------------------------
     # MEAN REVERSION - Use in ranging/choppy markets
+    # Best for: Oscillating price action
     # -----------------------------------------------------
     "MeanReversion": {
         "enabled": False,
@@ -50,12 +55,15 @@ STRATEGIES: Dict[str, dict] = {
             "ZScoreReversion",
             "WilliamsRReversion",
             "KeltnerReversion",
+            "AdaptiveRSI",  # Adaptive RSI scalper
+            "BollingerRejection",  # Bollinger band rejection
         ],
-        "tp_multiplier": 0.8,  # Tighter targets
+        "tp_multiplier": 0.8,
         "max_positions": 3,
     },
     # -----------------------------------------------------
     # BREAKOUT - Use after compression/consolidation
+    # Best for: Volatility expansion after squeeze
     # -----------------------------------------------------
     "Breakout": {
         "enabled": False,
@@ -66,12 +74,16 @@ STRATEGIES: Dict[str, dict] = {
             "InsideBarBreakout",
             "BollingerSqueeze",
             "VolumeImbalance",
+            "KeltnerBreakout",  # Keltner channel breakout
+            "VWAPBreakout",  # VWAP breakout
+            "VolatilityWakeup",  # Volatility expansion
         ],
-        "tp_multiplier": 2.0,  # Big moves on breakouts
+        "tp_multiplier": 2.0,
         "max_positions": 1,
     },
     # -----------------------------------------------------
     # PATTERN RECOGNITION - Candlestick reversal patterns
+    # Best for: Price action reversals
     # -----------------------------------------------------
     "PatternReversal": {
         "enabled": False,
@@ -83,12 +95,17 @@ STRATEGIES: Dict[str, dict] = {
             "RailsPattern",
             "MorningStar",
             "DojiIndecision",
+            "TweezerPattern",  # Tweezer tops/bottoms
+            "ThreeBar",  # Three bar reversal
+            "WickRejection",  # Wick rejection pattern
+            "LongTail",  # Long tail distribution
         ],
         "tp_multiplier": 1.0,
         "max_positions": 2,
     },
     # -----------------------------------------------------
     # SUPPORT/RESISTANCE - Price action at key levels
+    # Best for: Bounces off significant price levels
     # -----------------------------------------------------
     "SupportResistance": {
         "enabled": False,
@@ -97,13 +114,35 @@ STRATEGIES: Dict[str, dict] = {
         "sensors": [
             "EMA50Support",
             "VWAPDeviation",
-            "FVGRetest",
+            "FVGRetest",  # Fair value gap retest
+            "SupportResistance",  # S/R bounce
         ],
         "tp_multiplier": 1.2,
         "max_positions": 2,
     },
     # -----------------------------------------------------
+    # SMART MONEY / ORDER FLOW - Institutional patterns
+    # Best for: Following smart money footprints
+    # -----------------------------------------------------
+    "SmartMoney": {
+        "enabled": False,
+        "description": "Detects institutional order flow and manipulation",
+        "market_condition": "any",
+        "sensors": [
+            "OrderBlock",  # Institutional order blocks
+            "LiquidityVoid",  # Liquidity gaps
+            "AbsorptionBlock",  # Volume absorption
+            "WyckoffSpring",  # Wyckoff spring/upthrust
+            "VSAReversal",  # Volume spread analysis
+            "VolumeSpike",  # Volume spike reversal
+            "VWAPMomentum",  # VWAP momentum
+        ],
+        "tp_multiplier": 1.5,
+        "max_positions": 2,
+    },
+    # -----------------------------------------------------
     # AGGRESSIVE SCALPING - High frequency, small targets
+    # Best for: Quick trades in volatile conditions
     # -----------------------------------------------------
     "AggressiveScalping": {
         "enabled": False,
@@ -112,8 +151,25 @@ STRATEGIES: Dict[str, dict] = {
         "sensors": [
             "DecelerationCandles",
             "ExtremeCandleRatio",
+            "MicroTrend",  # Micro trend pullback
+            "SmartRange",  # Smart range scalper
+            "Fakeout",  # Fakeout reversal
         ],
         "tp_multiplier": 0.5,
+        "max_positions": 1,
+    },
+    # -----------------------------------------------------
+    # REGIME DETECTION - Market structure analysis
+    # Best for: Filtering or confirming other signals
+    # -----------------------------------------------------
+    "RegimeFilters": {
+        "enabled": False,
+        "description": "Detects market regime for signal filtering",
+        "market_condition": "filter",
+        "sensors": [
+            "HurstRegime",  # Hurst exponent regime
+        ],
+        "tp_multiplier": 1.0,
         "max_positions": 1,
     },
 }
