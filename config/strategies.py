@@ -170,6 +170,8 @@ STRATEGIES: Dict[str, dict] = {
             # Patterns at extremes
             "PinBarReversal",
             "DojiIndecision",
+            # Context (macro trend)
+            "HigherTFTrend",
         ],
         "max_positions": 3,
     },
@@ -192,6 +194,8 @@ STRATEGIES: Dict[str, dict] = {
             "VolumeImbalance",
             # VWAP
             "VWAPBreakout",
+            # Context (macro trend)
+            "HigherTFTrend",
         ],
         "max_positions": 1,
     },
@@ -213,6 +217,8 @@ STRATEGIES: Dict[str, dict] = {
             # Fast oscillators
             "AdaptiveRSI",
             "StochasticReversion",
+            # Context (macro trend)
+            "HigherTFTrend",
         ],
         "max_positions": 1,
     },
@@ -236,6 +242,8 @@ STRATEGIES: Dict[str, dict] = {
             # VWAP
             "VWAPMomentum",
             "VWAPDeviation",
+            # Context (macro trend)
+            "HigherTFTrend",
         ],
         "max_positions": 2,
     },
@@ -259,6 +267,8 @@ STRATEGIES: Dict[str, dict] = {
             # Context
             "EMA50Support",
             "SupportResistance",
+            # Context (macro trend)
+            "HigherTFTrend",
         ],
         "max_positions": 2,
     },
