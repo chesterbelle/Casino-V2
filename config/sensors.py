@@ -90,58 +90,58 @@ SENSOR_TIMEFRAMES = {
     "HigherTFTrend": "1h",  # Contexto macro
     "MTFImpulse": "5m",  # Balance entre TFs
     "EMA50Support": "15m",
-    # === OSCILLATORS (Medium TF for signal quality) ===
-    "RSIReversion": "15m",
-    "StochasticReversion": "1m",  # QuickScalper - 1m for demo
-    "CCIReversion": "5m",
-    "WilliamsRReversion": "5m",
-    "AdaptiveRSI": "1m",  # QuickScalper - 1m for demo
-    # === VOLATILITY BANDS (Medium TF) ===
-    "BollingerTouch": "5m",
-    "BollingerSqueeze": "15m",
-    "BollingerRejection": "5m",
-    "KeltnerReversion": "5m",
-    "KeltnerBreakout": "15m",
-    "ZScoreReversion": "5m",
-    # === CANDLESTICK PATTERNS (Higher TF = more reliable) ===
-    "EngulfingPattern": "15m",
-    "PinBarReversal": "15m",
-    "RailsPattern": "15m",
-    "MorningStar": "1h",  # Multi-candle = needs HTF
-    "DojiIndecision": "1h",  # Indecision significativa
-    "TweezerPattern": "15m",
-    "ThreeBar": "15m",
-    "MarubozuMomentum": "15m",
-    "WickRejection": "15m",
-    "LongTail": "15m",
-    # === STRUCTURAL PATTERNS (Medium-High TF) ===
-    "VCPPattern": "15m",
-    "InsideBarBreakout": "15m",
-    "DecelerationCandles": "1m",  # QuickScalper - 1m for demo
-    "ExtremeCandleRatio": "1m",  # Detección de pánico rápido
-    "Fakeout": "1m",  # QuickScalper - 1m for demo
-    # === VOLUME ANALYSIS (Quick detection) ===
-    "VolumeImbalance": "5m",
-    "VolumeSpike": "1m",
-    "VSAReversal": "5m",
-    "AbsorptionBlock": "5m",
-    # === SMART MONEY CONCEPTS (Medium TF) ===
-    "OrderBlock": "15m",
-    "LiquidityVoid": "15m",
-    "FVGRetest": "5m",  # Zones más precisas
-    "WyckoffSpring": "15m",
-    # === MOMENTUM (Fast detection) ===
-    "MomentumBurst": "1m",
-    "MicroTrend": "1m",
-    "SmartRange": "1m",
-    # === VWAP (Medium TF) ===
-    "VWAPDeviation": "5m",
-    "VWAPBreakout": "5m",
-    "VWAPMomentum": "5m",
-    # === REGIME DETECTION (Higher TF) ===
-    "HurstRegime": "15m",
-    "VolatilityWakeup": "15m",
-    "SupportResistance": "1h",
+    # === OSCILLATORS (optimized 5m mostly) ===
+    "RSIReversion": "15m",  # Exp: 0.092%
+    "StochasticReversion": "5m",  # Exp: 0.099%
+    "CCIReversion": "5m",  # Exp: 0.133%
+    "WilliamsRReversion": "5m",  # Exp: 0.083%
+    "AdaptiveRSI": "15m",  # Exp: 0.130%
+    # === VOLATILITY BANDS (15m is best) ===
+    "BollingerTouch": "5m",  # Exp: 0.476%
+    "BollingerSqueeze": "15m",  # Exp: 1.602% ⭐ TOP
+    "BollingerRejection": "15m",  # Exp: 0.603%
+    "KeltnerReversion": "5m",  # Exp: 0.202%
+    "KeltnerBreakout": "15m",  # Exp: 1.018% ⭐ TOP
+    "ZScoreReversion": "15m",  # Exp: 0.255%
+    # === CANDLESTICK PATTERNS (15m is optimal) ===
+    "EngulfingPattern": "1m",  # Exp: 0.014%
+    "PinBarReversal": "15m",  # Exp: 0.371%
+    "RailsPattern": "15m",  # Exp: 0.663%
+    "MorningStar": "15m",  # Exp: 1.730% ⭐ TOP
+    "DojiIndecision": "15m",  # Exp: 0.271%
+    "TweezerPattern": "15m",  # Exp: 0.247%
+    "ThreeBar": "15m",  # Exp: 0.629%
+    "MarubozuMomentum": "15m",  # Exp: 0.307%
+    "WickRejection": "5m",  # Exp: 0.104%
+    "LongTail": "5m",  # Exp: 0.168%
+    # === STRUCTURAL PATTERNS (15m mostly) ===
+    "VCPPattern": "15m",  # Exp: 0.211%
+    "InsideBarBreakout": "15m",  # Exp: 0.255%
+    "DecelerationCandles": "15m",  # Exp: 0.172%
+    "ExtremeCandleRatio": "15m",  # Exp: 0.327%
+    "Fakeout": "15m",  # Exp: pending
+    # === VOLUME ANALYSIS (15m/5m) ===
+    "VolumeImbalance": "15m",  # Exp: 0.639%
+    "VolumeSpike": "5m",  # Exp: 0.818%
+    "VSAReversal": "5m",  # Exp: pending
+    "AbsorptionBlock": "5m",  # Exp: 0.347%
+    # === SMART MONEY CONCEPTS (15m) ===
+    "OrderBlock": "15m",  # Exp: pending
+    "LiquidityVoid": "15m",  # Exp: pending
+    "FVGRetest": "15m",  # Exp: 0.347%
+    "WyckoffSpring": "15m",  # Exp: 0.827%
+    # === MOMENTUM (15m best) ===
+    "MomentumBurst": "15m",  # Exp: 1.151% ⭐ TOP
+    "MicroTrend": "5m",  # Exp: 0.085%
+    "SmartRange": "1m",  # Exp: 0.088%
+    # === VWAP (1m/5m) ===
+    "VWAPDeviation": "1m",  # Exp: 0.500%
+    "VWAPBreakout": "15m",  # Exp: pending
+    "VWAPMomentum": "5m",  # Exp: 0.018%
+    # === REGIME DETECTION (15m) ===
+    "HurstRegime": "15m",  # Exp: 0.260%
+    "VolatilityWakeup": "15m",  # Exp: 0.753%
+    "SupportResistance": "15m",  # Exp: 0.340%
 }
 
 
@@ -153,150 +153,141 @@ SENSOR_TIMEFRAMES = {
 # Each sensor can have different TP/SL for different timeframes
 # Format: "SensorName": {"1m": {...}, "5m": {...}, "15m": {...}}
 SENSOR_PARAMS = {
-    # =====================================================
-    # MTF-OPTIMIZED SENSOR PARAMS (Generated 2025-12-04)
-    # Format: "SensorName": {"optimal_tf": {"tp_pct": X, "sl_pct": Y}}
-    # Sorted by expectancy (highest first)
-    # =====================================================
-    #
-    # --- TOP TIER: Exp > 1.0% ---
-    "MorningStar": {
-        "15m": {"tp_pct": 0.1500, "sl_pct": 0.0250},  # Exp: 1.730%
+    "ADXFilter": {
+        "15m": {"tp_pct": 0.0760, "sl_pct": 0.0790},  # Exp: 0.348%
     },
     "BollingerSqueeze": {
-        "15m": {"tp_pct": 0.1500, "sl_pct": 0.0400},  # Exp: 1.602%
+        "5m": {"tp_pct": 0.0230, "sl_pct": 0.0490},  # Exp: 0.193%
+        "15m": {"tp_pct": 0.1090, "sl_pct": 0.0400},  # Exp: 1.453%
     },
-    "MomentumBurst": {
-        "15m": {"tp_pct": 0.0550, "sl_pct": 0.0950},  # Exp: 1.151%
-    },
-    "KeltnerBreakout": {
-        "15m": {"tp_pct": 0.0750, "sl_pct": 0.0550},  # Exp: 1.018%
-    },
-    #
-    # --- HIGH TIER: Exp 0.5% - 1.0% ---
-    "WyckoffSpring": {
-        "15m": {"tp_pct": 0.1300, "sl_pct": 0.0200},  # Exp: 0.827%
-    },
-    "VolumeSpike": {
-        "5m": {"tp_pct": 0.1160, "sl_pct": 0.0680},  # Exp: 0.818%
-    },
-    "VolatilityWakeup": {
-        "15m": {"tp_pct": 0.0600, "sl_pct": 0.0950},  # Exp: 0.753%
-    },
-    "RailsPattern": {
-        "15m": {"tp_pct": 0.1250, "sl_pct": 0.0200},  # Exp: 0.663%
-    },
-    "VolumeImbalance": {
-        "15m": {"tp_pct": 0.1350, "sl_pct": 0.0550},  # Exp: 0.639%
-    },
-    "Supertrend": {
-        "15m": {"tp_pct": 0.1150, "sl_pct": 0.0400},  # Exp: 0.630%
-    },
-    "ThreeBar": {
-        "15m": {"tp_pct": 0.1000, "sl_pct": 0.0250},  # Exp: 0.629%
-    },
-    "EMACrossover": {
-        "15m": {"tp_pct": 0.0600, "sl_pct": 0.0800},  # Exp: 0.617%
-    },
-    "BollingerRejection": {
-        "15m": {"tp_pct": 0.1300, "sl_pct": 0.0250},  # Exp: 0.603%
-    },
-    "VWAPDeviation": {
-        "1m": {"tp_pct": 0.0970, "sl_pct": 0.0590},  # Exp: 0.500%
-    },
-    #
-    # --- MID TIER: Exp 0.2% - 0.5% ---
     "BollingerTouch": {
-        "5m": {"tp_pct": 0.0920, "sl_pct": 0.0800},  # Exp: 0.476%
-    },
-    "ADXFilter": {
-        "15m": {"tp_pct": 0.0750, "sl_pct": 0.0900},  # Exp: 0.445%
-    },
-    "PinBarReversal": {
-        "15m": {"tp_pct": 0.1300, "sl_pct": 0.0250},  # Exp: 0.371%
-    },
-    "AbsorptionBlock": {
-        "5m": {"tp_pct": 0.0320, "sl_pct": 0.0560},  # Exp: 0.347%
-    },
-    "FVGRetest": {
-        "15m": {"tp_pct": 0.1000, "sl_pct": 0.0500},  # Exp: 0.347%
-    },
-    "SupportResistance": {
-        "15m": {"tp_pct": 0.1300, "sl_pct": 0.0250},  # Exp: 0.340%
-    },
-    "ExtremeCandleRatio": {
-        "15m": {"tp_pct": 0.1100, "sl_pct": 0.0250},  # Exp: 0.327%
-    },
-    "MarubozuMomentum": {
-        "15m": {"tp_pct": 0.1500, "sl_pct": 0.0500},  # Exp: 0.307%
-    },
-    "DojiIndecision": {
-        "15m": {"tp_pct": 0.1500, "sl_pct": 0.0550},  # Exp: 0.271%
-    },
-    "MACDCrossover": {
-        "15m": {"tp_pct": 0.1000, "sl_pct": 0.0350},  # Exp: 0.268%
-    },
-    "HurstRegime": {
-        "15m": {"tp_pct": 0.1200, "sl_pct": 0.0300},  # Exp: 0.260%
-    },
-    "InsideBarBreakout": {
-        "15m": {"tp_pct": 0.1300, "sl_pct": 0.0250},  # Exp: 0.255%
-    },
-    "ZScoreReversion": {
-        "15m": {"tp_pct": 0.1350, "sl_pct": 0.0150},  # Exp: 0.255%
-    },
-    "TweezerPattern": {
-        "15m": {"tp_pct": 0.1300, "sl_pct": 0.0300},  # Exp: 0.247%
-    },
-    "VCPPattern": {
-        "15m": {"tp_pct": 0.1300, "sl_pct": 0.0250},  # Exp: 0.211%
-    },
-    "KeltnerReversion": {
-        "5m": {"tp_pct": 0.0950, "sl_pct": 0.0770},  # Exp: 0.202%
-    },
-    #
-    # --- LOW TIER: Exp 0.05% - 0.2% ---
-    "DecelerationCandles": {
-        "15m": {"tp_pct": 0.1300, "sl_pct": 0.0200},  # Exp: 0.172%
-    },
-    "LongTail": {
-        "5m": {"tp_pct": 0.1100, "sl_pct": 0.0110},  # Exp: 0.168%
+        "1m": {"tp_pct": 0.0270, "sl_pct": 0.0140},  # Exp: 0.492%
+        "5m": {"tp_pct": 0.0770, "sl_pct": 0.0330},  # Exp: 0.372%
+        "15m": {"tp_pct": 0.0940, "sl_pct": 0.0160},  # Exp: 0.599%
     },
     "CCIReversion": {
-        "5m": {"tp_pct": 0.0710, "sl_pct": 0.0800},  # Exp: 0.133%
+        "1m": {"tp_pct": 0.0070, "sl_pct": 0.0300},  # Exp: 0.303%
+        "5m": {"tp_pct": 0.0710, "sl_pct": 0.0470},  # Exp: 0.136%
+        "15m": {"tp_pct": 0.1180, "sl_pct": 0.0190},  # Exp: 0.142%
     },
-    "AdaptiveRSI": {
-        "15m": {"tp_pct": 0.1050, "sl_pct": 0.0300},  # Exp: 0.130%
+    "DecelerationCandles": {
+        "1m": {"tp_pct": 0.0070, "sl_pct": 0.0200},  # Exp: 0.238%
+        "15m": {"tp_pct": 0.1180, "sl_pct": 0.0190},  # Exp: 0.185%
     },
-    "WickRejection": {
-        "5m": {"tp_pct": 0.0410, "sl_pct": 0.0770},  # Exp: 0.104%
-    },
-    "StochasticReversion": {
-        "5m": {"tp_pct": 0.0680, "sl_pct": 0.0800},  # Exp: 0.099%
+    "DojiIndecision": {
+        "1m": {"tp_pct": 0.0310, "sl_pct": 0.0080},  # Exp: 0.205%
+        "5m": {"tp_pct": 0.0690, "sl_pct": 0.0350},  # Exp: 0.162%
+        "15m": {"tp_pct": 0.0760, "sl_pct": 0.0550},  # Exp: 0.251%
     },
     "EMA50Support": {
-        "15m": {"tp_pct": 0.1100, "sl_pct": 0.0400},  # Exp: 0.095%
+        "1m": {"tp_pct": 0.0090, "sl_pct": 0.0180},  # Exp: 0.274%
+        "15m": {"tp_pct": 0.1120, "sl_pct": 0.0430},  # Exp: 0.248%
     },
-    "RSIReversion": {
-        "15m": {"tp_pct": 0.1300, "sl_pct": 0.0200},  # Exp: 0.092%
-    },
-    "SmartRange": {
-        "1m": {"tp_pct": 0.0310, "sl_pct": 0.0250},  # Exp: 0.088%
-    },
-    "MicroTrend": {
-        "5m": {"tp_pct": 0.0680, "sl_pct": 0.0530},  # Exp: 0.085%
-    },
-    "WilliamsRReversion": {
-        "5m": {"tp_pct": 0.0680, "sl_pct": 0.0800},  # Exp: 0.083%
-    },
-    "VWAPMomentum": {
-        "5m": {"tp_pct": 0.0530, "sl_pct": 0.0440},  # Exp: 0.018%
+    "EMACrossover": {
+        "1m": {"tp_pct": 0.0050, "sl_pct": 0.0290},  # Exp: 0.112%
+        "15m": {"tp_pct": 0.1180, "sl_pct": 0.0280},  # Exp: 0.473%
     },
     "EngulfingPattern": {
-        "1m": {"tp_pct": 0.0990, "sl_pct": 0.0110},  # Exp: 0.014%
+        "1m": {"tp_pct": 0.0140, "sl_pct": 0.0220},  # Exp: 0.448%
     },
-    #
-    # --- DEFAULT FALLBACK (for sensors not in optimization) ---
+    "ExtremeCandleRatio": {
+        "1m": {"tp_pct": 0.0050, "sl_pct": 0.0280},  # Exp: 0.065%
+        "15m": {"tp_pct": 0.1120, "sl_pct": 0.0250},  # Exp: 0.322%
+    },
+    "FVGRetest": {
+        "1m": {"tp_pct": 0.0080, "sl_pct": 0.0190},  # Exp: 0.039%
+        "15m": {"tp_pct": 0.1000, "sl_pct": 0.0310},  # Exp: 0.339%
+    },
+    "InsideBarBreakout": {
+        "1m": {"tp_pct": 0.0060, "sl_pct": 0.0300},  # Exp: 0.034%
+        "5m": {"tp_pct": 0.0730, "sl_pct": 0.0350},  # Exp: 0.057%
+        "15m": {"tp_pct": 0.1180, "sl_pct": 0.0250},  # Exp: 0.176%
+    },
+    "KeltnerReversion": {
+        "1m": {"tp_pct": 0.0120, "sl_pct": 0.0270},  # Exp: 0.396%
+        "5m": {"tp_pct": 0.0790, "sl_pct": 0.0410},  # Exp: 0.152%
+        "15m": {"tp_pct": 0.1090, "sl_pct": 0.0100},  # Exp: 0.100%
+    },
+    "MACDCrossover": {
+        "1m": {"tp_pct": 0.0040, "sl_pct": 0.0270},  # Exp: 0.144%
+        "5m": {"tp_pct": 0.0690, "sl_pct": 0.0350},  # Exp: 0.019%
+        "15m": {"tp_pct": 0.1030, "sl_pct": 0.0340},  # Exp: 0.269%
+    },
+    "MarubozuMomentum": {
+        "15m": {"tp_pct": 0.1180, "sl_pct": 0.0460},  # Exp: 0.279%
+    },
+    "MomentumBurst": {
+        "1m": {"tp_pct": 0.0050, "sl_pct": 0.0270},  # Exp: 0.278%
+        "15m": {"tp_pct": 0.1060, "sl_pct": 0.0250},  # Exp: 0.672%
+    },
+    "MorningStar": {
+        "5m": {"tp_pct": 0.0690, "sl_pct": 0.0370},  # Exp: 0.141%
+        "15m": {"tp_pct": 0.1180, "sl_pct": 0.0250},  # Exp: 1.505%
+    },
+    "PinBarReversal": {
+        "1m": {"tp_pct": 0.0050, "sl_pct": 0.0290},  # Exp: 0.122%
+        "5m": {"tp_pct": 0.0690, "sl_pct": 0.0290},  # Exp: 0.205%
+        "15m": {"tp_pct": 0.1180, "sl_pct": 0.0250},  # Exp: 0.326%
+    },
+    "RSIReversion": {
+        "1m": {"tp_pct": 0.0060, "sl_pct": 0.0300},  # Exp: 0.157%
+        "15m": {"tp_pct": 0.1180, "sl_pct": 0.0220},  # Exp: 0.104%
+    },
+    "RailsPattern": {
+        "1m": {"tp_pct": 0.0060, "sl_pct": 0.0290},  # Exp: 0.210%
+        "15m": {"tp_pct": 0.1180, "sl_pct": 0.0370},  # Exp: 0.577%
+    },
+    "StochasticReversion": {
+        "1m": {"tp_pct": 0.0080, "sl_pct": 0.0290},  # Exp: 0.286%
+        "5m": {"tp_pct": 0.0690, "sl_pct": 0.0490},  # Exp: 0.104%
+    },
+    "Supertrend": {
+        "1m": {"tp_pct": 0.0040, "sl_pct": 0.0180},  # Exp: 0.148%
+        "5m": {"tp_pct": 0.0610, "sl_pct": 0.0290},  # Exp: 0.154%
+        "15m": {"tp_pct": 0.1150, "sl_pct": 0.0400},  # Exp: 0.630%
+    },
+    "VCPPattern": {
+        "1m": {"tp_pct": 0.0080, "sl_pct": 0.0300},  # Exp: 0.078%
+        "15m": {"tp_pct": 0.1180, "sl_pct": 0.0250},  # Exp: 0.199%
+    },
+    "VWAPDeviation": {
+        "5m": {"tp_pct": 0.0370, "sl_pct": 0.0490},  # Exp: 0.159%
+        "15m": {"tp_pct": 0.0970, "sl_pct": 0.0520},  # Exp: 0.031%
+    },
+    "VolumeImbalance": {
+        "1m": {"tp_pct": 0.0050, "sl_pct": 0.0290},  # Exp: 0.107%
+        "15m": {"tp_pct": 0.1120, "sl_pct": 0.0490},  # Exp: 0.637%
+    },
+    "WilliamsRReversion": {
+        "1m": {"tp_pct": 0.0080, "sl_pct": 0.0300},  # Exp: 0.250%
+        "5m": {"tp_pct": 0.0690, "sl_pct": 0.0490},  # Exp: 0.084%
+        "15m": {"tp_pct": 0.1180, "sl_pct": 0.0190},  # Exp: 0.009%
+    },
+    "ZScoreReversion": {
+        "1m": {"tp_pct": 0.0270, "sl_pct": 0.0260},  # Exp: 0.356%
+        "5m": {"tp_pct": 0.0770, "sl_pct": 0.0330},  # Exp: 0.061%
+        "15m": {"tp_pct": 0.0940, "sl_pct": 0.0160},  # Exp: 0.317%
+    },
+    # Legacy parameters for sensors not yet optimized for multi-TF
+    "HurstRegime": {"hurst_period": 50, "hurst_threshold": 0.5},
+    "FakeoutReversal": {"breakout_threshold_pct": 0.002, "lookback_candles": 10, "reversal_body_pct": 0.6},
+    "ThreeBarReversal": {"range_decrease_threshold": 0.7, "close_position_threshold": 0.4},
+    "MorningStarEvening": {"min_large_body_pct": 0.004, "max_star_body_pct": 0.002, "confirmation_threshold": 0.5},
+    "TweezerPattern": {"max_wick_diff_pct": 0.0005, "min_second_body_pct": 0.002},
+    "VolumeSpikeReversal": {"volume_multiplier": 3.0, "min_body_pct": 0.004},
+    "HigherTFTrendConfirm": {"higher_tf": 5, "ema_period": 20},
+    "OrderBlockBreakout": {"block_size": 3, "max_range_pct": 0.001, "breakout_pct": 0.003},
+    "LiquidityVoid": {"gap_pct": 0.002, "max_volume_pct": 0.001},
+    "LongTailDistribution": {"n_small": 5, "factor": 3.0},
+    "WyckoffSpring": {"lookback": 20, "volume_factor": 1.5},
+    "AbsorptionBlock": {"volume_factor": 2.0, "body_factor": 0.3},
+    "MultiTimeframeImpulse": {"ema_period": 20},
+    "AggressiveVolume": {"volume_multiplier": 2.0, "min_body_pct": 0.002},
+    "VolumeDelta": {"lookback": 10, "delta_threshold": 0.6},
+    "WickRejection": {"wick_to_body_ratio": 2.0, "min_wick_pct": 0.003},
+    "MomentumPinball": {"ema_period": 34, "rsi_period": 2, "oversold": 10, "overbought": 90},
+    "VWAPBreakout": {"std_dev_mult": 1.0, "volume_factor": 1.2, "adx_threshold": 20.0},
+    # Default TP/SL parameters per timeframe (fallback)
     "_default": {
         "1m": {"tp_pct": 0.0150, "sl_pct": 0.0100},
         "5m": {"tp_pct": 0.0300, "sl_pct": 0.0200},
