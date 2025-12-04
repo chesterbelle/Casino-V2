@@ -142,11 +142,40 @@ class SignalAggregatorV3:
                 del self.signal_buffer[candle_ts]
             return
 
-        # Score all valid signals
+        # 2. Extract HTF context from context sensors (HigherTFTrend, HurstRegime)
+        context_sensors = {"HigherTFTrend", "HurstRegime", "MTFImpulse"}
+        htf_context = None  # "LONG", "SHORT", or None
+
+        for signal in valid_signals:
+            if signal.sensor_id in context_sensors:
+                htf_context = signal.side
+                logger.debug(f"📊 HTF Context: {signal.sensor_id} = {htf_context}")
+                break
+
+        # 3. Score all valid signals with context adjustment
         scored_signals = []
+        CONTEXT_BOOST = 1.2  # 20% boost for aligned signals
+        CONTEXT_PENALTY = 0.8  # 20% penalty for opposing signals
+
         for signal in valid_signals:
             sensor_id = signal.sensor_id if hasattr(signal, "sensor_id") else "Unknown"
-            score = self.tracker.get_sensor_score(sensor_id)
+            base_score = self.tracker.get_sensor_score(sensor_id)
+
+            # Apply context adjustment (skip for context sensors themselves)
+            if htf_context and sensor_id not in context_sensors:
+                if signal.side == htf_context:
+                    # Signal aligns with HTF trend - boost
+                    score = base_score * CONTEXT_BOOST
+                    logger.debug(
+                        f"   ⬆️ {sensor_id} boosted: {base_score:.3f} → {score:.3f} (aligned with {htf_context})"
+                    )
+                else:
+                    # Signal opposes HTF trend - penalize
+                    score = base_score * CONTEXT_PENALTY
+                    logger.debug(f"   ⬇️ {sensor_id} penalized: {base_score:.3f} → {score:.3f} (against {htf_context})")
+            else:
+                score = base_score
+
             scored_signals.append({"signal": signal, "sensor_id": sensor_id, "score": score, "side": signal.side})
 
         # Select best signal
