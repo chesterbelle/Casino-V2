@@ -1,176 +1,278 @@
 """
 ====================================================
-🎯 STRATEGY CONFIGURATION — CASINO V3
+🎯 SENSOR TYPES & TRADING STRATEGIES — CASINO V3
 ====================================================
 
-Defines trading strategies as groups of sensors.
-Only sensors from enabled strategies will be loaded.
+ARCHITECTURE:
+- SENSOR_TYPES: Categorize sensors by WHAT they detect
+- STRATEGIES: Define HOW to trade, using sensors from any type
 
-This solves the problem of conflicting signals from
-incompatible sensors (e.g., trend vs reversal).
+A sensor belongs to ONE type but can be used in MULTIPLE strategies.
 """
 
 from typing import Dict, List, Set
 
 # =====================================================
-# 📊 STRATEGY DEFINITIONS
+# 📊 SENSOR TYPES (What the sensor detects)
+# =====================================================
+
+SENSOR_TYPES: Dict[str, List[str]] = {
+    # -----------------------------------------------------
+    # TREND INDICATORS - Direction of the market
+    # -----------------------------------------------------
+    "TrendIndicator": [
+        "EMACrossover",
+        "MACDCrossover",
+        "Supertrend",
+        "ADXFilter",
+        "ParabolicSAR",
+        "HigherTFTrend",
+        "MTFImpulse",
+    ],
+    # -----------------------------------------------------
+    # OSCILLATORS - Overbought/Oversold conditions
+    # -----------------------------------------------------
+    "Oscillator": [
+        "RSIReversion",
+        "StochasticReversion",
+        "CCIReversion",
+        "WilliamsRReversion",
+        "AdaptiveRSI",
+    ],
+    # -----------------------------------------------------
+    # VOLATILITY/BANDS - Price relative to bands
+    # -----------------------------------------------------
+    "VolatilityBands": [
+        "BollingerTouch",
+        "BollingerSqueeze",
+        "BollingerRejection",
+        "KeltnerReversion",
+        "KeltnerBreakout",
+        "ZScoreReversion",
+    ],
+    # -----------------------------------------------------
+    # CANDLESTICK PATTERNS - Single/Multi candle formations
+    # -----------------------------------------------------
+    "CandlestickPattern": [
+        "EngulfingPattern",
+        "PinBarReversal",
+        "RailsPattern",
+        "MorningStar",
+        "DojiIndecision",
+        "TweezerPattern",
+        "ThreeBar",
+        "MarubozuMomentum",
+        "WickRejection",
+        "LongTail",
+    ],
+    # -----------------------------------------------------
+    # STRUCTURAL PATTERNS - Multi-bar structures
+    # -----------------------------------------------------
+    "StructuralPattern": [
+        "VCPPattern",
+        "InsideBarBreakout",
+        "DecelerationCandles",
+        "ExtremeCandleRatio",
+        "Fakeout",
+    ],
+    # -----------------------------------------------------
+    # VOLUME ANALYSIS - Volume-based signals
+    # -----------------------------------------------------
+    "VolumeAnalysis": [
+        "VolumeImbalance",
+        "VolumeSpike",
+        "VSAReversal",
+        "AbsorptionBlock",
+    ],
+    # -----------------------------------------------------
+    # SMART MONEY / ICT - Institutional concepts
+    # -----------------------------------------------------
+    "SmartMoneyConcepts": [
+        "OrderBlock",
+        "LiquidityVoid",
+        "FVGRetest",
+        "WyckoffSpring",
+    ],
+    # -----------------------------------------------------
+    # VWAP BASED - Volume-weighted average price
+    # -----------------------------------------------------
+    "VWAPBased": [
+        "VWAPDeviation",
+        "VWAPBreakout",
+        "VWAPMomentum",
+    ],
+    # -----------------------------------------------------
+    # SUPPORT/RESISTANCE - Key price levels
+    # -----------------------------------------------------
+    "SupportResistance": [
+        "EMA50Support",
+        "SupportResistance",
+    ],
+    # -----------------------------------------------------
+    # REGIME/FILTER - Market condition detection
+    # -----------------------------------------------------
+    "RegimeFilter": [
+        "HurstRegime",
+        "VolatilityWakeup",
+        "MicroTrend",
+        "SmartRange",
+        "MomentumBurst",
+    ],
+}
+
+
+# =====================================================
+# 🎯 TRADING STRATEGIES (How to trade)
 # =====================================================
 
 STRATEGIES: Dict[str, dict] = {
     # -----------------------------------------------------
-    # TREND FOLLOWING - Use in trending markets (ADX > 25)
-    # Best for: Strong directional moves
+    # TREND RIDER - Seguir la dirección del mercado
     # -----------------------------------------------------
-    "TrendFollowing": {
+    "TrendRider": {
         "enabled": True,
-        "description": "Follows established trends using momentum indicators",
-        "market_condition": "trending",
+        "description": "Seguir la dirección del mercado con momentum",
+        "logic": "Entrar en pullbacks dentro de tendencias establecidas",
         "sensors": [
+            # Trend Indicators
             "EMACrossover",
             "MACDCrossover",
             "Supertrend",
             "ADXFilter",
+            "ParabolicSAR",
+            # Momentum
             "MomentumBurst",
             "MarubozuMomentum",
-            "ParabolicSAR",
-            "HigherTFTrend",  # Multi-timeframe trend confirmation
-            "MTFImpulse",  # Multi-timeframe impulse
+            # Multi-timeframe
+            "HigherTFTrend",
+            "MTFImpulse",
         ],
         "tp_multiplier": 1.5,
+        "sl_multiplier": 1.0,
         "max_positions": 2,
     },
     # -----------------------------------------------------
-    # MEAN REVERSION - Use in ranging/choppy markets
-    # Best for: Oscillating price action
+    # MEAN REVERTER - Operar extremos esperando reversión
     # -----------------------------------------------------
-    "MeanReversion": {
+    "MeanReverter": {
         "enabled": False,
-        "description": "Fades extremes expecting price to revert to mean",
-        "market_condition": "ranging",
+        "description": "Operar extremos esperando reversión a la media",
+        "logic": "Fade en zonas de sobrecompra/sobreventa",
         "sensors": [
+            # Oscillators
             "RSIReversion",
-            "BollingerTouch",
-            "CCIReversion",
             "StochasticReversion",
-            "ZScoreReversion",
+            "CCIReversion",
             "WilliamsRReversion",
+            "AdaptiveRSI",
+            # Bands
+            "BollingerTouch",
             "KeltnerReversion",
-            "AdaptiveRSI",  # Adaptive RSI scalper
-            "BollingerRejection",  # Bollinger band rejection
+            "ZScoreReversion",
+            # Patterns at extremes
+            "PinBarReversal",
+            "DojiIndecision",
         ],
         "tp_multiplier": 0.8,
+        "sl_multiplier": 1.0,
         "max_positions": 3,
     },
     # -----------------------------------------------------
-    # BREAKOUT - Use after compression/consolidation
-    # Best for: Volatility expansion after squeeze
+    # BREAKOUT HUNTER - Capturar movimientos explosivos
     # -----------------------------------------------------
-    "Breakout": {
+    "BreakoutHunter": {
         "enabled": False,
-        "description": "Captures explosive moves after tight ranges",
-        "market_condition": "compression",
+        "description": "Capturar movimientos explosivos después de compresión",
+        "logic": "Entrar cuando volatilidad se expande desde rango",
         "sensors": [
+            # Structural
             "VCPPattern",
             "InsideBarBreakout",
+            # Volatility expansion
             "BollingerSqueeze",
+            "KeltnerBreakout",
+            "VolatilityWakeup",
+            # Volume confirmation
             "VolumeImbalance",
-            "KeltnerBreakout",  # Keltner channel breakout
-            "VWAPBreakout",  # VWAP breakout
-            "VolatilityWakeup",  # Volatility expansion
+            # VWAP
+            "VWAPBreakout",
         ],
         "tp_multiplier": 2.0,
+        "sl_multiplier": 0.8,
         "max_positions": 1,
     },
     # -----------------------------------------------------
-    # PATTERN RECOGNITION - Candlestick reversal patterns
-    # Best for: Price action reversals
+    # QUICK SCALPER - Trades rápidos con stops ajustados
     # -----------------------------------------------------
-    "PatternReversal": {
+    "QuickScalper": {
         "enabled": False,
-        "description": "Identifies candlestick reversal patterns",
-        "market_condition": "any",
+        "description": "Trades rápidos con stops ajustados",
+        "logic": "Entradas precisas, salidas rápidas, alto volumen",
         "sensors": [
+            # Quick patterns
+            "DecelerationCandles",
+            "ExtremeCandleRatio",
+            "Fakeout",
+            # Short-term
+            "MicroTrend",
+            "SmartRange",
+            # Fast oscillators
+            "AdaptiveRSI",
+            "StochasticReversion",
+        ],
+        "tp_multiplier": 0.5,
+        "sl_multiplier": 0.5,
+        "max_positions": 1,
+    },
+    # -----------------------------------------------------
+    # SMART MONEY FOLLOWER - Seguir flujo institucional
+    # -----------------------------------------------------
+    "SmartMoneyFollower": {
+        "enabled": False,
+        "description": "Seguir huellas institucionales y manipulación",
+        "logic": "Detectar acumulación/distribución y actuar con smart money",
+        "sensors": [
+            # ICT Concepts
+            "OrderBlock",
+            "LiquidityVoid",
+            "FVGRetest",
+            "WyckoffSpring",
+            # Volume
+            "AbsorptionBlock",
+            "VSAReversal",
+            "VolumeSpike",
+            # VWAP
+            "VWAPMomentum",
+            "VWAPDeviation",
+        ],
+        "tp_multiplier": 1.5,
+        "sl_multiplier": 1.0,
+        "max_positions": 2,
+    },
+    # -----------------------------------------------------
+    # PATTERN TRADER - Operar patrones de velas
+    # -----------------------------------------------------
+    "PatternTrader": {
+        "enabled": False,
+        "description": "Operar patrones clásicos de velas",
+        "logic": "Identificar reversiones con patrones de alta probabilidad",
+        "sensors": [
+            # Candlestick patterns
             "EngulfingPattern",
             "PinBarReversal",
             "RailsPattern",
             "MorningStar",
-            "DojiIndecision",
-            "TweezerPattern",  # Tweezer tops/bottoms
-            "ThreeBar",  # Three bar reversal
-            "WickRejection",  # Wick rejection pattern
-            "LongTail",  # Long tail distribution
-        ],
-        "tp_multiplier": 1.0,
-        "max_positions": 2,
-    },
-    # -----------------------------------------------------
-    # SUPPORT/RESISTANCE - Price action at key levels
-    # Best for: Bounces off significant price levels
-    # -----------------------------------------------------
-    "SupportResistance": {
-        "enabled": False,
-        "description": "Trades bounces off key price levels",
-        "market_condition": "any",
-        "sensors": [
+            "TweezerPattern",
+            "ThreeBar",
+            "WickRejection",
+            "LongTail",
+            # Context
             "EMA50Support",
-            "VWAPDeviation",
-            "FVGRetest",  # Fair value gap retest
-            "SupportResistance",  # S/R bounce
-        ],
-        "tp_multiplier": 1.2,
-        "max_positions": 2,
-    },
-    # -----------------------------------------------------
-    # SMART MONEY / ORDER FLOW - Institutional patterns
-    # Best for: Following smart money footprints
-    # -----------------------------------------------------
-    "SmartMoney": {
-        "enabled": False,
-        "description": "Detects institutional order flow and manipulation",
-        "market_condition": "any",
-        "sensors": [
-            "OrderBlock",  # Institutional order blocks
-            "LiquidityVoid",  # Liquidity gaps
-            "AbsorptionBlock",  # Volume absorption
-            "WyckoffSpring",  # Wyckoff spring/upthrust
-            "VSAReversal",  # Volume spread analysis
-            "VolumeSpike",  # Volume spike reversal
-            "VWAPMomentum",  # VWAP momentum
-        ],
-        "tp_multiplier": 1.5,
-        "max_positions": 2,
-    },
-    # -----------------------------------------------------
-    # AGGRESSIVE SCALPING - High frequency, small targets
-    # Best for: Quick trades in volatile conditions
-    # -----------------------------------------------------
-    "AggressiveScalping": {
-        "enabled": False,
-        "description": "Quick in-and-out trades with tight stops",
-        "market_condition": "volatile",
-        "sensors": [
-            "DecelerationCandles",
-            "ExtremeCandleRatio",
-            "MicroTrend",  # Micro trend pullback
-            "SmartRange",  # Smart range scalper
-            "Fakeout",  # Fakeout reversal
-        ],
-        "tp_multiplier": 0.5,
-        "max_positions": 1,
-    },
-    # -----------------------------------------------------
-    # REGIME DETECTION - Market structure analysis
-    # Best for: Filtering or confirming other signals
-    # -----------------------------------------------------
-    "RegimeFilters": {
-        "enabled": False,
-        "description": "Detects market regime for signal filtering",
-        "market_condition": "filter",
-        "sensors": [
-            "HurstRegime",  # Hurst exponent regime
+            "SupportResistance",
         ],
         "tp_multiplier": 1.0,
-        "max_positions": 1,
+        "sl_multiplier": 1.0,
+        "max_positions": 2,
     },
 }
 
@@ -180,19 +282,23 @@ STRATEGIES: Dict[str, dict] = {
 # =====================================================
 
 
+def get_sensor_type(sensor_name: str) -> str:
+    """Get the type category for a sensor."""
+    for type_name, sensors in SENSOR_TYPES.items():
+        if sensor_name in sensors:
+            return type_name
+    return "Unknown"
+
+
+def get_sensors_by_type(type_name: str) -> List[str]:
+    """Get all sensors of a specific type."""
+    return SENSOR_TYPES.get(type_name, [])
+
+
 def get_active_sensors() -> Set[str]:
-    """
-    Get sensors from all enabled strategies.
-
-    Returns:
-        Set of sensor names that should be active.
-
-    Example:
-        >>> get_active_sensors()
-        {'EMACrossover', 'MACDCrossover', 'Supertrend', ...}
-    """
+    """Get sensors from all enabled strategies."""
     active = set()
-    for name, config in STRATEGIES.items():
+    for config in STRATEGIES.values():
         if config.get("enabled", False):
             active.update(config.get("sensors", []))
     return active
@@ -203,20 +309,13 @@ def get_enabled_strategies() -> List[str]:
     return [name for name, config in STRATEGIES.items() if config.get("enabled", False)]
 
 
-def get_strategy_for_sensor(sensor_name: str) -> str:
-    """
-    Find which strategy a sensor belongs to.
-
-    Args:
-        sensor_name: Name of the sensor
-
-    Returns:
-        Strategy name or "Unknown"
-    """
+def get_strategy_for_sensor(sensor_name: str) -> List[str]:
+    """Find which strategies use a sensor (can be multiple)."""
+    strategies = []
     for name, config in STRATEGIES.items():
         if sensor_name in config.get("sensors", []):
-            return name
-    return "Unknown"
+            strategies.append(name)
+    return strategies
 
 
 def get_strategy_config(strategy_name: str) -> dict:
@@ -224,21 +323,13 @@ def get_strategy_config(strategy_name: str) -> dict:
     return STRATEGIES.get(strategy_name, {})
 
 
-def enable_strategy(strategy_name: str) -> bool:
-    """Enable a strategy by name."""
-    if strategy_name in STRATEGIES:
-        STRATEGIES[strategy_name]["enabled"] = True
-        return True
-    return False
-
-
-def disable_all_strategies():
-    """Disable all strategies."""
-    for config in STRATEGIES.values():
-        config["enabled"] = False
-
-
 def enable_only(strategy_name: str):
     """Enable only the specified strategy, disable others."""
-    disable_all_strategies()
-    enable_strategy(strategy_name)
+    for name, config in STRATEGIES.items():
+        config["enabled"] = name == strategy_name
+
+
+def enable_strategies(strategy_names: List[str]):
+    """Enable multiple strategies."""
+    for name, config in STRATEGIES.items():
+        config["enabled"] = name in strategy_names
