@@ -41,6 +41,12 @@ ACTIVE_SENSORS = {
     "VolumeImbalance": True,
     "WilliamsRReversion": True,
     "ZScoreReversion": True,
+    # === QUICKSCALPER SENSORS (Active for demo) ===
+    "Fakeout": True,
+    "MicroTrend": True,
+    "SmartRange": True,
+    "AdaptiveRSI": True,
+    "HigherTFTrend": True,  # Context sensor
     # === DISABLED / NOT OPTIMIZED ===
     "OrderBlock": False,  # No trades generated in 30d
     "VWAPBreakout": False,

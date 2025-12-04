@@ -130,7 +130,7 @@ STRATEGIES: Dict[str, dict] = {
     # TREND RIDER - Seguir la dirección del mercado
     # -----------------------------------------------------
     "TrendRider": {
-        "enabled": True,
+        "enabled": False,  # Disabled for demo - using QuickScalper
         "description": "Seguir la dirección del mercado con momentum",
         "logic": "Entrar en pullbacks dentro de tendencias establecidas",
         "sensors": [
@@ -203,7 +203,7 @@ STRATEGIES: Dict[str, dict] = {
     # QUICK SCALPER - Trades rápidos con stops ajustados
     # -----------------------------------------------------
     "QuickScalper": {
-        "enabled": False,
+        "enabled": True,  # Active for demo - fast signals
         "description": "Trades rápidos con stops ajustados",
         "logic": "Entradas precisas, salidas rápidas, alto volumen",
         "sensors": [
