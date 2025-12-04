@@ -14,6 +14,7 @@ Version: 3.0.0
 import logging
 from typing import Any, Dict, List
 
+from core.error_handling import RetryConfig, get_error_handler
 from core.portfolio.position_tracker import PositionTracker
 
 
@@ -48,7 +49,11 @@ class ReconciliationService:
         self.adapter = exchange_adapter
         self.tracker = position_tracker
         self.oco_manager = oco_manager
+        self.error_handler = get_error_handler()
         self.logger = logging.getLogger("ReconciliationService")
+
+        # Retry config for reconciliation operations
+        self.reconcile_retry_config = RetryConfig(max_retries=3, backoff_base=1.0, backoff_factor=2.0, jitter=True)
 
     async def reconcile_symbol(self, symbol: str) -> Dict[str, Any]:
         """
@@ -215,9 +220,11 @@ class ReconciliationService:
             self.logger.error(f"❌ Failed to close position {position.trade_id}: {e}")
 
     async def _fetch_exchange_positions(self, symbol: str) -> List[Dict]:
-        """Fetch positions from exchange."""
+        """Fetch positions from exchange with retry logic."""
         try:
-            positions = await self.adapter.fetch_positions([symbol])
+            positions = await self.error_handler.execute_with_breaker(
+                "reconciliation_fetch", self.adapter.fetch_positions, [symbol], retry_config=self.reconcile_retry_config
+            )
             return positions or []
         except Exception as e:
             self.logger.error(f"❌ Failed to fetch exchange positions: {e}")
@@ -266,8 +273,10 @@ class ReconciliationService:
             Number of orders cancelled
         """
         try:
-            # Fetch all open orders for symbol
-            open_orders = await self.adapter.fetch_open_orders(symbol)
+            # Fetch all open orders for symbol with retry
+            open_orders = await self.error_handler.execute_with_breaker(
+                "reconciliation_fetch", self.adapter.fetch_open_orders, symbol, retry_config=self.reconcile_retry_config
+            )
 
             if not open_orders:
                 return 0
@@ -283,13 +292,18 @@ class ReconciliationService:
                     if pos.sl_order_id:
                         tracked_order_ids.add(pos.sl_order_id)
 
-            # Cancel orphaned orders
+            # Cancel orphaned orders with retry
             cancelled_count = 0
             for order in open_orders:
                 order_id = order.get("id")
                 if order_id and order_id not in tracked_order_ids:
                     try:
-                        await self.adapter.cancel_order(order_id)
+                        await self.error_handler.execute_with_breaker(
+                            "reconciliation_cancel",
+                            self.adapter.cancel_order,
+                            order_id,
+                            retry_config=self.reconcile_retry_config,
+                        )
                         self.logger.info(f"🧹 Cancelled orphaned order: {order_id}")
                         cancelled_count += 1
                     except Exception as e:

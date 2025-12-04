@@ -17,6 +17,7 @@ import logging
 import time
 from typing import Any, Dict, Optional
 
+from core.error_handling import RetryConfig, get_error_handler
 from core.portfolio.position_tracker import PositionTracker
 
 
@@ -62,7 +63,13 @@ class OCOManager:
         self.executor = order_executor
         self.tracker = position_tracker
         self.adapter = exchange_adapter
+        self.error_handler = get_error_handler()
         self.logger = logging.getLogger("OCOManager")
+
+        # Retry configuration for TP/SL operations (more aggressive than market orders)
+        self.tpsl_retry_config = RetryConfig(
+            max_retries=5, backoff_base=0.5, backoff_factor=1.5, backoff_max=10.0, jitter=True
+        )
 
     async def create_bracketed_order(
         self, order: Dict[str, Any], wait_for_fill: bool = True, fill_timeout: float = 30.0
@@ -279,22 +286,40 @@ class OCOManager:
         return tp_price, sl_price
 
     async def _create_tp_order(self, symbol: str, side: str, amount: float, tp_price: float) -> Dict[str, Any]:
-        """Create take profit limit order."""
+        """Create take profit limit order with retry logic."""
         # TP is opposite side of entry
         tp_side = "sell" if side == "LONG" else "buy"
 
         self.logger.info(f"📈 Creating TP order @ {tp_price}")
 
-        return await self.executor.execute_limit_order(symbol=symbol, side=tp_side, amount=amount, price=tp_price)
+        # Use error handler with retry for TP order creation
+        return await self.error_handler.execute_with_breaker(
+            "oco_tp_orders",
+            self.executor.execute_limit_order,
+            symbol=symbol,
+            side=tp_side,
+            amount=amount,
+            price=tp_price,
+            retry_config=self.tpsl_retry_config,
+        )
 
     async def _create_sl_order(self, symbol: str, side: str, amount: float, sl_price: float) -> Dict[str, Any]:
-        """Create stop loss order."""
+        """Create stop loss order with retry logic."""
         # SL is opposite side of entry
         sl_side = "sell" if side == "LONG" else "buy"
 
         self.logger.info(f"📉 Creating SL order @ stop {sl_price}")
 
-        return await self.executor.execute_stop_order(symbol=symbol, side=sl_side, amount=amount, stop_price=sl_price)
+        # Use error handler with retry for SL order creation
+        return await self.error_handler.execute_with_breaker(
+            "oco_sl_orders",
+            self.executor.execute_stop_order,
+            symbol=symbol,
+            side=sl_side,
+            amount=amount,
+            stop_price=sl_price,
+            retry_config=self.tpsl_retry_config,
+        )
 
     def _validate_oco_complete(
         self, main_order: Optional[Dict], tp_order: Optional[Dict], sl_order: Optional[Dict]
@@ -355,18 +380,24 @@ class OCOManager:
 
     async def cancel_bracket(self, tp_order_id: Optional[str], sl_order_id: Optional[str]) -> None:
         """
-        Cancel TP and SL orders for a position.
+        Cancel TP and SL orders for a position with retry logic.
         """
+        cancel_retry_config = RetryConfig(max_retries=3, backoff_base=0.3, backoff_factor=2.0, jitter=True)
+
         if tp_order_id:
             try:
-                await self.adapter.cancel_order(tp_order_id)
+                await self.error_handler.execute_with_breaker(
+                    "oco_cancel", self.adapter.cancel_order, tp_order_id, retry_config=cancel_retry_config
+                )
                 self.logger.info(f"✅ Cancelled TP order: {tp_order_id}")
             except Exception as e:
                 self.logger.warning(f"⚠️ Failed to cancel TP order {tp_order_id}: {e}")
 
         if sl_order_id:
             try:
-                await self.adapter.cancel_order(sl_order_id)
+                await self.error_handler.execute_with_breaker(
+                    "oco_cancel", self.adapter.cancel_order, sl_order_id, retry_config=cancel_retry_config
+                )
                 self.logger.info(f"✅ Cancelled SL order: {sl_order_id}")
             except Exception as e:
                 self.logger.warning(f"⚠️ Failed to cancel SL order {sl_order_id}: {e}")
