@@ -1,21 +1,28 @@
 #!/usr/bin/env python3
 """
-Sensor Optimization Tool V2
+Sensor Optimization Tool V3 - Multi-Timeframe
 
 Analyzes historical MFE/MAE for each sensor to determine the optimal
-TP/SL configuration that maximizes expectancy.
+TP/SL configuration and best timeframe per sensor.
 
-Improvements over V1:
+Features:
 - Expanded grid search ranges (TP up to 10%, SL up to 6%)
-- Minimum trade threshold (30 trades for statistical significance)
-- TP/SL ratio constraints (ratio >= 0.5)
+- Multi-timeframe analysis (--mtf mode)
+- Automatic timeframe recommendation per sensor
+- Minimum trade threshold for statistical significance
+- TP/SL ratio constraints
 - Profit Factor metric
 - JSON output for programmatic use
-- Better console output with rankings
 
 Usage:
+    # Single timeframe
     python utils/analysis/optimize_sensors.py --files data/raw/LTCUSDT_1m__90d.csv
-    python utils/analysis/optimize_sensors.py --files data/raw/*.csv --min-trades 50
+
+    # Multi-timeframe analysis
+    python utils/analysis/optimize_sensors.py --mtf \\
+        --files-1m data/raw/LTCUSDT_1m__90d.csv \\
+        --files-5m data/raw/LTCUSDT_5m__30d.csv \\
+        --files-15m data/raw/LTCUSDT_15m__30d.csv
 """
 
 import argparse
@@ -25,7 +32,7 @@ import sys
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -81,15 +88,14 @@ class SensorOptimizer:
         """
         Args:
             max_bars: Maximum bars to analyze for MFE/MAE
-            min_trades: Minimum trades required for optimization (statistical significance)
+            min_trades: Minimum trades required for optimization
         """
         self.max_bars = max_bars
         self.min_trades = min_trades
         self.sensors = self._load_sensors()
 
-        # Store MFE/MAE data for each sensor
-        # {sensor_name: [{'mfe': float, 'mae': float, 'side': str}, ...]}
-        self.sensor_data: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+        # Store MFE/MAE data: {timeframe: {sensor_name: [data...]}}
+        self.sensor_data: Dict[str, Dict[str, List[Dict]]] = defaultdict(lambda: defaultdict(list))
 
     def _load_sensors(self) -> List:
         """Load all V3 sensors."""
@@ -145,7 +151,6 @@ class SensorOptimizer:
         from sensors.wyckoff_spring import WyckoffSpringV3
         from sensors.zscore_reversion import ZScoreReversionV3
 
-        # Instantiate all sensors
         sensors = [
             EMACrossoverV3(),
             PinBarReversalV3(),
@@ -202,7 +207,7 @@ class SensorOptimizer:
         logger.info(f"✅ Loaded {len(sensors)} sensors")
         return sensors
 
-    def analyze_signal(self, signal: Dict, entry_idx: int, candles: pd.DataFrame):
+    def analyze_signal(self, signal: Dict, entry_idx: int, candles: pd.DataFrame, timeframe: str):
         """Calculate MFE and MAE for a signal."""
         if entry_idx >= len(candles) - 1:
             return
@@ -233,7 +238,7 @@ class SensorOptimizer:
             mae = (max_price - entry_price) / entry_price
             final_pnl = (entry_price - future_candles.iloc[-1]["close"]) / entry_price
 
-        self.sensor_data[signal["sensor_id"]].append(
+        self.sensor_data[timeframe][signal["sensor_id"]].append(
             {
                 "mfe": mfe,
                 "mae": mae,
@@ -245,7 +250,7 @@ class SensorOptimizer:
 
     def process_file(self, csv_file: Path, timeframe: str = "1m"):
         """Process a single CSV file."""
-        logger.info(f"📂 Processing: {csv_file.name}")
+        logger.info(f"📂 Processing: {csv_file.name} (TF: {timeframe})")
         try:
             df = pd.read_csv(csv_file)
         except Exception as e:
@@ -272,20 +277,17 @@ class SensorOptimizer:
             }
 
             # Wrap candle in context format that sensors expect
-            # Sensors call context.get("1m") to get the candle
             context = {timeframe: candle_dict}
 
             for sensor in self.sensors:
                 try:
-                    # Set the optimal timeframe to match the data we're passing
                     sensor._optimal_tf = timeframe
-
                     signal = sensor.calculate(context)
                     if signal:
                         if "sensor_id" not in signal:
                             signal["sensor_id"] = sensor.name
 
-                        self.analyze_signal(signal, idx, df)
+                        self.analyze_signal(signal, idx, df, timeframe)
                         signals_count += 1
                 except Exception:
                     pass
@@ -296,11 +298,17 @@ class SensorOptimizer:
         logger.info(f"   ✅ Completed: {signals_count} signals collected")
 
     def _optimize_single_sensor(
-        self, sensor_name: str, data: List[Dict], tp_range: np.ndarray, sl_range: np.ndarray
-    ) -> Dict[str, Any]:
+        self,
+        sensor_name: str,
+        data: List[Dict],
+        tp_range: np.ndarray,
+        sl_range: np.ndarray,
+    ) -> Optional[Dict[str, Any]]:
         """Optimize TP/SL for a single sensor."""
-        df = pd.DataFrame(data)
+        if len(data) < self.min_trades:
+            return None
 
+        df = pd.DataFrame(data)
         mfe_arr = df["mfe"].values
         mae_arr = df["mae"].values
         final_pnl_arr = df["final_pnl"].values
@@ -310,11 +318,9 @@ class SensorOptimizer:
 
         for tp in tp_range:
             for sl in sl_range:
-                # Skip if TP/SL ratio is too low (risky config)
                 if tp / sl < MIN_TP_SL_RATIO:
                     continue
 
-                # Determine outcome for each trade
                 is_loss = mae_arr >= sl
                 is_win = (mfe_arr >= tp) & (~is_loss)
                 is_timeout = (~is_win) & (~is_loss)
@@ -322,20 +328,15 @@ class SensorOptimizer:
                 wins = np.sum(is_win)
                 losses = np.sum(is_loss)
                 timeouts = np.sum(is_timeout)
-
                 total_trades = len(mfe_arr)
                 win_rate = wins / total_trades
 
-                # Calculate PnL components
                 gross_profit = wins * tp
                 gross_loss = losses * sl
                 timeout_pnl = np.sum(final_pnl_arr[is_timeout])
 
-                # Total PnL with fees
                 total_pnl = gross_profit - gross_loss + timeout_pnl - (total_trades * FEE_RATE)
                 avg_pnl = total_pnl / total_trades
-
-                # Profit factor (avoid division by zero)
                 profit_factor = gross_profit / max(gross_loss, 0.0001)
 
                 if avg_pnl > best_expectancy:
@@ -348,9 +349,10 @@ class SensorOptimizer:
                         "losses": losses,
                         "timeouts": timeouts,
                         "profit_factor": profit_factor,
-                        "gross_profit": gross_profit,
-                        "gross_loss": gross_loss,
                     }
+
+        if best_config is None:
+            return None
 
         return {
             "sensor": sensor_name,
@@ -360,177 +362,337 @@ class SensorOptimizer:
         }
 
     def optimize_sensors(self, timeframe: str = "1m") -> List[Dict[str, Any]]:
-        """Find optimal TP/SL for each sensor."""
+        """Find optimal TP/SL for each sensor in a single timeframe."""
         logger.info("\n" + "=" * 80)
-        logger.info("🔍 SENSOR OPTIMIZATION RESULTS")
+        logger.info(f"🔍 OPTIMIZATION RESULTS - {timeframe}")
         logger.info("=" * 80)
 
-        # Get grid ranges for this timeframe
         ranges = GRID_RANGES.get(timeframe, GRID_RANGES["1m"])
         tp_range = ranges["tp"]
         sl_range = ranges["sl"]
 
-        logger.info(f"📊 Timeframe: {timeframe}")
         logger.info(f"📊 TP Range: {tp_range[0]*100:.1f}% - {tp_range[-1]*100:.1f}%")
         logger.info(f"📊 SL Range: {sl_range[0]*100:.1f}% - {sl_range[-1]*100:.1f}%")
         logger.info(f"📊 Min Trades: {self.min_trades}")
-        logger.info(f"📊 Min TP/SL Ratio: {MIN_TP_SL_RATIO}")
 
         results = []
+        data_for_tf = self.sensor_data.get(timeframe, {})
 
-        for sensor_name, data in self.sensor_data.items():
-            if len(data) < self.min_trades:
-                logger.debug(f"⏭️ Skipping {sensor_name}: only {len(data)} trades (min: {self.min_trades})")
-                continue
-
+        for sensor_name, data in data_for_tf.items():
             result = self._optimize_single_sensor(sensor_name, data, tp_range, sl_range)
-            if result["best_config"]:
+            if result:
                 results.append(result)
 
-        # Sort by expectancy (descending)
         results.sort(key=lambda x: x["expectancy"], reverse=True)
+        self._print_results_table(results)
 
-        # Print results table
+        return results
+
+    def optimize_multi_timeframe(self, timeframes: List[str]) -> Dict[str, Dict[str, Any]]:
+        """
+        Optimize across multiple timeframes and find best TF per sensor.
+
+        Returns:
+            Dict mapping sensor_name -> best config with optimal timeframe
+        """
+        logger.info("\n" + "=" * 80)
+        logger.info("🔍 MULTI-TIMEFRAME OPTIMIZATION")
+        logger.info("=" * 80)
+        logger.info(f"📊 Timeframes: {', '.join(timeframes)}")
+        logger.info(f"📊 Min Trades: {self.min_trades}")
+
+        # Collect results for all timeframes
+        all_results: Dict[str, List[Tuple[str, Dict]]] = defaultdict(list)  # sensor -> [(tf, result), ...]
+
+        for tf in timeframes:
+            ranges = GRID_RANGES.get(tf, GRID_RANGES["1m"])
+            data_for_tf = self.sensor_data.get(tf, {})
+
+            logger.info(f"\n📊 Optimizing for {tf}...")
+
+            for sensor_name, data in data_for_tf.items():
+                result = self._optimize_single_sensor(sensor_name, data, ranges["tp"], ranges["sl"])
+                if result:
+                    all_results[sensor_name].append((tf, result))
+
+        # Find best timeframe per sensor
+        best_per_sensor: Dict[str, Dict[str, Any]] = {}
+
+        for sensor_name, tf_results in all_results.items():
+            # Sort by expectancy (descending)
+            tf_results.sort(key=lambda x: x[1]["expectancy"], reverse=True)
+
+            best_tf, best_result = tf_results[0]
+
+            # Only include if positive expectancy
+            if best_result["expectancy"] > 0:
+                best_per_sensor[sensor_name] = {
+                    "optimal_timeframe": best_tf,
+                    "tp_pct": best_result["best_config"]["tp"],
+                    "sl_pct": best_result["best_config"]["sl"],
+                    "win_rate": best_result["best_config"]["win_rate"],
+                    "expectancy": best_result["expectancy"],
+                    "profit_factor": best_result["best_config"]["profit_factor"],
+                    "trades": best_result["trades"],
+                    "all_timeframes": {
+                        tf: {
+                            "exp": r["expectancy"],
+                            "trades": r["trades"],
+                        }
+                        for tf, r in tf_results
+                    },
+                }
+
+        # Print MTF results
+        self._print_mtf_results(best_per_sensor, timeframes)
+
+        return best_per_sensor
+
+    def _print_results_table(self, results: List[Dict]):
+        """Print single-TF results table."""
         print("\n" + "=" * 100)
         print(
-            f"{'Rank':<5} {'Sensor':<25} {'TP%':<7} {'SL%':<7} {'Ratio':<6} {'WR%':<7} {'PF':<6} {'Exp%':<8} {'Trades':<8}"
+            f"{'Rank':<5} {'Sensor':<25} {'TP%':<7} {'SL%':<7} "
+            f"{'Ratio':<6} {'WR%':<7} {'PF':<6} {'Exp%':<8} {'Trades':<8}"
         )
         print("=" * 100)
 
         for i, r in enumerate(results, 1):
             cfg = r["best_config"]
             ratio = cfg["tp"] / cfg["sl"]
+            exp_pct = r["expectancy"] * 100
             print(
                 f"{i:<5} {r['sensor']:<25} "
                 f"{cfg['tp']*100:>5.2f}   {cfg['sl']*100:>5.2f}   "
                 f"{ratio:>4.2f}   {cfg['win_rate']*100:>5.1f}   "
-                f"{cfg['profit_factor']:>4.2f}   {r['expectancy']*100:>6.3f}   "
+                f"{cfg['profit_factor']:>4.2f}   {exp_pct:>6.3f}   "
                 f"{r['trades']:>6}"
             )
 
         print("=" * 100)
 
-        # Generate output config
-        self._generate_config_output(results, timeframe)
+    def _print_mtf_results(self, best_per_sensor: Dict[str, Dict], timeframes: List[str]):
+        """Print multi-timeframe results with TF comparison."""
+        print("\n" + "=" * 120)
+        print("🏆 MULTI-TIMEFRAME OPTIMIZATION RESULTS")
+        print("=" * 120)
 
-        return results
+        # Sort by expectancy
+        sorted_sensors = sorted(best_per_sensor.items(), key=lambda x: x[1]["expectancy"], reverse=True)
 
-    def _generate_config_output(self, results: List[Dict], timeframe: str):
+        # Header with timeframe columns
+        tf_cols = "  ".join([f"{tf:^8}" for tf in timeframes])
+        print(f"{'Rank':<4} {'Sensor':<22} {'Best TF':<8} {'TP%':<6} {'SL%':<6} " f"{'WR%':<6} {'Exp%':<7} {tf_cols}")
+        print("-" * 120)
+
+        for i, (sensor, data) in enumerate(sorted_sensors, 1):
+            best_tf = data["optimal_timeframe"]
+
+            # Build TF comparison columns
+            tf_exps = []
+            for tf in timeframes:
+                if tf in data["all_timeframes"]:
+                    exp = data["all_timeframes"][tf]["exp"] * 100
+                    marker = "★" if tf == best_tf else " "
+                    tf_exps.append(f"{exp:>+6.2f}{marker}")
+                else:
+                    tf_exps.append("   --   ")
+            tf_str = "  ".join(tf_exps)
+
+            print(
+                f"{i:<4} {sensor:<22} {best_tf:<8} "
+                f"{data['tp_pct']*100:>5.2f} {data['sl_pct']*100:>5.2f}  "
+                f"{data['win_rate']*100:>5.1f} {data['expectancy']*100:>+6.3f}  "
+                f"{tf_str}"
+            )
+
+        print("=" * 120)
+        print(f"\n✅ {len(sorted_sensors)} sensors with positive expectancy")
+        print("   ★ = Best timeframe for this sensor")
+
+    def generate_config_output(
+        self,
+        results: Optional[List[Dict]] = None,
+        mtf_results: Optional[Dict[str, Dict]] = None,
+        timeframe: str = "1m",
+    ):
         """Generate Python config and JSON output."""
-        # Python dict format
         print("\n" + "=" * 80)
         print("📋 COPY TO config/sensors.py SENSOR_PARAMS:")
         print("=" * 80)
 
         config_output = ""
-        profitable_count = 0
-
-        for r in results:
-            if r["expectancy"] > 0:
-                profitable_count += 1
-                cfg = r["best_config"]
-                config_output += f'    "{r["sensor"]}": {{\n'
-                config_output += f'        "{timeframe}": {{"tp_pct": {cfg["tp"]:.4f}, "sl_pct": {cfg["sl"]:.4f}}},  # Exp: {r["expectancy"]*100:.3f}%\n'
-                config_output += f"    }},\n"
-
-        print(config_output)
-        print(f"\n✅ {profitable_count} sensors with positive expectancy")
-
-        # Save to JSON
         json_output = {
             "generated_at": datetime.now().isoformat(),
-            "timeframe": timeframe,
             "min_trades": self.min_trades,
             "fee_rate": FEE_RATE,
-            "sensors": {},
         }
 
-        for r in results:
-            if r["expectancy"] > 0:
-                cfg = r["best_config"]
-                json_output["sensors"][r["sensor"]] = {
-                    "tp_pct": round(cfg["tp"], 4),
-                    "sl_pct": round(cfg["sl"], 4),
-                    "win_rate": round(cfg["win_rate"], 4),
-                    "expectancy": round(r["expectancy"], 6),
-                    "profit_factor": round(cfg["profit_factor"], 4),
-                    "trades": r["trades"],
+        if mtf_results:
+            # MTF mode - include optimal timeframe
+            json_output["mode"] = "multi_timeframe"
+            json_output["sensors"] = {}
+
+            for sensor, data in sorted(mtf_results.items(), key=lambda x: x[1]["expectancy"], reverse=True):
+                tf = data["optimal_timeframe"]
+                config_output += f'    "{sensor}": {{\n'
+                config_output += (
+                    f'        "{tf}": {{"tp_pct": {data["tp_pct"]:.4f}, '
+                    f'"sl_pct": {data["sl_pct"]:.4f}}},  '
+                    f'# Exp: {data["expectancy"]*100:.3f}%\n'
+                )
+                config_output += f"    }},\n"
+
+                json_output["sensors"][sensor] = {
+                    "optimal_timeframe": tf,
+                    "tp_pct": round(data["tp_pct"], 4),
+                    "sl_pct": round(data["sl_pct"], 4),
+                    "win_rate": round(data["win_rate"], 4),
+                    "expectancy": round(data["expectancy"], 6),
+                    "profit_factor": round(data["profit_factor"], 4),
+                    "trades": data["trades"],
+                    "all_timeframes": data["all_timeframes"],
                 }
 
+        elif results:
+            # Single TF mode
+            json_output["mode"] = "single_timeframe"
+            json_output["timeframe"] = timeframe
+            json_output["sensors"] = {}
+
+            for r in results:
+                if r["expectancy"] > 0:
+                    cfg = r["best_config"]
+                    config_output += f'    "{r["sensor"]}": {{\n'
+                    config_output += (
+                        f'        "{timeframe}": {{"tp_pct": {cfg["tp"]:.4f}, '
+                        f'"sl_pct": {cfg["sl"]:.4f}}},  '
+                        f'# Exp: {r["expectancy"]*100:.3f}%\n'
+                    )
+                    config_output += f"    }},\n"
+
+                    json_output["sensors"][r["sensor"]] = {
+                        "tp_pct": round(cfg["tp"], 4),
+                        "sl_pct": round(cfg["sl"], 4),
+                        "win_rate": round(cfg["win_rate"], 4),
+                        "expectancy": round(r["expectancy"], 6),
+                        "profit_factor": round(cfg["profit_factor"], 4),
+                        "trades": r["trades"],
+                    }
+
+        print(config_output)
+
+        # Save JSON
         output_file = Path("config/optimized_params.json")
         with open(output_file, "w") as f:
             json.dump(json_output, f, indent=2)
 
-        print(f"💾 Saved to {output_file}")
+        print(f"\n💾 Saved to {output_file}")
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Optimize TP/SL for all sensors")
+    parser = argparse.ArgumentParser(description="Optimize TP/SL for sensors (supports multi-timeframe)")
     parser.add_argument(
         "--files",
         type=str,
-        required=True,
-        help="Comma-separated list of CSV files or glob pattern",
+        help="CSV files for single-TF mode (comma-separated or glob)",
     )
-    parser.add_argument(
-        "--max-bars",
-        type=int,
-        default=120,
-        help="Max bars for MFE/MAE analysis (default: 120)",
-    )
-    parser.add_argument(
-        "--min-trades",
-        type=int,
-        default=30,
-        help="Minimum trades for optimization (default: 30)",
-    )
+    parser.add_argument("--files-1m", type=str, help="1m timeframe files for MTF mode")
+    parser.add_argument("--files-5m", type=str, help="5m timeframe files for MTF mode")
+    parser.add_argument("--files-15m", type=str, help="15m timeframe files for MTF mode")
+    parser.add_argument("--files-1h", type=str, help="1h timeframe files for MTF mode")
+    parser.add_argument("--mtf", action="store_true", help="Enable multi-timeframe mode")
+    parser.add_argument("--max-bars", type=int, default=120, help="Max bars for MFE/MAE")
+    parser.add_argument("--min-trades", type=int, default=30, help="Minimum trades")
     parser.add_argument(
         "--timeframe",
         type=str,
         default=None,
-        help="Timeframe (1m, 5m, 15m, 1h). Auto-detected from filename if not specified.",
+        help="Timeframe for single-TF mode (auto-detected if not specified)",
     )
     args = parser.parse_args()
 
-    # Auto-detect timeframe from first filename if not specified
-    if args.timeframe is None:
-        import re
-
-        first_file = args.files.split(",")[0].strip()
-        match = re.search(r"_(\d+[mh])_", first_file)
-        timeframe = match.group(1) if match else "1m"
-        logger.info(f"📊 Auto-detected timeframe: {timeframe}")
-    else:
-        timeframe = args.timeframe
-        logger.info(f"📊 Using specified timeframe: {timeframe}")
-
     optimizer = SensorOptimizer(max_bars=args.max_bars, min_trades=args.min_trades)
 
-    # Handle glob patterns
     import glob
+    import re
 
-    files = []
-    for pattern in args.files.split(","):
-        pattern = pattern.strip()
-        if "*" in pattern:
-            files.extend([Path(f) for f in glob.glob(pattern)])
+    if args.mtf:
+        # Multi-timeframe mode
+        logger.info("🔄 Running in MULTI-TIMEFRAME mode")
+
+        tf_files = {
+            "1m": args.files_1m,
+            "5m": args.files_5m,
+            "15m": args.files_15m,
+            "1h": args.files_1h,
+        }
+
+        active_tfs = []
+        for tf, pattern in tf_files.items():
+            if pattern:
+                files = []
+                for p in pattern.split(","):
+                    p = p.strip()
+                    if "*" in p:
+                        files.extend([Path(f) for f in glob.glob(p)])
+                    else:
+                        files.append(Path(p))
+
+                for f in files:
+                    if f.exists():
+                        optimizer.process_file(f, timeframe=tf)
+                    else:
+                        logger.error(f"File not found: {f}")
+
+                if files:
+                    active_tfs.append(tf)
+
+        if not active_tfs:
+            logger.error("❌ No files provided for any timeframe")
+            sys.exit(1)
+
+        mtf_results = optimizer.optimize_multi_timeframe(active_tfs)
+        optimizer.generate_config_output(mtf_results=mtf_results)
+
+    else:
+        # Single timeframe mode
+        if not args.files:
+            logger.error("❌ --files required in single-TF mode")
+            sys.exit(1)
+
+        # Auto-detect timeframe
+        if args.timeframe is None:
+            first_file = args.files.split(",")[0].strip()
+            match = re.search(r"_(\d+[mh])_", first_file)
+            timeframe = match.group(1) if match else "1m"
+            logger.info(f"📊 Auto-detected timeframe: {timeframe}")
         else:
-            files.append(Path(pattern))
+            timeframe = args.timeframe
+            logger.info(f"📊 Using specified timeframe: {timeframe}")
 
-    if not files:
-        logger.error("❌ No files found")
-        sys.exit(1)
+        files = []
+        for pattern in args.files.split(","):
+            pattern = pattern.strip()
+            if "*" in pattern:
+                files.extend([Path(f) for f in glob.glob(pattern)])
+            else:
+                files.append(Path(pattern))
 
-    logger.info(f"📂 Processing {len(files)} file(s)")
+        if not files:
+            logger.error("❌ No files found")
+            sys.exit(1)
 
-    for f in files:
-        if f.exists():
-            optimizer.process_file(f, timeframe=timeframe)
-        else:
-            logger.error(f"File not found: {f}")
+        logger.info(f"📂 Processing {len(files)} file(s)")
 
-    # Run optimization
-    optimizer.optimize_sensors(timeframe=timeframe)
+        for f in files:
+            if f.exists():
+                optimizer.process_file(f, timeframe=timeframe)
+            else:
+                logger.error(f"File not found: {f}")
+
+        results = optimizer.optimize_sensors(timeframe=timeframe)
+        optimizer.generate_config_output(results=results, timeframe=timeframe)
 
 
 if __name__ == "__main__":
