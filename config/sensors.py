@@ -97,7 +97,7 @@ SENSOR_TIMEFRAMES = {
     "WilliamsRReversion": "5m",  # Exp: 0.083%
     "AdaptiveRSI": "15m",  # Exp: 0.130%
     # === VOLATILITY BANDS (15m is best) ===
-    "BollingerTouch": "5m",  # Exp: 0.476%
+    "BollingerTouch": ["5m", "15m"],  # MTF: Exp 5m=0.476%, 15m=0.599%
     "BollingerSqueeze": "15m",  # Exp: 1.602% ⭐ TOP
     "BollingerRejection": "15m",  # Exp: 0.603%
     "KeltnerReversion": "5m",  # Exp: 0.202%
