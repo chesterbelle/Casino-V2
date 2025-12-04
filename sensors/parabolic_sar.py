@@ -27,7 +27,8 @@ class ParabolicSARV3(SensorV3):
         self.af = af_start
         self.is_long = True
 
-    def calculate(self, candle: dict) -> dict:
+    def calculate(self, context: dict) -> dict:
+        candle = context["1m"]
         high = candle["high"]
         low = candle["low"]
 

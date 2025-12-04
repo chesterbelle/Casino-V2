@@ -25,7 +25,8 @@ class InsideBarBreakoutV3(SensorV3):
         self.inside_bar_high = None
         self.inside_bar_low = None
 
-    def calculate(self, candle: dict) -> dict:
+    def calculate(self, context: dict) -> dict:
+        candle = context["1m"]
         self.candles.append(candle)
         if len(self.candles) < 3:
             return None

@@ -36,7 +36,8 @@ class VSAReversalV3(SensorV3):
         self.volumes = deque(maxlen=lookback + 5)
         self.spreads = deque(maxlen=lookback + 5)
 
-    def calculate(self, candle: dict) -> dict:
+    def calculate(self, context: dict) -> dict:
+        candle = context["1m"]
         spread = candle["high"] - candle["low"]
         self.candles.append(candle)
         self.volumes.append(candle.get("volume", 0))

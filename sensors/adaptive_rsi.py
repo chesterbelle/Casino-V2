@@ -37,7 +37,8 @@ class AdaptiveRSIV3(SensorV3):
         self.gains = deque(maxlen=rsi_period)
         self.losses = deque(maxlen=rsi_period)
 
-    def calculate(self, candle: dict) -> dict:
+    def calculate(self, context: dict) -> dict:
+        candle = context["1m"]
         self.closes.append(candle["close"])
 
         if len(self.closes) < self.rsi_period + 1:

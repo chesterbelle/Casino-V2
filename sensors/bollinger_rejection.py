@@ -34,7 +34,8 @@ class BollingerRejectionV3(SensorV3):
 
         self.closes = deque(maxlen=period + 10)
 
-    def calculate(self, candle: dict) -> dict:
+    def calculate(self, context: dict) -> dict:
+        candle = context["1m"]
         self.closes.append(candle["close"])
 
         if len(self.closes) < self.period:

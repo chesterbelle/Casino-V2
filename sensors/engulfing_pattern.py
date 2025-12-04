@@ -25,7 +25,8 @@ class EngulfingPatternV3(SensorV3):
         self.volumes = deque(maxlen=10)
         self.prev_candle = None
 
-    def calculate(self, candle: dict) -> dict:
+    def calculate(self, context: dict) -> dict:
+        candle = context["1m"]
         volume = candle["volume"]
         self.volumes.append(volume)
 

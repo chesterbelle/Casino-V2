@@ -20,7 +20,8 @@ class RailsPatternV3(SensorV3):
         self.max_diff_pct = max_diff_pct
         self.prev_candle = None
 
-    def calculate(self, candle: dict) -> dict:
+    def calculate(self, context: dict) -> dict:
+        candle = context["1m"]
         if not self.prev_candle:
             self.prev_candle = candle
             return None

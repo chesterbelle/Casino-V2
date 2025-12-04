@@ -21,7 +21,8 @@ class DojiIndecisionV3(SensorV3):
         self.min_breakout_size = min_breakout_size
         self.prev_candle = None
 
-    def calculate(self, candle: dict) -> dict:
+    def calculate(self, context: dict) -> dict:
+        candle = context["1m"]
         if not self.prev_candle:
             self.prev_candle = candle
             return None

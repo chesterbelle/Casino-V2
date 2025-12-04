@@ -27,7 +27,8 @@ class SupertrendV3(SensorV3):
         self.last_supertrend = None
         self.last_direction = None  # 1 = uptrend, -1 = downtrend
 
-    def calculate(self, candle: dict) -> dict:
+    def calculate(self, context: dict) -> dict:
+        candle = context["1m"]
         self.highs.append(candle["high"])
         self.lows.append(candle["low"])
         self.closes.append(candle["close"])

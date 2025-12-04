@@ -32,7 +32,8 @@ class FakeoutV3(SensorV3):
 
         self.candles = deque(maxlen=lookback + 5)
 
-    def calculate(self, candle: dict) -> dict:
+    def calculate(self, context: dict) -> dict:
+        candle = context["1m"]
         self.candles.append(candle)
 
         if len(self.candles) < self.lookback:

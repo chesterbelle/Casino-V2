@@ -37,7 +37,8 @@ class VWAPMomentumV3(SensorV3):
         self.cum_tp_vol = 0
         self.cum_vol = 0
 
-    def calculate(self, candle: dict) -> dict:
+    def calculate(self, context: dict) -> dict:
+        candle = context["1m"]
         high = candle["high"]
         low = candle["low"]
         close = candle["close"]

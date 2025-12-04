@@ -36,7 +36,8 @@ class KeltnerBreakoutV3(SensorV3):
         self.trs = deque(maxlen=atr_period + 10)
         self.candles = deque(maxlen=atr_period + 10)
 
-    def calculate(self, candle: dict) -> dict:
+    def calculate(self, context: dict) -> dict:
+        candle = context["1m"]
         self.closes.append(candle["close"])
         self.candles.append(candle)
 

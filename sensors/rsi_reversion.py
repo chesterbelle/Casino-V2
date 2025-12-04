@@ -24,7 +24,8 @@ class RSIReversionV3(SensorV3):
         self.high = high
         self.prices = deque(maxlen=250)
 
-    def calculate(self, candle: dict) -> dict:
+    def calculate(self, context: dict) -> dict:
+        candle = context["1m"]
         close = candle["close"]
         self.prices.append(close)
 

@@ -23,7 +23,8 @@ class BollingerTouchV3(SensorV3):
         self.std_dev = std_dev
         self.closes = deque(maxlen=window)
 
-    def calculate(self, candle: dict) -> dict:
+    def calculate(self, context: dict) -> dict:
+        candle = context["1m"]
         close = candle["close"]
         self.closes.append(close)
 

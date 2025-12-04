@@ -27,7 +27,8 @@ class BollingerSqueezeV3(SensorV3):
         self.volumes = deque(maxlen=period)
         self.in_squeeze = False
 
-    def calculate(self, candle: dict) -> dict:
+    def calculate(self, context: dict) -> dict:
+        candle = context["1m"]
         self.closes.append(candle["close"])
         self.volumes.append(candle["volume"])
 

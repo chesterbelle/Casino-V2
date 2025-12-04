@@ -20,7 +20,8 @@ class MarubozuMomentumV3(SensorV3):
         self.min_body_to_range = min_body_to_range
         self.min_body_size_pct = min_body_size_pct
 
-    def calculate(self, candle: dict) -> dict:
+    def calculate(self, context: dict) -> dict:
+        candle = context["1m"]
         open_p = candle["open"]
         close = candle["close"]
         high = candle["high"]

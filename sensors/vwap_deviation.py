@@ -25,7 +25,8 @@ class VWAPDeviationV3(SensorV3):
         self.typical_prices = deque(maxlen=period)
         self.volumes = deque(maxlen=period)
 
-    def calculate(self, candle: dict) -> dict:
+    def calculate(self, context: dict) -> dict:
+        candle = context["1m"]
         high = candle["high"]
         low = candle["low"]
         close = candle["close"]

@@ -21,7 +21,8 @@ class MorningStarV3(SensorV3):
         self.max_star_body_pct = max_star_body_pct
         self.candles = deque(maxlen=10)
 
-    def calculate(self, candle: dict) -> dict:
+    def calculate(self, context: dict) -> dict:
+        candle = context["1m"]
         self.candles.append(candle)
 
         if len(self.candles) < 3:

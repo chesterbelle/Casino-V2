@@ -25,7 +25,8 @@ class KeltnerReversionV3(SensorV3):
         self.lows = deque(maxlen=window)
         self.closes = deque(maxlen=window)
 
-    def calculate(self, candle: dict) -> dict:
+    def calculate(self, context: dict) -> dict:
+        candle = context["1m"]
         self.highs.append(candle["high"])
         self.lows.append(candle["low"])
         self.closes.append(candle["close"])

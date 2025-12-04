@@ -20,7 +20,8 @@ class PinBarReversalV3(SensorV3):
         self.wick_ratio = wick_ratio
         self.position_threshold = position_threshold
 
-    def calculate(self, candle: dict) -> dict:
+    def calculate(self, context: dict) -> dict:
+        candle = context["1m"]
         open_p = candle["open"]
         close_p = candle["close"]
         high_p = candle["high"]

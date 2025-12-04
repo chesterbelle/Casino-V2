@@ -24,7 +24,8 @@ class ExtremeCandleRatioV3(SensorV3):
         self.percentile = percentile
         self.bodies = deque(maxlen=lookback + 1)
 
-    def calculate(self, candle: dict) -> dict:
+    def calculate(self, context: dict) -> dict:
+        candle = context["1m"]
         open_p = candle["open"]
         close = candle["close"]
         body = abs(close - open_p)

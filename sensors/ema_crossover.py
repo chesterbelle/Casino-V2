@@ -36,7 +36,8 @@ class EMACrossoverV3(SensorV3):
         self.prev_short_ema = None
         self.prev_long_ema = None
 
-    def calculate(self, candle: dict) -> dict:
+    def calculate(self, context: dict) -> dict:
+        candle = context["1m"]
         close = candle["close"]
         high = candle["high"]
         low = candle["low"]

@@ -23,7 +23,8 @@ class ZScoreReversionV3(SensorV3):
         self.entry_threshold = entry_threshold
         self.closes = deque(maxlen=period)
 
-    def calculate(self, candle: dict) -> dict:
+    def calculate(self, context: dict) -> dict:
+        candle = context["1m"]
         close = candle["close"]
         self.closes.append(close)
 

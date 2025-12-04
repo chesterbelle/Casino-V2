@@ -26,7 +26,8 @@ class MomentumBurstV3(SensorV3):
         self.losses = deque(maxlen=rsi_period)
         self.prev_rsi = None
 
-    def calculate(self, candle: dict) -> dict:
+    def calculate(self, context: dict) -> dict:
+        candle = context["1m"]
         close = candle["close"]
         self.closes.append(close)
 

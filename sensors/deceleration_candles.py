@@ -21,7 +21,8 @@ class DecelerationCandlesV3(SensorV3):
         self.sequence_length = sequence_length
         self.candles = deque(maxlen=sequence_length)
 
-    def calculate(self, candle: dict) -> dict:
+    def calculate(self, context: dict) -> dict:
+        candle = context["1m"]
         self.candles.append(candle)
         if len(self.candles) < self.sequence_length:
             return None

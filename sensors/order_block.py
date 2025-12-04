@@ -24,7 +24,8 @@ class OrderBlockV3(SensorV3):
         self.breakout_pct = breakout_pct
         self.candles = deque(maxlen=20)
 
-    def calculate(self, candle: dict) -> dict:
+    def calculate(self, context: dict) -> dict:
+        candle = context["1m"]
         self.candles.append([candle["open"], candle["high"], candle["low"], candle["close"]])
 
         if len(self.candles) < self.block_size + 1:

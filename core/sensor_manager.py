@@ -12,6 +12,7 @@ import time
 from concurrent.futures import ProcessPoolExecutor
 from typing import Dict, List, Tuple
 
+from .bar_aggregator import BarAggregator
 from .events import CandleEvent, EventType, SignalEvent
 
 logger = logging.getLogger(__name__)
@@ -54,6 +55,9 @@ class SensorManager:
         self.cooldown_bars = 5  # Default cooldown
         self._candle_index = -1
         self._last_trigger: Dict[str, int] = {}
+
+        # Bar aggregator for multi-timeframe support
+        self.bar_aggregator = BarAggregator()
 
         # ProcessPoolExecutor for parallel sensor execution
         self._executor = ProcessPoolExecutor(max_workers=SENSOR_WORKERS)
@@ -225,6 +229,9 @@ class SensorManager:
             "volume": event.volume,
         }
 
+        # Build MTF context using BarAggregator
+        context = self.bar_aggregator.on_candle(candle_data)
+
         # Filter sensors by cooldown first
         active_sensors = [s for s in self.sensors if self._can_fire(s.name)]
 
@@ -233,10 +240,10 @@ class SensorManager:
 
         if self._parallel_enabled and len(active_sensors) > 1:
             # Parallel execution using ProcessPoolExecutor
-            await self._process_sensors_parallel(active_sensors, candle_data)
+            await self._process_sensors_parallel(active_sensors, context)
         else:
             # Sequential fallback (for debugging or single sensor)
-            await self._process_sensors_sequential(active_sensors, candle_data)
+            await self._process_sensors_sequential(active_sensors, context)
 
         # Log timing every 100 candles
         if self._candle_index % 100 == 0:

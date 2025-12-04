@@ -27,7 +27,8 @@ class ADXFilterV3(SensorV3):
         self.closes = deque(maxlen=period + 1)
         self.dx_values = deque(maxlen=period)
 
-    def calculate(self, candle: dict) -> dict:
+    def calculate(self, context: dict) -> dict:
+        candle = context["1m"]
         self.highs.append(candle["high"])
         self.lows.append(candle["low"])
         self.closes.append(candle["close"])

@@ -23,7 +23,8 @@ class EMA50SupportV3(SensorV3):
         self.closes = deque(maxlen=ema_period + 10)
         self.ema_val = None
 
-    def calculate(self, candle: dict) -> dict:
+    def calculate(self, context: dict) -> dict:
+        candle = context["1m"]
         close = candle["close"]
         high = candle["high"]
         low = candle["low"]

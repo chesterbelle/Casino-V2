@@ -28,7 +28,8 @@ class StochasticReversionV3(SensorV3):
         self.closes = deque(maxlen=k_period)
         self.k_values = deque(maxlen=d_period)
 
-    def calculate(self, candle: dict) -> dict:
+    def calculate(self, context: dict) -> dict:
+        candle = context["1m"]
         self.highs.append(candle["high"])
         self.lows.append(candle["low"])
         self.closes.append(candle["close"])

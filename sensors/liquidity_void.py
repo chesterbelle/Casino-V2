@@ -36,7 +36,8 @@ class LiquidityVoidV3(SensorV3):
         self.volumes = deque(maxlen=lookback + 5)
         self.voids = []  # List of (top, bottom, direction) tuples
 
-    def calculate(self, candle: dict) -> dict:
+    def calculate(self, context: dict) -> dict:
+        candle = context["1m"]
         self.candles.append(candle)
         self.volumes.append(candle.get("volume", 0))
 

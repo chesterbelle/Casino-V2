@@ -41,7 +41,8 @@ class HigherTFTrendV3(SensorV3):
 
         self.candle_count = 0
 
-    def calculate(self, candle: dict) -> dict:
+    def calculate(self, context: dict) -> dict:
+        candle = context["1m"]
         self.candle_buffer.append(candle)
         self.candle_count += 1
 

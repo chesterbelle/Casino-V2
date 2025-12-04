@@ -23,7 +23,8 @@ class VolumeImbalanceV3(SensorV3):
         self.imbalance_ratio = imbalance_ratio
         self.volumes = deque(maxlen=volume_period)
 
-    def calculate(self, candle: dict) -> dict:
+    def calculate(self, context: dict) -> dict:
+        candle = context["1m"]
         close = candle["close"]
         high = candle["high"]
         low = candle["low"]

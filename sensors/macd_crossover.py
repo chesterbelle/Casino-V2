@@ -27,7 +27,8 @@ class MACDCrossoverV3(SensorV3):
         self.prev_hist = None
         self.macd_values = deque(maxlen=signal_period)
 
-    def calculate(self, candle: dict) -> dict:
+    def calculate(self, context: dict) -> dict:
+        candle = context["1m"]
         close = candle["close"]
         self.closes.append(close)
 

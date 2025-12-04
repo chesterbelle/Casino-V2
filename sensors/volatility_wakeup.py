@@ -35,7 +35,8 @@ class VolatilityWakeupV3(SensorV3):
         self.trs = deque(maxlen=atr_period + compression_lookback + 10)
         self.candles = deque(maxlen=atr_period + compression_lookback + 10)
 
-    def calculate(self, candle: dict) -> dict:
+    def calculate(self, context: dict) -> dict:
+        candle = context["1m"]
         self.candles.append(candle)
 
         # Calculate True Range

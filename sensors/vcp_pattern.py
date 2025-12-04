@@ -21,7 +21,8 @@ class VCPPatternV3(SensorV3):
         self.contractions = contractions
         self.candles = deque(maxlen=contractions)
 
-    def calculate(self, candle: dict) -> dict:
+    def calculate(self, context: dict) -> dict:
+        candle = context["1m"]
         self.candles.append(candle)
         if len(self.candles) < self.contractions:
             return None
