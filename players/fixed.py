@@ -3,7 +3,7 @@ Fixed Player Strategy
 =====================
 
 A simple player that bets a fixed percentage of equity on every signal.
-Used as a baseline to compare against progression strategies like Paroli.
+Supports optional Kelly Criterion sizing based on sensor performance.
 """
 
 import logging
@@ -11,6 +11,7 @@ import time
 
 from core.events import Event, EventType
 from decision.aggregator import AggregatedSignalEvent
+from decision.sensor_tracker import SensorTracker
 
 logger = logging.getLogger(__name__)
 
@@ -42,21 +43,52 @@ class DecisionEvent(Event):
 class FixedPlayer:
     """
     Player that bets a fixed percentage of equity.
+
+    Supports two modes:
+    1. Fixed: Always bet fixed_pct (default)
+    2. Kelly: Dynamically size based on sensor's historical performance
     """
 
-    def __init__(self, engine, croupier, fixed_pct: float = 0.01, max_positions: int = 1):
+    def __init__(
+        self,
+        engine,
+        croupier,
+        fixed_pct: float = 0.01,
+        max_positions: int = 1,
+        use_kelly: bool = True,
+        kelly_max: float = 0.10,
+    ):
+        """
+        Args:
+            engine: Event engine
+            croupier: Croupier for position management
+            fixed_pct: Fixed bet size as fraction of equity (fallback)
+            max_positions: Maximum concurrent positions
+            use_kelly: If True, use Kelly sizing for sensors with enough data
+            kelly_max: Maximum Kelly fraction (safety cap)
+        """
         self.engine = engine
         self.croupier = croupier
         self.fixed_pct = fixed_pct
         self.max_positions = max_positions
+        self.use_kelly = use_kelly
+        self.kelly_max = kelly_max
+
+        # SensorTracker for Kelly calculations
+        self.tracker = SensorTracker()
 
         # Subscribe to Aggregated Signals
         self.engine.subscribe(EventType.AGGREGATED_SIGNAL, self.on_aggregated_signal)
 
-        logger.info(f"✅ FixedPlayer initialized | Bet Size: {fixed_pct:.1%} | Max Positions: {max_positions}")
+        mode = "Kelly" if use_kelly else "Fixed"
+        logger.info(
+            f"✅ FixedPlayer initialized | Mode: {mode} | "
+            f"Bet Size: {fixed_pct:.1%} | Kelly Max: {kelly_max:.1%} | "
+            f"Max Positions: {max_positions}"
+        )
 
     async def on_aggregated_signal(self, event: AggregatedSignalEvent):
-        """Process aggregated signal and place fixed bet."""
+        """Process aggregated signal and place bet."""
         if event.side == "SKIP":
             return
 
@@ -69,14 +101,25 @@ class FixedPlayer:
         # Get current equity
         equity = self.croupier.get_equity()
 
-        # Calculate bet size (fixed percentage)
-        bet_size = self.fixed_pct
+        # Calculate bet size
+        if self.use_kelly:
+            # Use Kelly sizing based on sensor performance
+            kelly_bet = self.tracker.get_kelly_fraction(event.selected_sensor, max_fraction=self.kelly_max)
+            bet_size = kelly_bet
+            sizing_method = "Kelly"
+        else:
+            # Use fixed percentage
+            bet_size = self.fixed_pct
+            sizing_method = "Fixed"
 
         # Extract TP/SL from metadata if available
-        tp_pct = event.metadata.get("tp_pct")
-        sl_pct = event.metadata.get("sl_pct")
+        tp_pct = event.metadata.get("tp_pct") if event.metadata else None
+        sl_pct = event.metadata.get("sl_pct") if event.metadata else None
 
-        logger.info(f"🎯 Decision: {event.side} | Fixed Bet: {bet_size:.2%} of {equity:.2f}")
+        logger.info(
+            f"🎯 Decision: {event.side} | {sizing_method} Bet: {bet_size:.2%} of {equity:.2f} | "
+            f"Sensor: {event.selected_sensor}"
+        )
 
         # Emit Decision with unique ID for tracking
         decision_id = f"DEC_{int(time.time()*1000000)}"  # Microsecond precision

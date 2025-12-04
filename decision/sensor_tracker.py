@@ -273,3 +273,56 @@ class SensorTracker:
         scored_sensors = [(sensor_id, self.get_sensor_score(sensor_id)) for sensor_id in self.sensors.keys()]
 
         return sorted(scored_sensors, key=lambda x: x[1], reverse=True)[:n]
+
+    def get_kelly_fraction(self, sensor_id: str, max_fraction: float = 0.25) -> float:
+        """
+        Calculate Kelly Criterion bet fraction for a sensor.
+
+        Kelly Formula: f = W - (L / R)
+        Where:
+            W = Win rate (probability of winning)
+            L = Loss rate (1 - W)
+            R = Win/Loss ratio (avg_win / avg_loss)
+
+        Args:
+            sensor_id: Sensor to calculate Kelly for
+            max_fraction: Maximum fraction to return (safety cap)
+
+        Returns:
+            Kelly fraction between 0.0 and max_fraction
+            Returns 0.01 (minimum) for sensors with insufficient data
+        """
+        stats = self.sensors.get(sensor_id)
+
+        if not stats or stats.total_trades < MIN_TRADES_FOR_SCORING:
+            # Not enough data - return minimum bet
+            return 0.01
+
+        # Calculate win rate
+        win_rate = stats.total_wins / max(stats.total_trades, 1)
+        loss_rate = 1 - win_rate
+
+        # Calculate average win/loss ratio
+        if stats.avg_loss == 0:
+            # No losses yet - return minimum (don't be overconfident)
+            return 0.01
+
+        win_loss_ratio = abs(stats.avg_win / stats.avg_loss) if stats.avg_loss != 0 else 1.0
+
+        # Kelly formula: f = W - (L / R)
+        kelly = win_rate - (loss_rate / win_loss_ratio)
+
+        # Apply safety constraints
+        # 1. Never bet more than max_fraction (e.g., 25%)
+        # 2. Never bet negative (would mean edge is negative)
+        # 3. Apply fractional Kelly (0.5 by default for safety)
+        FRACTIONAL_KELLY = 0.5  # Use half-Kelly for safety
+
+        kelly_fraction = max(0.01, min(kelly * FRACTIONAL_KELLY, max_fraction))
+
+        logger.debug(
+            f"📊 Kelly for {sensor_id}: W={win_rate:.2%} R={win_loss_ratio:.2f} "
+            f"raw={kelly:.3f} final={kelly_fraction:.3f}"
+        )
+
+        return kelly_fraction
