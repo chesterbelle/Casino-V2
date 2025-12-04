@@ -177,18 +177,34 @@ class SensorManager:
             SupportResistanceV3,
         ]
 
-        # Instantiate enabled sensors
-        for sensor_cls in sensor_classes:
-            # Create temp instance to get name, or use class name convention
-            # Assuming sensor.name matches the key in ACTIVE_SENSORS
-            # Optimization: Just instantiate and check name
-            sensor = sensor_cls()
-            if ACTIVE_SENSORS.get(sensor.name, False):
-                self.sensors.append(sensor)
-            else:
-                pass  # Sensor disabled
+        # Get sensors from enabled strategies
+        from config.strategies import get_active_sensors, get_enabled_strategies
 
-        logger.info(f"✅ SensorManager loaded {len(self.sensors)} sensors for timeframe {self.timeframe}.")
+        strategy_sensors = get_active_sensors()
+        enabled_strategies = get_enabled_strategies()
+
+        if strategy_sensors:
+            logger.info(f"📊 Active strategies: {enabled_strategies}")
+            logger.info(f"📊 Strategy sensors: {len(strategy_sensors)} sensors")
+
+        # Instantiate sensors that are:
+        # 1. Enabled in ACTIVE_SENSORS (legacy filter)
+        # 2. Part of an enabled strategy (new filter)
+        for sensor_cls in sensor_classes:
+            sensor = sensor_cls()
+
+            # Check legacy ACTIVE_SENSORS first
+            if not ACTIVE_SENSORS.get(sensor.name, False):
+                continue
+
+            # If strategies are defined, also check strategy membership
+            if strategy_sensors and sensor.name not in strategy_sensors:
+                logger.debug(f"⏭️ Skipping {sensor.name} - not in active strategy")
+                continue
+
+            self.sensors.append(sensor)
+
+        logger.info(f"✅ SensorManager loaded {len(self.sensors)} sensors " f"for timeframe {self.timeframe}")
 
     async def on_candle(self, event: CandleEvent):
         """
