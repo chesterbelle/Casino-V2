@@ -27,7 +27,9 @@ class RSIReversionV3(SensorV3):
     def calculate(self, context: dict) -> dict:
         # Get optimal timeframe for this sensor (configured in config/sensors.py)
         tf = getattr(self, "_optimal_tf", "1m")
-        candle = context.get(tf) or context["1m"]
+        candle = context.get(tf)
+        if candle is None:
+            return None  # TF not ready yet, skip this cycle
         close = candle["close"]
         self.prices.append(close)
 
