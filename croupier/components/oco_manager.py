@@ -185,10 +185,15 @@ class OCOManager:
             # Step 6: Validate OCO completeness
             self._validate_oco_complete(main_order, tp_order, sl_order)
 
+            # Step 7: Register OCO pair with connector (for VirtualExchange and others)
+            tp_order_id = tp_order.get("order_id") or tp_order.get("id")
+            sl_order_id = sl_order.get("order_id") or sl_order.get("id")
+            await self.adapter.register_oco_pair(symbol, tp_order_id, sl_order_id)
+
             self.logger.info(
                 f"✅ OCO bracket created: Main={main_order.get('order_id') or main_order.get('id')}, "
-                f"TP={tp_order.get('order_id') or tp_order.get('id')}, "
-                f"SL={sl_order.get('order_id') or sl_order.get('id')}"
+                f"TP={tp_order_id}, "
+                f"SL={sl_order_id}"
             )
 
             return {

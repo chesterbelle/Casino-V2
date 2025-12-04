@@ -62,6 +62,12 @@ class VirtualExchangeConnector(BaseConnector):
         self._connected = False
         self._ready = False
 
+        # OCO pair tracking: {order_id: sibling_order_id}
+        self._oco_pairs: Dict[str, str] = {}
+
+        # Order update callback (like Binance WebSocket)
+        self._order_update_callback = None
+
         self.logger.info(
             f"🏦 VirtualExchange initialized | Balance: ${initial_balance:,.2f} | "
             f"Fee: {fee_rate:.2%} | Slippage: {slippage_rate:.2%}"
@@ -94,6 +100,27 @@ class VirtualExchangeConnector(BaseConnector):
     @property
     def exchange_name(self) -> str:
         return "VirtualExchange"
+
+    def set_order_update_callback(self, callback):
+        """Register a callback for order updates (like Binance WebSocket)."""
+        self._order_update_callback = callback
+
+    async def register_oco_pair(self, symbol: str, tp_order_id: str, sl_order_id: str):
+        """
+        Register TP and SL orders as an OCO pair.
+        When one fills, the other will be cancelled.
+        """
+        self._oco_pairs[tp_order_id] = sl_order_id
+        self._oco_pairs[sl_order_id] = tp_order_id
+        self.logger.info(f"🔗 OCO pair registered: TP={tp_order_id} <-> SL={sl_order_id}")
+
+    def price_to_precision(self, symbol: str, price: float) -> str:
+        """Format price to symbol precision (simplified)."""
+        return f"{price:.2f}"
+
+    def amount_to_precision(self, symbol: str, amount: float) -> str:
+        """Format amount to symbol precision."""
+        return str(round(amount, self.amount_precision))
 
     # =========================================================
     # ⚙️ ENGINE (The "Virtual" part)
@@ -261,6 +288,14 @@ class VirtualExchangeConnector(BaseConnector):
         # Handle OCO-like behavior (cancel siblings)
         self._cancel_siblings(order)
 
+        # Notify order update callback (like Binance WebSocket)
+        if self._order_update_callback:
+            try:
+                normalized = self._normalize_order(order)
+                self._order_update_callback(normalized)
+            except Exception as e:
+                self.logger.error(f"❌ Order update callback error: {e}")
+
     def _update_account_state(self, order: Dict) -> None:
         """Update balance and positions based on filled order."""
         side = order["side"]
@@ -370,25 +405,51 @@ class VirtualExchangeConnector(BaseConnector):
         """
         Cancel sibling orders (OCO behavior).
         If a TP fills, cancel the SL, and vice versa.
-        We link them via 'parent' param or simple heuristic.
+        Uses registered OCO pairs from register_oco_pair().
         """
-        parent_id = filled_order.get("params", {}).get("parent")
-        if not parent_id:
+        filled_order_id = filled_order["id"]
+
+        # Check if this order is part of an OCO pair
+        sibling_id = self._oco_pairs.get(filled_order_id)
+        if not sibling_id:
+            # Fallback to old parent-based system
+            parent_id = filled_order.get("params", {}).get("parent")
+            if not parent_id:
+                return
+
+            symbol = filled_order["symbol"]
+            for oid, order in self._orders.items():
+                if (
+                    order["status"] == "open"
+                    and order["symbol"] == symbol
+                    and order.get("params", {}).get("parent") == parent_id
+                    and oid != filled_order_id
+                ):
+                    order["status"] = "canceled"
+                    order["canceled_timestamp"] = self._current_timestamp
+                    self.logger.info(f"🔄 Sibling order canceled (OCO/parent) | id={oid}")
             return
 
-        symbol = filled_order["symbol"]
+        # Cancel the sibling order using OCO pair registration
+        sibling_order = self._orders.get(sibling_id)
+        if sibling_order and sibling_order["status"] == "open":
+            sibling_order["status"] = "canceled"
+            sibling_order["canceled_timestamp"] = self._current_timestamp
+            self.logger.info(f"🔄 OCO sibling canceled | Filled: {filled_order_id} -> Cancelled: {sibling_id}")
 
-        for oid, order in self._orders.items():
-            if (
-                order["status"] == "open"
-                and order["symbol"] == symbol
-                and order.get("params", {}).get("parent") == parent_id
-                and oid != filled_order["id"]
-            ):
+            # Notify callback about cancelled order too
+            if self._order_update_callback:
+                try:
+                    normalized = self._normalize_order(sibling_order)
+                    self._order_update_callback(normalized)
+                except Exception as e:
+                    self.logger.error(f"❌ Sibling cancel callback error: {e}")
 
-                order["status"] = "canceled"
-                order["canceled_timestamp"] = self._current_timestamp
-                self.logger.info(f"🔄 Sibling order canceled (OCO) | id={oid}")
+        # Clean up OCO pair tracking
+        if filled_order_id in self._oco_pairs:
+            del self._oco_pairs[filled_order_id]
+        if sibling_id in self._oco_pairs:
+            del self._oco_pairs[sibling_id]
 
     # =========================================================
     # 💰 ACCOUNT DATA
@@ -588,3 +649,37 @@ class VirtualExchangeConnector(BaseConnector):
         # VirtualExchange doesn't store history, it just consumes it.
         # This method is rarely used by Croupier (it uses DataSource).
         return []
+
+    def _normalize_order(self, order: Dict) -> Dict:
+        """
+        Normalize order to standard format (matching BinanceNativeConnector).
+
+        This ensures VirtualExchange returns the same format as real exchanges.
+        """
+        return {
+            "id": str(order["id"]),
+            "order_id": str(order.get("order_id", order["id"])),  # Alias for Croupier
+            "symbol": order["symbol"],
+            "status": order["status"],
+            "price": float(order.get("price", 0) or 0),
+            "amount": float(order["amount"]),
+            "filled": float(order.get("filled", 0) or 0),
+            "type": order["type"],
+            "side": order["side"],
+            "timestamp": order.get("timestamp", self._current_timestamp),
+            "info": order,  # Raw order for reference
+        }
+
+    def normalize_trade(self, raw_trade: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Normalize a trade to standard format and detect closes.
+        Matching BinanceNativeConnector.normalize_trade().
+        """
+        realized_pnl = float(raw_trade.get("pnl", 0) or 0)
+
+        return {
+            **raw_trade,
+            "is_close": realized_pnl != 0,
+            "realized_pnl": realized_pnl,
+            "close_reason": "TP" if realized_pnl > 0 else ("SL" if realized_pnl < 0 else None),
+        }
