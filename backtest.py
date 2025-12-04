@@ -102,6 +102,10 @@ async def main():
     # Hook callback into PositionTracker
     croupier.position_tracker.on_close_callback = on_trade_close
 
+    # Connect VirtualExchange order updates to PositionTracker
+    # This enables automatic TP/SL close detection in backtest
+    virtual_exchange.set_order_update_callback(croupier.position_tracker.handle_order_update)
+
     # Store initial balance for PnL calc
     initial_balance = croupier.get_balance()
 

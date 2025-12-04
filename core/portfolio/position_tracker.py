@@ -576,3 +576,77 @@ class PositionTracker:
 
         self.open_positions.clear()
         return closed_results
+
+    def handle_order_update(self, order: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """
+        Handle order update from exchange (VirtualExchange or Binance WebSocket).
+
+        When a TP or SL order fills, this method finds the corresponding position
+        and calls confirm_close to properly record the win/loss.
+
+        Args:
+            order: Normalized order dict with 'id', 'status', 'price', etc.
+
+        Returns:
+            Close result if a position was closed, None otherwise
+        """
+        order_id = str(order.get("id") or order.get("order_id", ""))
+        status = order.get("status", "").lower()
+
+        # Only process filled orders (closed = filled in our normalization)
+        if status not in ["closed", "filled"]:
+            return None
+
+        # Find position by TP or SL order ID
+        position = None
+        exit_reason = None
+
+        for pos in self.open_positions:
+            if pos.tp_order_id == order_id:
+                position = pos
+                exit_reason = "TP"
+                break
+            elif pos.sl_order_id == order_id:
+                position = pos
+                exit_reason = "SL"
+                break
+
+        if not position:
+            # Not a TP/SL order, might be a main order - ignore
+            return None
+
+        # Extract fill price
+        fill_price = float(order.get("price", 0) or 0)
+        if fill_price <= 0:
+            fill_price = float(order.get("average", 0) or order.get("avgPrice", 0) or 0)
+
+        if fill_price <= 0:
+            logger.warning(f"⚠️ Cannot get fill price for order {order_id}")
+            return None
+
+        # Calculate PnL
+        if position.side == "LONG":
+            pnl_pct = (fill_price - position.entry_price) / position.entry_price
+        else:
+            pnl_pct = (position.entry_price - fill_price) / position.entry_price
+
+        pnl_value = position.notional * pnl_pct
+
+        # Get fee from order (if available)
+        fee = 0.0
+        fee_info = order.get("fee", {})
+        if isinstance(fee_info, dict):
+            fee = float(fee_info.get("cost", 0) or 0)
+
+        logger.info(
+            f"📬 Order Update | {order_id} {exit_reason} filled @ {fill_price:.2f} | " f"Position: {position.trade_id}"
+        )
+
+        # Confirm the close
+        return self.confirm_close(
+            trade_id=position.trade_id,
+            exit_price=fill_price,
+            exit_reason=exit_reason,
+            pnl=pnl_value,
+            fee=fee,
+        )
