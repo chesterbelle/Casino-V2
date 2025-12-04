@@ -345,19 +345,35 @@ def get_sensor_params(sensor_id: str, timeframe: str = "1m") -> dict:
 
 def get_sensor_timeframe(sensor_id: str) -> str:
     """
-    Get the optimal timeframe for a sensor.
+    Get the primary timeframe for a sensor (legacy, backward compatible).
 
     Args:
-        sensor_id: Name of the sensor (e.g., "DojiIndecision")
+        sensor_id: Name of the sensor
 
     Returns:
-        Timeframe string (e.g., "1m", "5m", "15m", "1h")
-        Defaults to "1m" if sensor not found in SENSOR_TIMEFRAMES.
+        Primary timeframe string (first in list if multiple)
+    """
+    tfs = get_sensor_timeframes(sensor_id)
+    return tfs[0] if tfs else "1m"
+
+
+def get_sensor_timeframes(sensor_id: str) -> list:
+    """
+    Get list of timeframes a sensor monitors.
+
+    Args:
+        sensor_id: Name of the sensor (e.g., "BollingerTouch")
+
+    Returns:
+        List of timeframe strings (e.g., ["5m", "15m"])
+        Defaults to ["1m"] if sensor not found.
 
     Example:
-        >>> get_sensor_timeframe("DojiIndecision")
-        "1h"
-        >>> get_sensor_timeframe("ExtremeCandleRatio")
-        "1m"
+        >>> get_sensor_timeframes("BollingerTouch")
+        ["5m", "15m"]
     """
-    return SENSOR_TIMEFRAMES.get(sensor_id, "1m")
+    tfs = SENSOR_TIMEFRAMES.get(sensor_id, "1m")
+    # Ensure always returns list
+    if isinstance(tfs, str):
+        return [tfs]
+    return list(tfs)

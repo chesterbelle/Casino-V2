@@ -3,10 +3,12 @@ Base Class for V3 Sensors.
 
 Sensors receive a multi-timeframe context dict containing candles
 for all available timeframes (1m, 5m, 15m, 1h, 4h).
+
+Each sensor can monitor multiple timeframes and emit independent signals.
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, Optional
+from typing import Dict, List, Optional, Union
 
 
 class SensorV3(ABC):
@@ -14,7 +16,7 @@ class SensorV3(ABC):
     Abstract Base Class for V3 Sensors.
 
     Sensors receive a context dict with candles for multiple timeframes.
-    Each sensor can access the timeframe(s) it needs.
+    Each sensor can monitor multiple TFs and emit signals for each.
 
     Example context:
         {
@@ -22,10 +24,13 @@ class SensorV3(ABC):
             "5m": {"open": 99, "high": 102, ...},  # Complete every 5 candles
             "15m": None,  # Not complete yet
         }
+
+    Attributes:
+        timeframes: List of TFs this sensor monitors (set by SensorManager)
     """
 
-    # Default timeframe this sensor uses (can be overridden)
-    timeframe: str = "1m"
+    # List of timeframes this sensor monitors (set by SensorManager from config)
+    timeframes: List[str] = ["1m"]
 
     @property
     @abstractmethod
@@ -34,9 +39,9 @@ class SensorV3(ABC):
         pass
 
     @abstractmethod
-    def calculate(self, context: Dict[str, Optional[dict]]) -> Optional[dict]:
+    def calculate(self, context: Dict[str, Optional[dict]]) -> Union[Optional[dict], List[dict]]:
         """
-        Calculate signal based on multi-timeframe context.
+        Calculate signal(s) based on multi-timeframe context.
 
         Args:
             context: Dict with candles for each timeframe.
@@ -44,7 +49,8 @@ class SensorV3(ABC):
                      Access 15m candle: context.get("15m")
 
         Returns:
-            dict with keys: 'side', 'score', 'metadata' or None.
+            Single signal dict, list of signals, or None.
+            Signal dict should have: 'side', 'score', 'metadata', 'timeframe' (optional)
         """
         pass
 

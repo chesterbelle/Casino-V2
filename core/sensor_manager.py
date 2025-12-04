@@ -182,7 +182,7 @@ class SensorManager:
         ]
 
         # Get sensors from enabled strategies
-        from config.sensors import get_sensor_timeframe
+        from config.sensors import get_sensor_timeframes
         from config.strategies import get_active_sensors, get_enabled_strategies
 
         strategy_sensors = get_active_sensors()
@@ -207,8 +207,10 @@ class SensorManager:
                 logger.debug(f"⏭️ Skipping {sensor.name} - not in active strategy")
                 continue
 
-            # Set optimal timeframe for this sensor
-            sensor._optimal_tf = get_sensor_timeframe(sensor.name)
+            # Set timeframes for this sensor (list of TFs to monitor)
+            sensor.timeframes = get_sensor_timeframes(sensor.name)
+            # Keep _optimal_tf for backward compatibility (first TF in list)
+            sensor._optimal_tf = sensor.timeframes[0] if sensor.timeframes else "1m"
 
             self.sensors.append(sensor)
 
@@ -273,22 +275,37 @@ class SensorManager:
                 logger.error(f"❌ Sensor {sensor.name} exception: {result}")
                 continue
 
-            sensor_name, signal = result
+            sensor_name, signals = result
 
-            if signal:
-                if "error" in signal:
-                    logger.error(f"❌ Sensor {sensor_name}: {signal['error']}")
-                else:
-                    await self._emit_signal(signal, sensor_name)
+            if signals:
+                if isinstance(signals, dict):
+                    # Single signal (backward compatible)
+                    if "error" in signals:
+                        logger.error(f"❌ Sensor {sensor_name}: {signals['error']}")
+                    else:
+                        await self._emit_signal(signals, sensor_name)
+                        self._last_trigger[sensor_name] = self._candle_index
+                elif isinstance(signals, list):
+                    # List of signals (multi-TF)
+                    for signal in signals:
+                        if signal:
+                            await self._emit_signal(signal, sensor_name)
                     self._last_trigger[sensor_name] = self._candle_index
 
     async def _process_sensors_sequential(self, active_sensors: List, candle_data: dict):
         """Execute sensors sequentially (fallback mode)."""
         for sensor in active_sensors:
             try:
-                signal = sensor.calculate(candle_data)
-                if signal:
-                    await self._emit_signal(signal, sensor.name)
+                signals = sensor.calculate(candle_data)
+                if signals:
+                    if isinstance(signals, dict):
+                        # Single signal
+                        await self._emit_signal(signals, sensor.name)
+                    elif isinstance(signals, list):
+                        # List of signals (multi-TF)
+                        for signal in signals:
+                            if signal:
+                                await self._emit_signal(signal, sensor.name)
                     self._last_trigger[sensor.name] = self._candle_index
             except Exception as e:
                 logger.error(f"❌ Error in sensor {sensor.name}: {e}")
@@ -306,21 +323,27 @@ class SensorManager:
 
         metadata = signal_data.get("metadata", {})
 
+        # Get timeframe from signal (if provided) or fallback to sensor's primary TF
+        signal_tf = signal_data.get("timeframe", self.timeframe)
+
         # Inject TP/SL from config (timeframe-specific)
-        sensor_config = get_sensor_params(sensor_name, self.timeframe)
+        sensor_config = get_sensor_params(sensor_name, signal_tf)
         if "tp_pct" in sensor_config:
             metadata["tp_pct"] = sensor_config["tp_pct"]
         if "sl_pct" in sensor_config:
             metadata["sl_pct"] = sensor_config["sl_pct"]
+
+        # Add timeframe to metadata
+        metadata["signal_timeframe"] = signal_tf
 
         event = SignalEvent(
             type=EventType.SIGNAL,
             timestamp=time.time(),
             symbol=self.engine.data_feed.adapter.symbol,
             side=signal_data["side"],
-            sensor_id=sensor_name,  # Changed from strategy_name to sensor_id
+            sensor_id=sensor_name,
             score=signal_data.get("score", 1.0),
             metadata=metadata,
         )
-        logger.info(f"📡 Signal Detected: {sensor_name} -> {signal_data['side']}")
+        logger.info(f"📡 Signal Detected: {sensor_name}@{signal_tf} -> {signal_data['side']}")
         await self.engine.dispatch(event)
