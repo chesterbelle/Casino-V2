@@ -165,10 +165,11 @@ async def main():
     tracker = aggregator.tracker  # Get tracker from aggregator
 
     # 8. Initialize Player (Aggregated Signal → Decision)
-    from players.fixed import FixedPlayer
+    from players.adaptive import AdaptivePlayer
 
-    logger.info(f"🎰 Using Fixed Player (bet_size={args.bet_size:.2%}, max_positions={args.max_positions})")
-    player = FixedPlayer(engine, croupier, fixed_pct=args.bet_size, max_positions=args.max_positions)
+    logger.info(f"🎰 Using Adaptive Player (bet_size={args.bet_size:.2%}, max_positions={args.max_positions})")
+    # Initialize Player (bet sizing)
+    player = AdaptivePlayer(engine, croupier, fixed_pct=args.bet_size, max_positions=args.max_positions)
 
     # 9. Initialize Order Manager (Decision → Execution)
     order_manager = OrderManager(engine, croupier, player, tracker)

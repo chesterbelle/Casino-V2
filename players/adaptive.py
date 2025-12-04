@@ -40,12 +40,12 @@ class DecisionEvent(Event):
         self.unit_size = 0.0
 
 
-class FixedPlayer:
+class AdaptivePlayer:
     """
-    Player that bets a fixed percentage of equity.
+    Adaptive player that sizes bets based on sensor performance.
 
     Supports two modes:
-    1. Fixed: Always bet fixed_pct (default)
+    1. Fixed: Always bet fixed_pct (fallback)
     2. Kelly: Dynamically size based on sensor's historical performance
     """
 

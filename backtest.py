@@ -16,7 +16,7 @@ from croupier.croupier import Croupier
 from decision.aggregator import SignalAggregatorV3
 from exchanges.adapters import ExchangeAdapter
 from exchanges.connectors.virtual_exchange import VirtualExchangeConnector
-from players.fixed import FixedPlayer
+from players.adaptive import AdaptivePlayer
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(levelname)s: %(message)s", datefmt="%H:%M:%S")
@@ -86,8 +86,8 @@ async def main():
     tracker = aggregator.tracker  # Get tracker from aggregator
 
     # 7. Initialize Player (Aggregated Signal → Decision)
-    logger.info(f"🎰 Initializing FixedPlayer (bet_size={bet_size:.2%}, max_positions={max_positions})")
-    player = FixedPlayer(engine, croupier, fixed_pct=bet_size, max_positions=max_positions)
+    logger.info(f"🎰 Initializing AdaptivePlayer (bet_size={bet_size:.2%}, max_positions={max_positions})")
+    player = AdaptivePlayer(engine, croupier, fixed_pct=bet_size, max_positions=max_positions)
 
     # 8. Initialize Order Manager (Decision → Execution)
     order_manager = OrderManager(engine, croupier, player, tracker)

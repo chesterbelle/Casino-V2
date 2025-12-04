@@ -2,11 +2,11 @@
 Players module - Bet sizing strategies for Casino V3.
 
 Available players:
-- FixedPlayer: Fixed percentage per trade
+- AdaptivePlayer: Kelly-based sizing with fixed fallback
 
 Author: Casino V3 Team
 """
 
-from .fixed import FixedPlayer
+from .adaptive import AdaptivePlayer
 
-__all__ = ["FixedPlayer"]
+__all__ = ["AdaptivePlayer"]
