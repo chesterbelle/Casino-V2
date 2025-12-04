@@ -147,8 +147,6 @@ STRATEGIES: Dict[str, dict] = {
             "HigherTFTrend",
             "MTFImpulse",
         ],
-        "tp_multiplier": 1.5,
-        "sl_multiplier": 1.0,
         "max_positions": 2,
     },
     # -----------------------------------------------------
@@ -173,8 +171,6 @@ STRATEGIES: Dict[str, dict] = {
             "PinBarReversal",
             "DojiIndecision",
         ],
-        "tp_multiplier": 0.8,
-        "sl_multiplier": 1.0,
         "max_positions": 3,
     },
     # -----------------------------------------------------
@@ -197,8 +193,6 @@ STRATEGIES: Dict[str, dict] = {
             # VWAP
             "VWAPBreakout",
         ],
-        "tp_multiplier": 2.0,
-        "sl_multiplier": 0.8,
         "max_positions": 1,
     },
     # -----------------------------------------------------
@@ -220,8 +214,6 @@ STRATEGIES: Dict[str, dict] = {
             "AdaptiveRSI",
             "StochasticReversion",
         ],
-        "tp_multiplier": 0.5,
-        "sl_multiplier": 0.5,
         "max_positions": 1,
     },
     # -----------------------------------------------------
@@ -245,8 +237,6 @@ STRATEGIES: Dict[str, dict] = {
             "VWAPMomentum",
             "VWAPDeviation",
         ],
-        "tp_multiplier": 1.5,
-        "sl_multiplier": 1.0,
         "max_positions": 2,
     },
     # -----------------------------------------------------
@@ -270,8 +260,6 @@ STRATEGIES: Dict[str, dict] = {
             "EMA50Support",
             "SupportResistance",
         ],
-        "tp_multiplier": 1.0,
-        "sl_multiplier": 1.0,
         "max_positions": 2,
     },
 }

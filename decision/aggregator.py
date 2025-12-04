@@ -9,7 +9,7 @@ import time
 from collections import defaultdict
 from typing import Any, Dict, List, Optional
 
-from config.strategies import get_strategy_config, get_strategy_for_sensor
+from config.strategies import get_strategy_for_sensor
 from core.events import Event, EventType, SignalEvent
 
 from .sensor_tracker import SensorTracker
@@ -35,7 +35,6 @@ class AggregatedSignalEvent(Event):
         total_signals: int,
         metadata: Optional[Dict[str, Any]] = None,
         strategy_name: Optional[str] = None,
-        strategy_config: Optional[Dict[str, Any]] = None,
     ):
         super().__init__(type=EventType.AGGREGATED_SIGNAL, timestamp=time.time())
         self.symbol = symbol
@@ -47,7 +46,6 @@ class AggregatedSignalEvent(Event):
         self.total_signals = total_signals
         self.metadata = metadata
         self.strategy_name = strategy_name
-        self.strategy_config = strategy_config or {}
 
 
 class SignalAggregatorV3:
@@ -170,7 +168,6 @@ class SignalAggregatorV3:
             # Get strategy context for selected sensor
             strategies = get_strategy_for_sensor(selected["sensor_id"])
             strategy_name = strategies[0] if strategies else "Unknown"
-            strategy_config = get_strategy_config(strategy_name)
 
             logger.info(
                 f"📊 Selected: {selected['sensor_id']} ({selected['side']}) | "
@@ -189,7 +186,6 @@ class SignalAggregatorV3:
                 total_signals=len(signals),
                 metadata=selected["signal"].metadata,
                 strategy_name=strategy_name,
-                strategy_config=strategy_config,
             )
 
         await self.engine.dispatch(aggregated)
