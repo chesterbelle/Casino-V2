@@ -463,6 +463,7 @@ class VirtualExchangeConnector(BaseConnector):
 
         order = {
             "id": order_id,
+            "order_id": order_id,  # For Croupier compatibility
             "symbol": symbol,
             "side": side,
             "amount": amount,
