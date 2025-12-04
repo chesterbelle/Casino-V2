@@ -2,8 +2,8 @@
 MTFImpulse Sensor (V3).
 Logic: Multi-timeframe impulse detection using momentum alignment.
 
-Detects strong impulse moves when both current and higher timeframe
-show aligned momentum.
+Detects strong impulse moves when both current (1m) and higher
+timeframe (5m/15m) show aligned momentum.
 """
 
 import logging
@@ -19,44 +19,51 @@ class MTFImpulseV3(SensorV3):
     def name(self) -> str:
         return "MTFImpulse"
 
+    # This sensor uses multiple timeframes
+    timeframe: str = "1m"
+
     def __init__(
         self,
-        htf_multiplier=5,
+        htf="5m",
         momentum_period=10,
         impulse_threshold=0.003,
     ):
         """
         Args:
-            htf_multiplier: Candles to aggregate for HTF (5 = 5m from 1m)
+            htf: Higher timeframe to use ("5m", "15m", "1h")
             momentum_period: Period for momentum calculation
             impulse_threshold: Min momentum % to trigger signal
         """
-        self.htf_multiplier = htf_multiplier
+        self.htf = htf
         self.momentum_period = momentum_period
         self.impulse_threshold = impulse_threshold
 
-        # Current timeframe data
+        # Current timeframe (1m) data
         self.closes = deque(maxlen=momentum_period + 10)
 
-        # HTF aggregation
-        self.candle_buffer = deque(maxlen=htf_multiplier)
+        # HTF closes (from context)
         self.htf_closes = deque(maxlen=momentum_period + 10)
 
-        self.candle_count = 0
+        self._last_htf_timestamp = None
 
     def calculate(self, context: dict) -> dict:
+        # Get 1m candle (always available)
         candle = context["1m"]
         close = candle["close"]
         self.closes.append(close)
-        self.candle_buffer.append(candle)
-        self.candle_count += 1
 
-        # Aggregate HTF
-        if self.candle_count % self.htf_multiplier == 0:
-            htf_close = candle["close"]  # Use last close as HTF close
-            self.htf_closes.append(htf_close)
+        # Get HTF candle from context
+        htf_candle = context.get(self.htf)
 
-        # Need enough data for momentum
+        # Store HTF close when available and new
+        if htf_candle is not None:
+            htf_timestamp = htf_candle.get("timestamp")
+            if htf_timestamp != self._last_htf_timestamp:
+                if htf_candle.get("is_complete", True):
+                    self.htf_closes.append(htf_candle["close"])
+                    self._last_htf_timestamp = htf_timestamp
+
+        # Need enough data for momentum on both timeframes
         if len(self.closes) < self.momentum_period:
             return None
         if len(self.htf_closes) < self.momentum_period:
@@ -67,8 +74,7 @@ class MTFImpulseV3(SensorV3):
         htf_momentum = self._calculate_momentum(list(self.htf_closes))
 
         # Check for aligned impulse
-        signal = self._check_impulse(ltf_momentum, htf_momentum)
-        return signal
+        return self._check_impulse(ltf_momentum, htf_momentum)
 
     def _calculate_momentum(self, closes):
         """Calculate rate of change momentum."""
@@ -103,6 +109,7 @@ class MTFImpulseV3(SensorV3):
                 "side": "LONG",
                 "score": min(combined_momentum / self.impulse_threshold, 2.0) / 2,
                 "metadata": {
+                    "htf": self.htf,
                     "ltf_momentum": ltf_momentum,
                     "htf_momentum": htf_momentum,
                     "combined": combined_momentum,
@@ -113,6 +120,7 @@ class MTFImpulseV3(SensorV3):
                 "side": "SHORT",
                 "score": min(combined_momentum / self.impulse_threshold, 2.0) / 2,
                 "metadata": {
+                    "htf": self.htf,
                     "ltf_momentum": ltf_momentum,
                     "htf_momentum": htf_momentum,
                     "combined": combined_momentum,

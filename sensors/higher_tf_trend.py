@@ -2,8 +2,8 @@
 HigherTFTrend Sensor (V3).
 Logic: Confirms trend using higher timeframe EMA alignment.
 
-Multi-timeframe trend confirmation by aggregating candles into
-higher timeframe and checking EMA direction.
+Uses pre-aggregated HTF candles from context (5m, 15m, 1h)
+to check EMA direction and trend confirmation.
 """
 
 import logging
@@ -21,43 +21,49 @@ class HigherTFTrendV3(SensorV3):
     def name(self) -> str:
         return "HigherTFTrend"
 
-    def __init__(self, htf_multiplier=5, ema_period=20, lookback=3):
+    # This sensor uses higher timeframe data
+    timeframe: str = "5m"
+
+    def __init__(self, htf="5m", ema_period=20, lookback=3):
         """
         Args:
-            htf_multiplier: How many candles to aggregate (5 = 5m from 1m)
+            htf: Higher timeframe to use ("5m", "15m", "1h")
             ema_period: EMA period on the higher timeframe
             lookback: Number of HTF candles to confirm trend
         """
-        self.htf_multiplier = htf_multiplier
+        self.htf = htf
         self.ema_period = ema_period
         self.lookback = lookback
 
-        # Accumulate candles for HTF aggregation
-        self.candle_buffer = deque(maxlen=htf_multiplier)
-
-        # HTF candles and EMA values
+        # HTF candles history (from context)
         self.htf_candles = deque(maxlen=ema_period + lookback + 10)
         self.htf_emas = deque(maxlen=lookback + 5)
 
-        self.candle_count = 0
+        self._last_htf_timestamp = None
 
     def calculate(self, context: dict) -> dict:
-        candle = context["1m"]
-        self.candle_buffer.append(candle)
-        self.candle_count += 1
+        # Get HTF candle from context
+        htf_candle = context.get(self.htf)
 
-        # Only process when we have enough candles for HTF
-        if len(self.candle_buffer) < self.htf_multiplier:
+        if htf_candle is None:
             return None
 
-        # Aggregate to higher timeframe candle
-        if self.candle_count % self.htf_multiplier == 0:
-            htf_candle = self._aggregate_candles(list(self.candle_buffer))
-            self.htf_candles.append(htf_candle)
+        # Skip if we already processed this HTF candle
+        htf_timestamp = htf_candle.get("timestamp")
+        if htf_timestamp == self._last_htf_timestamp:
+            return None
 
-            # Calculate EMA on HTF
-            if len(self.htf_candles) >= self.ema_period:
-                ema = self._calculate_ema()
+        # Only process complete HTF candles
+        if not htf_candle.get("is_complete", True):
+            return None
+
+        self._last_htf_timestamp = htf_timestamp
+        self.htf_candles.append(htf_candle)
+
+        # Calculate EMA on HTF
+        if len(self.htf_candles) >= self.ema_period:
+            ema = self._calculate_ema()
+            if ema is not None:
                 self.htf_emas.append(ema)
 
         # Need enough EMAs to confirm trend
@@ -65,18 +71,7 @@ class HigherTFTrendV3(SensorV3):
             return None
 
         # Check trend direction
-        signal = self._check_trend()
-        return signal
-
-    def _aggregate_candles(self, candles):
-        """Aggregate multiple candles into one HTF candle."""
-        return {
-            "open": candles[0]["open"],
-            "high": max(c["high"] for c in candles),
-            "low": min(c["low"] for c in candles),
-            "close": candles[-1]["close"],
-            "volume": sum(c.get("volume", 0) for c in candles),
-        }
+        return self._check_trend()
 
     def _calculate_ema(self):
         """Calculate EMA on HTF closes."""
@@ -110,6 +105,7 @@ class HigherTFTrendV3(SensorV3):
                 "side": "LONG",
                 "score": 1.0,
                 "metadata": {
+                    "htf": self.htf,
                     "htf_ema": current_ema,
                     "htf_close": current_close,
                     "trend": "bullish",
@@ -122,6 +118,7 @@ class HigherTFTrendV3(SensorV3):
                 "side": "SHORT",
                 "score": 1.0,
                 "metadata": {
+                    "htf": self.htf,
                     "htf_ema": current_ema,
                     "htf_close": current_close,
                     "trend": "bearish",
