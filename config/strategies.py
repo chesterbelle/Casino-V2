@@ -203,7 +203,7 @@ STRATEGIES: Dict[str, dict] = {
     # QUICK SCALPER - Trades rápidos con stops ajustados
     # -----------------------------------------------------
     "QuickScalper": {
-        "enabled": True,  # Active for demo - fast signals
+        "enabled": False,  # Disabled - using DebugAll
         "description": "Trades rápidos con stops ajustados",
         "logic": "Entradas precisas, salidas rápidas, alto volumen",
         "sensors": [
@@ -271,6 +271,78 @@ STRATEGIES: Dict[str, dict] = {
             "HigherTFTrend",
         ],
         "max_positions": 2,
+    },
+    # -----------------------------------------------------
+    # DEBUG ALL - Todos los sensores (solo para debugging)
+    # -----------------------------------------------------
+    "DebugAll": {
+        "enabled": True,  # ACTIVE FOR DEBUGGING
+        "description": "Todos los sensores activos para debugging",
+        "logic": "Máxima cantidad de señales para probar el sistema",
+        "sensors": [
+            # Trend
+            "ADXFilter",
+            "EMACrossover",
+            "MACDCrossover",
+            "Supertrend",
+            "ParabolicSAR",
+            "HigherTFTrend",
+            "MTFImpulse",
+            "EMA50Support",
+            # Oscillators
+            "RSIReversion",
+            "StochasticReversion",
+            "CCIReversion",
+            "WilliamsRReversion",
+            "AdaptiveRSI",
+            # Bands
+            "BollingerTouch",
+            "BollingerSqueeze",
+            "BollingerRejection",
+            "KeltnerReversion",
+            "KeltnerBreakout",
+            "ZScoreReversion",
+            # Patterns
+            "EngulfingPattern",
+            "PinBarReversal",
+            "RailsPattern",
+            "MorningStar",
+            "DojiIndecision",
+            "TweezerPattern",
+            "ThreeBar",
+            "MarubozuMomentum",
+            "WickRejection",
+            "LongTail",
+            # Structural
+            "VCPPattern",
+            "InsideBarBreakout",
+            "DecelerationCandles",
+            "ExtremeCandleRatio",
+            "Fakeout",
+            # Volume
+            "VolumeImbalance",
+            "VolumeSpike",
+            "VSAReversal",
+            "AbsorptionBlock",
+            # SMC
+            "OrderBlock",
+            "LiquidityVoid",
+            "FVGRetest",
+            "WyckoffSpring",
+            # Momentum
+            "MomentumBurst",
+            "MicroTrend",
+            "SmartRange",
+            # VWAP
+            "VWAPDeviation",
+            "VWAPBreakout",
+            "VWAPMomentum",
+            # Regime
+            "HurstRegime",
+            "VolatilityWakeup",
+            "SupportResistance",
+        ],
+        "max_positions": 3,
     },
 }
 

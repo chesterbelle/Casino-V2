@@ -1,0 +1,15 @@
+{
+  "session_id": "session_1764849728",
+  "start_time": 1764849728.2536256,
+  "last_update": 1764849736.5002744,
+  "initial_balance": 3412.30293698,
+  "current_balance": 3412.30293698,
+  "available_balance": 3412.30293698,
+  "allocated_balance": 0.0,
+  "open_positions": [],
+  "total_trades": 0,
+  "total_wins": 0,
+  "total_losses": 0,
+  "last_reconciliation": null,
+  "version": "2.0.0"
+}

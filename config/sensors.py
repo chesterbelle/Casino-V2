@@ -47,40 +47,26 @@ ACTIVE_SENSORS = {
     "SmartRange": True,
     "AdaptiveRSI": True,
     "HigherTFTrend": True,  # Context sensor
-    # === DISABLED / NOT OPTIMIZED ===
-    "OrderBlock": False,  # No trades generated in 30d
-    "VWAPBreakout": False,
-    "VWAPMomentum": False,
-    "MicroTrendPullback": False,
-    "VolatilityWakeup": False,
-    "BollingerBandRejection": False,
-    "KeltnerBreakout": False,
-    "VolumeFlowImbalance": False,
-    "HurstRegime": False,
-    "MFIReversion": False,
-    "AdaptiveRSIScalper": False,
-    "VSAReversal": False,
-    "SmartRangeScalper": False,
-    "FakeoutReversal": False,
-    "ThreeBarReversal": False,
-    "MorningStarEvening": False,
-    "TweezerPattern": False,
-    "SupportResistanceBounce": False,
-    "VolumeSpikeReversal": False,
-    "OrderBlockBreakout": False,
-    "LiquidityVoid": False,
-    "LongTailDistribution": False,
-    "WyckoffSpring": False,
-    "AbsorptionBlock": False,
-    "HigherTFTrendConfirm": False,
-    "MultiTimeframeImpulse": False,
-    "MomentumPinball": False,
-    "AggressiveVolume": False,
-    "VolumeDelta": False,
-    "WickRejection": False,
-    "OBVBreakout": False,
-    "ParabolicSAR": False,
-    "AccumulationDistribution": False,
+    # === ALL SENSORS ENABLED FOR DEBUGALL ===
+    "OrderBlock": True,
+    "VWAPBreakout": True,
+    "VWAPMomentum": True,
+    "MTFImpulse": True,
+    "VolatilityWakeup": True,
+    "BollingerRejection": True,
+    "KeltnerBreakout": True,
+    "HurstRegime": True,
+    "VSAReversal": True,
+    "ThreeBar": True,
+    "TweezerPattern": True,
+    "SupportResistance": True,
+    "VolumeSpike": True,
+    "LiquidityVoid": True,
+    "LongTail": True,
+    "WyckoffSpring": True,
+    "AbsorptionBlock": True,
+    "ParabolicSAR": True,
+    "WickRejection": True,
 }
 
 
@@ -106,10 +92,10 @@ SENSOR_TIMEFRAMES = {
     "EMA50Support": "15m",
     # === OSCILLATORS (Medium TF for signal quality) ===
     "RSIReversion": "15m",
-    "StochasticReversion": "5m",
+    "StochasticReversion": "1m",  # QuickScalper - 1m for demo
     "CCIReversion": "5m",
     "WilliamsRReversion": "5m",
-    "AdaptiveRSI": "5m",
+    "AdaptiveRSI": "1m",  # QuickScalper - 1m for demo
     # === VOLATILITY BANDS (Medium TF) ===
     "BollingerTouch": "5m",
     "BollingerSqueeze": "15m",
@@ -131,9 +117,9 @@ SENSOR_TIMEFRAMES = {
     # === STRUCTURAL PATTERNS (Medium-High TF) ===
     "VCPPattern": "15m",
     "InsideBarBreakout": "15m",
-    "DecelerationCandles": "5m",
+    "DecelerationCandles": "1m",  # QuickScalper - 1m for demo
     "ExtremeCandleRatio": "1m",  # Detección de pánico rápido
-    "Fakeout": "5m",
+    "Fakeout": "1m",  # QuickScalper - 1m for demo
     # === VOLUME ANALYSIS (Quick detection) ===
     "VolumeImbalance": "5m",
     "VolumeSpike": "1m",
