@@ -119,7 +119,8 @@ class ExchangeAdapter:
         self.logger.debug(f"cond1 (prefer_ws): {cond1}")
         self.logger.debug(f"cond2 (has_watch_positions): {cond2}")
         self.logger.debug(f"cond3 (enable_websocket): {cond3}")
-        self.logger.debug(f"connector.watch_positions={self.connector.watch_positions}")
+        if cond2:
+            self.logger.debug(f"connector.watch_positions={self.connector.watch_positions}")
         # Detect WebSocket availability: prefer_ws flag + connector support
         has_ws_api = cond2 and cond3
         ws_available = bool(cond1 and has_ws_api)

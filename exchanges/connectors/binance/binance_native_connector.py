@@ -193,7 +193,7 @@ class BinanceNativeConnector(BaseConnector):
             try:
                 await asyncio.sleep(1800)  # 30 minutes
                 if self._listen_key:
-                    self.client.renew_listen_key()
+                    self.client.renew_listen_key(listenKey=self._listen_key)
                     self.logger.debug("🔄 Listen key renewed")
             except asyncio.CancelledError:
                 self.logger.info("🛑 Keepalive task cancelled")

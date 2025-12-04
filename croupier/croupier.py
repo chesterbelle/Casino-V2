@@ -320,9 +320,29 @@ class Croupier:
         """
         return self.position_tracker.get_stats()
 
-    def __repr__(self) -> str:
-        return (
-            f"Croupier(balance={self.get_balance():.2f}, "
-            f"equity={self.get_equity():.2f}, "
-            f"positions={len(self.get_open_positions())})"
-        )
+    async def cleanup_symbol(self, symbol: str) -> None:
+        """
+        Cleanup all orders and positions for a symbol.
+
+        Args:
+            symbol: Symbol to cleanup
+        """
+        self.logger.info(f"🧹 Cleaning up symbol {symbol}...")
+
+        # 1. Cancel all open orders
+        try:
+            open_orders = await self.adapter.fetch_open_orders(symbol)
+            for order in open_orders:
+                await self.adapter.cancel_order(order["id"], symbol)
+            self.logger.info(f"✅ Cancelled {len(open_orders)} open orders for {symbol}")
+        except Exception as e:
+            self.logger.error(f"❌ Error cancelling open orders for {symbol}: {e}")
+
+        # 2. Close any remaining positions (if not handled by main loop)
+        # Note: main.py attempts to close positions via close_position before calling this,
+        # but this serves as a final safety net or for untracked positions.
+        try:
+            # We can use reconciliation service to find and close untracked positions
+            await self.reconciliation.reconcile_symbol(symbol)
+        except Exception as e:
+            self.logger.error(f"❌ Error reconciling/cleaning positions for {symbol}: {e}")

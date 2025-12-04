@@ -95,9 +95,13 @@ class OCOManager:
         side = order["side"]
 
         self.logger.info(
-            f"🎯 Creating OCO bracket: {side} {symbol} | "
-            f"TP: {order['take_profit']:.4f} | SL: {order['stop_loss']:.4f}"
+            f"🛡️ Creating OCO bracket for {symbol} {side} | "
+            f"TP: {order.get('take_profit', 0):.4f} | SL: {order.get('stop_loss', 0):.4f}"
         )
+
+        # Validate TP/SL presence
+        if "take_profit" not in order or "stop_loss" not in order:
+            raise ValueError("Order must contain 'take_profit' and 'stop_loss'")
 
         main_order = None
         tp_order = None
