@@ -1,15 +1,44 @@
 """
 Sensor Manager for Casino-V3.
 Orchestrates sensors, manages cooldowns, and emits SignalEvents.
+
+Optimized with ProcessPoolExecutor for parallel sensor execution.
 """
 
+import asyncio
 import logging
+import os
 import time
-from typing import Dict
+from concurrent.futures import ProcessPoolExecutor
+from typing import Dict, List, Tuple
 
 from .events import CandleEvent, EventType, SignalEvent
 
 logger = logging.getLogger(__name__)
+
+# Number of worker processes for parallel sensor execution
+# Use half of CPU cores to leave room for other tasks
+SENSOR_WORKERS = max(2, (os.cpu_count() or 4) // 2)
+
+
+def _calculate_sensor(sensor_data: Tuple) -> Tuple[str, dict]:
+    """
+    Worker function for parallel sensor calculation.
+
+    This runs in a separate process to bypass GIL for CPU-bound numpy operations.
+
+    Args:
+        sensor_data: Tuple of (sensor_instance, candle_data)
+
+    Returns:
+        Tuple of (sensor_name, signal_or_none)
+    """
+    sensor, candle_data = sensor_data
+    try:
+        signal = sensor.calculate(candle_data)
+        return (sensor.name, signal)
+    except Exception as e:
+        return (sensor.name, {"error": str(e)})
 
 
 class SensorManager:
@@ -25,6 +54,11 @@ class SensorManager:
         self.cooldown_bars = 5  # Default cooldown
         self._candle_index = -1
         self._last_trigger: Dict[str, int] = {}
+
+        # ProcessPoolExecutor for parallel sensor execution
+        self._executor = ProcessPoolExecutor(max_workers=SENSOR_WORKERS)
+        self._parallel_enabled = True  # Can disable for debugging
+        logger.info(f"⚡ SensorManager using {SENSOR_WORKERS} worker processes")
 
         # Subscribe to Candles
         self.engine.subscribe(EventType.CANDLE, self.on_candle)
@@ -157,8 +191,15 @@ class SensorManager:
         logger.info(f"✅ SensorManager loaded {len(self.sensors)} sensors for timeframe {self.timeframe}.")
 
     async def on_candle(self, event: CandleEvent):
-        """Process new candle."""
+        """
+        Process new candle with parallel sensor execution.
+
+        Uses ProcessPoolExecutor to run CPU-bound sensor calculations
+        in parallel, bypassing Python's GIL.
+        """
         self._candle_index += 1
+        start_time = time.time()
+
         candle_data = {
             "timestamp": event.timestamp,
             "open": event.open,
@@ -168,24 +209,60 @@ class SensorManager:
             "volume": event.volume,
         }
 
+        # Filter sensors by cooldown first
+        active_sensors = [s for s in self.sensors if self._can_fire(s.name)]
+
+        if not active_sensors:
+            return
+
+        if self._parallel_enabled and len(active_sensors) > 1:
+            # Parallel execution using ProcessPoolExecutor
+            await self._process_sensors_parallel(active_sensors, candle_data)
+        else:
+            # Sequential fallback (for debugging or single sensor)
+            await self._process_sensors_sequential(active_sensors, candle_data)
+
+        # Log timing every 100 candles
         if self._candle_index % 100 == 0:
-            print(f"DEBUG: Processing candle {self._candle_index}")
-            logger.debug(f"🕯️ Processing candle {self._candle_index} | Close: {event.close}")
+            elapsed = (time.time() - start_time) * 1000
+            logger.info(f"⚡ Candle {self._candle_index} | " f"{len(active_sensors)} sensors | {elapsed:.1f}ms")
 
-        for sensor in self.sensors:
+    async def _process_sensors_parallel(self, active_sensors: List, candle_data: dict):
+        """Execute sensors in parallel using ProcessPoolExecutor."""
+        loop = asyncio.get_event_loop()
+
+        # Create tasks for parallel execution
+        # Note: We pass (sensor, candle_data) tuples to the worker function
+        tasks = [
+            loop.run_in_executor(self._executor, _calculate_sensor, (sensor, candle_data)) for sensor in active_sensors
+        ]
+
+        # Wait for all sensors to complete
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        # Process results
+        for sensor, result in zip(active_sensors, results):
+            if isinstance(result, Exception):
+                logger.error(f"❌ Sensor {sensor.name} exception: {result}")
+                continue
+
+            sensor_name, signal = result
+
+            if signal:
+                if "error" in signal:
+                    logger.error(f"❌ Sensor {sensor_name}: {signal['error']}")
+                else:
+                    await self._emit_signal(signal, sensor_name)
+                    self._last_trigger[sensor_name] = self._candle_index
+
+    async def _process_sensors_sequential(self, active_sensors: List, candle_data: dict):
+        """Execute sensors sequentially (fallback mode)."""
+        for sensor in active_sensors:
             try:
-                # Check Cooldown
-                if not self._can_fire(sensor.name):
-                    continue
-
-                # Calculate Signal
                 signal = sensor.calculate(candle_data)
-
                 if signal:
-                    # Emit Signal Event
                     await self._emit_signal(signal, sensor.name)
                     self._last_trigger[sensor.name] = self._candle_index
-
             except Exception as e:
                 logger.error(f"❌ Error in sensor {sensor.name}: {e}")
 
