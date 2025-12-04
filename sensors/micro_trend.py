@@ -32,7 +32,9 @@ class MicroTrendV3(SensorV3):
         self.candles = deque(maxlen=trend_period + pullback_period + 5)
 
     def calculate(self, context: dict) -> dict:
-        candle = context["1m"]
+        # Get optimal timeframe for this sensor (configured in config/sensors.py)
+        tf = getattr(self, "_optimal_tf", "1m")
+        candle = context.get(tf) or context["1m"]
         self.candles.append(candle)
 
         if len(self.candles) < self.trend_period + self.pullback_period:

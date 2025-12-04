@@ -28,7 +28,9 @@ class BollingerSqueezeV3(SensorV3):
         self.in_squeeze = False
 
     def calculate(self, context: dict) -> dict:
-        candle = context["1m"]
+        # Get optimal timeframe for this sensor (configured in config/sensors.py)
+        tf = getattr(self, "_optimal_tf", "1m")
+        candle = context.get(tf) or context["1m"]
         self.closes.append(candle["close"])
         self.volumes.append(candle["volume"])
 

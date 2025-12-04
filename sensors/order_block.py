@@ -25,7 +25,9 @@ class OrderBlockV3(SensorV3):
         self.candles = deque(maxlen=20)
 
     def calculate(self, context: dict) -> dict:
-        candle = context["1m"]
+        # Get optimal timeframe for this sensor (configured in config/sensors.py)
+        tf = getattr(self, "_optimal_tf", "1m")
+        candle = context.get(tf) or context["1m"]
         self.candles.append([candle["open"], candle["high"], candle["low"], candle["close"]])
 
         if len(self.candles) < self.block_size + 1:

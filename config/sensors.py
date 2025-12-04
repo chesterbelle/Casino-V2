@@ -79,6 +79,81 @@ ACTIVE_SENSORS = {
 
 
 # =====================================================
+# ⏱️ TIMEFRAME ÓPTIMO POR SENSOR
+# =====================================================
+# Define qué timeframe del context usar para cada sensor
+# Basado en la lógica del sensor y recomendaciones de trading algorítmico:
+# - Patrones de velas: 15m/1h (menor ruido)
+# - Osciladores: 5m/15m (balance señal/ruido)
+# - Momentum/Trend: 1h/4h (contexto macro)
+# - Ejecución rápida: 1m (precisión de entrada)
+
+SENSOR_TIMEFRAMES = {
+    # === TREND INDICATORS (Higher TF for direction) ===
+    "ADXFilter": "15m",
+    "EMACrossover": "15m",
+    "MACDCrossover": "15m",
+    "Supertrend": "15m",
+    "ParabolicSAR": "15m",
+    "HigherTFTrend": "1h",  # Contexto macro
+    "MTFImpulse": "5m",  # Balance entre TFs
+    "EMA50Support": "15m",
+    # === OSCILLATORS (Medium TF for signal quality) ===
+    "RSIReversion": "15m",
+    "StochasticReversion": "5m",
+    "CCIReversion": "5m",
+    "WilliamsRReversion": "5m",
+    "AdaptiveRSI": "5m",
+    # === VOLATILITY BANDS (Medium TF) ===
+    "BollingerTouch": "5m",
+    "BollingerSqueeze": "15m",
+    "BollingerRejection": "5m",
+    "KeltnerReversion": "5m",
+    "KeltnerBreakout": "15m",
+    "ZScoreReversion": "5m",
+    # === CANDLESTICK PATTERNS (Higher TF = more reliable) ===
+    "EngulfingPattern": "15m",
+    "PinBarReversal": "15m",
+    "RailsPattern": "15m",
+    "MorningStar": "1h",  # Multi-candle = needs HTF
+    "DojiIndecision": "1h",  # Indecision significativa
+    "TweezerPattern": "15m",
+    "ThreeBar": "15m",
+    "MarubozuMomentum": "15m",
+    "WickRejection": "15m",
+    "LongTail": "15m",
+    # === STRUCTURAL PATTERNS (Medium-High TF) ===
+    "VCPPattern": "15m",
+    "InsideBarBreakout": "15m",
+    "DecelerationCandles": "5m",
+    "ExtremeCandleRatio": "1m",  # Detección de pánico rápido
+    "Fakeout": "5m",
+    # === VOLUME ANALYSIS (Quick detection) ===
+    "VolumeImbalance": "5m",
+    "VolumeSpike": "1m",
+    "VSAReversal": "5m",
+    "AbsorptionBlock": "5m",
+    # === SMART MONEY CONCEPTS (Medium TF) ===
+    "OrderBlock": "15m",
+    "LiquidityVoid": "15m",
+    "FVGRetest": "5m",  # Zones más precisas
+    "WyckoffSpring": "15m",
+    # === MOMENTUM (Fast detection) ===
+    "MomentumBurst": "1m",
+    "MicroTrend": "1m",
+    "SmartRange": "1m",
+    # === VWAP (Medium TF) ===
+    "VWAPDeviation": "5m",
+    "VWAPBreakout": "5m",
+    "VWAPMomentum": "5m",
+    # === REGIME DETECTION (Higher TF) ===
+    "HurstRegime": "15m",
+    "VolatilityWakeup": "15m",
+    "SupportResistance": "1h",
+}
+
+
+# =====================================================
 # ⚙️ PARÁMETROS DE SENSORES
 # =====================================================
 
@@ -274,3 +349,23 @@ def get_sensor_params(sensor_id: str, timeframe: str = "1m") -> dict:
 
     # Fallback to default
     return SENSOR_PARAMS["_default"].get(timeframe, {"tp_pct": 0.015, "sl_pct": 0.01})
+
+
+def get_sensor_timeframe(sensor_id: str) -> str:
+    """
+    Get the optimal timeframe for a sensor.
+
+    Args:
+        sensor_id: Name of the sensor (e.g., "DojiIndecision")
+
+    Returns:
+        Timeframe string (e.g., "1m", "5m", "15m", "1h")
+        Defaults to "1m" if sensor not found in SENSOR_TIMEFRAMES.
+
+    Example:
+        >>> get_sensor_timeframe("DojiIndecision")
+        "1h"
+        >>> get_sensor_timeframe("ExtremeCandleRatio")
+        "1m"
+    """
+    return SENSOR_TIMEFRAMES.get(sensor_id, "1m")

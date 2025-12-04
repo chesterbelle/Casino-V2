@@ -24,7 +24,9 @@ class VolumeImbalanceV3(SensorV3):
         self.volumes = deque(maxlen=volume_period)
 
     def calculate(self, context: dict) -> dict:
-        candle = context["1m"]
+        # Get optimal timeframe for this sensor (configured in config/sensors.py)
+        tf = getattr(self, "_optimal_tf", "1m")
+        candle = context.get(tf) or context["1m"]
         close = candle["close"]
         high = candle["high"]
         low = candle["low"]

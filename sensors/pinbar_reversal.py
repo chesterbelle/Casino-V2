@@ -21,7 +21,9 @@ class PinBarReversalV3(SensorV3):
         self.position_threshold = position_threshold
 
     def calculate(self, context: dict) -> dict:
-        candle = context["1m"]
+        # Get optimal timeframe for this sensor (configured in config/sensors.py)
+        tf = getattr(self, "_optimal_tf", "1m")
+        candle = context.get(tf) or context["1m"]
         open_p = candle["open"]
         close_p = candle["close"]
         high_p = candle["high"]

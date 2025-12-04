@@ -182,6 +182,7 @@ class SensorManager:
         ]
 
         # Get sensors from enabled strategies
+        from config.sensors import get_sensor_timeframe
         from config.strategies import get_active_sensors, get_enabled_strategies
 
         strategy_sensors = get_active_sensors()
@@ -205,6 +206,9 @@ class SensorManager:
             if strategy_sensors and sensor.name not in strategy_sensors:
                 logger.debug(f"⏭️ Skipping {sensor.name} - not in active strategy")
                 continue
+
+            # Set optimal timeframe for this sensor
+            sensor._optimal_tf = get_sensor_timeframe(sensor.name)
 
             self.sensors.append(sensor)
 

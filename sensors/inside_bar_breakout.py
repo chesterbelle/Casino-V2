@@ -26,7 +26,9 @@ class InsideBarBreakoutV3(SensorV3):
         self.inside_bar_low = None
 
     def calculate(self, context: dict) -> dict:
-        candle = context["1m"]
+        # Get optimal timeframe for this sensor (configured in config/sensors.py)
+        tf = getattr(self, "_optimal_tf", "1m")
+        candle = context.get(tf) or context["1m"]
         self.candles.append(candle)
         if len(self.candles) < 3:
             return None
