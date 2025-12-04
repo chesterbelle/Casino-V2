@@ -1,10 +1,13 @@
 """
 RSIReversion Sensor (V3).
 Logic: RSI oversold/overbought mean reversion.
+
+Multi-TF: Monitors multiple timeframes with independent buffers.
 """
 
 import logging
 from collections import deque
+from typing import Dict, List, Optional
 
 import numpy as np
 
@@ -22,32 +25,50 @@ class RSIReversionV3(SensorV3):
         self.period = period
         self.low = low
         self.high = high
-        self.prices = deque(maxlen=250)
+        # Buffer per timeframe
+        self.buffers: Dict[str, deque] = {}
 
-    def calculate(self, context: dict) -> dict:
-        # Get optimal timeframe for this sensor (configured in config/sensors.py)
-        tf = getattr(self, "_optimal_tf", "1m")
-        candle = context.get(tf)
-        if candle is None:
-            return None  # TF not ready yet, skip this cycle
+    def _get_buffer(self, tf: str) -> deque:
+        """Get or create buffer for a timeframe."""
+        if tf not in self.buffers:
+            self.buffers[tf] = deque(maxlen=250)
+        return self.buffers[tf]
+
+    def calculate(self, context: dict) -> List[dict]:
+        """Calculate signals for all monitored timeframes."""
+        signals = []
+
+        for tf in self.timeframes:
+            candle = context.get(tf)
+            if candle is None:
+                continue
+
+            signal = self._calculate_for_tf(tf, candle)
+            if signal:
+                signals.append(signal)
+
+        return signals if signals else None
+
+    def _calculate_for_tf(self, tf: str, candle: dict) -> Optional[dict]:
+        """Calculate RSI signal for a single timeframe."""
+        buffer = self._get_buffer(tf)
         close = candle["close"]
-        self.prices.append(close)
+        buffer.append(close)
 
-        if len(self.prices) < self.period + 1:
+        if len(buffer) < self.period + 1:
             return None
 
-        rsi = self._compute_rsi()
-        signal = None
+        rsi = self._compute_rsi(buffer)
 
         if rsi < self.low:
-            signal = {"side": "LONG", "score": 1.0, "metadata": {"rsi": rsi}}
+            return {"side": "LONG", "score": 1.0, "timeframe": tf, "metadata": {"rsi": rsi}}
         elif rsi > self.high:
-            signal = {"side": "SHORT", "score": 1.0, "metadata": {"rsi": rsi}}
+            return {"side": "SHORT", "score": 1.0, "timeframe": tf, "metadata": {"rsi": rsi}}
 
-        return signal
+        return None
 
-    def _compute_rsi(self) -> float:
-        prices_arr = np.array(self.prices)
+    def _compute_rsi(self, buffer: deque) -> float:
+        prices_arr = np.array(buffer)
         delta = np.diff(prices_arr)
         gains = np.maximum(delta, 0)
         losses = np.abs(np.minimum(delta, 0))

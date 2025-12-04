@@ -1,10 +1,13 @@
 """
 StochasticReversion Sensor (V3).
 Logic: Stochastic oscillator oversold/overbought.
+
+Multi-TF: Monitors multiple timeframes with independent buffers.
 """
 
 import logging
 from collections import deque
+from typing import Dict, List, Optional
 
 import numpy as np
 
@@ -23,55 +26,77 @@ class StochasticReversionV3(SensorV3):
         self.d_period = d_period
         self.low_threshold = low_threshold
         self.high_threshold = high_threshold
-        self.highs = deque(maxlen=k_period)
-        self.lows = deque(maxlen=k_period)
-        self.closes = deque(maxlen=k_period)
-        self.k_values = deque(maxlen=d_period)
+        # Buffers per timeframe
+        self.highs: Dict[str, deque] = {}
+        self.lows: Dict[str, deque] = {}
+        self.closes: Dict[str, deque] = {}
+        self.k_values: Dict[str, deque] = {}
 
-    def calculate(self, context: dict) -> dict:
-        # Get optimal timeframe for this sensor (configured in config/sensors.py)
-        tf = getattr(self, "_optimal_tf", "1m")
-        candle = context.get(tf)
-        if candle is None:
-            return None  # TF not ready yet, skip this cycle
-        self.highs.append(candle["high"])
-        self.lows.append(candle["low"])
-        self.closes.append(candle["close"])
+    def _get_buffers(self, tf: str):
+        if tf not in self.highs:
+            self.highs[tf] = deque(maxlen=self.k_period)
+            self.lows[tf] = deque(maxlen=self.k_period)
+            self.closes[tf] = deque(maxlen=self.k_period)
+            self.k_values[tf] = deque(maxlen=self.d_period)
+        return self.highs[tf], self.lows[tf], self.closes[tf], self.k_values[tf]
 
-        if len(self.closes) < self.k_period:
+    def calculate(self, context: dict) -> List[dict]:
+        """Calculate signals for all monitored timeframes."""
+        signals = []
+
+        for tf in self.timeframes:
+            candle = context.get(tf)
+            if candle is None:
+                continue
+
+            signal = self._calculate_for_tf(tf, candle)
+            if signal:
+                signals.append(signal)
+
+        return signals if signals else None
+
+    def _calculate_for_tf(self, tf: str, candle: dict) -> Optional[dict]:
+        """Calculate Stochastic signal for a single timeframe."""
+        highs, lows, closes, k_vals = self._get_buffers(tf)
+
+        highs.append(candle["high"])
+        lows.append(candle["low"])
+        closes.append(candle["close"])
+
+        if len(closes) < self.k_period:
             return None
 
-        k = self._compute_k()
-        self.k_values.append(k)
+        k = self._compute_k(highs, lows, closes)
+        k_vals.append(k)
 
-        if len(self.k_values) < self.d_period:
+        if len(k_vals) < self.d_period:
             return None
 
-        d = self._compute_d()
-        signal = None
+        d = np.mean(k_vals)
 
         if k < self.low_threshold and d < self.low_threshold:
-            signal = {"side": "LONG", "score": 1.0, "metadata": {"stoch_k": k, "stoch_d": d}}
+            return {
+                "side": "LONG",
+                "score": 1.0,
+                "timeframe": tf,
+                "metadata": {"stoch_k": k, "stoch_d": d},
+            }
         elif k > self.high_threshold and d > self.high_threshold:
-            signal = {"side": "SHORT", "score": 1.0, "metadata": {"stoch_k": k, "stoch_d": d}}
+            return {
+                "side": "SHORT",
+                "score": 1.0,
+                "timeframe": tf,
+                "metadata": {"stoch_k": k, "stoch_d": d},
+            }
 
-        return signal
+        return None
 
-    def _compute_k(self):
-        if len(self.closes) < self.k_period:
-            return 50.0
-
-        highest_high = max(self.highs)
-        lowest_low = min(self.lows)
-        current_close = self.closes[-1]
+    def _compute_k(self, highs, lows, closes) -> float:
+        highest_high = max(highs)
+        lowest_low = min(lows)
+        current_close = closes[-1]
 
         if highest_high == lowest_low:
             return 50.0
 
-        k = ((current_close - lowest_low) / (highest_high - lowest_low)) * 100
-        return k
-
-    def _compute_d(self):
-        if len(self.k_values) < self.d_period:
-            return 50.0
-        return np.mean(self.k_values)
+        return ((current_close - lowest_low) / (highest_high - lowest_low)) * 100

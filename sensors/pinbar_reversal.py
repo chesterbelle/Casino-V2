@@ -2,9 +2,12 @@
 PinBarReversal Sensor (V3).
 Tier 1: 76% Win Rate.
 Logic: Wick > 2x Body + Close in top/bottom 30%.
+
+Multi-TF: Monitors multiple timeframes with independent signals.
 """
 
 import logging
+from typing import List, Optional
 
 from .base import SensorV3
 
@@ -20,12 +23,23 @@ class PinBarReversalV3(SensorV3):
         self.wick_ratio = wick_ratio
         self.position_threshold = position_threshold
 
-    def calculate(self, context: dict) -> dict:
-        # Get optimal timeframe for this sensor (configured in config/sensors.py)
-        tf = getattr(self, "_optimal_tf", "1m")
-        candle = context.get(tf)
-        if candle is None:
-            return None  # TF not ready yet, skip this cycle
+    def calculate(self, context: dict) -> List[dict]:
+        """Calculate signals for all monitored timeframes."""
+        signals = []
+
+        for tf in self.timeframes:
+            candle = context.get(tf)
+            if candle is None:
+                continue
+
+            signal = self._calculate_for_tf(tf, candle)
+            if signal:
+                signals.append(signal)
+
+        return signals if signals else None
+
+    def _calculate_for_tf(self, tf: str, candle: dict) -> Optional[dict]:
+        """Calculate PinBar signal for a single timeframe."""
         open_p = candle["open"]
         close_p = candle["close"]
         high_p = candle["high"]
@@ -41,28 +55,26 @@ class PinBarReversalV3(SensorV3):
         upper_wick = high_p - max(open_p, close_p)
         lower_wick = min(open_p, close_p) - low_p
 
-        signal = None
-
         # Bearish Pin Bar (Long Upper Wick)
         if upper_wick > (body_size * self.wick_ratio):
-            # Close near bottom
             close_pos = (close_p - low_p) / total_range
             if close_pos < self.position_threshold:
-                signal = {
+                return {
                     "side": "SHORT",
                     "score": 1.0,
+                    "timeframe": tf,
                     "metadata": {"wick_ratio": upper_wick / body_size if body_size else 99},
                 }
 
         # Bullish Pin Bar (Long Lower Wick)
         elif lower_wick > (body_size * self.wick_ratio):
-            # Close near top
             close_pos = (close_p - low_p) / total_range
             if close_pos > (1 - self.position_threshold):
-                signal = {
+                return {
                     "side": "LONG",
                     "score": 1.0,
+                    "timeframe": tf,
                     "metadata": {"wick_ratio": lower_wick / body_size if body_size else 99},
                 }
 
-        return signal
+        return None
