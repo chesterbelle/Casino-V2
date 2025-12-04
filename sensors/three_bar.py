@@ -1,6 +1,11 @@
 """
 ThreeBar Sensor (V3).
-Logic: Three bar pattern.
+Logic: Three bar reversal pattern detection.
+
+Pattern: Three consecutive candles showing:
+1. Trend candle
+2. Small body (indecision)
+3. Reversal candle closing past first candle
 """
 
 import logging
@@ -16,15 +21,75 @@ class ThreeBarV3(SensorV3):
     def name(self) -> str:
         return "ThreeBar"
 
-    def __init__(self):
-        self.candles = deque(maxlen=50)
+    def __init__(self, range_decrease=0.7, close_threshold=0.4):
+        """
+        Args:
+            range_decrease: Middle candle should be this % of first candle range
+            close_threshold: Third candle should close past this % of first
+        """
+        self.range_decrease = range_decrease
+        self.close_threshold = close_threshold
+
+        self.candles = deque(maxlen=5)
 
     def calculate(self, candle: dict) -> dict:
         self.candles.append(candle)
 
-        if len(self.candles) < 2:
+        if len(self.candles) < 3:
             return None
 
-        # Simplified logic - returns None (placeholder)
-        # Full implementation would go here
+        signal = self._check_three_bar()
+        return signal
+
+    def _check_three_bar(self):
+        """Check for three bar reversal pattern."""
+        candles = list(self.candles)
+        first = candles[-3]
+        second = candles[-2]
+        third = candles[-1]
+
+        first_range = first["high"] - first["low"]
+        second_range = second["high"] - second["low"]
+
+        if first_range == 0:
+            return None
+
+        # Middle candle should be smaller
+        range_ratio = second_range / first_range
+        if range_ratio > self.range_decrease:
+            return None
+
+        # Bullish three bar: Down-Small-Up
+        first_bearish = first["close"] < first["open"]
+        third_bullish = third["close"] > third["open"]
+
+        if first_bearish and third_bullish:
+            # Third should close above some % of first candle range
+            first_body_top = first["open"]
+            if third["close"] > first_body_top - (first_range * self.close_threshold):
+                return {
+                    "side": "LONG",
+                    "score": 1.0,
+                    "metadata": {
+                        "pattern": "bullish_three_bar",
+                        "range_ratio": range_ratio,
+                    },
+                }
+
+        # Bearish three bar: Up-Small-Down
+        first_bullish = first["close"] > first["open"]
+        third_bearish = third["close"] < third["open"]
+
+        if first_bullish and third_bearish:
+            first_body_bottom = first["open"]
+            if third["close"] < first_body_bottom + (first_range * self.close_threshold):
+                return {
+                    "side": "SHORT",
+                    "score": 1.0,
+                    "metadata": {
+                        "pattern": "bearish_three_bar",
+                        "range_ratio": range_ratio,
+                    },
+                }
+
         return None
