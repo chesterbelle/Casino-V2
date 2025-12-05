@@ -506,6 +506,37 @@ class ExchangeAdapter:
         symbol = symbol or self.symbol
         return await self.connector.fetch_open_orders(symbol)
 
+    async def create_stop_loss_order(
+        self,
+        symbol: str,
+        side: str,
+        amount: float,
+        stop_price: float,
+    ) -> Dict[str, Any]:
+        """
+        Create a stop loss order.
+
+        Used by ExitManager for breakeven/trailing stop modifications.
+
+        Args:
+            symbol: Trading symbol
+            side: "buy" or "sell" (opposite of position side)
+            amount: Order amount
+            stop_price: Stop trigger price
+
+        Returns:
+            Order result with id
+        """
+        # Delegate to connector's create_order with stop_market type
+        return await self.connector.create_order(
+            symbol=symbol,
+            side=side,
+            amount=amount,
+            price=None,
+            order_type="stop_market",
+            params={"stopPrice": stop_price},
+        )
+
     # =========================================================
     # 📊 PROPERTIES
     # =========================================================

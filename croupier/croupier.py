@@ -235,6 +235,80 @@ class Croupier:
 
         return result
 
+    async def modify_sl(
+        self,
+        trade_id: str,
+        new_sl_price: float,
+        symbol: str,
+        old_sl_order_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        Modify the stop loss for a position (cancel old, create new).
+
+        Used by ExitManager for breakeven and trailing stop strategies.
+
+        Args:
+            trade_id: Position trade ID
+            new_sl_price: New stop loss price
+            symbol: Trading symbol
+            old_sl_order_id: ID of the order to cancel
+
+        Returns:
+            Dict with new_order_id and status
+        """
+        self.logger.info(f"🔄 Modifying SL for {trade_id} | New SL: {new_sl_price:.2f}")
+
+        # Find position to get side
+        position = None
+        for pos in self.position_tracker.open_positions:
+            if pos.trade_id == trade_id:
+                position = pos
+                break
+
+        if not position:
+            raise ValueError(f"Position not found: {trade_id}")
+
+        # 1. Cancel old SL order
+        if old_sl_order_id:
+            try:
+                await self.adapter.cancel_order(old_sl_order_id, symbol)
+                self.logger.info(f"🛑 Cancelled old SL order: {old_sl_order_id}")
+            except Exception as e:
+                self.logger.warning(f"⚠️ Failed to cancel old SL {old_sl_order_id}: {e}")
+
+        # 2. Create new SL order
+        # Determine side for SL (opposite of position)
+        sl_side = "sell" if position.side == "LONG" else "buy"
+
+        # Get amount from position
+        amount = position.order.get("amount")
+        if not amount:
+            raise ValueError(f"Position {trade_id} has no amount")
+
+        try:
+            new_sl_order = await self.adapter.create_stop_loss_order(
+                symbol=symbol,
+                side=sl_side,
+                amount=amount,
+                stop_price=new_sl_price,
+            )
+
+            new_order_id = new_sl_order.get("id") or new_sl_order.get("order_id")
+
+            self.logger.info(f"✅ Created new SL order: {new_order_id} @ {new_sl_price:.2f}")
+
+            return {
+                "status": "success",
+                "new_order_id": new_order_id,
+                "old_order_id": old_sl_order_id,
+                "new_sl_price": new_sl_price,
+            }
+
+        except Exception as e:
+            self.logger.error(f"❌ Failed to create new SL: {e}")
+            # Try to restore old SL if possible
+            raise
+
     async def reconcile_positions(self, symbol: Optional[str] = None):
         """
         Reconcile positions with exchange.

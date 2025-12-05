@@ -34,3 +34,22 @@ COMMISSION_RATE = 0.00035  # Hyperliquid taker fee (0.035%)
 SLIPPAGE_DEFAULT = 0.0003  # spread estimado
 MAINTENANCE_MARGIN_RATE = 0.003  # margen de mantenimiento (0.3%)
 DEFAULT_MARGIN_TYPE = "ISOLATED"  # Opciones: ISOLATED, CROSSED
+
+
+# =====================================================
+# 🚪 EXIT STRATEGY (Dynamic Exit Management)
+# =====================================================
+
+# Available strategies: FIXED | BREAKEVEN | TRAILING | PARTIAL
+EXIT_STRATEGY = "BREAKEVEN"  # Move SL to entry when trade is profitable
+
+EXIT_PARAMS = {
+    # BREAKEVEN: Move SL to entry at X% of TP distance
+    "breakeven_trigger": 0.5,  # 50% of TP distance
+    # TRAILING (future): Follow price with trailing stop
+    "trailing_activation": 0.3,  # Start at 30% of TP
+    "trailing_step": 0.005,  # 0.5% trailing step
+    # PARTIAL_TP (future): Close partial position
+    "partial_trigger": 0.5,  # At 50% of TP
+    "partial_close_pct": 0.5,  # Close 50%
+}
