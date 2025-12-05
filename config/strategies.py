@@ -203,7 +203,7 @@ STRATEGIES: Dict[str, dict] = {
     # QUICK SCALPER - Trades rápidos con stops ajustados
     # -----------------------------------------------------
     "QuickScalper": {
-        "enabled": True,  # BEST in backtest: +0.16% (30d LTC)  # Disabled - using DebugAll
+        "enabled": False,  # Disabled - using DebugAll for OCO testing
         "description": "Trades rápidos con stops ajustados",
         "logic": "Entradas precisas, salidas rápidas, alto volumen",
         "sensors": [
@@ -347,7 +347,7 @@ STRATEGIES: Dict[str, dict] = {
     # DEBUG ALL - Todos los sensores (solo para debugging)
     # -----------------------------------------------------
     "DebugAll": {
-        "enabled": False,  # Disabled - using AlphaEdge
+        "enabled": True,  # Enabled for OCO testing - more trades
         "description": "Todos los sensores activos para debugging",
         "logic": "Máxima cantidad de señales para probar el sistema",
         "sensors": [
