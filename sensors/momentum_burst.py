@@ -1,10 +1,13 @@
 """
 MomentumBurst Sensor (V3).
 Logic: Sudden RSI acceleration (burst detection).
+
+Multi-TF: Monitors multiple timeframes with independent buffers.
 """
 
 import logging
 from collections import deque
+from typing import Dict, List, Optional
 
 import numpy as np
 
@@ -21,61 +24,67 @@ class MomentumBurstV3(SensorV3):
     def __init__(self, rsi_period=14, burst_threshold=15.0):
         self.rsi_period = rsi_period
         self.burst_threshold = burst_threshold
-        self.closes = deque(maxlen=rsi_period + 1)
-        self.gains = deque(maxlen=rsi_period)
-        self.losses = deque(maxlen=rsi_period)
-        self.prev_rsi = None
+        self.closes: Dict[str, deque] = {}
+        self.gains: Dict[str, deque] = {}
+        self.losses: Dict[str, deque] = {}
+        self.prev_rsi: Dict[str, float] = {}
 
-    def calculate(self, context: dict) -> dict:
-        # Get optimal timeframe for this sensor (configured in config/sensors.py)
-        tf = getattr(self, "_optimal_tf", "1m")
-        candle = context.get(tf)
-        if candle is None:
-            return None  # TF not ready yet, skip this cycle
+    def _get_buffers(self, tf: str):
+        if tf not in self.closes:
+            self.closes[tf] = deque(maxlen=self.rsi_period + 1)
+            self.gains[tf] = deque(maxlen=self.rsi_period)
+            self.losses[tf] = deque(maxlen=self.rsi_period)
+        return self.closes[tf], self.gains[tf], self.losses[tf]
+
+    def calculate(self, context: dict) -> List[dict]:
+        signals = []
+        for tf in self.timeframes:
+            candle = context.get(tf)
+            if candle is None:
+                continue
+            signal = self._calculate_for_tf(tf, candle)
+            if signal:
+                signals.append(signal)
+        return signals if signals else None
+
+    def _calculate_for_tf(self, tf: str, candle: dict) -> Optional[dict]:
+        closes, gains, losses = self._get_buffers(tf)
         close = candle["close"]
-        self.closes.append(close)
+        closes.append(close)
 
-        if len(self.closes) < self.rsi_period:
+        if len(closes) < self.rsi_period:
             return None
 
-        current_rsi = self._calculate_rsi(close)
+        current_rsi = self._calculate_rsi(tf, close)
 
-        if self.prev_rsi is None:
-            self.prev_rsi = current_rsi
+        if tf not in self.prev_rsi:
+            self.prev_rsi[tf] = current_rsi
             return None
 
-        rsi_delta = current_rsi - self.prev_rsi
-        self.prev_rsi = current_rsi
-
-        signal = None
+        rsi_delta = current_rsi - self.prev_rsi[tf]
+        self.prev_rsi[tf] = current_rsi
 
         if abs(rsi_delta) > self.burst_threshold:
             if rsi_delta > 0 and current_rsi < 60:
-                signal = {"side": "LONG", "score": 1.0, "metadata": {"rsi_delta": rsi_delta}}
+                return {"side": "LONG", "score": 1.0, "timeframe": tf, "metadata": {"rsi_delta": rsi_delta}}
             elif rsi_delta < 0 and current_rsi > 40:
-                signal = {"side": "SHORT", "score": 1.0, "metadata": {"rsi_delta": rsi_delta}}
+                return {"side": "SHORT", "score": 1.0, "timeframe": tf, "metadata": {"rsi_delta": rsi_delta}}
+        return None
 
-        return signal
-
-    def _calculate_rsi(self, current_close):
-        if len(self.closes) < 2:
+    def _calculate_rsi(self, tf: str, current_close):
+        closes, gains, losses = self._get_buffers(tf)
+        if len(closes) < 2:
             return 50.0
 
-        delta = current_close - self.closes[-2]
-        gain = max(delta, 0)
-        loss = abs(min(delta, 0))
+        delta = current_close - closes[-2]
+        gains.append(max(delta, 0))
+        losses.append(abs(min(delta, 0)))
 
-        self.gains.append(gain)
-        self.losses.append(loss)
-
-        if len(self.gains) < self.rsi_period:
+        if len(gains) < self.rsi_period:
             return 50.0
 
-        avg_gain = np.mean(self.gains)
-        avg_loss = np.mean(self.losses)
-
+        avg_gain = np.mean(gains)
+        avg_loss = np.mean(losses)
         if avg_loss == 0:
             return 100.0
-
-        rs = avg_gain / avg_loss
-        return 100.0 - (100.0 / (1.0 + rs))
+        return 100.0 - (100.0 / (1.0 + avg_gain / avg_loss))

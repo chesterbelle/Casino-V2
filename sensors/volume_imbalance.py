@@ -1,10 +1,13 @@
 """
 VolumeImbalance Sensor (V3).
 Logic: Buying/selling pressure imbalance detection.
+
+Multi-TF: Monitors multiple timeframes with independent buffers.
 """
 
 import logging
 from collections import deque
+from typing import Dict, List, Optional
 
 import numpy as np
 
@@ -21,45 +24,42 @@ class VolumeImbalanceV3(SensorV3):
     def __init__(self, volume_period=20, imbalance_ratio=3.0):
         self.volume_period = volume_period
         self.imbalance_ratio = imbalance_ratio
-        self.volumes = deque(maxlen=volume_period)
+        self.volumes: Dict[str, deque] = {}
 
-    def calculate(self, context: dict) -> dict:
-        # Get optimal timeframe for this sensor (configured in config/sensors.py)
-        tf = getattr(self, "_optimal_tf", "1m")
-        candle = context.get(tf)
-        if candle is None:
-            return None  # TF not ready yet, skip this cycle
-        close = candle["close"]
-        high = candle["high"]
-        low = candle["low"]
-        open_p = candle["open"]
-        volume = candle["volume"]
+    def _get_buffer(self, tf: str) -> deque:
+        if tf not in self.volumes:
+            self.volumes[tf] = deque(maxlen=self.volume_period)
+        return self.volumes[tf]
 
-        self.volumes.append(volume)
+    def calculate(self, context: dict) -> List[dict]:
+        signals = []
+        for tf in self.timeframes:
+            candle = context.get(tf)
+            if candle is None:
+                continue
+            signal = self._calculate_for_tf(tf, candle)
+            if signal:
+                signals.append(signal)
+        return signals if signals else None
 
-        if len(self.volumes) < self.volume_period:
+    def _calculate_for_tf(self, tf: str, candle: dict) -> Optional[dict]:
+        buffer = self._get_buffer(tf)
+        vol = candle["volume"]
+        buffer.append(vol)
+
+        if len(buffer) < self.volume_period:
             return None
 
-        avg_volume = np.mean(self.volumes)
-
-        if volume < avg_volume:
+        avg_vol = np.mean(buffer)
+        if vol < avg_vol:
             return None
 
-        buying_pressure = close - low
-        selling_pressure = high - close
+        close, high, low, open_p = candle["close"], candle["high"], candle["low"], candle["open"]
+        buying = close - low or 0.000001
+        selling = high - close or 0.000001
 
-        if selling_pressure == 0:
-            selling_pressure = 0.000001
-        if buying_pressure == 0:
-            buying_pressure = 0.000001
-
-        signal = None
-
-        if buying_pressure > (selling_pressure * self.imbalance_ratio):
-            if close > open_p:
-                signal = {"side": "LONG", "score": 1.0, "metadata": {"vol_ratio": volume / avg_volume}}
-        elif selling_pressure > (buying_pressure * self.imbalance_ratio):
-            if close < open_p:
-                signal = {"side": "SHORT", "score": 1.0, "metadata": {"vol_ratio": volume / avg_volume}}
-
-        return signal
+        if buying > selling * self.imbalance_ratio and close > open_p:
+            return {"side": "LONG", "score": 1.0, "timeframe": tf, "metadata": {"vol_ratio": vol / avg_vol}}
+        if selling > buying * self.imbalance_ratio and close < open_p:
+            return {"side": "SHORT", "score": 1.0, "timeframe": tf, "metadata": {"vol_ratio": vol / avg_vol}}
+        return None

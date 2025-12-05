@@ -2,10 +2,13 @@
 DecelerationCandles Sensor (V3).
 Tier 3: Good.
 Logic: Sequence of shrinking candles indicating exhaustion.
+
+Multi-TF: Monitors multiple timeframes with independent buffers.
 """
 
 import logging
 from collections import deque
+from typing import Dict, List, Optional
 
 from .base import SensorV3
 
@@ -19,53 +22,41 @@ class DecelerationCandlesV3(SensorV3):
 
     def __init__(self, sequence_length=3):
         self.sequence_length = sequence_length
-        self.candles = deque(maxlen=sequence_length)
+        self.candles: Dict[str, deque] = {}
 
-    def calculate(self, context: dict) -> dict:
-        # Get optimal timeframe for this sensor (configured in config/sensors.py)
-        tf = getattr(self, "_optimal_tf", "1m")
-        candle = context.get(tf)
-        if candle is None:
-            return None  # TF not ready yet, skip this cycle
-        self.candles.append(candle)
-        if len(self.candles) < self.sequence_length:
+    def _get_buffer(self, tf: str) -> deque:
+        if tf not in self.candles:
+            self.candles[tf] = deque(maxlen=self.sequence_length)
+        return self.candles[tf]
+
+    def calculate(self, context: dict) -> List[dict]:
+        signals = []
+        for tf in self.timeframes:
+            candle = context.get(tf)
+            if candle is None:
+                continue
+            signal = self._calculate_for_tf(tf, candle)
+            if signal:
+                signals.append(signal)
+        return signals if signals else None
+
+    def _calculate_for_tf(self, tf: str, candle: dict) -> Optional[dict]:
+        buffer = self._get_buffer(tf)
+        buffer.append(candle)
+
+        if len(buffer) < self.sequence_length:
             return None
 
-        # Extract bodies and directions
-        bodies = []
-        directions = []  # 1 for Bullish, -1 for Bearish
+        bodies = [abs(c["close"] - c["open"]) for c in buffer]
+        directions = [1 if c["close"] > c["open"] else -1 for c in buffer]
 
-        for c in self.candles:
-            body = abs(c["close"] - c["open"])
-            direction = 1 if c["close"] > c["open"] else -1
-            bodies.append(body)
-            directions.append(direction)
-
-        # Check 1: All same direction
-        first_dir = directions[0]
-        if not all(d == first_dir for d in directions):
+        # All same direction
+        if not all(d == directions[0] for d in directions):
             return None
 
-        # Check 2: Bodies shrinking
-        # Body(N) < Body(N-1) ...
-        # Iterating: bodies[i+1] < bodies[i]
-        is_shrinking = True
-        for i in range(len(bodies) - 1):
-            if bodies[i + 1] >= bodies[i]:
-                is_shrinking = False
-                break
-
-        if not is_shrinking:
+        # Bodies shrinking
+        if not all(bodies[i + 1] < bodies[i] for i in range(len(bodies) - 1)):
             return None
 
-        signal = None
-
-        # Bullish Deceleration -> Reversal SHORT
-        if first_dir == 1:
-            signal = {"side": "SHORT", "score": 1.0, "metadata": {"pattern": "deceleration_bullish"}}
-
-        # Bearish Deceleration -> Reversal LONG
-        elif first_dir == -1:
-            signal = {"side": "LONG", "score": 1.0, "metadata": {"pattern": "deceleration_bearish"}}
-
-        return signal
+        side = "SHORT" if directions[0] == 1 else "LONG"
+        return {"side": side, "score": 1.0, "timeframe": tf, "metadata": {"pattern": "deceleration"}}

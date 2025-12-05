@@ -100,6 +100,9 @@ class Croupier:
         """
         self.logger.info(f"📥 Execute order request: {order['side']} {order['symbol']}")
 
+        # Extract contributors (sensor IDs) for tracking
+        contributors = order.get("contributors", [])
+
         # Calculate amount from size if not provided
         if "amount" not in order or order.get("amount") == 0:
             if "size" in order:
@@ -141,10 +144,16 @@ class Croupier:
                 raise ValueError("Order must have either 'amount' or 'size'")
 
         # Delegate to OCOManager (don't wait for fill in demo/live, market orders are instant)
-        result = await self.oco_manager.create_bracketed_order(order, wait_for_fill=wait_for_fill)
+        result = await self.oco_manager.create_bracketed_order(
+            order, wait_for_fill=wait_for_fill, contributors=contributors
+        )
 
-        # Register position in tracker
-        position = await self._register_position(order, result)
+        # Position is already registered by OCOManager
+        position = result.get("position")
+        if not position:
+            # Fallback if OCOManager didn't return position (shouldn't happen with new code)
+            self.logger.warning("⚠️ OCOManager didn't return position, attempting manual registration")
+            position = await self._register_position(order, result)
 
         # Update balance (reserve margin)
         margin_used = order.get("margin_used", 0)

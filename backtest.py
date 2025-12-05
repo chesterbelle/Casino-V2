@@ -96,8 +96,28 @@ async def main():
     closed_trades = []
 
     def on_trade_close(trade_id, result):
-        """Callback to collect closed trade results."""
+        """Callback to collect closed trade results and update sensor stats."""
         closed_trades.append(result)
+
+        # Update sensor stats for tracking performance
+        # PositionTracker returns 'contributors' list with sensor IDs
+        sensor_id = None
+        if result.get("contributors") and len(result["contributors"]) > 0:
+            sensor_id = result["contributors"][0]
+        elif result.get("sensor_id"):
+            sensor_id = result["sensor_id"]
+        elif result.get("selected_sensor"):
+            sensor_id = result["selected_sensor"]
+
+        logger.info(f"🔍 Trade Closed: {trade_id} | Contributors: {result.get('contributors')} | SensorID: {sensor_id}")
+
+        if sensor_id:
+            pnl = result.get("pnl", 0)
+            won = pnl > 0
+            tracker.update_sensor(sensor_id, pnl, won)
+            logger.info(f"✅ Updated stats for {sensor_id} | PnL: {pnl}")
+        else:
+            logger.warning(f"⚠️ No sensor ID found for trade {trade_id}")
 
     # Hook callback into PositionTracker
     croupier.position_tracker.on_close_callback = on_trade_close
@@ -114,76 +134,87 @@ async def main():
     await engine.start(blocking=False)
 
     # Run backtest
-    await backtest_feed.run()
 
-    # Cleanup
-    await engine.stop()
-    await order_manager.stop()
+    try:
+        await backtest_feed.run()
+    except asyncio.CancelledError:
+        logger.info("🛑 Backtest cancelled")
+    finally:
+        # Cleanup
+        await engine.stop()
+        await order_manager.stop()
 
-    # Force close any remaining positions to capture PnL
-    if croupier.get_open_positions():
-        logger.info("🧹 Force closing remaining positions...")
-        # Create a dummy candle with final price from virtual exchange
-        final_price = virtual_exchange._current_price
-        final_timestamp = virtual_exchange._current_timestamp
-        dummy_candle = {
-            "timestamp": final_timestamp,
-            "open": final_price,
-            "high": final_price,
-            "low": final_price,
-            "close": final_price,
-            "market": symbol,
-            "timeframe": "1m",
-        }
-        forced_closes = croupier.position_tracker.force_close_all_positions(dummy_candle)
-        for result in forced_closes:
-            on_trade_close(result["trade_id"], result)
+        # Force close any remaining positions to capture PnL
+        if croupier.get_open_positions():
+            logger.info("🧹 Force closing remaining positions...")
+            # Create a dummy candle with final price from virtual exchange
+            final_price = virtual_exchange._current_price
+            final_timestamp = virtual_exchange._current_timestamp
+            dummy_candle = {
+                "timestamp": final_timestamp,
+                "open": final_price,
+                "high": final_price,
+                "low": final_price,
+                "close": final_price,
+                "market": symbol,
+                "timeframe": "1m",
+            }
+            forced_closes = croupier.position_tracker.force_close_all_positions(dummy_candle)
+            for result in forced_closes:
+                on_trade_close(result["trade_id"], result)
 
-    # --- Generate Report ---
-    logger.info("✅ Backtest Complete")
+        # --- Generate Report ---
+        logger.info("✅ Backtest Complete (or Interrupted)")
 
-    # Save sensor tracker state
-    tracker.save_state()
-    logger.info(f"💾 Sensor stats saved to {tracker.state_file}")
+        # Save sensor tracker state
+        tracker.save_state()
+        logger.info(f"💾 Sensor stats saved to {tracker.state_file}")
 
-    # Log top sensors
-    top_sensors = tracker.get_top_sensors(n=10)
-    if top_sensors:
-        logger.info("🏆 Top 10 Sensors by Score:")
-        for i, (sensor_id, score) in enumerate(top_sensors, 1):
-            stats = tracker.get_stats(sensor_id)
-            logger.info(
-                f"   {i}. {sensor_id}: {score:.3f} "
-                f"(WR: {stats.win_rate_short:.1%}, Exp: {stats.expectancy:.4f}, Trades: {stats.total_trades})"
-            )
+        # Log top sensors
+        top_sensors = tracker.get_top_sensors(n=10)
+        if top_sensors:
+            logger.info("🏆 Top 10 Sensors by Score:")
+            for i, (sensor_id, score) in enumerate(top_sensors, 1):
+                stats = tracker.get_stats(sensor_id)
+                logger.info(
+                    f"   {i}. {sensor_id}: {score:.3f} "
+                    f"(WR: {stats.win_rate_short:.1%}, Exp: {stats.expectancy:.4f}, Trades: {stats.total_trades})"
+                )
 
-    # Calculate stats
-    total_trades = len(closed_trades)
-    wins = sum(1 for t in closed_trades if t["result"] == "WIN")
-    losses = sum(1 for t in closed_trades if t["result"] == "LOSS")
-    win_rate = (wins / total_trades * 100) if total_trades > 0 else 0.0
+        # Calculate stats - PnL based (positive PnL = win, negative/zero = loss)
+        total_trades = len(closed_trades)
+        wins = sum(1 for t in closed_trades if t.get("pnl", 0) > 0)
+        losses = sum(1 for t in closed_trades if t.get("pnl", 0) <= 0)
+        win_rate = (wins / total_trades * 100) if total_trades > 0 else 0.0
 
-    total_commissions = sum(t.get("fee", 0.0) for t in closed_trades)
-    total_funding = sum(t.get("funding", 0.0) for t in closed_trades)
-    liquidations = sum(1 for t in closed_trades if t.get("liquidated", False))
+        total_commissions = sum(t.get("fee", 0.0) for t in closed_trades)
+        total_funding = sum(t.get("funding", 0.0) for t in closed_trades)
+        liquidations = sum(1 for t in closed_trades if t.get("liquidated", False))
 
-    # Calculate PnL from trades to include forced closes
-    total_pnl = sum(t.get("pnl", 0.0) for t in closed_trades)
-    final_balance = initial_balance + total_pnl
-    pnl_pct = (total_pnl / initial_balance * 100) if initial_balance > 0 else 0.0
+        # Calculate PnL from trades to include forced closes
+        total_pnl = sum(t.get("pnl", 0.0) for t in closed_trades)
+        final_balance = initial_balance + total_pnl
+        pnl_pct = (total_pnl / initial_balance * 100) if initial_balance > 0 else 0.0
 
-    print("\n" + "=" * 40)
-    print(f"📊 BACKTEST REPORT - {symbol}")
-    print("=" * 40)
-    print(f"   Wins / Losses         : {wins} / {losses}")
-    print(f"   WinRate (BET)         : {win_rate:.2f}%")
-    print(f"   Comisiones totales    : {total_commissions:.2f}")
-    print(f"   Funding total         : {total_funding:.2f}")
-    print(f"   Liquidaciones         : {liquidations}")
-    print(f"   Balance final         : {final_balance:.2f}")
-    print(f"   PnL Total             : {total_pnl:+.2f} ({pnl_pct:+.2f}%)")
-    print("=" * 40 + "\n")
+        print("\n" + "=" * 40)
+        print(f"📊 BACKTEST REPORT - {symbol}")
+        print("=" * 40)
+        print(f"   Wins / Losses         : {wins} / {losses}")
+        print(f"   WinRate (BET)         : {win_rate:.2f}%")
+        print(f"   Comisiones totales    : {total_commissions:.2f}")
+        print(f"   Funding total         : {total_funding:.2f}")
+        print(f"   Liquidaciones         : {liquidations}")
+        print(f"   Balance final         : {final_balance:.2f}")
+        print(f"   PnL Total             : {total_pnl:+.2f} ({pnl_pct:+.2f}%)")
+        print("=" * 40 + "\n")
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("\n🛑 Backtest interrupted by user.")
+        # Attempt to save state if tracker exists in main scope (it doesn't easily, but we can rely on the finally block inside main if we restructure)
+        # Since main is async, we can't easily access local vars here.
+        # Better to handle it inside main.
+        pass

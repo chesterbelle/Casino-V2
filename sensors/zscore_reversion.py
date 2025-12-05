@@ -1,10 +1,13 @@
 """
 ZScoreReversion Sensor (V3).
 Logic: Z-Score statistical mean reversion.
+
+Multi-TF: Monitors multiple timeframes with independent buffers.
 """
 
 import logging
 from collections import deque
+from typing import Dict, List, Optional
 
 import numpy as np
 
@@ -21,38 +24,40 @@ class ZScoreReversionV3(SensorV3):
     def __init__(self, period=20, entry_threshold=2.0):
         self.period = period
         self.entry_threshold = entry_threshold
-        self.closes = deque(maxlen=period)
+        self.closes: Dict[str, deque] = {}
 
-    def calculate(self, context: dict) -> dict:
-        # Get optimal timeframe for this sensor (configured in config/sensors.py)
-        tf = getattr(self, "_optimal_tf", "1m")
-        candle = context.get(tf)
-        if candle is None:
-            return None  # TF not ready yet, skip this cycle
-        close = candle["close"]
-        self.closes.append(close)
+    def _get_buffer(self, tf: str) -> deque:
+        if tf not in self.closes:
+            self.closes[tf] = deque(maxlen=self.period)
+        return self.closes[tf]
 
-        if len(self.closes) < self.period:
+    def calculate(self, context: dict) -> List[dict]:
+        signals = []
+        for tf in self.timeframes:
+            candle = context.get(tf)
+            if candle is None:
+                continue
+            signal = self._calculate_for_tf(tf, candle)
+            if signal:
+                signals.append(signal)
+        return signals if signals else None
+
+    def _calculate_for_tf(self, tf: str, candle: dict) -> Optional[dict]:
+        buffer = self._get_buffer(tf)
+        buffer.append(candle["close"])
+
+        if len(buffer) < self.period:
             return None
 
-        zscore = self._compute_zscore()
-        signal = None
+        arr = np.array(buffer)
+        mean, std = np.mean(arr), np.std(arr)
+        if std == 0:
+            return None
+
+        zscore = (buffer[-1] - mean) / std
 
         if zscore < -self.entry_threshold:
-            signal = {"side": "LONG", "score": 1.0, "metadata": {"zscore": zscore}}
-        elif zscore > self.entry_threshold:
-            signal = {"side": "SHORT", "score": 1.0, "metadata": {"zscore": zscore}}
-
-        return signal
-
-    def _compute_zscore(self):
-        closes_array = np.array(self.closes)
-        mean = np.mean(closes_array)
-        std = np.std(closes_array)
-
-        if std == 0:
-            return 0.0
-
-        current_price = self.closes[-1]
-        zscore = (current_price - mean) / std
-        return zscore
+            return {"side": "LONG", "score": 1.0, "timeframe": tf, "metadata": {"zscore": zscore}}
+        if zscore > self.entry_threshold:
+            return {"side": "SHORT", "score": 1.0, "timeframe": tf, "metadata": {"zscore": zscore}}
+        return None

@@ -1,10 +1,13 @@
 """
 ParabolicSAR Sensor (V3).
 Logic: SAR trend reversal detection.
+
+Multi-TF: Monitors multiple timeframes with independent state.
 """
 
 import logging
 from collections import deque
+from typing import Dict, List, Optional
 
 from .base import SensorV3
 
@@ -20,72 +23,81 @@ class ParabolicSARV3(SensorV3):
         self.af_start = af_start
         self.af_increment = af_increment
         self.af_max = af_max
-        self.highs = deque(maxlen=100)
-        self.lows = deque(maxlen=100)
-        self.sar = None
-        self.ep = None
-        self.af = af_start
-        self.is_long = True
+        self.highs: Dict[str, deque] = {}
+        self.lows: Dict[str, deque] = {}
+        self.sar: Dict[str, float] = {}
+        self.ep: Dict[str, float] = {}
+        self.af: Dict[str, float] = {}
+        self.is_long: Dict[str, bool] = {}
 
-    def calculate(self, context: dict) -> dict:
-        # Get optimal timeframe for this sensor (configured in config/sensors.py)
-        tf = getattr(self, "_optimal_tf", "1m")
-        candle = context.get(tf)
-        if candle is None:
-            return None  # TF not ready yet, skip this cycle
-        high = candle["high"]
-        low = candle["low"]
+    def _get_buffers(self, tf: str):
+        if tf not in self.highs:
+            self.highs[tf] = deque(maxlen=100)
+            self.lows[tf] = deque(maxlen=100)
+            self.af[tf] = self.af_start
+            self.is_long[tf] = True
+        return self.highs[tf], self.lows[tf]
 
-        self.highs.append(high)
-        self.lows.append(low)
+    def calculate(self, context: dict) -> List[dict]:
+        signals = []
+        for tf in self.timeframes:
+            candle = context.get(tf)
+            if candle is None:
+                continue
+            signal = self._calculate_for_tf(tf, candle)
+            if signal:
+                signals.append(signal)
+        return signals if signals else None
 
-        if self.sar is None:
-            if len(self.highs) >= 2:
-                self._initialize_sar()
+    def _calculate_for_tf(self, tf: str, candle: dict) -> Optional[dict]:
+        highs, lows = self._get_buffers(tf)
+        high, low = candle["high"], candle["low"]
+        highs.append(high)
+        lows.append(low)
+
+        if tf not in self.sar:
+            if len(highs) >= 2:
+                self._initialize_sar(tf)
             return None
 
-        reversal_side = self._update_sar(high, low)
+        return self._update_sar(tf, high, low)
 
-        if reversal_side:
-            return {"side": reversal_side, "score": 1.0, "metadata": {"sar": self.sar}}
-
-        return None
-
-    def _initialize_sar(self):
-        if self.highs[-1] > self.highs[-2]:
-            self.is_long = True
-            self.sar = min(self.lows[-2], self.lows[-1])
-            self.ep = max(self.highs[-2], self.highs[-1])
+    def _initialize_sar(self, tf: str):
+        highs, lows = self.highs[tf], self.lows[tf]
+        if highs[-1] > highs[-2]:
+            self.is_long[tf] = True
+            self.sar[tf] = min(lows[-2], lows[-1])
+            self.ep[tf] = max(highs[-2], highs[-1])
         else:
-            self.is_long = False
-            self.sar = max(self.highs[-2], self.highs[-1])
-            self.ep = min(self.lows[-2], self.lows[-1])
-        self.af = self.af_start
+            self.is_long[tf] = False
+            self.sar[tf] = max(highs[-2], highs[-1])
+            self.ep[tf] = min(lows[-2], lows[-1])
+        self.af[tf] = self.af_start
 
-    def _update_sar(self, high, low):
-        prev_sar = self.sar
-        self.sar = prev_sar + self.af * (self.ep - prev_sar)
+    def _update_sar(self, tf: str, high, low):
+        prev_sar = self.sar[tf]
+        self.sar[tf] = prev_sar + self.af[tf] * (self.ep[tf] - prev_sar)
 
-        if self.is_long:
-            self.sar = min(self.sar, self.lows[-1] if len(self.lows) > 0 else low)
-            if low < self.sar:
-                self.is_long = False
-                self.sar = self.ep
-                self.ep = low
-                self.af = self.af_start
-                return "SHORT"
-            if high > self.ep:
-                self.ep = high
-                self.af = min(self.af + self.af_increment, self.af_max)
+        if self.is_long[tf]:
+            self.sar[tf] = min(self.sar[tf], self.lows[tf][-1] if self.lows[tf] else low)
+            if low < self.sar[tf]:
+                self.is_long[tf] = False
+                self.sar[tf] = self.ep[tf]
+                self.ep[tf] = low
+                self.af[tf] = self.af_start
+                return {"side": "SHORT", "score": 1.0, "timeframe": tf, "metadata": {"sar": self.sar[tf]}}
+            if high > self.ep[tf]:
+                self.ep[tf] = high
+                self.af[tf] = min(self.af[tf] + self.af_increment, self.af_max)
         else:
-            self.sar = max(self.sar, self.highs[-1] if len(self.highs) > 0 else high)
-            if high > self.sar:
-                self.is_long = True
-                self.sar = self.ep
-                self.ep = high
-                self.af = self.af_start
-                return "LONG"
-            if low < self.ep:
-                self.ep = low
-                self.af = min(self.af + self.af_increment, self.af_max)
+            self.sar[tf] = max(self.sar[tf], self.highs[tf][-1] if self.highs[tf] else high)
+            if high > self.sar[tf]:
+                self.is_long[tf] = True
+                self.sar[tf] = self.ep[tf]
+                self.ep[tf] = high
+                self.af[tf] = self.af_start
+                return {"side": "LONG", "score": 1.0, "timeframe": tf, "metadata": {"sar": self.sar[tf]}}
+            if low < self.ep[tf]:
+                self.ep[tf] = low
+                self.af[tf] = min(self.af[tf] + self.af_increment, self.af_max)
         return None

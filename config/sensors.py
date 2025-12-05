@@ -6,6 +6,9 @@
 Configuración de detectores técnicos y sus parámetros.
 """
 
+import json
+from pathlib import Path
+
 # =====================================================
 # 🎛️ SENSORES ACTIVOS
 # =====================================================
@@ -81,213 +84,249 @@ ACTIVE_SENSORS = {
 # - Ejecución rápida: 1m (precisión de entrada)
 
 SENSOR_TIMEFRAMES = {
-    # === TREND INDICATORS (Higher TF for direction) ===
-    "ADXFilter": "15m",
-    "EMACrossover": "15m",
-    "MACDCrossover": "15m",
-    "Supertrend": "15m",
-    "ParabolicSAR": "15m",
-    "HigherTFTrend": "1h",  # Contexto macro
-    "MTFImpulse": "5m",  # Balance entre TFs
-    "EMA50Support": "15m",
-    # === OSCILLATORS (optimized 5m mostly) ===
-    "RSIReversion": "15m",  # Exp: 0.092%
-    "StochasticReversion": "5m",  # Exp: 0.099%
-    "CCIReversion": "5m",  # Exp: 0.133%
-    "WilliamsRReversion": "5m",  # Exp: 0.083%
-    "AdaptiveRSI": "15m",  # Exp: 0.130%
-    # === VOLATILITY BANDS (15m is best) ===
-    "BollingerTouch": ["5m", "15m"],  # MTF: Exp 5m=0.476%, 15m=0.599%
-    "BollingerSqueeze": "15m",  # Exp: 1.602% ⭐ TOP
-    "BollingerRejection": "15m",  # Exp: 0.603%
-    "KeltnerReversion": "5m",  # Exp: 0.202%
-    "KeltnerBreakout": "15m",  # Exp: 1.018% ⭐ TOP
-    "ZScoreReversion": "15m",  # Exp: 0.255%
-    # === CANDLESTICK PATTERNS (15m is optimal) ===
-    "EngulfingPattern": "1m",  # Exp: 0.014%
-    "PinBarReversal": "15m",  # Exp: 0.371%
-    "RailsPattern": "15m",  # Exp: 0.663%
-    "MorningStar": "15m",  # Exp: 1.730% ⭐ TOP
-    "DojiIndecision": "15m",  # Exp: 0.271%
-    "TweezerPattern": "15m",  # Exp: 0.247%
-    "ThreeBar": "15m",  # Exp: 0.629%
-    "MarubozuMomentum": "15m",  # Exp: 0.307%
-    "WickRejection": "5m",  # Exp: 0.104%
-    "LongTail": "5m",  # Exp: 0.168%
-    # === STRUCTURAL PATTERNS (15m mostly) ===
-    "VCPPattern": "15m",  # Exp: 0.211%
-    "InsideBarBreakout": "15m",  # Exp: 0.255%
-    "DecelerationCandles": "15m",  # Exp: 0.172%
-    "ExtremeCandleRatio": "15m",  # Exp: 0.327%
-    "Fakeout": "15m",  # Exp: pending
-    # === VOLUME ANALYSIS (15m/5m) ===
-    "VolumeImbalance": "15m",  # Exp: 0.639%
-    "VolumeSpike": "5m",  # Exp: 0.818%
-    "VSAReversal": "5m",  # Exp: pending
-    "AbsorptionBlock": "5m",  # Exp: 0.347%
-    # === SMART MONEY CONCEPTS (15m) ===
-    "OrderBlock": "15m",  # Exp: pending
-    "LiquidityVoid": "15m",  # Exp: pending
-    "FVGRetest": "15m",  # Exp: 0.347%
-    "WyckoffSpring": "15m",  # Exp: 0.827%
-    # === MOMENTUM (15m best) ===
-    "MomentumBurst": "15m",  # Exp: 1.151% ⭐ TOP
-    "MicroTrend": "5m",  # Exp: 0.085%
-    "SmartRange": "1m",  # Exp: 0.088%
-    # === VWAP (1m/5m) ===
-    "VWAPDeviation": "1m",  # Exp: 0.500%
-    "VWAPBreakout": "15m",  # Exp: pending
-    "VWAPMomentum": "5m",  # Exp: 0.018%
-    # === REGIME DETECTION (15m) ===
-    "HurstRegime": "15m",  # Exp: 0.260%
-    "VolatilityWakeup": "15m",  # Exp: 0.753%
-    "SupportResistance": "15m",  # Exp: 0.340%
+    # =========================================================
+    # 🎯 MTF CONFIGURATION - All sensors now monitor 2-3 TFs
+    # =========================================================
+    # Format: ["fast", "medium", "slow"] for optimization
+    # The optimizer will find the best TF + TP/SL combo per sensor
+    #
+    # === TREND INDICATORS ===
+    "ADXFilter": ["5m", "15m", "1h"],
+    "EMACrossover": ["5m", "15m", "1h"],
+    "MACDCrossover": ["5m", "15m", "1h"],
+    "Supertrend": ["5m", "15m", "1h"],
+    "ParabolicSAR": ["5m", "15m", "1h"],
+    "HigherTFTrend": ["15m", "1h"],  # Macro context only
+    "MTFImpulse": ["5m", "15m"],
+    "EMA50Support": ["5m", "15m", "1h"],
+    #
+    # === OSCILLATORS ===
+    "RSIReversion": ["1m", "5m", "15m"],
+    "StochasticReversion": ["1m", "5m", "15m"],
+    "CCIReversion": ["1m", "5m", "15m"],
+    "WilliamsRReversion": ["1m", "5m", "15m"],
+    "AdaptiveRSI": ["5m", "15m"],
+    #
+    # === VOLATILITY BANDS ===
+    "BollingerTouch": ["1m", "5m", "15m"],
+    "BollingerSqueeze": ["5m", "15m"],
+    "BollingerRejection": ["5m", "15m"],
+    "KeltnerReversion": ["1m", "5m", "15m"],
+    "KeltnerBreakout": ["5m", "15m"],
+    "ZScoreReversion": ["1m", "5m", "15m"],
+    #
+    # === CANDLESTICK PATTERNS ===
+    "EngulfingPattern": ["1m", "5m", "15m"],
+    "PinBarReversal": ["1m", "5m", "15m"],
+    "RailsPattern": ["5m", "15m"],
+    "MorningStar": ["5m", "15m"],
+    "DojiIndecision": ["1m", "5m", "15m"],
+    "TweezerPattern": ["5m", "15m"],
+    "ThreeBar": ["5m", "15m"],
+    "MarubozuMomentum": ["5m", "15m"],
+    "WickRejection": ["1m", "5m", "15m"],
+    "LongTail": ["1m", "5m", "15m"],
+    #
+    # === STRUCTURAL PATTERNS ===
+    "VCPPattern": ["5m", "15m"],
+    "InsideBarBreakout": ["1m", "5m", "15m"],
+    "DecelerationCandles": ["5m", "15m"],
+    "ExtremeCandleRatio": ["1m", "5m", "15m"],
+    "Fakeout": ["5m", "15m"],
+    #
+    # === VOLUME ANALYSIS ===
+    "VolumeImbalance": ["5m", "15m"],
+    "VolumeSpike": ["1m", "5m", "15m"],
+    "VSAReversal": ["1m", "5m", "15m"],
+    "AbsorptionBlock": ["1m", "5m", "15m"],
+    #
+    # === SMART MONEY CONCEPTS ===
+    "OrderBlock": ["5m", "15m"],
+    "LiquidityVoid": ["5m", "15m"],
+    "FVGRetest": ["5m", "15m"],
+    "WyckoffSpring": ["5m", "15m"],
+    #
+    # === MOMENTUM ===
+    "MomentumBurst": ["1m", "5m", "15m"],
+    "MicroTrend": ["1m", "5m"],
+    "SmartRange": ["1m", "5m"],
+    #
+    # === VWAP ===
+    "VWAPDeviation": ["1m", "5m"],
+    "VWAPBreakout": ["5m", "15m"],
+    "VWAPMomentum": ["1m", "5m"],
+    #
+    # === REGIME DETECTION ===
+    "HurstRegime": ["5m", "15m"],
+    "VolatilityWakeup": ["5m", "15m"],
+    "SupportResistance": ["5m", "15m"],
 }
 
 
 # =====================================================
-# ⚙️ PARÁMETROS DE SENSORES
+# ⚙️ PARÁMETROS DE SENSORES (MTF OPTIMIZED 2025-12-04)
 # =====================================================
+# Grid search optimizado sobre 90d 1m / 30d 5m / 30d 15m
+# Cada sensor tiene TP/SL para su TF óptimo
+# Format: "SensorName": {"tf": {"tp_pct": X, "sl_pct": Y}}
 
-# Parámetros personalizados por sensor (MULTI-TIMEFRAME OPTIMIZED 2025-11-29 V3)
-# Each sensor can have different TP/SL for different timeframes
-# Format: "SensorName": {"1m": {...}, "5m": {...}, "15m": {...}}
 SENSOR_PARAMS = {
-    "ADXFilter": {
-        "15m": {"tp_pct": 0.0760, "sl_pct": 0.0790},  # Exp: 0.348%
+    # === TOP PERFORMERS (Exp > 0.5%) ===
+    "MorningStar": {
+        "15m": {"tp_pct": 0.1500, "sl_pct": 0.0250},  # Exp: 1.730% ⭐ BEST
     },
     "BollingerSqueeze": {
-        "5m": {"tp_pct": 0.0230, "sl_pct": 0.0490},  # Exp: 0.193%
-        "15m": {"tp_pct": 0.1090, "sl_pct": 0.0400},  # Exp: 1.453%
-    },
-    "BollingerTouch": {
-        "1m": {"tp_pct": 0.0270, "sl_pct": 0.0140},  # Exp: 0.492%
-        "5m": {"tp_pct": 0.0770, "sl_pct": 0.0330},  # Exp: 0.372%
-        "15m": {"tp_pct": 0.0940, "sl_pct": 0.0160},  # Exp: 0.599%
-    },
-    "CCIReversion": {
-        "1m": {"tp_pct": 0.0070, "sl_pct": 0.0300},  # Exp: 0.303%
-        "5m": {"tp_pct": 0.0710, "sl_pct": 0.0470},  # Exp: 0.136%
-        "15m": {"tp_pct": 0.1180, "sl_pct": 0.0190},  # Exp: 0.142%
-    },
-    "DecelerationCandles": {
-        "1m": {"tp_pct": 0.0070, "sl_pct": 0.0200},  # Exp: 0.238%
-        "15m": {"tp_pct": 0.1180, "sl_pct": 0.0190},  # Exp: 0.185%
-    },
-    "DojiIndecision": {
-        "1m": {"tp_pct": 0.0310, "sl_pct": 0.0080},  # Exp: 0.205%
-        "5m": {"tp_pct": 0.0690, "sl_pct": 0.0350},  # Exp: 0.162%
-        "15m": {"tp_pct": 0.0760, "sl_pct": 0.0550},  # Exp: 0.251%
-    },
-    "EMA50Support": {
-        "1m": {"tp_pct": 0.0090, "sl_pct": 0.0180},  # Exp: 0.274%
-        "15m": {"tp_pct": 0.1120, "sl_pct": 0.0430},  # Exp: 0.248%
-    },
-    "EMACrossover": {
-        "1m": {"tp_pct": 0.0050, "sl_pct": 0.0290},  # Exp: 0.112%
-        "15m": {"tp_pct": 0.1180, "sl_pct": 0.0280},  # Exp: 0.473%
-    },
-    "EngulfingPattern": {
-        "1m": {"tp_pct": 0.0140, "sl_pct": 0.0220},  # Exp: 0.448%
-    },
-    "ExtremeCandleRatio": {
-        "1m": {"tp_pct": 0.0050, "sl_pct": 0.0280},  # Exp: 0.065%
-        "15m": {"tp_pct": 0.1120, "sl_pct": 0.0250},  # Exp: 0.322%
-    },
-    "FVGRetest": {
-        "1m": {"tp_pct": 0.0080, "sl_pct": 0.0190},  # Exp: 0.039%
-        "15m": {"tp_pct": 0.1000, "sl_pct": 0.0310},  # Exp: 0.339%
-    },
-    "InsideBarBreakout": {
-        "1m": {"tp_pct": 0.0060, "sl_pct": 0.0300},  # Exp: 0.034%
-        "5m": {"tp_pct": 0.0730, "sl_pct": 0.0350},  # Exp: 0.057%
-        "15m": {"tp_pct": 0.1180, "sl_pct": 0.0250},  # Exp: 0.176%
-    },
-    "KeltnerReversion": {
-        "1m": {"tp_pct": 0.0120, "sl_pct": 0.0270},  # Exp: 0.396%
-        "5m": {"tp_pct": 0.0790, "sl_pct": 0.0410},  # Exp: 0.152%
-        "15m": {"tp_pct": 0.1090, "sl_pct": 0.0100},  # Exp: 0.100%
-    },
-    "MACDCrossover": {
-        "1m": {"tp_pct": 0.0040, "sl_pct": 0.0270},  # Exp: 0.144%
-        "5m": {"tp_pct": 0.0690, "sl_pct": 0.0350},  # Exp: 0.019%
-        "15m": {"tp_pct": 0.1030, "sl_pct": 0.0340},  # Exp: 0.269%
-    },
-    "MarubozuMomentum": {
-        "15m": {"tp_pct": 0.1180, "sl_pct": 0.0460},  # Exp: 0.279%
+        "15m": {"tp_pct": 0.1500, "sl_pct": 0.0400},  # Exp: 1.515%
     },
     "MomentumBurst": {
-        "1m": {"tp_pct": 0.0050, "sl_pct": 0.0270},  # Exp: 0.278%
-        "15m": {"tp_pct": 0.1060, "sl_pct": 0.0250},  # Exp: 0.672%
+        "15m": {"tp_pct": 0.0550, "sl_pct": 0.0950},  # Exp: 1.213%
     },
-    "MorningStar": {
-        "5m": {"tp_pct": 0.0690, "sl_pct": 0.0370},  # Exp: 0.141%
-        "15m": {"tp_pct": 0.1180, "sl_pct": 0.0250},  # Exp: 1.505%
+    "WyckoffSpring": {
+        "15m": {"tp_pct": 0.1300, "sl_pct": 0.0200},  # Exp: 0.839%
     },
-    "PinBarReversal": {
-        "1m": {"tp_pct": 0.0050, "sl_pct": 0.0290},  # Exp: 0.122%
-        "5m": {"tp_pct": 0.0690, "sl_pct": 0.0290},  # Exp: 0.205%
-        "15m": {"tp_pct": 0.1180, "sl_pct": 0.0250},  # Exp: 0.326%
+    "KeltnerBreakout": {
+        "15m": {"tp_pct": 0.0750, "sl_pct": 0.0550},  # Exp: 0.820%
     },
-    "RSIReversion": {
-        "1m": {"tp_pct": 0.0060, "sl_pct": 0.0300},  # Exp: 0.157%
-        "15m": {"tp_pct": 0.1180, "sl_pct": 0.0220},  # Exp: 0.104%
+    "VolumeSpike": {
+        "5m": {"tp_pct": 0.1160, "sl_pct": 0.0680},  # Exp: 0.818%
     },
-    "RailsPattern": {
-        "1m": {"tp_pct": 0.0060, "sl_pct": 0.0290},  # Exp: 0.210%
-        "15m": {"tp_pct": 0.1180, "sl_pct": 0.0370},  # Exp: 0.577%
-    },
-    "StochasticReversion": {
-        "1m": {"tp_pct": 0.0080, "sl_pct": 0.0290},  # Exp: 0.286%
-        "5m": {"tp_pct": 0.0690, "sl_pct": 0.0490},  # Exp: 0.104%
+    "VolatilityWakeup": {
+        "15m": {"tp_pct": 0.0600, "sl_pct": 0.0950},  # Exp: 0.761%
     },
     "Supertrend": {
-        "1m": {"tp_pct": 0.0040, "sl_pct": 0.0180},  # Exp: 0.148%
-        "5m": {"tp_pct": 0.0610, "sl_pct": 0.0290},  # Exp: 0.154%
-        "15m": {"tp_pct": 0.1150, "sl_pct": 0.0400},  # Exp: 0.630%
+        "15m": {"tp_pct": 0.1150, "sl_pct": 0.0400},  # Exp: 0.680%
     },
-    "VCPPattern": {
-        "1m": {"tp_pct": 0.0080, "sl_pct": 0.0300},  # Exp: 0.078%
-        "15m": {"tp_pct": 0.1180, "sl_pct": 0.0250},  # Exp: 0.199%
-    },
-    "VWAPDeviation": {
-        "5m": {"tp_pct": 0.0370, "sl_pct": 0.0490},  # Exp: 0.159%
-        "15m": {"tp_pct": 0.0970, "sl_pct": 0.0520},  # Exp: 0.031%
+    "RailsPattern": {
+        "15m": {"tp_pct": 0.1250, "sl_pct": 0.0200},  # Exp: 0.663%
     },
     "VolumeImbalance": {
-        "1m": {"tp_pct": 0.0050, "sl_pct": 0.0290},  # Exp: 0.107%
-        "15m": {"tp_pct": 0.1120, "sl_pct": 0.0490},  # Exp: 0.637%
+        "15m": {"tp_pct": 0.1350, "sl_pct": 0.0550},  # Exp: 0.652%
     },
-    "WilliamsRReversion": {
-        "1m": {"tp_pct": 0.0080, "sl_pct": 0.0300},  # Exp: 0.250%
-        "5m": {"tp_pct": 0.0690, "sl_pct": 0.0490},  # Exp: 0.084%
-        "15m": {"tp_pct": 0.1180, "sl_pct": 0.0190},  # Exp: 0.009%
+    "ThreeBar": {
+        "15m": {"tp_pct": 0.1000, "sl_pct": 0.0250},  # Exp: 0.629%
+    },
+    "BollingerRejection": {
+        "15m": {"tp_pct": 0.1300, "sl_pct": 0.0250},  # Exp: 0.603%
+    },
+    "EMACrossover": {
+        "15m": {"tp_pct": 0.0600, "sl_pct": 0.0800},  # Exp: 0.572%
+    },
+    "HigherTFTrend": {
+        "15m": {"tp_pct": 0.1300, "sl_pct": 0.0500},  # Exp: 0.535%
+    },
+    "BollingerTouch": {
+        "15m": {"tp_pct": 0.0950, "sl_pct": 0.0200},  # Exp: 0.508%
+        "5m": {"tp_pct": 0.0770, "sl_pct": 0.0330},  # Exp: 0.492%
+    },
+    # === GOOD PERFORMERS (Exp 0.2% - 0.5%) ===
+    "VWAPDeviation": {
+        "1m": {"tp_pct": 0.0970, "sl_pct": 0.0590},  # Exp: 0.500%
+    },
+    "EMA50Support": {
+        "15m": {"tp_pct": 0.1300, "sl_pct": 0.0250},  # Exp: 0.444%
+    },
+    "ADXFilter": {
+        "15m": {"tp_pct": 0.0750, "sl_pct": 0.0900},  # Exp: 0.404%
+    },
+    "VWAPMomentum": {
+        "15m": {"tp_pct": 0.1100, "sl_pct": 0.0300},  # Exp: 0.375%
+    },
+    "PinBarReversal": {
+        "15m": {"tp_pct": 0.1300, "sl_pct": 0.0250},  # Exp: 0.371%
+    },
+    "MTFImpulse": {
+        "15m": {"tp_pct": 0.1200, "sl_pct": 0.0500},  # Exp: 0.351%
+    },
+    "SupportResistance": {
+        "15m": {"tp_pct": 0.1300, "sl_pct": 0.0250},  # Exp: 0.345%
+    },
+    "FVGRetest": {
+        "15m": {"tp_pct": 0.1000, "sl_pct": 0.0500},  # Exp: 0.331%
+    },
+    "AbsorptionBlock": {
+        "5m": {"tp_pct": 0.0320, "sl_pct": 0.0560},  # Exp: 0.329%
+    },
+    "MarubozuMomentum": {
+        "15m": {"tp_pct": 0.1500, "sl_pct": 0.0500},  # Exp: 0.307%
+    },
+    "ExtremeCandleRatio": {
+        "15m": {"tp_pct": 0.1100, "sl_pct": 0.0250},  # Exp: 0.306%
+    },
+    "MACDCrossover": {
+        "15m": {"tp_pct": 0.1000, "sl_pct": 0.0350},  # Exp: 0.286%
     },
     "ZScoreReversion": {
-        "1m": {"tp_pct": 0.0270, "sl_pct": 0.0260},  # Exp: 0.356%
-        "5m": {"tp_pct": 0.0770, "sl_pct": 0.0330},  # Exp: 0.061%
-        "15m": {"tp_pct": 0.0940, "sl_pct": 0.0160},  # Exp: 0.317%
+        "15m": {"tp_pct": 0.1350, "sl_pct": 0.0150},  # Exp: 0.277%
     },
-    # Legacy parameters for sensors not yet optimized for multi-TF
-    "HurstRegime": {"hurst_period": 50, "hurst_threshold": 0.5},
-    "FakeoutReversal": {"breakout_threshold_pct": 0.002, "lookback_candles": 10, "reversal_body_pct": 0.6},
-    "ThreeBarReversal": {"range_decrease_threshold": 0.7, "close_position_threshold": 0.4},
-    "MorningStarEvening": {"min_large_body_pct": 0.004, "max_star_body_pct": 0.002, "confirmation_threshold": 0.5},
-    "TweezerPattern": {"max_wick_diff_pct": 0.0005, "min_second_body_pct": 0.002},
-    "VolumeSpikeReversal": {"volume_multiplier": 3.0, "min_body_pct": 0.004},
-    "HigherTFTrendConfirm": {"higher_tf": 5, "ema_period": 20},
-    "OrderBlockBreakout": {"block_size": 3, "max_range_pct": 0.001, "breakout_pct": 0.003},
-    "LiquidityVoid": {"gap_pct": 0.002, "max_volume_pct": 0.001},
-    "LongTailDistribution": {"n_small": 5, "factor": 3.0},
-    "WyckoffSpring": {"lookback": 20, "volume_factor": 1.5},
-    "AbsorptionBlock": {"volume_factor": 2.0, "body_factor": 0.3},
-    "MultiTimeframeImpulse": {"ema_period": 20},
-    "AggressiveVolume": {"volume_multiplier": 2.0, "min_body_pct": 0.002},
-    "VolumeDelta": {"lookback": 10, "delta_threshold": 0.6},
-    "WickRejection": {"wick_to_body_ratio": 2.0, "min_wick_pct": 0.003},
-    "MomentumPinball": {"ema_period": 34, "rsi_period": 2, "oversold": 10, "overbought": 90},
-    "VWAPBreakout": {"std_dev_mult": 1.0, "volume_factor": 1.2, "adx_threshold": 20.0},
-    # Default TP/SL parameters per timeframe (fallback)
+    "DojiIndecision": {
+        "15m": {"tp_pct": 0.1500, "sl_pct": 0.0550},  # Exp: 0.271%
+    },
+    "InsideBarBreakout": {
+        "15m": {"tp_pct": 0.1250, "sl_pct": 0.0250},  # Exp: 0.256%
+    },
+    "HurstRegime": {
+        "15m": {"tp_pct": 0.1200, "sl_pct": 0.0300},  # Exp: 0.253%
+    },
+    "TweezerPattern": {
+        "15m": {"tp_pct": 0.1300, "sl_pct": 0.0300},  # Exp: 0.247%
+    },
+    "AdaptiveRSI": {
+        "15m": {"tp_pct": 0.1050, "sl_pct": 0.0300},  # Exp: 0.236%
+    },
+    "KeltnerReversion": {
+        "5m": {"tp_pct": 0.0950, "sl_pct": 0.0770},  # Exp: 0.232%
+    },
+    "VCPPattern": {
+        "15m": {"tp_pct": 0.1300, "sl_pct": 0.0250},  # Exp: 0.211%
+    },
+    # === MODERATE PERFORMERS (Exp 0.05% - 0.2%) ===
+    "DecelerationCandles": {
+        "15m": {"tp_pct": 0.1300, "sl_pct": 0.0200},  # Exp: 0.172%
+    },
+    "LongTail": {
+        "5m": {"tp_pct": 0.1100, "sl_pct": 0.0110},  # Exp: 0.168%
+    },
+    "CCIReversion": {
+        "15m": {"tp_pct": 0.1350, "sl_pct": 0.0200},  # Exp: 0.141%
+    },
+    "StochasticReversion": {
+        "5m": {"tp_pct": 0.0680, "sl_pct": 0.0800},  # Exp: 0.109%
+    },
+    "WickRejection": {
+        "5m": {"tp_pct": 0.0410, "sl_pct": 0.0770},  # Exp: 0.104%
+    },
+    "RSIReversion": {
+        "15m": {"tp_pct": 0.1300, "sl_pct": 0.0200},  # Exp: 0.095%
+    },
+    "WilliamsRReversion": {
+        "5m": {"tp_pct": 0.0680, "sl_pct": 0.0800},  # Exp: 0.089%
+    },
+    "SmartRange": {
+        "1m": {"tp_pct": 0.0310, "sl_pct": 0.0250},  # Exp: 0.088%
+    },
+    "MicroTrend": {
+        "5m": {"tp_pct": 0.0680, "sl_pct": 0.0530},  # Exp: 0.085%
+    },
+    "EngulfingPattern": {
+        "1m": {"tp_pct": 0.0990, "sl_pct": 0.0110},  # Exp: 0.014%
+    },
+    "VWAPBreakout": {
+        "15m": {"tp_pct": 0.0750, "sl_pct": 0.0300},  # Exp: 0.007%
+    },
+    # === SENSORS NEEDING MORE DATA ===
+    "OrderBlock": {
+        "15m": {"tp_pct": 0.1000, "sl_pct": 0.0400},  # Default
+    },
+    "LiquidityVoid": {
+        "15m": {"tp_pct": 0.0800, "sl_pct": 0.0400},  # Default
+    },
+    "Fakeout": {
+        "15m": {"tp_pct": 0.1000, "sl_pct": 0.0400},  # Default
+    },
+    "ParabolicSAR": {
+        "15m": {"tp_pct": 0.1000, "sl_pct": 0.0400},  # Default
+    },
+    # === DEFAULT FALLBACK ===
     "_default": {
         "1m": {"tp_pct": 0.0150, "sl_pct": 0.0100},
         "5m": {"tp_pct": 0.0300, "sl_pct": 0.0200},
@@ -295,6 +334,50 @@ SENSOR_PARAMS = {
         "1h": {"tp_pct": 0.1200, "sl_pct": 0.0800},
     },
 }
+
+
+# =====================================================
+# 🔄 LOAD OPTIMIZED PARAMETERS (IF AVAILABLE)
+# =====================================================
+
+try:
+    optimized_file = Path("config/optimized_params.json")
+    if optimized_file.exists():
+        with open(optimized_file, "r") as f:
+            optimized_data = json.load(f)
+
+        if "sensors" in optimized_data:
+            # Update SENSOR_PARAMS with optimized values
+            for sensor_name, params in optimized_data["sensors"].items():
+                # Handle both single TF and MTF formats
+                if "all_timeframes" in params:
+                    # MTF format: we need to construct the dict structure
+                    # But for now, let's just use the optimal TF params
+                    # or merge them properly if SENSOR_PARAMS supports it.
+                    # Given current structure, we can just update the entry.
+
+                    # If we want to support multiple TFs, we need to see how
+                    # optimize_sensors.py saves it.
+                    # It saves: "sensor": {"optimal_timeframe": "15m", "tp_pct": ...}
+
+                    # We need to convert this to SENSOR_PARAMS format:
+                    # "Sensor": {"15m": {"tp_pct": ...}}
+
+                    tf = params["optimal_timeframe"]
+                    SENSOR_PARAMS[sensor_name] = {tf: {"tp_pct": params["tp_pct"], "sl_pct": params["sl_pct"]}}
+                else:
+                    # Single TF format (legacy compatible)
+                    # "Sensor": {"tp_pct": ..., "sl_pct": ...}
+                    # But optimize_sensors.py saves it as flat dict in "sensors"
+                    # We need to wrap it in timeframe if possible, or just update
+
+                    # Check if we have timeframe info in optimized_data
+                    tf = optimized_data.get("timeframe", "1m")
+                    SENSOR_PARAMS[sensor_name] = {tf: {"tp_pct": params["tp_pct"], "sl_pct": params["sl_pct"]}}
+
+            print(f"✅ Loaded optimized parameters for {len(optimized_data['sensors'])} sensors")
+except Exception as e:
+    print(f"⚠️ Failed to load optimized parameters: {e}")
 
 
 # =====================================================
@@ -307,6 +390,7 @@ def get_sensor_params(sensor_id: str, timeframe: str = "1m") -> dict:
     Get TP/SL parameters for a sensor at a specific timeframe.
 
     Supports both legacy format (single dict) and new multi-timeframe format.
+    When exact TF not found, uses sensor's optimal (first configured) TF params.
 
     Args:
         sensor_id: Name of the sensor (e.g., "BollingerTouch")
@@ -314,15 +398,6 @@ def get_sensor_params(sensor_id: str, timeframe: str = "1m") -> dict:
 
     Returns:
         Dictionary with at least {"tp_pct": float, "sl_pct": float}
-
-    Examples:
-        # Multi-TF format
-        >>> get_sensor_params("BollingerTouch", "5m")
-        {"tp_pct": 0.045, "sl_pct": 0.025}
-
-        # Legacy format (backward compatible)
-        >>> get_sensor_params("BollingerTouch", "1m")
-        {"tp_pct": 0.027, "sl_pct": 0.014}
     """
     if sensor_id not in SENSOR_PARAMS:
         # Sensor not found, use default
@@ -331,15 +406,22 @@ def get_sensor_params(sensor_id: str, timeframe: str = "1m") -> dict:
     sensor_config = SENSOR_PARAMS[sensor_id]
 
     # Check if it's multi-timeframe format (has timeframe keys)
-    if isinstance(sensor_config, dict) and timeframe in sensor_config:
-        return sensor_config[timeframe]
+    if isinstance(sensor_config, dict):
+        # Exact timeframe match
+        if timeframe in sensor_config:
+            return sensor_config[timeframe]
 
-    # Check if it's legacy format (has tp_pct/sl_pct directly)
-    if isinstance(sensor_config, dict) and "tp_pct" in sensor_config:
-        # Legacy format, return as-is (assumes 1m optimization)
-        return sensor_config
+        # Check if it's legacy format (has tp_pct/sl_pct directly)
+        if "tp_pct" in sensor_config:
+            return sensor_config
 
-    # Fallback to default
+        # Fallback: use sensor's optimal TF (first key that's a TF)
+        tf_keys = [k for k in sensor_config.keys() if k in ("1m", "5m", "15m", "1h")]
+        if tf_keys:
+            optimal_tf = tf_keys[0]  # First configured TF is optimal
+            return sensor_config[optimal_tf]
+
+    # Final fallback to default
     return SENSOR_PARAMS["_default"].get(timeframe, {"tp_pct": 0.015, "sl_pct": 0.01})
 
 

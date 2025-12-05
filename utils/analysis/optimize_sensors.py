@@ -40,6 +40,24 @@ import pandas as pd
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
+from core.bar_aggregator import BarAggregator
+from core.sensor_manager import SensorManager
+
+
+class MockEngine:
+    """Mock engine to satisfy SensorManager dependencies."""
+
+    def __init__(self):
+        self.listeners = {}
+
+    def subscribe(self, event_type, handler):
+        if event_type not in self.listeners:
+            self.listeners[event_type] = []
+        self.listeners[event_type].append(handler)
+
+    async def dispatch(self, event):
+        pass
+
 
 # Setup logging
 logging.basicConfig(
@@ -92,120 +110,19 @@ class SensorOptimizer:
         """
         self.max_bars = max_bars
         self.min_trades = min_trades
-        self.sensors = self._load_sensors()
+
+        # Initialize BarAggregator for MTF support
+        self.bar_aggregator = BarAggregator()
+
+        # Load sensors
+        self.engine = MockEngine()
+        self.sensor_manager = SensorManager(self.engine)
+        self.sensors = self.sensor_manager.sensors
 
         # Store MFE/MAE data: {timeframe: {sensor_name: [data...]}}
         self.sensor_data: Dict[str, Dict[str, List[Dict]]] = defaultdict(lambda: defaultdict(list))
 
-    def _load_sensors(self) -> List:
-        """Load all V3 sensors."""
-        from sensors.absorption_block import AbsorptionBlockV3
-        from sensors.adaptive_rsi import AdaptiveRSIV3
-        from sensors.adx_filter import ADXFilterV3
-        from sensors.bollinger_rejection import BollingerRejectionV3
-        from sensors.bollinger_squeeze import BollingerSqueezeV3
-        from sensors.bollinger_touch import BollingerTouchV3
-        from sensors.cci_reversion import CCIReversionV3
-        from sensors.deceleration_candles import DecelerationCandlesV3
-        from sensors.doji_indecision import DojiIndecisionV3
-        from sensors.ema50_support import EMA50SupportV3
-        from sensors.ema_crossover import EMACrossoverV3
-        from sensors.engulfing_pattern import EngulfingPatternV3
-        from sensors.extreme_candle_ratio import ExtremeCandleRatioV3
-        from sensors.fakeout import FakeoutV3
-        from sensors.fvg_retest import FVGRetestV3
-        from sensors.higher_tf_trend import HigherTFTrendV3
-        from sensors.hurst_regime import HurstRegimeV3
-        from sensors.inside_bar_breakout import InsideBarBreakoutV3
-        from sensors.keltner_breakout import KeltnerBreakoutV3
-        from sensors.keltner_reversion import KeltnerReversionV3
-        from sensors.liquidity_void import LiquidityVoidV3
-        from sensors.long_tail import LongTailV3
-        from sensors.macd_crossover import MACDCrossoverV3
-        from sensors.marubozu_momentum import MarubozuMomentumV3
-        from sensors.micro_trend import MicroTrendV3
-        from sensors.momentum_burst import MomentumBurstV3
-        from sensors.morning_star import MorningStarV3
-        from sensors.mtf_impulse import MTFImpulseV3
-        from sensors.order_block import OrderBlockV3
-        from sensors.parabolic_sar import ParabolicSARV3
-        from sensors.pinbar_reversal import PinBarReversalV3
-        from sensors.rails_pattern import RailsPatternV3
-        from sensors.rsi_reversion import RSIReversionV3
-        from sensors.smart_range import SmartRangeV3
-        from sensors.stochastic_reversion import StochasticReversionV3
-        from sensors.supertrend import SupertrendV3
-        from sensors.support_resistance import SupportResistanceV3
-        from sensors.three_bar import ThreeBarV3
-        from sensors.tweezer_pattern import TweezerPatternV3
-        from sensors.vcp_pattern import VCPPatternV3
-        from sensors.volatility_wakeup import VolatilityWakeupV3
-        from sensors.volume_imbalance import VolumeImbalanceV3
-        from sensors.volume_spike import VolumeSpikeV3
-        from sensors.vsa_reversal import VSAReversalV3
-        from sensors.vwap_breakout import VWAPBreakoutV3
-        from sensors.vwap_deviation import VWAPDeviationV3
-        from sensors.vwap_momentum import VWAPMomentumV3
-        from sensors.wick_rejection import WickRejectionV3
-        from sensors.williams_r_reversion import WilliamsRReversionV3
-        from sensors.wyckoff_spring import WyckoffSpringV3
-        from sensors.zscore_reversion import ZScoreReversionV3
-
-        sensors = [
-            EMACrossoverV3(),
-            PinBarReversalV3(),
-            RailsPatternV3(),
-            EMA50SupportV3(),
-            MarubozuMomentumV3(),
-            VWAPBreakoutV3(),
-            ExtremeCandleRatioV3(),
-            InsideBarBreakoutV3(),
-            DecelerationCandlesV3(),
-            VWAPDeviationV3(),
-            VCPPatternV3(),
-            EngulfingPatternV3(),
-            RSIReversionV3(),
-            BollingerTouchV3(),
-            KeltnerReversionV3(),
-            MACDCrossoverV3(),
-            SupertrendV3(),
-            StochasticReversionV3(),
-            CCIReversionV3(),
-            WilliamsRReversionV3(),
-            ZScoreReversionV3(),
-            ADXFilterV3(),
-            BollingerSqueezeV3(),
-            ParabolicSARV3(),
-            MomentumBurstV3(),
-            VolumeImbalanceV3(),
-            OrderBlockV3(),
-            FVGRetestV3(),
-            DojiIndecisionV3(),
-            MorningStarV3(),
-            LongTailV3(),
-            AbsorptionBlockV3(),
-            LiquidityVoidV3(),
-            FakeoutV3(),
-            HigherTFTrendV3(),
-            MTFImpulseV3(),
-            AdaptiveRSIV3(),
-            BollingerRejectionV3(),
-            HurstRegimeV3(),
-            KeltnerBreakoutV3(),
-            MicroTrendV3(),
-            SmartRangeV3(),
-            VolatilityWakeupV3(),
-            VSAReversalV3(),
-            VWAPMomentumV3(),
-            WickRejectionV3(),
-            WyckoffSpringV3(),
-            VolumeSpikeV3(),
-            TweezerPatternV3(),
-            ThreeBarV3(),
-            SupportResistanceV3(),
-        ]
-        logger.info(f"✅ Loaded {len(sensors)} sensors")
-        return sensors
+        logger.info(f"✅ Loaded {len(self.sensors)} sensors")
 
     def analyze_signal(self, signal: Dict, entry_idx: int, candles: pd.DataFrame, timeframe: str):
         """Calculate MFE and MAE for a signal."""
@@ -276,18 +193,32 @@ class SensorOptimizer:
                 "volume": row["volume"],
             }
 
-            # Wrap candle in context format that sensors expect
-            context = {timeframe: candle_dict}
+            # Update aggregator to get MTF context
+            context = self.bar_aggregator.on_candle(candle_dict)
+
+            # Ensure current timeframe is in context (BarAggregator does this, but just in case)
+            context[timeframe] = candle_dict
 
             for sensor in self.sensors:
                 try:
-                    sensor._optimal_tf = timeframe
-                    signal = sensor.calculate(context)
-                    if signal:
+                    # Set the timeframes list for MTF sensors
+                    sensor.timeframes = [timeframe]
+                    result = sensor.calculate(context)
+
+                    # Handle both single signal (dict) and multiple signals (list)
+                    if result is None:
+                        continue
+
+                    signals = result if isinstance(result, list) else [result]
+
+                    for signal in signals:
+                        if signal is None:
+                            continue
                         if "sensor_id" not in signal:
                             signal["sensor_id"] = sensor.name
-
-                        self.analyze_signal(signal, idx, df, timeframe)
+                        # Use signal's timeframe if present, else use file's timeframe
+                        signal_tf = signal.get("timeframe", timeframe)
+                        self.analyze_signal(signal, idx, df, signal_tf)
                         signals_count += 1
                 except Exception:
                     pass
@@ -424,8 +355,9 @@ class SensorOptimizer:
 
             best_tf, best_result = tf_results[0]
 
-            # Only include if positive expectancy
-            if best_result["expectancy"] > 0:
+            # Include all results regardless of expectancy
+            # if best_result["expectancy"] > 0:
+            if True:
                 best_per_sensor[sensor_name] = {
                     "optimal_timeframe": best_tf,
                     "tp_pct": best_result["best_config"]["tp"],
@@ -561,7 +493,8 @@ class SensorOptimizer:
             json_output["sensors"] = {}
 
             for r in results:
-                if r["expectancy"] > 0:
+                # if r["expectancy"] > 0:
+                if True:
                     cfg = r["best_config"]
                     config_output += f'    "{r["sensor"]}": {{\n'
                     config_output += (

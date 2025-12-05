@@ -61,8 +61,11 @@ class SensorManager:
 
         # ProcessPoolExecutor for parallel sensor execution
         self._executor = ProcessPoolExecutor(max_workers=SENSOR_WORKERS)
-        self._parallel_enabled = True  # Can disable for debugging
-        logger.info(f"⚡ SensorManager using {SENSOR_WORKERS} worker processes")
+        # DISABLED: ProcessPoolExecutor breaks sensor state (buffers/prev_ema)
+        # Sensors are stateful objects that need to maintain history across calls
+        # Parallel mode serializes sensors, losing their internal state
+        self._parallel_enabled = False  # Keep False for correctness
+        logger.info("⚡ SensorManager using sequential mode (stateful sensors)")
 
         # Subscribe to Candles
         self.engine.subscribe(EventType.CANDLE, self.on_candle)

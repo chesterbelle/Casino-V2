@@ -2,9 +2,12 @@
 MarubozuMomentum Sensor (V3).
 Tier 2: Excellent.
 Logic: Strong directional candles with minimal wicks.
+
+Multi-TF: Monitors multiple timeframes (stateless).
 """
 
 import logging
+from typing import List, Optional
 
 from .base import SensorV3
 
@@ -20,12 +23,18 @@ class MarubozuMomentumV3(SensorV3):
         self.min_body_to_range = min_body_to_range
         self.min_body_size_pct = min_body_size_pct
 
-    def calculate(self, context: dict) -> dict:
-        # Get optimal timeframe for this sensor (configured in config/sensors.py)
-        tf = getattr(self, "_optimal_tf", "1m")
-        candle = context.get(tf)
-        if candle is None:
-            return None  # TF not ready yet, skip this cycle
+    def calculate(self, context: dict) -> List[dict]:
+        signals = []
+        for tf in self.timeframes:
+            candle = context.get(tf)
+            if candle is None:
+                continue
+            signal = self._calculate_for_tf(tf, candle)
+            if signal:
+                signals.append(signal)
+        return signals if signals else None
+
+    def _calculate_for_tf(self, tf: str, candle: dict) -> Optional[dict]:
         open_p = candle["open"]
         close = candle["close"]
         high = candle["high"]
@@ -45,14 +54,8 @@ class MarubozuMomentumV3(SensorV3):
         if body_pct < self.min_body_size_pct:
             return None
 
-        signal = None
-
-        # Bullish
         if close > open_p:
-            signal = {"side": "LONG", "score": 1.0, "metadata": {"body_pct": body_pct}}
-
-        # Bearish
+            return {"side": "LONG", "score": 1.0, "timeframe": tf, "metadata": {"body_pct": body_pct}}
         elif close < open_p:
-            signal = {"side": "SHORT", "score": 1.0, "metadata": {"body_pct": body_pct}}
-
-        return signal
+            return {"side": "SHORT", "score": 1.0, "timeframe": tf, "metadata": {"body_pct": body_pct}}
+        return None

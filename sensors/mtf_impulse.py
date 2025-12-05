@@ -2,12 +2,12 @@
 MTFImpulse Sensor (V3).
 Logic: Multi-timeframe impulse detection using momentum alignment.
 
-Detects strong impulse moves when both current (1m) and higher
-timeframe (5m/15m) show aligned momentum.
+Multi-TF: Monitors multiple timeframes with independent buffers.
 """
 
 import logging
 from collections import deque
+from typing import Dict, List, Optional
 
 from .base import SensorV3
 
@@ -19,110 +19,58 @@ class MTFImpulseV3(SensorV3):
     def name(self) -> str:
         return "MTFImpulse"
 
-    # This sensor uses multiple timeframes
-    timeframe: str = "1m"
-
-    def __init__(
-        self,
-        htf="5m",
-        momentum_period=10,
-        impulse_threshold=0.003,
-    ):
-        """
-        Args:
-            htf: Higher timeframe to use ("5m", "15m", "1h")
-            momentum_period: Period for momentum calculation
-            impulse_threshold: Min momentum % to trigger signal
-        """
-        self.htf = htf
+    def __init__(self, momentum_period=10, impulse_threshold=0.003):
         self.momentum_period = momentum_period
         self.impulse_threshold = impulse_threshold
+        self.closes: Dict[str, deque] = {}
+        self.last_timestamps: Dict[str, any] = {}
 
-        # Current timeframe (1m) data
-        self.closes = deque(maxlen=momentum_period + 10)
+    def _get_buffer(self, tf: str) -> deque:
+        if tf not in self.closes:
+            self.closes[tf] = deque(maxlen=self.momentum_period + 10)
+        return self.closes[tf]
 
-        # HTF closes (from context)
-        self.htf_closes = deque(maxlen=momentum_period + 10)
+    def calculate(self, context: dict) -> List[dict]:
+        signals = []
+        for tf in self.timeframes:
+            candle = context.get(tf)
+            if candle is None:
+                continue
+            signal = self._calculate_for_tf(tf, candle)
+            if signal:
+                signals.append(signal)
+        return signals if signals else None
 
-        self._last_htf_timestamp = None
+    def _calculate_for_tf(self, tf: str, candle: dict) -> Optional[dict]:
+        buffer = self._get_buffer(tf)
 
-    def calculate(self, context: dict) -> dict:
-        # Get 1m candle (always available)
-        candle = context["1m"]
-        close = candle["close"]
-        self.closes.append(close)
-
-        # Get HTF candle from context
-        htf_candle = context.get(self.htf)
-
-        # Store HTF close when available and new
-        if htf_candle is not None:
-            htf_timestamp = htf_candle.get("timestamp")
-            if htf_timestamp != self._last_htf_timestamp:
-                if htf_candle.get("is_complete", True):
-                    self.htf_closes.append(htf_candle["close"])
-                    self._last_htf_timestamp = htf_timestamp
-
-        # Need enough data for momentum on both timeframes
-        if len(self.closes) < self.momentum_period:
+        # Skip duplicate timestamps
+        ts = candle.get("timestamp")
+        if ts == self.last_timestamps.get(tf):
             return None
-        if len(self.htf_closes) < self.momentum_period:
+        if not candle.get("is_complete", True):
             return None
 
-        # Calculate momentum on both timeframes
-        ltf_momentum = self._calculate_momentum(list(self.closes))
-        htf_momentum = self._calculate_momentum(list(self.htf_closes))
+        self.last_timestamps[tf] = ts
+        buffer.append(candle["close"])
 
-        # Check for aligned impulse
-        return self._check_impulse(ltf_momentum, htf_momentum)
+        if len(buffer) < self.momentum_period:
+            return None
+
+        momentum = self._calculate_momentum(list(buffer))
+        if abs(momentum) < self.impulse_threshold:
+            return None
+
+        side = "LONG" if momentum > 0 else "SHORT"
+        return {
+            "side": side,
+            "score": min(abs(momentum) / self.impulse_threshold, 2.0) / 2,
+            "timeframe": tf,
+            "metadata": {"momentum": momentum},
+        }
 
     def _calculate_momentum(self, closes):
-        """Calculate rate of change momentum."""
         if len(closes) < self.momentum_period:
             return 0
-
         old_price = closes[-self.momentum_period]
-        new_price = closes[-1]
-
-        if old_price == 0:
-            return 0
-
-        return (new_price - old_price) / old_price
-
-    def _check_impulse(self, ltf_momentum, htf_momentum):
-        """Check for aligned momentum impulse."""
-        # Both must exceed threshold
-        if abs(ltf_momentum) < self.impulse_threshold:
-            return None
-        if abs(htf_momentum) < self.impulse_threshold:
-            return None
-
-        # Must be same direction
-        if (ltf_momentum > 0) != (htf_momentum > 0):
-            return None
-
-        # Calculate combined strength
-        combined_momentum = (abs(ltf_momentum) + abs(htf_momentum)) / 2
-
-        if ltf_momentum > 0:
-            return {
-                "side": "LONG",
-                "score": min(combined_momentum / self.impulse_threshold, 2.0) / 2,
-                "metadata": {
-                    "htf": self.htf,
-                    "ltf_momentum": ltf_momentum,
-                    "htf_momentum": htf_momentum,
-                    "combined": combined_momentum,
-                },
-            }
-        else:
-            return {
-                "side": "SHORT",
-                "score": min(combined_momentum / self.impulse_threshold, 2.0) / 2,
-                "metadata": {
-                    "htf": self.htf,
-                    "ltf_momentum": ltf_momentum,
-                    "htf_momentum": htf_momentum,
-                    "combined": combined_momentum,
-                },
-            }
+        return (closes[-1] - old_price) / old_price if old_price else 0

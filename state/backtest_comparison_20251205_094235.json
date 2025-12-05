@@ -1,0 +1,94 @@
+{
+  "results": [
+    {
+      "wins": 0,
+      "losses": 0,
+      "win_rate": 0.0,
+      "pnl": 0.0,
+      "pnl_pct": 0.0,
+      "final_balance": 10000.0,
+      "fees": 0.0,
+      "strategy": "TrendRider",
+      "trades": 0
+    },
+    {
+      "wins": 0,
+      "losses": 0,
+      "win_rate": 0.0,
+      "pnl": 0.0,
+      "pnl_pct": 0.0,
+      "final_balance": 10000.0,
+      "fees": 0.0,
+      "strategy": "MeanReverter",
+      "trades": 0
+    },
+    {
+      "wins": 0,
+      "losses": 0,
+      "win_rate": 0.0,
+      "pnl": 0.0,
+      "pnl_pct": 0.0,
+      "final_balance": 10000.0,
+      "fees": 0.0,
+      "strategy": "BreakoutHunter",
+      "trades": 0
+    },
+    {
+      "wins": 0,
+      "losses": 0,
+      "win_rate": 0.0,
+      "pnl": 0.0,
+      "pnl_pct": 0.0,
+      "final_balance": 10000.0,
+      "fees": 0.0,
+      "strategy": "QuickScalper",
+      "trades": 0
+    },
+    {
+      "wins": 0,
+      "losses": 0,
+      "win_rate": 0.0,
+      "pnl": 0.0,
+      "pnl_pct": 0.0,
+      "final_balance": 10000.0,
+      "fees": 0.0,
+      "strategy": "SmartMoneyFollower",
+      "trades": 0
+    },
+    {
+      "wins": 0,
+      "losses": 0,
+      "win_rate": 0.0,
+      "pnl": 0.0,
+      "pnl_pct": 0.0,
+      "final_balance": 10000.0,
+      "fees": 0.0,
+      "strategy": "PatternTrader",
+      "trades": 0
+    },
+    {
+      "wins": 0,
+      "losses": 0,
+      "win_rate": 0.0,
+      "pnl": 0.0,
+      "pnl_pct": 0.0,
+      "final_balance": 10000.0,
+      "fees": 0.0,
+      "strategy": "AlphaEdge",
+      "trades": 0
+    },
+    {
+      "wins": 0,
+      "losses": 0,
+      "win_rate": 0.0,
+      "pnl": 0.0,
+      "pnl_pct": 0.0,
+      "final_balance": 10000.0,
+      "fees": 0.0,
+      "strategy": "SynergyFlow",
+      "trades": 0
+    }
+  ],
+  "dataset": "data/raw/LTCUSDT_1m__30d.csv",
+  "symbol": "LTC/USDT:USDT"
+}

@@ -114,11 +114,9 @@ class SignalAggregatorV3:
         if not signals:
             return
 
-        # 1. Filter by Score (Strict Quality Control)
-        # TEMPORARILY DISABLED: Allow all signals to validate demo mode
-        # Threshold lowered to 0.5 to allow new sensors to trade (Cold Start)
-        # Previously 0.6, which blocked sensors with default score (0.5)
-        MIN_SCORE_THRESHOLD = 0.0  # TEMP: Disabled for demo validation
+        # 1. Filter by Score (Quality Control - ENABLED)
+        # Sensors need at least neutral score to participate
+        MIN_SCORE_THRESHOLD = 0.5  # Only allow sensors with proven/neutral performance
 
         valid_signals = [s for s in signals if self.tracker.get_sensor_score(s.sensor_id) >= MIN_SCORE_THRESHOLD]
 
@@ -152,38 +150,27 @@ class SignalAggregatorV3:
                 logger.debug(f"📊 HTF Context: {signal.sensor_id} = {htf_context}")
                 break
 
-        # 3. Score all valid signals with context adjustment
-        scored_signals = []
-        CONTEXT_BOOST = 1.2  # 20% boost for aligned signals
-        CONTEXT_PENALTY = 0.8  # 20% penalty for opposing signals
+        # 3. VOTING SYSTEM - Count votes by direction (exclude context sensors from voting)
+        trading_signals = [s for s in valid_signals if s.sensor_id not in context_sensors]
 
-        for signal in valid_signals:
-            sensor_id = signal.sensor_id if hasattr(signal, "sensor_id") else "Unknown"
-            base_score = self.tracker.get_sensor_score(sensor_id)
+        long_votes = sum(1 for s in trading_signals if s.side == "LONG")
+        short_votes = sum(1 for s in trading_signals if s.side == "SHORT")
+        total_votes = long_votes + short_votes
 
-            # Apply context adjustment (skip for context sensors themselves)
-            if htf_context and sensor_id not in context_sensors:
-                if signal.side == htf_context:
-                    # Signal aligns with HTF trend - boost
-                    score = base_score * CONTEXT_BOOST
-                    logger.debug(
-                        f"   ⬆️ {sensor_id} boosted: {base_score:.3f} → {score:.3f} (aligned with {htf_context})"
-                    )
-                else:
-                    # Signal opposes HTF trend - penalize
-                    score = base_score * CONTEXT_PENALTY
-                    logger.debug(f"   ⬇️ {sensor_id} penalized: {base_score:.3f} → {score:.3f} (against {htf_context})")
-            else:
-                score = base_score
+        # Minimum 2 sensors must agree (VOTING REQUIREMENT)
+        MIN_VOTES_REQUIRED = 2
 
-            scored_signals.append({"signal": signal, "sensor_id": sensor_id, "score": score, "side": signal.side})
+        logger.debug(f"📊 Votes: LONG={long_votes}, SHORT={short_votes}, HTF={htf_context}")
 
-        # Select best signal
-        selected = self._select_best_signal(scored_signals)
+        # Determine consensus direction
+        consensus_side = None
+        if long_votes >= MIN_VOTES_REQUIRED and long_votes > short_votes:
+            consensus_side = "LONG"
+        elif short_votes >= MIN_VOTES_REQUIRED and short_votes > long_votes:
+            consensus_side = "SHORT"
 
-        if selected is None:
-            logger.info("📊 No signal selected (all below threshold or conflict unresolved)")
-            # Emit SKIP signal
+        if consensus_side is None:
+            logger.info(f"📊 No consensus: LONG={long_votes}, SHORT={short_votes} (need {MIN_VOTES_REQUIRED}+)")
             aggregated = AggregatedSignalEvent(
                 symbol=signals[0].symbol,
                 candle_timestamp=candle_ts,
@@ -193,29 +180,69 @@ class SignalAggregatorV3:
                 confidence=0.0,
                 total_signals=len(signals),
             )
-        else:
-            # Get strategy context for selected sensor
-            strategies = get_strategy_for_sensor(selected["sensor_id"])
-            strategy_name = strategies[0] if strategies else "Unknown"
+            await self.engine.dispatch(aggregated)
+            if candle_ts in self.signal_buffer:
+                del self.signal_buffer[candle_ts]
+            return
 
+        # 4. MANDATORY HTF ALIGNMENT - Reject if against HTF trend
+        if htf_context and consensus_side != htf_context:
             logger.info(
-                f"📊 Selected: {selected['sensor_id']} ({selected['side']}) | "
-                f"Score: {selected['score']:.3f} | "
-                f"Strategy: {strategy_name} | "
-                f"Total signals: {len(signals)}"
+                f"🚫 Rejecting {consensus_side}: Against HTF trend ({htf_context}) | "
+                f"Votes: L={long_votes} S={short_votes}"
             )
-
             aggregated = AggregatedSignalEvent(
-                symbol=selected["signal"].symbol,
+                symbol=signals[0].symbol,
                 candle_timestamp=candle_ts,
-                selected_sensor=selected["sensor_id"],
-                sensor_score=selected["score"],
-                side=selected["side"],
-                confidence=selected["score"],  # Score is our confidence
+                selected_sensor="None",
+                sensor_score=0.0,
+                side="SKIP",
+                confidence=0.0,
                 total_signals=len(signals),
-                metadata=selected["signal"].metadata,
-                strategy_name=strategy_name,
             )
+            await self.engine.dispatch(aggregated)
+            if candle_ts in self.signal_buffer:
+                del self.signal_buffer[candle_ts]
+            return
+
+        # 5. Select BEST signal from consensus direction
+        consensus_signals = [s for s in trading_signals if s.side == consensus_side]
+
+        # Score them
+        scored_signals = []
+        for signal in consensus_signals:
+            sensor_id = signal.sensor_id
+            score = self.tracker.get_sensor_score(sensor_id)
+            scored_signals.append({"signal": signal, "sensor_id": sensor_id, "score": score, "side": signal.side})
+
+        # Pick the highest scored
+        selected = max(scored_signals, key=lambda s: s["score"])
+
+        # Get strategy context for selected sensor
+        strategies = get_strategy_for_sensor(selected["sensor_id"])
+        strategy_name = strategies[0] if strategies else "Unknown"
+
+        # Calculate confidence based on consensus strength
+        consensus_ratio = max(long_votes, short_votes) / max(total_votes, 1)
+        confidence = selected["score"] * consensus_ratio
+
+        logger.info(
+            f"✅ CONSENSUS {consensus_side}: {long_votes}L/{short_votes}S | "
+            f"Best: {selected['sensor_id']} (score={selected['score']:.3f}) | "
+            f"HTF: {'✓' if htf_context == consensus_side else 'N/A'}"
+        )
+
+        aggregated = AggregatedSignalEvent(
+            symbol=selected["signal"].symbol,
+            candle_timestamp=candle_ts,
+            selected_sensor=selected["sensor_id"],
+            sensor_score=selected["score"],
+            side=selected["side"],
+            confidence=confidence,
+            total_signals=len(signals),
+            metadata=selected["signal"].metadata,
+            strategy_name=strategy_name,
+        )
 
         await self.engine.dispatch(aggregated)
 

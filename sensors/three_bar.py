@@ -2,14 +2,12 @@
 ThreeBar Sensor (V3).
 Logic: Three bar reversal pattern detection.
 
-Pattern: Three consecutive candles showing:
-1. Trend candle
-2. Small body (indecision)
-3. Reversal candle closing past first candle
+Multi-TF: Monitors multiple timeframes with independent buffers.
 """
 
 import logging
 from collections import deque
+from typing import Dict, List, Optional
 
 from .base import SensorV3
 
@@ -22,79 +20,51 @@ class ThreeBarV3(SensorV3):
         return "ThreeBar"
 
     def __init__(self, range_decrease=0.7, close_threshold=0.4):
-        """
-        Args:
-            range_decrease: Middle candle should be this % of first candle range
-            close_threshold: Third candle should close past this % of first
-        """
         self.range_decrease = range_decrease
         self.close_threshold = close_threshold
+        self.candles: Dict[str, deque] = {}
 
-        self.candles = deque(maxlen=5)
+    def _get_buffer(self, tf: str) -> deque:
+        if tf not in self.candles:
+            self.candles[tf] = deque(maxlen=5)
+        return self.candles[tf]
 
-    def calculate(self, context: dict) -> dict:
-        # Get optimal timeframe for this sensor (configured in config/sensors.py)
-        tf = getattr(self, "_optimal_tf", "1m")
-        candle = context.get(tf)
-        if candle is None:
-            return None  # TF not ready yet, skip this cycle
-        self.candles.append(candle)
+    def calculate(self, context: dict) -> List[dict]:
+        signals = []
+        for tf in self.timeframes:
+            candle = context.get(tf)
+            if candle is None:
+                continue
+            signal = self._calculate_for_tf(tf, candle)
+            if signal:
+                signals.append(signal)
+        return signals if signals else None
 
-        if len(self.candles) < 3:
+    def _calculate_for_tf(self, tf: str, candle: dict) -> Optional[dict]:
+        buffer = self._get_buffer(tf)
+        buffer.append(candle)
+
+        if len(buffer) < 3:
             return None
 
-        signal = self._check_three_bar()
-        return signal
-
-    def _check_three_bar(self):
-        """Check for three bar reversal pattern."""
-        candles = list(self.candles)
-        first = candles[-3]
-        second = candles[-2]
-        third = candles[-1]
-
+        first, second, third = buffer[-3], buffer[-2], buffer[-1]
         first_range = first["high"] - first["low"]
         second_range = second["high"] - second["low"]
 
         if first_range == 0:
             return None
 
-        # Middle candle should be smaller
-        range_ratio = second_range / first_range
-        if range_ratio > self.range_decrease:
+        if second_range / first_range > self.range_decrease:
             return None
 
-        # Bullish three bar: Down-Small-Up
-        first_bearish = first["close"] < first["open"]
-        third_bullish = third["close"] > third["open"]
+        # Bullish: Down-Small-Up
+        if first["close"] < first["open"] and third["close"] > third["open"]:
+            if third["close"] > first["open"] - (first_range * self.close_threshold):
+                return {"side": "LONG", "score": 1.0, "timeframe": tf, "metadata": {"pattern": "bullish_three_bar"}}
 
-        if first_bearish and third_bullish:
-            # Third should close above some % of first candle range
-            first_body_top = first["open"]
-            if third["close"] > first_body_top - (first_range * self.close_threshold):
-                return {
-                    "side": "LONG",
-                    "score": 1.0,
-                    "metadata": {
-                        "pattern": "bullish_three_bar",
-                        "range_ratio": range_ratio,
-                    },
-                }
-
-        # Bearish three bar: Up-Small-Down
-        first_bullish = first["close"] > first["open"]
-        third_bearish = third["close"] < third["open"]
-
-        if first_bullish and third_bearish:
-            first_body_bottom = first["open"]
-            if third["close"] < first_body_bottom + (first_range * self.close_threshold):
-                return {
-                    "side": "SHORT",
-                    "score": 1.0,
-                    "metadata": {
-                        "pattern": "bearish_three_bar",
-                        "range_ratio": range_ratio,
-                    },
-                }
+        # Bearish: Up-Small-Down
+        if first["close"] > first["open"] and third["close"] < third["open"]:
+            if third["close"] < first["open"] + (first_range * self.close_threshold):
+                return {"side": "SHORT", "score": 1.0, "timeframe": tf, "metadata": {"pattern": "bearish_three_bar"}}
 
         return None

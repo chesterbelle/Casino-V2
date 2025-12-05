@@ -138,6 +138,7 @@ class OrderManager:
             "stop_loss": sl_pct,  # Pass as percentage (e.g. 0.01)
             "timestamp": str(event.timestamp),
             "ghost": False,
+            "contributors": [getattr(event, "selected_sensor", "Unknown")],
         }
 
         # Store for outcome tracking (include sensor_id if available)
@@ -312,7 +313,14 @@ class OrderManager:
                         pnl_pct = (exit_price - position.entry_price) / position.entry_price
                     else:
                         pnl_pct = (position.entry_price - exit_price) / position.entry_price
-                    pnl = position.notional * pnl_pct
+
+                    # Calculate PnL - use notional if available, else estimate from typical position size
+                    if position.notional and position.notional > 0:
+                        pnl = position.notional * pnl_pct
+                    else:
+                        # Fallback: estimate notional from typical bet size (1% of 10000 = 100)
+                        estimated_notional = 100.0  # Typical small bet
+                        pnl = estimated_notional * pnl_pct
 
                 # Calculate fee (0.06% taker fee on notional)
                 fee = position.notional * 0.0006

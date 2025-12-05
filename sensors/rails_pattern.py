@@ -2,9 +2,12 @@
 RailsPattern Sensor (V3).
 Tier 1: 69% Win Rate.
 Logic: Two consecutive candles with similar range but opposite direction.
+
+Multi-TF: Monitors multiple timeframes with independent state.
 """
 
 import logging
+from typing import Dict, List, Optional
 
 from .base import SensorV3
 
@@ -18,42 +21,42 @@ class RailsPatternV3(SensorV3):
 
     def __init__(self, max_diff_pct=0.1):
         self.max_diff_pct = max_diff_pct
-        self.prev_candle = None
+        self.prev_candles: Dict[str, dict] = {}
 
-    def calculate(self, context: dict) -> dict:
-        # Get optimal timeframe for this sensor (configured in config/sensors.py)
-        tf = getattr(self, "_optimal_tf", "1m")
-        candle = context.get(tf)
-        if candle is None:
-            return None  # TF not ready yet, skip this cycle
-        if not self.prev_candle:
-            self.prev_candle = candle
+    def calculate(self, context: dict) -> List[dict]:
+        signals = []
+        for tf in self.timeframes:
+            candle = context.get(tf)
+            if candle is None:
+                continue
+            signal = self._calculate_for_tf(tf, candle)
+            if signal:
+                signals.append(signal)
+        return signals if signals else None
+
+    def _calculate_for_tf(self, tf: str, candle: dict) -> Optional[dict]:
+        prev = self.prev_candles.get(tf)
+        self.prev_candles[tf] = candle
+
+        if not prev:
             return None
 
-        prev = self.prev_candle
-        curr = candle
+        prev_body = abs(prev["close"] - prev["open"])
+        curr_body = abs(candle["close"] - candle["open"])
 
-        prev_open = prev["open"]
-        prev_close = prev["close"]
-        curr_open = curr["open"]
-        curr_close = curr["close"]
+        if prev_body == 0:
+            return None
 
-        prev_body = abs(prev_close - prev_open)
-        curr_body = abs(curr_close - curr_open)
+        diff_pct = abs(prev_body - curr_body) / prev_body
+        if diff_pct >= self.max_diff_pct:
+            return None
 
-        signal = None
+        # Bullish Rails: Red then Green
+        if prev["close"] < prev["open"] and candle["close"] > candle["open"]:
+            return {"side": "LONG", "score": 1.0, "timeframe": tf, "metadata": {"diff_pct": diff_pct}}
 
-        # Check if bodies are similar size
-        if prev_body > 0:
-            diff_pct = abs(prev_body - curr_body) / prev_body
-            if diff_pct < self.max_diff_pct:
-                # Bullish Rails: Red then Green
-                if (prev_close < prev_open) and (curr_close > curr_open):
-                    signal = {"side": "LONG", "score": 1.0, "metadata": {"diff_pct": diff_pct}}
+        # Bearish Rails: Green then Red
+        if prev["close"] > prev["open"] and candle["close"] < candle["open"]:
+            return {"side": "SHORT", "score": 1.0, "timeframe": tf, "metadata": {"diff_pct": diff_pct}}
 
-                # Bearish Rails: Green then Red
-                elif (prev_close > prev_open) and (curr_close < curr_open):
-                    signal = {"side": "SHORT", "score": 1.0, "metadata": {"diff_pct": diff_pct}}
-
-        self.prev_candle = curr
-        return signal
+        return None

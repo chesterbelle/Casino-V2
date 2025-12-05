@@ -1,10 +1,13 @@
 """
 MACDCrossover Sensor (V3).
 Logic: MACD histogram crosses zero line.
+
+Multi-TF: Monitors multiple timeframes with independent buffers.
 """
 
 import logging
 from collections import deque
+from typing import Dict, List, Optional
 
 from .base import SensorV3
 
@@ -20,54 +23,64 @@ class MACDCrossoverV3(SensorV3):
         self.short_period = short_period
         self.long_period = long_period
         self.signal_period = signal_period
-        self.closes = deque(maxlen=long_period + signal_period)
-        self.ema_short = None
-        self.ema_long = None
-        self.signal_line = None
-        self.prev_hist = None
-        self.macd_values = deque(maxlen=signal_period)
+        self.closes: Dict[str, deque] = {}
+        self.ema_short: Dict[str, float] = {}
+        self.ema_long: Dict[str, float] = {}
+        self.signal_line: Dict[str, float] = {}
+        self.macd_values: Dict[str, deque] = {}
+        self.prev_hist: Dict[str, float] = {}
 
-    def calculate(self, context: dict) -> dict:
-        # Get optimal timeframe for this sensor (configured in config/sensors.py)
-        tf = getattr(self, "_optimal_tf", "1m")
-        candle = context.get(tf)
-        if candle is None:
-            return None  # TF not ready yet, skip this cycle
+    def _get_buffer(self, tf: str):
+        if tf not in self.closes:
+            self.closes[tf] = deque(maxlen=self.long_period + self.signal_period)
+            self.macd_values[tf] = deque(maxlen=self.signal_period)
+        return self.closes[tf], self.macd_values[tf]
+
+    def calculate(self, context: dict) -> List[dict]:
+        signals = []
+        for tf in self.timeframes:
+            candle = context.get(tf)
+            if candle is None:
+                continue
+            signal = self._calculate_for_tf(tf, candle)
+            if signal:
+                signals.append(signal)
+        return signals if signals else None
+
+    def _calculate_for_tf(self, tf: str, candle: dict) -> Optional[dict]:
+        closes, macd_vals = self._get_buffer(tf)
         close = candle["close"]
-        self.closes.append(close)
+        closes.append(close)
 
-        if len(self.closes) < self.long_period:
+        if len(closes) < self.long_period:
             return None
 
-        # Calculate EMAs
-        self.ema_short = self._compute_ema(self.ema_short, close, self.short_period, list(self.closes))
-        self.ema_long = self._compute_ema(self.ema_long, close, self.long_period, list(self.closes))
+        self.ema_short[tf] = self._compute_ema(self.ema_short.get(tf), close, self.short_period, list(closes))
+        self.ema_long[tf] = self._compute_ema(self.ema_long.get(tf), close, self.long_period, list(closes))
 
-        macd_line = self.ema_short - self.ema_long
-        self.macd_values.append(macd_line)
+        macd_line = self.ema_short[tf] - self.ema_long[tf]
+        macd_vals.append(macd_line)
 
-        if len(self.macd_values) < self.signal_period:
+        if len(macd_vals) < self.signal_period:
             return None
 
-        self.signal_line = self._compute_ema(self.signal_line, macd_line, self.signal_period, list(self.macd_values))
-        histogram = macd_line - self.signal_line
+        self.signal_line[tf] = self._compute_ema(
+            self.signal_line.get(tf), macd_line, self.signal_period, list(macd_vals)
+        )
+        histogram = macd_line - self.signal_line[tf]
 
-        signal = None
+        prev = self.prev_hist.get(tf)
+        self.prev_hist[tf] = histogram
 
-        if self.prev_hist is not None:
-            if histogram > 0 and self.prev_hist <= 0:
-                signal = {"side": "LONG", "score": 1.0, "metadata": {"histogram": histogram}}
-            elif histogram < 0 and self.prev_hist >= 0:
-                signal = {"side": "SHORT", "score": 1.0, "metadata": {"histogram": histogram}}
-
-        self.prev_hist = histogram
-        return signal
+        if prev is not None:
+            if histogram > 0 and prev <= 0:
+                return {"side": "LONG", "score": 1.0, "timeframe": tf, "metadata": {"histogram": histogram}}
+            elif histogram < 0 and prev >= 0:
+                return {"side": "SHORT", "score": 1.0, "timeframe": tf, "metadata": {"histogram": histogram}}
+        return None
 
     def _compute_ema(self, previous, value, period, seed):
         if previous is None:
-            if not seed or len(seed) < period:
-                return value
-            return sum(seed[-period:]) / period
-
+            return sum(seed[-period:]) / period if len(seed) >= period else value
         k = 2 / (period + 1)
         return value * k + previous * (1 - k)

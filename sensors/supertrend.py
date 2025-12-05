@@ -1,10 +1,13 @@
 """
 Supertrend Sensor (V3).
 Logic: Trend flip detection using ATR bands.
+
+Multi-TF: Monitors multiple timeframes with independent state.
 """
 
 import logging
 from collections import deque
+from typing import Dict, List, Optional
 
 import numpy as np
 
@@ -21,98 +24,88 @@ class SupertrendV3(SensorV3):
     def __init__(self, atr_period=10, multiplier=3.0):
         self.atr_period = atr_period
         self.multiplier = multiplier
-        self.highs = deque(maxlen=atr_period + 1)
-        self.lows = deque(maxlen=atr_period + 1)
-        self.closes = deque(maxlen=atr_period + 1)
-        self.last_supertrend = None
-        self.last_direction = None  # 1 = uptrend, -1 = downtrend
+        self.highs: Dict[str, deque] = {}
+        self.lows: Dict[str, deque] = {}
+        self.closes: Dict[str, deque] = {}
+        self.last_supertrend: Dict[str, float] = {}
+        self.last_direction: Dict[str, int] = {}
 
-    def calculate(self, context: dict) -> dict:
-        # Get optimal timeframe for this sensor (configured in config/sensors.py)
-        tf = getattr(self, "_optimal_tf", "1m")
-        candle = context.get(tf)
-        if candle is None:
-            return None  # TF not ready yet, skip this cycle
-        self.highs.append(candle["high"])
-        self.lows.append(candle["low"])
-        self.closes.append(candle["close"])
+    def _get_buffers(self, tf: str):
+        if tf not in self.highs:
+            self.highs[tf] = deque(maxlen=self.atr_period + 1)
+            self.lows[tf] = deque(maxlen=self.atr_period + 1)
+            self.closes[tf] = deque(maxlen=self.atr_period + 1)
+        return self.highs[tf], self.lows[tf], self.closes[tf]
 
-        if len(self.closes) < self.atr_period:
+    def calculate(self, context: dict) -> List[dict]:
+        signals = []
+        for tf in self.timeframes:
+            candle = context.get(tf)
+            if candle is None:
+                continue
+            signal = self._calculate_for_tf(tf, candle)
+            if signal:
+                signals.append(signal)
+        return signals if signals else None
+
+    def _calculate_for_tf(self, tf: str, candle: dict) -> Optional[dict]:
+        highs, lows, closes = self._get_buffers(tf)
+        highs.append(candle["high"])
+        lows.append(candle["low"])
+        closes.append(candle["close"])
+
+        if len(closes) < self.atr_period:
             return None
 
-        supertrend, direction = self._compute_supertrend()
-
-        if supertrend is None or direction is None:
+        supertrend, direction = self._compute_supertrend(tf)
+        if supertrend is None:
             return None
 
-        signal = None
+        last_dir = self.last_direction.get(tf)
+        self.last_supertrend[tf] = supertrend
+        self.last_direction[tf] = direction
 
-        # Detect flip (trend change)
-        if self.last_direction is not None and direction != self.last_direction:
-            if direction == 1:
-                signal = {"side": "LONG", "score": 1.0, "metadata": {"supertrend": supertrend}}
-            else:
-                signal = {"side": "SHORT", "score": 1.0, "metadata": {"supertrend": supertrend}}
+        if last_dir is not None and direction != last_dir:
+            side = "LONG" if direction == 1 else "SHORT"
+            return {"side": side, "score": 1.0, "timeframe": tf, "metadata": {"supertrend": supertrend}}
+        return None
 
-        self.last_supertrend = supertrend
-        self.last_direction = direction
-        return signal
-
-    def _compute_supertrend(self):
-        if len(self.closes) < self.atr_period:
-            return None, None
-
-        high = self.highs[-1]
-        low = self.lows[-1]
-        close = self.closes[-1]
-
+    def _compute_supertrend(self, tf: str):
+        highs, lows, closes = list(self.highs[tf]), list(self.lows[tf]), list(self.closes[tf])
+        high, low, close = highs[-1], lows[-1], closes[-1]
         hl_avg = (high + low) / 2
-        atr = self._compute_atr()
-
+        atr = self._compute_atr(tf)
         if atr == 0:
             return None, None
 
         upper_band = hl_avg + (self.multiplier * atr)
         lower_band = hl_avg - (self.multiplier * atr)
 
-        if self.last_supertrend is None or self.last_direction is None:
-            if close > upper_band:
-                direction = 1
-                supertrend = lower_band
-            elif close < lower_band:
-                direction = -1
-                supertrend = upper_band
+        last_st = self.last_supertrend.get(tf)
+        last_dir = self.last_direction.get(tf)
+
+        if last_st is None or last_dir is None:
+            direction = 1 if close > upper_band else -1
+            supertrend = lower_band if direction == 1 else upper_band
+        elif last_dir == 1:
+            if close < last_st:
+                direction, supertrend = -1, upper_band
             else:
-                direction = 1
-                supertrend = lower_band
+                direction, supertrend = 1, max(lower_band, last_st)
         else:
-            if self.last_direction == 1:
-                if close < self.last_supertrend:
-                    direction = -1
-                    supertrend = upper_band
-                else:
-                    direction = 1
-                    supertrend = max(lower_band, self.last_supertrend)
+            if close > last_st:
+                direction, supertrend = 1, lower_band
             else:
-                if close > self.last_supertrend:
-                    direction = 1
-                    supertrend = lower_band
-                else:
-                    direction = -1
-                    supertrend = min(upper_band, self.last_supertrend)
+                direction, supertrend = -1, min(upper_band, last_st)
 
         return supertrend, direction
 
-    def _compute_atr(self):
-        if len(self.closes) < 2:
+    def _compute_atr(self, tf: str):
+        highs, lows, closes = list(self.highs[tf]), list(self.lows[tf]), list(self.closes[tf])
+        if len(closes) < 2:
             return 0.0
-
-        tr_values = []
-        for i in range(1, len(self.closes)):
-            h = self.highs[i]
-            low_val = self.lows[i]
-            prev_c = self.closes[i - 1]
-            tr = max(h - low_val, abs(h - prev_c), abs(low_val - prev_c))
-            tr_values.append(tr)
-
+        tr_values = [
+            max(highs[i] - lows[i], abs(highs[i] - closes[i - 1]), abs(lows[i] - closes[i - 1]))
+            for i in range(1, len(closes))
+        ]
         return np.mean(tr_values[-self.atr_period :]) if tr_values else 0.0

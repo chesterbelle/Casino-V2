@@ -2,10 +2,13 @@
 ExtremeCandleRatio Sensor (V3).
 Tier 2: Excellent.
 Logic: Candle body larger than historical percentile.
+
+Multi-TF: Monitors multiple timeframes with independent buffers.
 """
 
 import logging
 from collections import deque
+from typing import Dict, List, Optional
 
 import numpy as np
 
@@ -22,32 +25,41 @@ class ExtremeCandleRatioV3(SensorV3):
     def __init__(self, lookback=30, percentile=0.95):
         self.lookback = lookback
         self.percentile = percentile
-        self.bodies = deque(maxlen=lookback + 1)
+        self.bodies: Dict[str, deque] = {}
 
-    def calculate(self, context: dict) -> dict:
-        # Get optimal timeframe for this sensor (configured in config/sensors.py)
-        tf = getattr(self, "_optimal_tf", "1m")
-        candle = context.get(tf)
-        if candle is None:
-            return None  # TF not ready yet, skip this cycle
-        open_p = candle["open"]
-        close = candle["close"]
-        body = abs(close - open_p)
+    def _get_buffer(self, tf: str) -> deque:
+        if tf not in self.bodies:
+            self.bodies[tf] = deque(maxlen=self.lookback + 1)
+        return self.bodies[tf]
 
-        # Calculate threshold BEFORE adding current body
-        if len(self.bodies) < self.lookback:
-            self.bodies.append(body)
+    def calculate(self, context: dict) -> List[dict]:
+        signals = []
+        for tf in self.timeframes:
+            candle = context.get(tf)
+            if candle is None:
+                continue
+            signal = self._calculate_for_tf(tf, candle)
+            if signal:
+                signals.append(signal)
+        return signals if signals else None
+
+    def _calculate_for_tf(self, tf: str, candle: dict) -> Optional[dict]:
+        buffer = self._get_buffer(tf)
+        body = abs(candle["close"] - candle["open"])
+
+        if len(buffer) < self.lookback:
+            buffer.append(body)
             return None
 
-        threshold = np.percentile(self.bodies, self.percentile * 100)
-        self.bodies.append(body)
-
-        signal = None
+        threshold = np.percentile(buffer, self.percentile * 100)
+        buffer.append(body)
 
         if body > threshold:
-            if close > open_p:
-                signal = {"side": "LONG", "score": 1.0, "metadata": {"ratio": body / threshold if threshold else 0}}
-            else:
-                signal = {"side": "SHORT", "score": 1.0, "metadata": {"ratio": body / threshold if threshold else 0}}
-
-        return signal
+            side = "LONG" if candle["close"] > candle["open"] else "SHORT"
+            return {
+                "side": side,
+                "score": 1.0,
+                "timeframe": tf,
+                "metadata": {"ratio": body / threshold if threshold else 0},
+            }
+        return None

@@ -2,12 +2,12 @@
 BollingerRejection Sensor (V3).
 Logic: Detects price rejection at Bollinger Band edges.
 
-A rejection occurs when price touches or exceeds a band
-but closes back inside, indicating reversal potential.
+Multi-TF: Monitors multiple timeframes with independent buffers.
 """
 
 import logging
 from collections import deque
+from typing import Dict, List, Optional
 
 import numpy as np
 
@@ -22,76 +22,50 @@ class BollingerRejectionV3(SensorV3):
         return "BollingerRejection"
 
     def __init__(self, period=20, std_dev=2.0, rejection_threshold=0.002):
-        """
-        Args:
-            period: Period for Bollinger Bands
-            std_dev: Standard deviation multiplier
-            rejection_threshold: Min % to confirm rejection
-        """
         self.period = period
         self.std_dev = std_dev
         self.rejection_threshold = rejection_threshold
+        self.closes: Dict[str, deque] = {}
 
-        self.closes = deque(maxlen=period + 10)
+    def _get_buffer(self, tf: str) -> deque:
+        if tf not in self.closes:
+            self.closes[tf] = deque(maxlen=self.period + 10)
+        return self.closes[tf]
 
-    def calculate(self, context: dict) -> dict:
-        # Get optimal timeframe for this sensor (configured in config/sensors.py)
-        tf = getattr(self, "_optimal_tf", "1m")
-        candle = context.get(tf)
-        if candle is None:
-            return None  # TF not ready yet, skip this cycle
-        self.closes.append(candle["close"])
+    def calculate(self, context: dict) -> List[dict]:
+        signals = []
+        for tf in self.timeframes:
+            candle = context.get(tf)
+            if candle is None:
+                continue
+            signal = self._calculate_for_tf(tf, candle)
+            if signal:
+                signals.append(signal)
+        return signals if signals else None
 
-        if len(self.closes) < self.period:
+    def _calculate_for_tf(self, tf: str, candle: dict) -> Optional[dict]:
+        buffer = self._get_buffer(tf)
+        buffer.append(candle["close"])
+
+        if len(buffer) < self.period:
             return None
 
-        # Calculate Bollinger Bands
-        closes = list(self.closes)[-self.period :]
+        closes = list(buffer)[-self.period :]
         sma = np.mean(closes)
         std = np.std(closes)
-
         upper_band = sma + (self.std_dev * std)
         lower_band = sma - (self.std_dev * std)
 
-        high = candle["high"]
-        low = candle["low"]
-        close = candle["close"]
-        open_price = candle["open"]
+        high, low, close, open_p = candle["high"], candle["low"], candle["close"], candle["open"]
 
-        # Lower band rejection (bullish)
         if low < lower_band:
             rejection_pct = (close - low) / low if low > 0 else 0
-            closed_inside = close > lower_band
-            bullish = close > open_price
+            if close > lower_band and rejection_pct > self.rejection_threshold and close > open_p:
+                return {"side": "LONG", "score": 1.0, "timeframe": tf, "metadata": {"pattern": "lower_rejection"}}
 
-            if closed_inside and rejection_pct > self.rejection_threshold and bullish:
-                return {
-                    "side": "LONG",
-                    "score": 1.0,
-                    "metadata": {
-                        "pattern": "lower_band_rejection",
-                        "lower_band": lower_band,
-                        "low": low,
-                        "rejection_pct": rejection_pct,
-                    },
-                }
-
-        # Upper band rejection (bearish)
         if high > upper_band:
             rejection_pct = (high - close) / high if high > 0 else 0
-            closed_inside = close < upper_band
-            bearish = close < open_price
-
-            if closed_inside and rejection_pct > self.rejection_threshold and bearish:
-                return {
-                    "side": "SHORT",
-                    "score": 1.0,
-                    "metadata": {
-                        "pattern": "upper_band_rejection",
-                        "upper_band": upper_band,
-                        "high": high,
-                        "rejection_pct": rejection_pct,
-                    },
-                }
+            if close < upper_band and rejection_pct > self.rejection_threshold and close < open_p:
+                return {"side": "SHORT", "score": 1.0, "timeframe": tf, "metadata": {"pattern": "upper_rejection"}}
 
         return None

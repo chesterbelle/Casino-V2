@@ -1,0 +1,94 @@
+{
+  "results": [
+    {
+      "wins": 432,
+      "losses": 714,
+      "win_rate": 37.7,
+      "pnl": -261.3,
+      "pnl_pct": -2.61,
+      "final_balance": 9738.7,
+      "fees": 0.0,
+      "strategy": "TrendRider",
+      "trades": 1146
+    },
+    {
+      "wins": 537,
+      "losses": 565,
+      "win_rate": 48.73,
+      "pnl": -162.42,
+      "pnl_pct": -1.62,
+      "final_balance": 9837.58,
+      "fees": 0.0,
+      "strategy": "MeanReverter",
+      "trades": 1102
+    },
+    {
+      "wins": 472,
+      "losses": 640,
+      "win_rate": 42.45,
+      "pnl": -164.25,
+      "pnl_pct": -1.64,
+      "final_balance": 9835.75,
+      "fees": 0.0,
+      "strategy": "BreakoutHunter",
+      "trades": 1112
+    },
+    {
+      "wins": 522,
+      "losses": 579,
+      "win_rate": 47.41,
+      "pnl": -99.99,
+      "pnl_pct": -1.0,
+      "final_balance": 9900.01,
+      "fees": 0.0,
+      "strategy": "QuickScalper",
+      "trades": 1101
+    },
+    {
+      "wins": 483,
+      "losses": 614,
+      "win_rate": 44.03,
+      "pnl": -58.66,
+      "pnl_pct": -0.59,
+      "final_balance": 9941.34,
+      "fees": 0.0,
+      "strategy": "SmartMoneyFollower",
+      "trades": 1097
+    },
+    {
+      "wins": 473,
+      "losses": 668,
+      "win_rate": 41.45,
+      "pnl": -208.88,
+      "pnl_pct": -2.09,
+      "final_balance": 9791.12,
+      "fees": 0.0,
+      "strategy": "PatternTrader",
+      "trades": 1141
+    },
+    {
+      "wins": 482,
+      "losses": 624,
+      "win_rate": 43.58,
+      "pnl": -143.01,
+      "pnl_pct": -1.43,
+      "final_balance": 9856.99,
+      "fees": 0.0,
+      "strategy": "AlphaEdge",
+      "trades": 1106
+    },
+    {
+      "wins": 460,
+      "losses": 672,
+      "win_rate": 40.64,
+      "pnl": -224.04,
+      "pnl_pct": -2.24,
+      "final_balance": 9775.96,
+      "fees": 0.0,
+      "strategy": "SynergyFlow",
+      "trades": 1132
+    }
+  ],
+  "dataset": "data/raw/LTCUSDT_1m__30d.csv",
+  "symbol": "LTC/USDT:USDT"
+}

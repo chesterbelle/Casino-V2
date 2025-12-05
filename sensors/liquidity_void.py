@@ -2,12 +2,12 @@
 LiquidityVoid Sensor (V3).
 Logic: Detects liquidity voids (gaps) that price may revisit.
 
-A liquidity void is a gap with low volume, often gets filled
-as price returns to collect liquidity.
+Multi-TF: Monitors multiple timeframes with independent state.
 """
 
 import logging
 from collections import deque
+from typing import Dict, List, Optional
 
 import numpy as np
 
@@ -22,112 +22,70 @@ class LiquidityVoidV3(SensorV3):
         return "LiquidityVoid"
 
     def __init__(self, gap_pct=0.002, max_volume_pct=0.5, lookback=20):
-        """
-        Args:
-            gap_pct: Min gap size as % of price
-            max_volume_pct: Max volume ratio for void (low volume gap)
-            lookback: Period for tracking voids
-        """
         self.gap_pct = gap_pct
         self.max_volume_pct = max_volume_pct
         self.lookback = lookback
+        self.candles: Dict[str, deque] = {}
+        self.volumes: Dict[str, deque] = {}
+        self.voids: Dict[str, list] = {}
 
-        self.candles = deque(maxlen=lookback + 5)
-        self.volumes = deque(maxlen=lookback + 5)
-        self.voids = []  # List of (top, bottom, direction) tuples
+    def _get_state(self, tf: str):
+        if tf not in self.candles:
+            self.candles[tf] = deque(maxlen=self.lookback + 5)
+            self.volumes[tf] = deque(maxlen=self.lookback + 5)
+            self.voids[tf] = []
+        return self.candles[tf], self.volumes[tf], self.voids[tf]
 
-    def calculate(self, context: dict) -> dict:
-        # Get optimal timeframe for this sensor (configured in config/sensors.py)
-        tf = getattr(self, "_optimal_tf", "1m")
-        candle = context.get(tf)
-        if candle is None:
-            return None  # TF not ready yet, skip this cycle
-        self.candles.append(candle)
-        self.volumes.append(candle.get("volume", 0))
+    def calculate(self, context: dict) -> List[dict]:
+        signals = []
+        for tf in self.timeframes:
+            candle = context.get(tf)
+            if candle is None:
+                continue
+            signal = self._calculate_for_tf(tf, candle)
+            if signal:
+                signals.append(signal)
+        return signals if signals else None
 
-        if len(self.candles) < 2:
+    def _calculate_for_tf(self, tf: str, candle: dict) -> Optional[dict]:
+        candles, volumes, voids = self._get_state(tf)
+        candles.append(candle)
+        volumes.append(candle.get("volume", 0))
+
+        if len(candles) < 2:
             return None
 
-        # Check for new void
-        self._detect_void()
+        self._detect_void(tf)
+        return self._check_void_fill(tf, candle)
 
-        # Check for void fill setup
-        signal = self._check_void_fill(candle)
-        return signal
-
-    def _detect_void(self):
-        """Detect new liquidity void between candles."""
-        if len(self.candles) < 2:
-            return
-
-        prev = self.candles[-2]
-        curr = self.candles[-1]
-        volume = curr.get("volume", 0)
-
-        avg_volume = np.mean(list(self.volumes)[:-1]) if len(self.volumes) > 1 else 1
-        volume_ratio = volume / avg_volume if avg_volume > 0 else 1
-
-        # Only low volume gaps create voids
-        if volume_ratio > self.max_volume_pct:
+    def _detect_void(self, tf: str):
+        candles, volumes, voids = self.candles[tf], self.volumes[tf], self.voids[tf]
+        prev, curr = candles[-2], candles[-1]
+        vol = curr.get("volume", 0)
+        avg_vol = np.mean(list(volumes)[:-1]) if len(volumes) > 1 else 1
+        if vol / avg_vol > self.max_volume_pct if avg_vol > 0 else True:
             return
 
         avg_price = (prev["close"] + curr["open"]) / 2
 
-        # Gap up void
-        if curr["low"] > prev["high"]:
-            gap_size = (curr["low"] - prev["high"]) / avg_price
-            if gap_size > self.gap_pct:
-                self.voids.append({"top": curr["low"], "bottom": prev["high"], "direction": "up"})
+        if curr["low"] > prev["high"] and (curr["low"] - prev["high"]) / avg_price > self.gap_pct:
+            voids.append({"top": curr["low"], "bottom": prev["high"], "dir": "up"})
+        if curr["high"] < prev["low"] and (prev["low"] - curr["high"]) / avg_price > self.gap_pct:
+            voids.append({"top": prev["low"], "bottom": curr["high"], "dir": "down"})
 
-        # Gap down void
-        if curr["high"] < prev["low"]:
-            gap_size = (prev["low"] - curr["high"]) / avg_price
-            if gap_size > self.gap_pct:
-                self.voids.append({"top": prev["low"], "bottom": curr["high"], "direction": "down"})
+        if len(voids) > 5:
+            self.voids[tf] = voids[-5:]
 
-        # Keep only recent voids
-        if len(self.voids) > 5:
-            self.voids = self.voids[-5:]
-
-    def _check_void_fill(self, candle):
-        """Check if price is approaching a void to fill."""
-        if not self.voids:
-            return None
-
+    def _check_void_fill(self, tf: str, candle):
+        voids = self.voids[tf]
         close = candle["close"]
-
-        for void in self.voids:
-            void_top = void["top"]
-            void_bottom = void["bottom"]
-
-            # Price approaching unfilled gap up void from above = short opportunity
-            if void["direction"] == "up":
-                distance_pct = (close - void_top) / close if close > 0 else 1
-                if 0 < distance_pct < 0.01:  # Within 1% of void
-                    return {
-                        "side": "SHORT",
-                        "score": 0.8,
-                        "metadata": {
-                            "pattern": "void_fill_down",
-                            "void_top": void_top,
-                            "void_bottom": void_bottom,
-                            "distance_pct": distance_pct,
-                        },
-                    }
-
-            # Price approaching unfilled gap down void from below = long opportunity
-            if void["direction"] == "down":
-                distance_pct = (void_bottom - close) / close if close > 0 else 1
-                if 0 < distance_pct < 0.01:  # Within 1% of void
-                    return {
-                        "side": "LONG",
-                        "score": 0.8,
-                        "metadata": {
-                            "pattern": "void_fill_up",
-                            "void_top": void_top,
-                            "void_bottom": void_bottom,
-                            "distance_pct": distance_pct,
-                        },
-                    }
-
+        for void in voids:
+            if void["dir"] == "up":
+                dist = (close - void["top"]) / close if close > 0 else 1
+                if 0 < dist < 0.01:
+                    return {"side": "SHORT", "score": 0.8, "timeframe": tf, "metadata": {"pattern": "void_fill"}}
+            if void["dir"] == "down":
+                dist = (void["bottom"] - close) / close if close > 0 else 1
+                if 0 < dist < 0.01:
+                    return {"side": "LONG", "score": 0.8, "timeframe": tf, "metadata": {"pattern": "void_fill"}}
         return None

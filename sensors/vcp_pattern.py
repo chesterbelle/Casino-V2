@@ -2,10 +2,13 @@
 VCPPattern Sensor (V3).
 Tier 3: Good.
 Logic: Volatility Contraction Pattern.
+
+Multi-TF: Monitors multiple timeframes with independent buffers.
 """
 
 import logging
 from collections import deque
+from typing import Dict, List, Optional
 
 from .base import SensorV3
 
@@ -19,45 +22,37 @@ class VCPPatternV3(SensorV3):
 
     def __init__(self, contractions=3):
         self.contractions = contractions
-        self.candles = deque(maxlen=contractions)
+        self.candles: Dict[str, deque] = {}
 
-    def calculate(self, context: dict) -> dict:
-        # Get optimal timeframe for this sensor (configured in config/sensors.py)
-        tf = getattr(self, "_optimal_tf", "1m")
-        candle = context.get(tf)
-        if candle is None:
-            return None  # TF not ready yet, skip this cycle
-        self.candles.append(candle)
-        if len(self.candles) < self.contractions:
+    def _get_buffer(self, tf: str) -> deque:
+        if tf not in self.candles:
+            self.candles[tf] = deque(maxlen=self.contractions)
+        return self.candles[tf]
+
+    def calculate(self, context: dict) -> List[dict]:
+        signals = []
+        for tf in self.timeframes:
+            candle = context.get(tf)
+            if candle is None:
+                continue
+            signal = self._calculate_for_tf(tf, candle)
+            if signal:
+                signals.append(signal)
+        return signals if signals else None
+
+    def _calculate_for_tf(self, tf: str, candle: dict) -> Optional[dict]:
+        buffer = self._get_buffer(tf)
+        buffer.append(candle)
+
+        if len(buffer) < self.contractions:
             return None
 
-        # Check if ranges are decreasing
-        ranges = []
-        for c in self.candles:
-            ranges.append(c["high"] - c["low"])
-
-        is_contracting = True
-        for i in range(len(ranges) - 1):
-            if ranges[i + 1] >= ranges[i]:
-                is_contracting = False
-                break
-
-        if not is_contracting:
+        ranges = [c["high"] - c["low"] for c in buffer]
+        if not all(ranges[i + 1] < ranges[i] for i in range(len(ranges) - 1)):
             return None
 
-        # Check Volume decreasing (optional but good)
-        if self.candles[-1]["volume"] >= self.candles[0]["volume"]:
+        if buffer[-1]["volume"] >= buffer[0]["volume"]:
             return None
 
-        signal = None
-
-        # Determine bias based on close trend
-        first_close = self.candles[0]["close"]
-        last_close = self.candles[-1]["close"]
-
-        if last_close > first_close:
-            signal = {"side": "LONG", "score": 1.0, "metadata": {"pattern": "vcp_bullish"}}
-        else:
-            signal = {"side": "SHORT", "score": 1.0, "metadata": {"pattern": "vcp_bearish"}}
-
-        return signal
+        side = "LONG" if buffer[-1]["close"] > buffer[0]["close"] else "SHORT"
+        return {"side": side, "score": 1.0, "timeframe": tf, "metadata": {"pattern": "vcp"}}

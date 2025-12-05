@@ -1,10 +1,13 @@
 """
 CCIReversion Sensor (V3).
 Logic: Commodity Channel Index oversold/overbought.
+
+Multi-TF: Monitors multiple timeframes with independent buffers.
 """
 
 import logging
 from collections import deque
+from typing import Dict, List, Optional
 
 import numpy as np
 
@@ -23,42 +26,43 @@ class CCIReversionV3(SensorV3):
         self.oversold = oversold
         self.overbought = overbought
         self.constant = constant
-        self.typical_prices = deque(maxlen=period)
+        self.buffers: Dict[str, deque] = {}
 
-    def calculate(self, context: dict) -> dict:
-        # Get optimal timeframe for this sensor (configured in config/sensors.py)
-        tf = getattr(self, "_optimal_tf", "1m")
-        candle = context.get(tf)
-        if candle is None:
-            return None  # TF not ready yet, skip this cycle
-        high = candle["high"]
-        low = candle["low"]
-        close = candle["close"]
+    def _get_buffer(self, tf: str) -> deque:
+        if tf not in self.buffers:
+            self.buffers[tf] = deque(maxlen=self.period)
+        return self.buffers[tf]
 
-        typical_price = (high + low + close) / 3
-        self.typical_prices.append(typical_price)
+    def calculate(self, context: dict) -> List[dict]:
+        signals = []
+        for tf in self.timeframes:
+            candle = context.get(tf)
+            if candle is None:
+                continue
+            signal = self._calculate_for_tf(tf, candle)
+            if signal:
+                signals.append(signal)
+        return signals if signals else None
 
-        if len(self.typical_prices) < self.period:
+    def _calculate_for_tf(self, tf: str, candle: dict) -> Optional[dict]:
+        buffer = self._get_buffer(tf)
+        typical_price = (candle["high"] + candle["low"] + candle["close"]) / 3
+        buffer.append(typical_price)
+
+        if len(buffer) < self.period:
             return None
 
-        cci = self._compute_cci()
-        signal = None
-
-        if cci < self.oversold:
-            signal = {"side": "LONG", "score": 1.0, "metadata": {"cci": cci}}
-        elif cci > self.overbought:
-            signal = {"side": "SHORT", "score": 1.0, "metadata": {"cci": cci}}
-
-        return signal
-
-    def _compute_cci(self):
-        tp_array = np.array(self.typical_prices)
+        tp_array = np.array(buffer)
         sma_tp = np.mean(tp_array)
         mean_deviation = np.mean(np.abs(tp_array - sma_tp))
 
         if mean_deviation == 0:
-            return 0.0
+            return None
 
-        current_tp = self.typical_prices[-1]
-        cci = (current_tp - sma_tp) / (self.constant * mean_deviation)
-        return cci
+        cci = (buffer[-1] - sma_tp) / (self.constant * mean_deviation)
+
+        if cci < self.oversold:
+            return {"side": "LONG", "score": 1.0, "timeframe": tf, "metadata": {"cci": cci}}
+        elif cci > self.overbought:
+            return {"side": "SHORT", "score": 1.0, "timeframe": tf, "metadata": {"cci": cci}}
+        return None

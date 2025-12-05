@@ -1,0 +1,23 @@
+{
+  "timestamp": "2025-12-04T18:39:30.593475",
+  "symbol": "LTC/USDT:USDT",
+  "interval": "1m",
+  "days": 30,
+  "results": {
+    "collect": {
+      "wins": 94,
+      "losses": 117,
+      "total": 211
+    },
+    "optimize": {
+      "sensors": 6
+    },
+    "validate": {
+      "wins": 94,
+      "losses": 117,
+      "total": 211,
+      "win_rate": 44.54976303317535,
+      "pnl": -17.96
+    }
+  }
+}

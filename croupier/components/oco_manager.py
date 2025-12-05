@@ -18,7 +18,7 @@ import time
 from typing import Any, Dict, Optional
 
 from core.error_handling import RetryConfig, get_error_handler
-from core.portfolio.position_tracker import PositionTracker
+from core.portfolio.position_tracker import OpenPosition, PositionTracker
 
 
 class OCOAtomicityError(Exception):
@@ -72,7 +72,7 @@ class OCOManager:
         )
 
     async def create_bracketed_order(
-        self, order: Dict[str, Any], wait_for_fill: bool = True, fill_timeout: float = 30.0
+        self, order: Dict[str, Any], wait_for_fill: bool = True, fill_timeout: float = 30.0, contributors: list = None
     ) -> Dict[str, Any]:
         """
         Create complete OCO bracket order with atomicity guarantees.
@@ -113,6 +113,7 @@ class OCOManager:
         main_order = None
         tp_order = None
         sl_order = None
+        position = None
 
         try:
             # Step 1: Execute main market order
@@ -140,14 +141,14 @@ class OCOManager:
                 # The connector is responsible for normalizing the price (including calculating from cumQuote if needed)
 
                 # DEBUG: Log the full response
-                self.logger.info(f"🔍 DEBUG: main_order keys = {list(main_order.keys())}")
+                # self.logger.info(f"🔍 DEBUG: main_order keys = {list(main_order.keys())}")
 
                 # Use standard normalized fields
                 fill_price = main_order.get("price") or main_order.get("avgPrice") or main_order.get("average")
 
                 if fill_price and float(fill_price) > 0:
                     fill_price = float(fill_price)
-                    self.logger.info(f"🔍 DEBUG: Using normalized fill_price = {fill_price}")
+                    # self.logger.info(f"🔍 DEBUG: Using normalized fill_price = {fill_price}")
                 else:
                     fill_price = None
 
@@ -158,7 +159,7 @@ class OCOManager:
                         fill_price = fills[0].get("price")
                         if fill_price:
                             fill_price = float(fill_price)
-                            self.logger.info(f"🔍 DEBUG: From fills[0], fill_price = {fill_price}")
+                            # self.logger.info(f"🔍 DEBUG: From fills[0], fill_price = {fill_price}")
 
             # If we still don't have a price (e.g. order status is NEW), we MUST wait for fill
             if not fill_price or fill_price <= 0:
@@ -192,9 +193,44 @@ class OCOManager:
 
             self.logger.info(
                 f"✅ OCO bracket created: Main={main_order.get('order_id') or main_order.get('id')}, "
-                f"TP={tp_order_id}, "
                 f"SL={sl_order_id}"
             )
+
+            # Calculate liquidation level (approximate)
+            entry_price = fill_price
+            leverage = order.get("leverage", 1)
+
+            liquidation_level = None
+            if leverage > 0:
+                if side == "LONG":
+                    liquidation_level = entry_price * (1.0 - (1.0 / leverage) + 0.005)
+                elif side == "SHORT":
+                    liquidation_level = entry_price * (1.0 + (1.0 / leverage) - 0.005)
+
+            # Create position object
+            position = OpenPosition(
+                trade_id=main_order.get("order_id") or main_order.get("id"),
+                symbol=symbol,
+                side=side,
+                entry_price=entry_price,
+                entry_timestamp=main_order.get("timestamp", ""),
+                margin_used=order.get("margin_used", 0),
+                notional=order.get("notional", 0),
+                leverage=leverage,
+                tp_level=tp_price,
+                sl_level=sl_price,
+                liquidation_level=liquidation_level,
+                order=order,
+                main_order_id=main_order.get("order_id") or main_order.get("id"),
+                tp_order_id=tp_order.get("order_id") or tp_order.get("id"),
+                sl_order_id=sl_order.get("order_id") or sl_order.get("id"),
+                contributors=contributors or [],
+            )
+
+            # Add to tracker
+            self.tracker.open_positions.append(position)
+            self.tracker.total_trades_opened += 1
+            # self.logger.info(f"✅ Position registered in OCOManager: {position.trade_id} | Contributors: {position.contributors}")
 
             return {
                 "main_order": main_order,
@@ -203,6 +239,8 @@ class OCOManager:
                 "fill_price": fill_price,
                 "tp_price": tp_price,
                 "sl_price": sl_price,
+                "contributors": contributors,
+                "position": position,
             }
 
         except Exception as e:

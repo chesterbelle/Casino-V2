@@ -1,10 +1,13 @@
 """
 BollingerSqueeze Sensor (V3).
 Logic: Low volatility squeeze followed by breakout with volume.
+
+Multi-TF: Monitors multiple timeframes with independent buffers.
 """
 
 import logging
 from collections import deque
+from typing import Dict, List, Optional
 
 import numpy as np
 
@@ -23,52 +26,60 @@ class BollingerSqueezeV3(SensorV3):
         self.std_dev = std_dev
         self.squeeze_threshold = squeeze_threshold
         self.volume_factor = volume_factor
-        self.closes = deque(maxlen=period)
-        self.volumes = deque(maxlen=period)
-        self.in_squeeze = False
+        self.closes: Dict[str, deque] = {}
+        self.volumes: Dict[str, deque] = {}
+        self.in_squeeze: Dict[str, bool] = {}
 
-    def calculate(self, context: dict) -> dict:
-        # Get optimal timeframe for this sensor (configured in config/sensors.py)
-        tf = getattr(self, "_optimal_tf", "1m")
-        candle = context.get(tf)
-        if candle is None:
-            return None  # TF not ready yet, skip this cycle
-        self.closes.append(candle["close"])
-        self.volumes.append(candle["volume"])
+    def _get_buffers(self, tf: str):
+        if tf not in self.closes:
+            self.closes[tf] = deque(maxlen=self.period)
+            self.volumes[tf] = deque(maxlen=self.period)
+            self.in_squeeze[tf] = False
+        return self.closes[tf], self.volumes[tf]
 
-        if len(self.closes) < self.period:
+    def calculate(self, context: dict) -> List[dict]:
+        signals = []
+        for tf in self.timeframes:
+            candle = context.get(tf)
+            if candle is None:
+                continue
+            signal = self._calculate_for_tf(tf, candle)
+            if signal:
+                signals.append(signal)
+        return signals if signals else None
+
+    def _calculate_for_tf(self, tf: str, candle: dict) -> Optional[dict]:
+        closes, volumes = self._get_buffers(tf)
+        closes.append(candle["close"])
+        volumes.append(candle["volume"])
+
+        if len(closes) < self.period:
             return None
 
-        closes_arr = np.array(self.closes)
+        closes_arr = np.array(closes)
         middle = np.mean(closes_arr)
         std = np.std(closes_arr)
         upper = middle + (self.std_dev * std)
         lower = middle - (self.std_dev * std)
         bbw = (upper - lower) / middle if middle > 0 else 0.0
 
-        is_squeezed = bbw < self.squeeze_threshold
-
-        if is_squeezed:
-            self.in_squeeze = True
+        if bbw < self.squeeze_threshold:
+            self.in_squeeze[tf] = True
             return None
 
-        if not self.in_squeeze:
+        if not self.in_squeeze.get(tf, False):
             return None
 
-        avg_volume = np.mean(list(self.volumes)[:-1])
-        has_volume_spike = self.volumes[-1] > (avg_volume * self.volume_factor)
-
-        if not has_volume_spike:
+        avg_volume = np.mean(list(volumes)[:-1])
+        if volumes[-1] < avg_volume * self.volume_factor:
             return None
 
-        signal = None
         close = candle["close"]
-
         if close > upper:
-            signal = {"side": "LONG", "score": 1.0, "metadata": {"bbw": bbw}}
-            self.in_squeeze = False
+            self.in_squeeze[tf] = False
+            return {"side": "LONG", "score": 1.0, "timeframe": tf, "metadata": {"bbw": bbw}}
         elif close < lower:
-            signal = {"side": "SHORT", "score": 1.0, "metadata": {"bbw": bbw}}
-            self.in_squeeze = False
+            self.in_squeeze[tf] = False
+            return {"side": "SHORT", "score": 1.0, "timeframe": tf, "metadata": {"bbw": bbw}}
 
-        return signal
+        return None

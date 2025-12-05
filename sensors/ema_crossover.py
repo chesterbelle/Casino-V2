@@ -2,10 +2,13 @@
 EMACrossover Sensor (V3).
 Tier 1: 80% Win Rate.
 Logic: EMA(12) crosses EMA(26) + ADX > 20.
+
+Multi-TF: Monitors multiple timeframes with independent buffers.
 """
 
 import logging
 from collections import deque
+from typing import Dict, List, Optional
 
 import numpy as np
 
@@ -24,134 +27,91 @@ class EMACrossoverV3(SensorV3):
         self.long_period = long_period
         self.adx_period = adx_period
         self.adx_threshold = adx_threshold
+        self.closes: Dict[str, deque] = {}
+        self.highs: Dict[str, deque] = {}
+        self.lows: Dict[str, deque] = {}
+        self.dx_values: Dict[str, deque] = {}
+        self.prev_emas: Dict[str, tuple] = {}
 
-        # State for EMA
-        self.closes = deque(maxlen=long_period + 50)
-        self.highs = deque(maxlen=adx_period + 50)
-        self.lows = deque(maxlen=adx_period + 50)
+    def _get_buffers(self, tf: str):
+        if tf not in self.closes:
+            max_len = self.long_period + 50
+            self.closes[tf] = deque(maxlen=max_len)
+            self.highs[tf] = deque(maxlen=max_len)
+            self.lows[tf] = deque(maxlen=max_len)
+            self.dx_values[tf] = deque(maxlen=self.adx_period)
+        return self.closes[tf], self.highs[tf], self.lows[tf]
 
-        # State for ADX calculation
-        self.dx_values = deque(maxlen=adx_period)
+    def calculate(self, context: dict) -> List[dict]:
+        signals = []
+        for tf in self.timeframes:
+            candle = context.get(tf)
+            if candle is None:
+                continue
+            signal = self._calculate_for_tf(tf, candle)
+            if signal:
+                signals.append(signal)
+        return signals if signals else None
 
-        self.prev_short_ema = None
-        self.prev_long_ema = None
+    def _calculate_for_tf(self, tf: str, candle: dict) -> Optional[dict]:
+        closes, highs, lows = self._get_buffers(tf)
+        closes.append(candle["close"])
+        highs.append(candle["high"])
+        lows.append(candle["low"])
 
-    def calculate(self, context: dict) -> dict:
-        # Get optimal timeframe for this sensor (configured in config/sensors.py)
-        tf = getattr(self, "_optimal_tf", "1m")
-        candle = context.get(tf)
-        if candle is None:
-            return None  # TF not ready yet, skip this cycle
-        close = candle["close"]
-        high = candle["high"]
-        low = candle["low"]
-
-        self.closes.append(close)
-        self.highs.append(high)
-        self.lows.append(low)
-
-        if len(self.closes) < self.long_period:
+        if len(closes) < self.long_period:
             return None
 
-        # Calculate EMAs
-        short_ema = self._calculate_ema(list(self.closes), self.short_period)
-        long_ema = self._calculate_ema(list(self.closes), self.long_period)
+        short_ema = self._calculate_ema(list(closes), self.short_period)
+        long_ema = self._calculate_ema(list(closes), self.long_period)
+        adx = self._calculate_adx(tf)
 
-        # Calculate ADX
-        adx = self._calculate_adx()
+        prev = self.prev_emas.get(tf)
+        self.prev_emas[tf] = (short_ema, long_ema)
 
-        signal = None
-
-        # Check Crossover
-        if self.prev_short_ema and self.prev_long_ema and adx is not None:
-            # Bullish Crossover
-            if self.prev_short_ema <= self.prev_long_ema and short_ema > long_ema:
-                if adx > self.adx_threshold:
-                    signal = {"side": "LONG", "score": 1.0, "metadata": {"adx": adx}}
-
-            # Bearish Crossover
-            elif self.prev_short_ema >= self.prev_long_ema and short_ema < long_ema:
-                if adx > self.adx_threshold:
-                    signal = {"side": "SHORT", "score": 1.0, "metadata": {"adx": adx}}
-
-        # Update State
-        self.prev_short_ema = short_ema
-        self.prev_long_ema = long_ema
-
-        return signal
+        if prev and adx is not None and adx > self.adx_threshold:
+            prev_short, prev_long = prev
+            if prev_short <= prev_long and short_ema > long_ema:
+                return {"side": "LONG", "score": 1.0, "timeframe": tf, "metadata": {"adx": adx}}
+            elif prev_short >= prev_long and short_ema < long_ema:
+                return {"side": "SHORT", "score": 1.0, "timeframe": tf, "metadata": {"adx": adx}}
+        return None
 
     def _calculate_ema(self, data, period):
-        """Calculate Exponential Moving Average."""
         if len(data) < period:
-            return None
-        # Use proper EMA calculation
+            return np.mean(data)
         multiplier = 2 / (period + 1)
-        ema = np.mean(data[:period])  # Start with SMA
+        ema = np.mean(data[:period])
         for price in data[period:]:
             ema = (price - ema) * multiplier + ema
         return ema
 
-    def _calculate_adx(self):
-        """Calculate Average Directional Index."""
-        if len(self.highs) < self.adx_period + 1:
+    def _calculate_adx(self, tf: str):
+        highs, lows, closes = list(self.highs[tf]), list(self.lows[tf]), list(self.closes[tf])
+        if len(highs) < self.adx_period + 1:
             return None
 
-        # Calculate +DI, -DI, and TR
-        plus_dm_list = []
-        minus_dm_list = []
-        tr_list = []
-
-        highs = list(self.highs)
-        lows = list(self.lows)
-        closes = list(self.closes)
-
+        plus_dm, minus_dm, tr_list = [], [], []
         for i in range(1, len(highs)):
-            high = highs[i]
-            low = lows[i]
-            prev_high = highs[i - 1]
-            prev_low = lows[i - 1]
-            prev_close = closes[i - 1] if i - 1 < len(closes) else high
-
-            # Directional Movement
-            up_move = high - prev_high
-            down_move = prev_low - low
-
-            plus_dm = up_move if up_move > down_move and up_move > 0 else 0
-            minus_dm = down_move if down_move > up_move and down_move > 0 else 0
-
-            plus_dm_list.append(plus_dm)
-            minus_dm_list.append(minus_dm)
-
-            # True Range
-            tr = max(high - low, abs(high - prev_close), abs(low - prev_close))
-            tr_list.append(tr)
+            up = highs[i] - highs[i - 1]
+            down = lows[i - 1] - lows[i]
+            plus_dm.append(up if up > down and up > 0 else 0)
+            minus_dm.append(down if down > up and down > 0 else 0)
+            tr_list.append(max(highs[i] - lows[i], abs(highs[i] - closes[i - 1]), abs(lows[i] - closes[i - 1])))
 
         if len(tr_list) < self.adx_period:
             return None
 
-        # Smooth with period
-        smoothed_plus_dm = np.mean(plus_dm_list[-self.adx_period :])
-        smoothed_minus_dm = np.mean(minus_dm_list[-self.adx_period :])
         smoothed_tr = np.mean(tr_list[-self.adx_period :])
-
         if smoothed_tr == 0:
             return None
 
-        # Calculate DI
-        di_plus = (smoothed_plus_dm / smoothed_tr) * 100
-        di_minus = (smoothed_minus_dm / smoothed_tr) * 100
-
-        # Calculate DX
+        di_plus = (np.mean(plus_dm[-self.adx_period :]) / smoothed_tr) * 100
+        di_minus = (np.mean(minus_dm[-self.adx_period :]) / smoothed_tr) * 100
         di_sum = di_plus + di_minus
         if di_sum == 0:
             return 0.0
 
         dx = (abs(di_plus - di_minus) / di_sum) * 100
-        self.dx_values.append(dx)
-
-        if len(self.dx_values) < self.adx_period:
-            return None
-
-        # ADX is smoothed DX
-        adx = np.mean(self.dx_values)
-        return adx
+        self.dx_values[tf].append(dx)
+        return np.mean(self.dx_values[tf]) if len(self.dx_values[tf]) >= self.adx_period else None

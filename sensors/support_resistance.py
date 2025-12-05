@@ -2,11 +2,12 @@
 SupportResistance Sensor (V3).
 Logic: Detects bounces off support and resistance levels.
 
-Uses pivot points and recent swing highs/lows as S/R levels.
+Multi-TF: Monitors multiple timeframes with independent buffers.
 """
 
 import logging
 from collections import deque
+from typing import Dict, List, Optional
 
 from .base import SensorV3
 
@@ -19,118 +20,68 @@ class SupportResistanceV3(SensorV3):
         return "SupportResistance"
 
     def __init__(self, lookback=20, touch_tolerance=0.001, bounce_threshold=0.002):
-        """
-        Args:
-            lookback: Period for finding S/R levels
-            touch_tolerance: How close price must get to level (as %)
-            bounce_threshold: Min bounce for confirmation (as %)
-        """
         self.lookback = lookback
         self.touch_tolerance = touch_tolerance
         self.bounce_threshold = bounce_threshold
+        self.candles: Dict[str, deque] = {}
 
-        self.candles = deque(maxlen=lookback + 10)
+    def _get_buffer(self, tf: str) -> deque:
+        if tf not in self.candles:
+            self.candles[tf] = deque(maxlen=self.lookback + 10)
+        return self.candles[tf]
 
-    def calculate(self, context: dict) -> dict:
-        # Get optimal timeframe for this sensor (configured in config/sensors.py)
-        tf = getattr(self, "_optimal_tf", "1m")
-        candle = context.get(tf)
-        if candle is None:
-            return None  # TF not ready yet, skip this cycle
-        self.candles.append(candle)
+    def calculate(self, context: dict) -> List[dict]:
+        signals = []
+        for tf in self.timeframes:
+            candle = context.get(tf)
+            if candle is None:
+                continue
+            signal = self._calculate_for_tf(tf, candle)
+            if signal:
+                signals.append(signal)
+        return signals if signals else None
 
-        if len(self.candles) < self.lookback:
+    def _calculate_for_tf(self, tf: str, candle: dict) -> Optional[dict]:
+        buffer = self._get_buffer(tf)
+        buffer.append(candle)
+
+        if len(buffer) < self.lookback:
             return None
 
-        # Find S/R levels
-        support_levels, resistance_levels = self._find_sr_levels()
+        support_levels, resistance_levels = self._find_sr_levels(tf)
+        return self._check_bounce(tf, candle, support_levels, resistance_levels)
 
-        # Check for bounce
-        signal = self._check_bounce(candle, support_levels, resistance_levels)
-        return signal
-
-    def _find_sr_levels(self):
-        """Find support and resistance levels from swing points."""
-        candles = list(self.candles)[:-1]
-
-        support_levels = []
-        resistance_levels = []
+    def _find_sr_levels(self, tf: str):
+        candles = list(self.candles[tf])[:-1]
+        support, resistance = [], []
 
         for i in range(2, len(candles) - 2):
-            # Swing low (support)
-            if (
-                candles[i]["low"] < candles[i - 1]["low"]
-                and candles[i]["low"] < candles[i - 2]["low"]
-                and candles[i]["low"] < candles[i + 1]["low"]
-                and candles[i]["low"] < candles[i + 2]["low"]
-            ):
-                support_levels.append(candles[i]["low"])
+            if all(candles[i]["low"] < candles[i + j]["low"] for j in [-2, -1, 1, 2]):
+                support.append(candles[i]["low"])
+            if all(candles[i]["high"] > candles[i + j]["high"] for j in [-2, -1, 1, 2]):
+                resistance.append(candles[i]["high"])
 
-            # Swing high (resistance)
-            if (
-                candles[i]["high"] > candles[i - 1]["high"]
-                and candles[i]["high"] > candles[i - 2]["high"]
-                and candles[i]["high"] > candles[i + 1]["high"]
-                and candles[i]["high"] > candles[i + 2]["high"]
-            ):
-                resistance_levels.append(candles[i]["high"])
-
-        # Add recent extremes
         if candles:
-            recent_high = max(c["high"] for c in candles[-10:])
-            recent_low = min(c["low"] for c in candles[-10:])
-            resistance_levels.append(recent_high)
-            support_levels.append(recent_low)
+            resistance.append(max(c["high"] for c in candles[-10:]))
+            support.append(min(c["low"] for c in candles[-10:]))
+        return support, resistance
 
-        return support_levels, resistance_levels
+    def _check_bounce(self, tf: str, candle, support_levels, resistance_levels):
+        close, open_p, high, low = candle["close"], candle["open"], candle["high"], candle["low"]
 
-    def _check_bounce(self, candle, support_levels, resistance_levels):
-        """Check for bounce off S/R level."""
-        close = candle["close"]
-        open_price = candle["open"]
-        high = candle["high"]
-        low = candle["low"]
-
-        # Check support bounce
         for level in support_levels:
             if level == 0:
                 continue
-
-            touch_distance = abs(low - level) / level
-            if touch_distance < self.touch_tolerance:
+            if abs(low - level) / level < self.touch_tolerance:
                 bounce = (close - low) / low if low > 0 else 0
-                bullish = close > open_price
+                if bounce > self.bounce_threshold and close > open_p:
+                    return {"side": "LONG", "score": 1.0, "timeframe": tf, "metadata": {"level": level}}
 
-                if bounce > self.bounce_threshold and bullish:
-                    return {
-                        "side": "LONG",
-                        "score": 1.0,
-                        "metadata": {
-                            "pattern": "support_bounce",
-                            "level": level,
-                            "bounce_pct": bounce,
-                        },
-                    }
-
-        # Check resistance bounce
         for level in resistance_levels:
             if level == 0:
                 continue
-
-            touch_distance = abs(high - level) / level
-            if touch_distance < self.touch_tolerance:
+            if abs(high - level) / level < self.touch_tolerance:
                 bounce = (high - close) / high if high > 0 else 0
-                bearish = close < open_price
-
-                if bounce > self.bounce_threshold and bearish:
-                    return {
-                        "side": "SHORT",
-                        "score": 1.0,
-                        "metadata": {
-                            "pattern": "resistance_bounce",
-                            "level": level,
-                            "bounce_pct": bounce,
-                        },
-                    }
-
+                if bounce > self.bounce_threshold and close < open_p:
+                    return {"side": "SHORT", "score": 1.0, "timeframe": tf, "metadata": {"level": level}}
         return None

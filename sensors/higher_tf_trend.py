@@ -2,12 +2,12 @@
 HigherTFTrend Sensor (V3).
 Logic: Confirms trend using higher timeframe EMA alignment.
 
-Uses pre-aggregated HTF candles from context (5m, 15m, 1h)
-to check EMA direction and trend confirmation.
+Multi-TF: Monitors multiple timeframes with independent buffers.
 """
 
 import logging
 from collections import deque
+from typing import Dict, List, Optional
 
 import numpy as np
 
@@ -21,108 +21,77 @@ class HigherTFTrendV3(SensorV3):
     def name(self) -> str:
         return "HigherTFTrend"
 
-    # This sensor uses higher timeframe data
-    timeframe: str = "5m"
-
-    def __init__(self, htf="5m", ema_period=20, lookback=3):
-        """
-        Args:
-            htf: Higher timeframe to use ("5m", "15m", "1h")
-            ema_period: EMA period on the higher timeframe
-            lookback: Number of HTF candles to confirm trend
-        """
-        self.htf = htf
+    def __init__(self, ema_period=20, lookback=3):
         self.ema_period = ema_period
         self.lookback = lookback
+        self.htf_candles: Dict[str, deque] = {}
+        self.htf_emas: Dict[str, deque] = {}
+        self.last_timestamps: Dict[str, any] = {}
 
-        # HTF candles history (from context)
-        self.htf_candles = deque(maxlen=ema_period + lookback + 10)
-        self.htf_emas = deque(maxlen=lookback + 5)
+    def _get_buffers(self, tf: str):
+        if tf not in self.htf_candles:
+            self.htf_candles[tf] = deque(maxlen=self.ema_period + self.lookback + 10)
+            self.htf_emas[tf] = deque(maxlen=self.lookback + 5)
+        return self.htf_candles[tf], self.htf_emas[tf]
 
-        self._last_htf_timestamp = None
+    def calculate(self, context: dict) -> List[dict]:
+        signals = []
+        for tf in self.timeframes:
+            candle = context.get(tf)
+            if candle is None:
+                continue
+            signal = self._calculate_for_tf(tf, candle)
+            if signal:
+                signals.append(signal)
+        return signals if signals else None
 
-    def calculate(self, context: dict) -> dict:
-        # Get HTF candle from context
-        htf_candle = context.get(self.htf)
+    def _calculate_for_tf(self, tf: str, candle: dict) -> Optional[dict]:
+        candles, emas = self._get_buffers(tf)
 
-        if htf_candle is None:
+        # Skip if already processed this timestamp
+        ts = candle.get("timestamp")
+        if ts == self.last_timestamps.get(tf):
+            return None
+        if not candle.get("is_complete", True):
             return None
 
-        # Skip if we already processed this HTF candle
-        htf_timestamp = htf_candle.get("timestamp")
-        if htf_timestamp == self._last_htf_timestamp:
-            return None
+        self.last_timestamps[tf] = ts
+        candles.append(candle)
 
-        # Only process complete HTF candles
-        if not htf_candle.get("is_complete", True):
-            return None
-
-        self._last_htf_timestamp = htf_timestamp
-        self.htf_candles.append(htf_candle)
-
-        # Calculate EMA on HTF
-        if len(self.htf_candles) >= self.ema_period:
-            ema = self._calculate_ema()
+        # Calculate EMA
+        if len(candles) >= self.ema_period:
+            ema = self._calculate_ema(tf)
             if ema is not None:
-                self.htf_emas.append(ema)
+                emas.append(ema)
 
-        # Need enough EMAs to confirm trend
-        if len(self.htf_emas) < self.lookback:
+        if len(emas) < self.lookback:
             return None
 
-        # Check trend direction
-        return self._check_trend()
+        return self._check_trend(tf, candle)
 
-    def _calculate_ema(self):
-        """Calculate EMA on HTF closes."""
-        closes = [c["close"] for c in self.htf_candles]
+    def _calculate_ema(self, tf: str):
+        closes = [c["close"] for c in self.htf_candles[tf]]
         if len(closes) < self.ema_period:
             return None
-
         multiplier = 2 / (self.ema_period + 1)
         ema = np.mean(closes[: self.ema_period])
         for price in closes[self.ema_period :]:
             ema = (price - ema) * multiplier + ema
         return ema
 
-    def _check_trend(self):
-        """Check if HTF trend is established."""
-        emas = list(self.htf_emas)
+    def _check_trend(self, tf: str, candle: dict):
+        emas = list(self.htf_emas[tf])[-self.lookback :]
         if len(emas) < self.lookback:
             return None
 
-        recent_emas = emas[-self.lookback :]
-        current_close = self.htf_candles[-1]["close"]
-        current_ema = recent_emas[-1]
+        current_close = candle["close"]
+        current_ema = emas[-1]
 
-        # Check if EMAs are consistently rising or falling
-        ema_rising = all(recent_emas[i] < recent_emas[i + 1] for i in range(len(recent_emas) - 1))
-        ema_falling = all(recent_emas[i] > recent_emas[i + 1] for i in range(len(recent_emas) - 1))
+        ema_rising = all(emas[i] < emas[i + 1] for i in range(len(emas) - 1))
+        ema_falling = all(emas[i] > emas[i + 1] for i in range(len(emas) - 1))
 
-        # Price above rising EMA = bullish
         if ema_rising and current_close > current_ema:
-            return {
-                "side": "LONG",
-                "score": 1.0,
-                "metadata": {
-                    "htf": self.htf,
-                    "htf_ema": current_ema,
-                    "htf_close": current_close,
-                    "trend": "bullish",
-                },
-            }
-
-        # Price below falling EMA = bearish
+            return {"side": "LONG", "score": 1.0, "timeframe": tf, "metadata": {"trend": "bullish"}}
         if ema_falling and current_close < current_ema:
-            return {
-                "side": "SHORT",
-                "score": 1.0,
-                "metadata": {
-                    "htf": self.htf,
-                    "htf_ema": current_ema,
-                    "htf_close": current_close,
-                    "trend": "bearish",
-                },
-            }
-
+            return {"side": "SHORT", "score": 1.0, "timeframe": tf, "metadata": {"trend": "bearish"}}
         return None

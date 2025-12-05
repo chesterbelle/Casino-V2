@@ -1,10 +1,13 @@
 """
 OrderBlock Sensor (V3).
 Logic: Breakout from tight consolidation block.
+
+Multi-TF: Monitors multiple timeframes with independent buffers.
 """
 
 import logging
 from collections import deque
+from typing import Dict, List, Optional
 
 import numpy as np
 
@@ -22,37 +25,43 @@ class OrderBlockV3(SensorV3):
         self.block_size = block_size
         self.max_range_pct = max_range_pct
         self.breakout_pct = breakout_pct
-        self.candles = deque(maxlen=20)
+        self.candles: Dict[str, deque] = {}
 
-    def calculate(self, context: dict) -> dict:
-        # Get optimal timeframe for this sensor (configured in config/sensors.py)
-        tf = getattr(self, "_optimal_tf", "1m")
-        candle = context.get(tf)
-        if candle is None:
-            return None  # TF not ready yet, skip this cycle
-        self.candles.append([candle["open"], candle["high"], candle["low"], candle["close"]])
+    def _get_buffer(self, tf: str) -> deque:
+        if tf not in self.candles:
+            self.candles[tf] = deque(maxlen=20)
+        return self.candles[tf]
 
-        if len(self.candles) < self.block_size + 1:
+    def calculate(self, context: dict) -> List[dict]:
+        signals = []
+        for tf in self.timeframes:
+            candle = context.get(tf)
+            if candle is None:
+                continue
+            signal = self._calculate_for_tf(tf, candle)
+            if signal:
+                signals.append(signal)
+        return signals if signals else None
+
+    def _calculate_for_tf(self, tf: str, candle: dict) -> Optional[dict]:
+        buffer = self._get_buffer(tf)
+        buffer.append([candle["open"], candle["high"], candle["low"], candle["close"]])
+
+        if len(buffer) < self.block_size + 1:
             return None
 
-        block_candles = list(self.candles)[-(self.block_size + 1) : -1]
-        block_highs = [c[1] for c in block_candles]
-        block_lows = [c[2] for c in block_candles]
-        block_high = max(block_highs)
-        block_low = min(block_lows)
-
-        avg_price = np.mean([c[3] for c in block_candles])
+        block = list(buffer)[-(self.block_size + 1) : -1]
+        block_high = max(c[1] for c in block)
+        block_low = min(c[2] for c in block)
+        avg_price = np.mean([c[3] for c in block])
         block_range_pct = (block_high - block_low) / avg_price
 
         if block_range_pct > self.max_range_pct:
             return None
 
         close = candle["close"]
-        signal = None
-
         if close > block_high * (1 + self.breakout_pct):
-            signal = {"side": "LONG", "score": 1.0, "metadata": {"block_range_pct": block_range_pct}}
-        elif close < block_low * (1 - self.breakout_pct):
-            signal = {"side": "SHORT", "score": 1.0, "metadata": {"block_range_pct": block_range_pct}}
-
-        return signal
+            return {"side": "LONG", "score": 1.0, "timeframe": tf, "metadata": {"block_range": block_range_pct}}
+        if close < block_low * (1 - self.breakout_pct):
+            return {"side": "SHORT", "score": 1.0, "timeframe": tf, "metadata": {"block_range": block_range_pct}}
+        return None

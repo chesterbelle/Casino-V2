@@ -203,7 +203,7 @@ STRATEGIES: Dict[str, dict] = {
     # QUICK SCALPER - Trades rápidos con stops ajustados
     # -----------------------------------------------------
     "QuickScalper": {
-        "enabled": False,  # Disabled - using DebugAll
+        "enabled": True,  # BEST in backtest: +0.16% (30d LTC)  # Disabled - using DebugAll
         "description": "Trades rápidos con stops ajustados",
         "logic": "Entradas precisas, salidas rápidas, alto volumen",
         "sensors": [
@@ -226,7 +226,7 @@ STRATEGIES: Dict[str, dict] = {
     # SMART MONEY FOLLOWER - Seguir flujo institucional
     # -----------------------------------------------------
     "SmartMoneyFollower": {
-        "enabled": False,
+        "enabled": False,  # BEST in backtest: -0.59% (30d LTC)
         "description": "Seguir huellas institucionales y manipulación",
         "logic": "Detectar acumulación/distribución y actuar con smart money",
         "sensors": [
@@ -273,10 +273,81 @@ STRATEGIES: Dict[str, dict] = {
         "max_positions": 2,
     },
     # -----------------------------------------------------
+    # ALPHA EDGE - Top performers by expectancy (data-driven)
+    # -----------------------------------------------------
+    "AlphaEdge": {
+        "enabled": False,  # Backtest: +0.04% (3rd place)
+        "description": "Los 15 mejores sensores por expectancy optimizada",
+        "logic": "Selección basada en datos: solo sensores con Exp > 0.5%",
+        "sensors": [
+            # === TOP TIER (Exp > 1.0%) ===
+            "MorningStar",  # Exp: 1.730% ⭐ BEST - Candlestick pattern 3-bar
+            "BollingerSqueeze",  # Exp: 1.515% - Volatility compression breakout
+            "MomentumBurst",  # Exp: 1.213% - Momentum explosion
+            # === HIGH TIER (Exp 0.6% - 1.0%) ===
+            "WyckoffSpring",  # Exp: 0.839% - SMC spring pattern
+            "KeltnerBreakout",  # Exp: 0.820% - Keltner channel breakout
+            "VolumeSpike",  # Exp: 0.818% - Volume confirmation
+            "VolatilityWakeup",  # Exp: 0.761% - Volatility regime change
+            "Supertrend",  # Exp: 0.680% - Trend following
+            "RailsPattern",  # Exp: 0.663% - Candlestick reversal
+            "VolumeImbalance",  # Exp: 0.652% - Volume imbalance
+            "ThreeBar",  # Exp: 0.629% - Three bar pattern
+            "BollingerRejection",  # Exp: 0.603% - BB rejection
+            # === SOLID TIER (Exp 0.5% - 0.6%) ===
+            "EMACrossover",  # Exp: 0.572% - Trend entry
+            "BollingerTouch",  # Exp: 0.508% - Mean reversion at bands
+            # === CONTEXT (Essential for HTF alignment) ===
+            "HigherTFTrend",  # Exp: 0.535% - HTF direction filter
+        ],
+        "max_positions": 2,
+    },
+    # -----------------------------------------------------
+    # SYNERGY FLOW - Complementary sensors (knowledge-based)
+    # -----------------------------------------------------
+    "SynergyFlow": {
+        "enabled": False,
+        "description": "Sensores complementarios con jerarquía de confirmación",
+        "logic": "Context → Trigger → Pattern → Volume (cada señal requiere múltiples perspectivas)",
+        "sensors": [
+            # === LAYER 1: CONTEXT (Macro Direction + Regime) ===
+            # Estos sensores definen SI debemos operar y en qué dirección
+            "HigherTFTrend",  # Dirección HTF (1h/4h) - No operar contra tendencia macro
+            "HurstRegime",  # Régimen de mercado: trending vs ranging
+            "ADXFilter",  # Fuerza de tendencia (solo operar si ADX > umbral)
+            # === LAYER 2: TREND TRIGGERS (Primary Entry Signals) ===
+            # Señales de entrada principales que siguen la tendencia
+            "Supertrend",  # Flip de supertrend = entrada de tendencia
+            "EMACrossover",  # Cruce EMA rápida/lenta
+            "MACDCrossover",  # Confirmación momentum MACD
+            # === LAYER 3: PATTERN PRECISION (High-Probability Entries) ===
+            # Patrones de precisión para entradas óptimas
+            "MorningStar",  # Patrón de reversión 3-bar (mejor Exp)
+            "RailsPattern",  # Dos velas opuestas = reversión
+            "PinBarReversal",  # Pinbar en niveles clave
+            "InsideBarBreakout",  # Rompimiento de inside bar (compresión)
+            # === LAYER 4: VOLATILITY & STRUCTURE ===
+            # Identificar expansión de volatilidad y estructuras
+            "BollingerSqueeze",  # Squeeze = próxima expansión (breakout)
+            "KeltnerBreakout",  # Rompimiento de Keltner = momentum
+            "VCPPattern",  # Volatility Contraction Pattern
+            # === LAYER 5: VOLUME CONFIRMATION ===
+            # Volumen valida la señal (smart money)
+            "VolumeSpike",  # Spike de volumen = interés institucional
+            "VolumeImbalance",  # Imbalance = presión direccional
+            "AbsorptionBlock",  # Absorción = acumulación/distribución
+            # === LAYER 6: KEY LEVELS (S/R Context) ===
+            # Entrar solo en niveles significativos
+            "EMA50Support",  # EMA50 como soporte/resistencia dinámico
+            "SupportResistance",  # Niveles S/R horizontales
+        ],
+        "max_positions": 2,
+    },
+    # -----------------------------------------------------
     # DEBUG ALL - Todos los sensores (solo para debugging)
     # -----------------------------------------------------
     "DebugAll": {
-        "enabled": True,  # ACTIVE FOR DEBUGGING
+        "enabled": False,  # Disabled - using AlphaEdge
         "description": "Todos los sensores activos para debugging",
         "logic": "Máxima cantidad de señales para probar el sistema",
         "sensors": [

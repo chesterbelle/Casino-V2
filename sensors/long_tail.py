@@ -2,11 +2,12 @@
 LongTail Sensor (V3).
 Logic: Detects long-tailed distribution patterns.
 
-Long tails indicate exhaustion and potential reversal.
+Multi-TF: Monitors multiple timeframes with independent buffers.
 """
 
 import logging
 from collections import deque
+from typing import Dict, List, Optional
 
 import numpy as np
 
@@ -21,91 +22,53 @@ class LongTailV3(SensorV3):
         return "LongTail"
 
     def __init__(self, lookback=5, tail_factor=3.0, min_tail_pct=0.003):
-        """
-        Args:
-            lookback: Period to compare tail size
-            tail_factor: Current tail must be this many times larger
-            min_tail_pct: Minimum tail size as % of price
-        """
         self.lookback = lookback
         self.tail_factor = tail_factor
         self.min_tail_pct = min_tail_pct
+        self.candles: Dict[str, deque] = {}
 
-        self.candles = deque(maxlen=lookback + 5)
+    def _get_buffer(self, tf: str) -> deque:
+        if tf not in self.candles:
+            self.candles[tf] = deque(maxlen=self.lookback + 5)
+        return self.candles[tf]
 
-    def calculate(self, context: dict) -> dict:
-        # Get optimal timeframe for this sensor (configured in config/sensors.py)
-        tf = getattr(self, "_optimal_tf", "1m")
-        candle = context.get(tf)
-        if candle is None:
-            return None  # TF not ready yet, skip this cycle
-        self.candles.append(candle)
+    def calculate(self, context: dict) -> List[dict]:
+        signals = []
+        for tf in self.timeframes:
+            candle = context.get(tf)
+            if candle is None:
+                continue
+            signal = self._calculate_for_tf(tf, candle)
+            if signal:
+                signals.append(signal)
+        return signals if signals else None
 
-        if len(self.candles) < self.lookback:
+    def _calculate_for_tf(self, tf: str, candle: dict) -> Optional[dict]:
+        buffer = self._get_buffer(tf)
+        buffer.append(candle)
+
+        if len(buffer) < self.lookback:
             return None
 
-        signal = self._check_long_tail(candle)
-        return signal
+        open_p, high, low, close = candle["open"], candle["high"], candle["low"], candle["close"]
+        body_top, body_bottom = max(open_p, close), min(open_p, close)
+        upper_tail, lower_tail = high - body_top, body_bottom - low
+        avg_price = (high + low) / 2 or 1
 
-    def _check_long_tail(self, candle):
-        """Check for long tail pattern."""
-        open_price = candle["open"]
-        high = candle["high"]
-        low = candle["low"]
-        close = candle["close"]
-
-        body_top = max(open_price, close)
-        body_bottom = min(open_price, close)
-
-        upper_tail = high - body_top
-        lower_tail = body_bottom - low
-
-        avg_price = (high + low) / 2
-        if avg_price == 0:
-            return None
-
-        # Calculate average tail size from recent candles
-        prev_candles = list(self.candles)[:-1]
-        prev_lower_tails = []
-        prev_upper_tails = []
-
-        for c in prev_candles:
-            c_body_top = max(c["open"], c["close"])
-            c_body_bottom = min(c["open"], c["close"])
-            prev_lower_tails.append(c_body_bottom - c["low"])
-            prev_upper_tails.append(c["high"] - c_body_top)
-
-        avg_lower_tail = np.mean(prev_lower_tails) if prev_lower_tails else 0
-        avg_upper_tail = np.mean(prev_upper_tails) if prev_upper_tails else 0
+        # Calculate average tails from prev candles
+        prev = list(buffer)[:-1]
+        prev_lower = [min(c["open"], c["close"]) - c["low"] for c in prev]
+        prev_upper = [c["high"] - max(c["open"], c["close"]) for c in prev]
+        avg_lower, avg_upper = np.mean(prev_lower) if prev_lower else 0, np.mean(prev_upper) if prev_upper else 0
 
         # Long lower tail (bullish)
-        lower_tail_pct = lower_tail / avg_price
-        if lower_tail_pct > self.min_tail_pct:
-            if avg_lower_tail > 0 and lower_tail > avg_lower_tail * self.tail_factor:
-                if close > open_price:  # Bullish close
-                    return {
-                        "side": "LONG",
-                        "score": 1.0,
-                        "metadata": {
-                            "pattern": "long_lower_tail",
-                            "tail_pct": lower_tail_pct,
-                            "tail_factor": lower_tail / avg_lower_tail,
-                        },
-                    }
+        if lower_tail / avg_price > self.min_tail_pct and avg_lower > 0 and lower_tail > avg_lower * self.tail_factor:
+            if close > open_p:
+                return {"side": "LONG", "score": 1.0, "timeframe": tf, "metadata": {"pattern": "long_lower_tail"}}
 
         # Long upper tail (bearish)
-        upper_tail_pct = upper_tail / avg_price
-        if upper_tail_pct > self.min_tail_pct:
-            if avg_upper_tail > 0 and upper_tail > avg_upper_tail * self.tail_factor:
-                if close < open_price:  # Bearish close
-                    return {
-                        "side": "SHORT",
-                        "score": 1.0,
-                        "metadata": {
-                            "pattern": "long_upper_tail",
-                            "tail_pct": upper_tail_pct,
-                            "tail_factor": upper_tail / avg_upper_tail,
-                        },
-                    }
+        if upper_tail / avg_price > self.min_tail_pct and avg_upper > 0 and upper_tail > avg_upper * self.tail_factor:
+            if close < open_p:
+                return {"side": "SHORT", "score": 1.0, "timeframe": tf, "metadata": {"pattern": "long_upper_tail"}}
 
         return None

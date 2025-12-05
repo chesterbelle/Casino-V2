@@ -1,10 +1,13 @@
 """
 WilliamsRReversion Sensor (V3).
 Logic: Williams %R oversold/overbought.
+
+Multi-TF: Monitors multiple timeframes with independent buffers.
 """
 
 import logging
 from collections import deque
+from typing import Dict, List, Optional
 
 from .base import SensorV3
 
@@ -20,40 +23,47 @@ class WilliamsRReversionV3(SensorV3):
         self.period = period
         self.oversold = oversold
         self.overbought = overbought
-        self.highs = deque(maxlen=period)
-        self.lows = deque(maxlen=period)
-        self.closes = deque(maxlen=period)
+        self.highs: Dict[str, deque] = {}
+        self.lows: Dict[str, deque] = {}
+        self.closes: Dict[str, deque] = {}
 
-    def calculate(self, context: dict) -> dict:
-        # Get optimal timeframe for this sensor (configured in config/sensors.py)
-        tf = getattr(self, "_optimal_tf", "1m")
-        candle = context.get(tf)
-        if candle is None:
-            return None  # TF not ready yet, skip this cycle
-        self.highs.append(candle["high"])
-        self.lows.append(candle["low"])
-        self.closes.append(candle["close"])
+    def _get_buffers(self, tf: str):
+        if tf not in self.highs:
+            self.highs[tf] = deque(maxlen=self.period)
+            self.lows[tf] = deque(maxlen=self.period)
+            self.closes[tf] = deque(maxlen=self.period)
+        return self.highs[tf], self.lows[tf], self.closes[tf]
 
-        if len(self.closes) < self.period:
+    def calculate(self, context: dict) -> List[dict]:
+        signals = []
+        for tf in self.timeframes:
+            candle = context.get(tf)
+            if candle is None:
+                continue
+            signal = self._calculate_for_tf(tf, candle)
+            if signal:
+                signals.append(signal)
+        return signals if signals else None
+
+    def _calculate_for_tf(self, tf: str, candle: dict) -> Optional[dict]:
+        highs, lows, closes = self._get_buffers(tf)
+        highs.append(candle["high"])
+        lows.append(candle["low"])
+        closes.append(candle["close"])
+
+        if len(closes) < self.period:
             return None
 
-        williams_r = self._compute_williams_r()
-        signal = None
-
-        if williams_r < self.oversold:
-            signal = {"side": "LONG", "score": 1.0, "metadata": {"williams_r": williams_r}}
-        elif williams_r > self.overbought:
-            signal = {"side": "SHORT", "score": 1.0, "metadata": {"williams_r": williams_r}}
-
-        return signal
-
-    def _compute_williams_r(self):
-        highest_high = max(self.highs)
-        lowest_low = min(self.lows)
-        current_close = self.closes[-1]
+        highest_high = max(highs)
+        lowest_low = min(lows)
 
         if highest_high == lowest_low:
-            return -50.0
+            return None
 
-        williams_r = ((highest_high - current_close) / (highest_high - lowest_low)) * -100
-        return williams_r
+        williams_r = ((highest_high - closes[-1]) / (highest_high - lowest_low)) * -100
+
+        if williams_r < self.oversold:
+            return {"side": "LONG", "score": 1.0, "timeframe": tf, "metadata": {"williams_r": williams_r}}
+        elif williams_r > self.overbought:
+            return {"side": "SHORT", "score": 1.0, "timeframe": tf, "metadata": {"williams_r": williams_r}}
+        return None

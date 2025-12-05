@@ -2,12 +2,11 @@
 WickRejection Sensor (V3).
 Logic: Detects strong wick rejection patterns.
 
-A wick rejection occurs when price tests a level but is
-strongly rejected, leaving a long wick.
+Multi-TF: Monitors multiple timeframes (stateless per candle).
 """
 
 import logging
-from collections import deque
+from typing import List, Optional
 
 from .base import SensorV3
 
@@ -20,72 +19,33 @@ class WickRejectionV3(SensorV3):
         return "WickRejection"
 
     def __init__(self, wick_ratio=2.0, min_wick_pct=0.003):
-        """
-        Args:
-            wick_ratio: Min wick-to-body ratio for rejection
-            min_wick_pct: Min wick size as % of price
-        """
         self.wick_ratio = wick_ratio
         self.min_wick_pct = min_wick_pct
 
-        self.candles = deque(maxlen=5)
+    def calculate(self, context: dict) -> List[dict]:
+        signals = []
+        for tf in self.timeframes:
+            candle = context.get(tf)
+            if candle is None:
+                continue
+            signal = self._calculate_for_tf(tf, candle)
+            if signal:
+                signals.append(signal)
+        return signals if signals else None
 
-    def calculate(self, context: dict) -> dict:
-        # Get optimal timeframe for this sensor (configured in config/sensors.py)
-        tf = getattr(self, "_optimal_tf", "1m")
-        candle = context.get(tf)
-        if candle is None:
-            return None  # TF not ready yet, skip this cycle
-        self.candles.append(candle)
-
-        if len(self.candles) < 2:
-            return None
-
-        signal = self._check_wick_rejection(candle)
-        return signal
-
-    def _check_wick_rejection(self, candle):
-        """Check for wick rejection pattern."""
-        open_price = candle["open"]
-        high = candle["high"]
-        low = candle["low"]
-        close = candle["close"]
-
-        body = abs(close - open_price)
-        if body == 0:
-            body = 0.0001  # Avoid division by zero
-
-        upper_wick = high - max(open_price, close)
-        lower_wick = min(open_price, close) - low
-
+    def _calculate_for_tf(self, tf: str, candle: dict) -> Optional[dict]:
+        open_p, high, low, close = candle["open"], candle["high"], candle["low"], candle["close"]
+        body = abs(close - open_p) or 0.0001
+        upper_wick = high - max(open_p, close)
+        lower_wick = min(open_p, close) - low
         avg_price = (high + low) / 2
 
-        # Bullish rejection (long lower wick, small upper wick)
-        if lower_wick > body * self.wick_ratio:
-            wick_pct = lower_wick / avg_price
-            if wick_pct > self.min_wick_pct:
-                return {
-                    "side": "LONG",
-                    "score": 1.0,
-                    "metadata": {
-                        "pattern": "bullish_wick_rejection",
-                        "wick_ratio": lower_wick / body,
-                        "wick_pct": wick_pct,
-                    },
-                }
+        # Bullish rejection
+        if lower_wick > body * self.wick_ratio and lower_wick / avg_price > self.min_wick_pct:
+            return {"side": "LONG", "score": 1.0, "timeframe": tf, "metadata": {"wick_ratio": lower_wick / body}}
 
-        # Bearish rejection (long upper wick, small lower wick)
-        if upper_wick > body * self.wick_ratio:
-            wick_pct = upper_wick / avg_price
-            if wick_pct > self.min_wick_pct:
-                return {
-                    "side": "SHORT",
-                    "score": 1.0,
-                    "metadata": {
-                        "pattern": "bearish_wick_rejection",
-                        "wick_ratio": upper_wick / body,
-                        "wick_pct": wick_pct,
-                    },
-                }
+        # Bearish rejection
+        if upper_wick > body * self.wick_ratio and upper_wick / avg_price > self.min_wick_pct:
+            return {"side": "SHORT", "score": 1.0, "timeframe": tf, "metadata": {"wick_ratio": upper_wick / body}}
 
         return None

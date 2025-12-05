@@ -2,12 +2,12 @@
 VWAPMomentum Sensor (V3).
 Logic: Detects momentum moves relative to VWAP.
 
-Signals when price shows strong momentum away from VWAP
-with volume confirmation.
+Multi-TF: Monitors multiple timeframes with independent state.
 """
 
 import logging
 from collections import deque
+from typing import Dict, List, Optional
 
 import numpy as np
 
@@ -22,83 +22,52 @@ class VWAPMomentumV3(SensorV3):
         return "VWAPMomentum"
 
     def __init__(self, momentum_threshold=0.003, volume_factor=1.5, lookback=50):
-        """
-        Args:
-            momentum_threshold: Min distance from VWAP as % for signal
-            volume_factor: Min volume ratio for confirmation
-            lookback: Period for VWAP calculation
-        """
         self.momentum_threshold = momentum_threshold
         self.volume_factor = volume_factor
         self.lookback = lookback
+        self.volumes: Dict[str, deque] = {}
+        self.cum_tp_vol: Dict[str, float] = {}
+        self.cum_vol: Dict[str, float] = {}
 
-        self.candles = deque(maxlen=lookback + 10)
-        self.volumes = deque(maxlen=lookback + 10)
-        self.cum_tp_vol = 0
-        self.cum_vol = 0
+    def _get_state(self, tf: str):
+        if tf not in self.volumes:
+            self.volumes[tf] = deque(maxlen=self.lookback + 10)
+            self.cum_tp_vol[tf] = 0
+            self.cum_vol[tf] = 0
+        return self.volumes[tf]
 
-    def calculate(self, context: dict) -> dict:
-        # Get optimal timeframe for this sensor (configured in config/sensors.py)
-        tf = getattr(self, "_optimal_tf", "1m")
-        candle = context.get(tf)
-        if candle is None:
-            return None  # TF not ready yet, skip this cycle
-        high = candle["high"]
-        low = candle["low"]
-        close = candle["close"]
-        volume = candle.get("volume", 1)
+    def calculate(self, context: dict) -> List[dict]:
+        signals = []
+        for tf in self.timeframes:
+            candle = context.get(tf)
+            if candle is None:
+                continue
+            signal = self._calculate_for_tf(tf, candle)
+            if signal:
+                signals.append(signal)
+        return signals if signals else None
 
-        typical_price = (high + low + close) / 3
+    def _calculate_for_tf(self, tf: str, candle: dict) -> Optional[dict]:
+        volumes = self._get_state(tf)
+        tp = (candle["high"] + candle["low"] + candle["close"]) / 3
+        vol = candle.get("volume", 1)
+        volumes.append(vol)
 
-        self.candles.append(candle)
-        self.volumes.append(volume)
+        self.cum_tp_vol[tf] += tp * vol
+        self.cum_vol[tf] += vol
 
-        # Update cumulative values
-        self.cum_tp_vol += typical_price * volume
-        self.cum_vol += volume
-
-        if len(self.candles) < 20:
+        if len(volumes) < 20 or self.cum_vol[tf] == 0:
             return None
 
-        # Calculate VWAP
-        if self.cum_vol == 0:
-            return None
+        vwap = self.cum_tp_vol[tf] / self.cum_vol[tf]
+        distance_pct = (candle["close"] - vwap) / vwap if vwap > 0 else 0
 
-        vwap = self.cum_tp_vol / self.cum_vol
+        avg_vol = np.mean(list(volumes)[:-1]) if len(volumes) > 1 else 1
+        vol_ok = vol > avg_vol * self.volume_factor
+        close, open_p = candle["close"], candle["open"]
 
-        # Calculate distance from VWAP
-        distance_pct = (close - vwap) / vwap if vwap > 0 else 0
-
-        # Check volume confirmation
-        avg_volume = np.mean(list(self.volumes)[:-1]) if len(self.volumes) > 1 else 1
-        volume_confirmed = volume > avg_volume * self.volume_factor
-
-        open_price = candle["open"]
-
-        # Bullish momentum: Price well above VWAP with volume
-        if distance_pct > self.momentum_threshold and close > open_price and volume_confirmed:
-            return {
-                "side": "LONG",
-                "score": min(distance_pct / self.momentum_threshold / 2, 1.0),
-                "metadata": {
-                    "pattern": "vwap_momentum_up",
-                    "vwap": vwap,
-                    "distance_pct": distance_pct,
-                    "volume_ratio": volume / avg_volume,
-                },
-            }
-
-        # Bearish momentum: Price well below VWAP with volume
-        if distance_pct < -self.momentum_threshold and close < open_price and volume_confirmed:
-            return {
-                "side": "SHORT",
-                "score": min(abs(distance_pct) / self.momentum_threshold / 2, 1.0),
-                "metadata": {
-                    "pattern": "vwap_momentum_down",
-                    "vwap": vwap,
-                    "distance_pct": distance_pct,
-                    "volume_ratio": volume / avg_volume,
-                },
-            }
-
+        if distance_pct > self.momentum_threshold and close > open_p and vol_ok:
+            return {"side": "LONG", "score": 1.0, "timeframe": tf, "metadata": {"distance_pct": distance_pct}}
+        if distance_pct < -self.momentum_threshold and close < open_p and vol_ok:
+            return {"side": "SHORT", "score": 1.0, "timeframe": tf, "metadata": {"distance_pct": distance_pct}}
         return None
