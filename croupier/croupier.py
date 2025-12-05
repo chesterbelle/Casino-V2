@@ -64,7 +64,9 @@ class Croupier:
         # Initialize core components
         self.error_handler = get_error_handler()
         self.balance_manager = BalanceManager(initial_balance)
-        self.position_tracker = PositionTracker(max_concurrent_positions=max_concurrent_positions)
+        self.position_tracker = PositionTracker(
+            max_concurrent_positions=max_concurrent_positions, adapter=exchange_adapter
+        )
 
         # Initialize specialized components
         self.order_executor = OrderExecutor(exchange_adapter, self.error_handler)

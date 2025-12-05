@@ -117,11 +117,12 @@ class PositionTracker:
         """
         Args:
             max_concurrent_positions: Máximo número de posiciones simultáneas permitidas
-            adapter: ExchangeAdapter para OCO manual (agnóstico del conector)
+            adapter: ExchangeAdapter para cancelar órdenes OCO (agnóstico del conector)
         """
         self.open_positions: List[OpenPosition] = []
         self.blocked_capital: float = 0.0
         self.max_concurrent_positions = max_concurrent_positions
+        self.adapter = adapter  # For OCO cancellation
         self.on_close_callback = on_close_callback
         self.total_trades_opened = 0
         self.total_trades_closed = 0
@@ -576,12 +577,12 @@ class PositionTracker:
         self.open_positions.clear()
         return closed_results
 
-    def handle_order_update(self, order: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    async def handle_order_update(self, order: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """
         Handle order update from exchange (VirtualExchange or Binance WebSocket).
 
-        When a TP or SL order fills, this method finds the corresponding position
-        and calls confirm_close to properly record the win/loss.
+        When a TP or SL order fills, this method finds the corresponding position,
+        calls confirm_close to properly record the win/loss, and CANCELS the opposite order.
 
         Args:
             order: Normalized order dict with 'id', 'status', 'price', etc.
@@ -599,15 +600,18 @@ class PositionTracker:
         # Find position by TP or SL order ID
         position = None
         exit_reason = None
+        opposite_order_id = None
 
         for pos in self.open_positions:
             if pos.tp_order_id == order_id:
                 position = pos
                 exit_reason = "TP"
+                opposite_order_id = pos.sl_order_id  # Cancel SL when TP fills
                 break
             elif pos.sl_order_id == order_id:
                 position = pos
                 exit_reason = "SL"
+                opposite_order_id = pos.tp_order_id  # Cancel TP when SL fills
                 break
 
         if not position:
@@ -641,11 +645,26 @@ class PositionTracker:
             f"📬 Order Update | {order_id} {exit_reason} filled @ {fill_price:.2f} | " f"Position: {position.trade_id}"
         )
 
+        # Store symbol before confirm_close removes position
+        symbol = position.symbol
+
         # Confirm the close
-        return self.confirm_close(
+        result = self.confirm_close(
             trade_id=position.trade_id,
             exit_price=fill_price,
             exit_reason=exit_reason,
             pnl=pnl_value,
             fee=fee,
         )
+
+        # Cancel the opposite order (OCO behavior)
+        if opposite_order_id and self.adapter:
+            try:
+                await self.adapter.cancel_order(opposite_order_id, symbol)
+                logger.info(
+                    f"✅ Cancelled opposite {('SL' if exit_reason == 'TP' else 'TP')} order: {opposite_order_id}"
+                )
+            except Exception as e:
+                logger.warning(f"⚠️ Failed to cancel opposite order {opposite_order_id}: {e}")
+
+        return result

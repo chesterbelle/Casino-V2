@@ -196,6 +196,14 @@ async def main():
     # Hook callback into PositionTracker
     croupier.position_tracker.on_close_callback = on_trade_close
 
+    # Register order update callback for OCO cancellation in live/demo mode
+    # The callback is async, so we wrap it for the synchronous connector callback
+    async def async_order_update_handler(order):
+        await croupier.position_tracker.handle_order_update(order)
+
+    connector.set_order_update_callback(lambda order: asyncio.create_task(async_order_update_handler(order)))
+    logger.info("✅ Order update callback registered for OCO cancellation")
+
     # Attempt recovery from previous session
     logger.info("🔄 Attempting state recovery...")
     recovered = await state_manager.recover()

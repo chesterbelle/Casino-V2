@@ -124,7 +124,11 @@ async def main():
 
     # Connect VirtualExchange order updates to PositionTracker
     # This enables automatic TP/SL close detection in backtest
-    virtual_exchange.set_order_update_callback(croupier.position_tracker.handle_order_update)
+    # Note: handle_order_update is async, so we wrap it
+    def sync_order_update_handler(order):
+        asyncio.create_task(croupier.position_tracker.handle_order_update(order))
+
+    virtual_exchange.set_order_update_callback(sync_order_update_handler)
 
     # Store initial balance for PnL calc
     initial_balance = croupier.get_balance()
