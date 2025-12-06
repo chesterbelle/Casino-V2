@@ -230,29 +230,82 @@ class BinanceNativeConnector(BaseConnector):
             raise
 
     async def _listen_user_data_stream(self):
-        """Listen to User Data Stream and process events."""
-        try:
-            async for message in self._user_data_ws:
-                try:
-                    data = json.loads(message)
-                    event_type = data.get("e")
+        """Listen to User Data Stream and process events with auto-reconnection."""
+        reconnect_attempts = 0
+        max_reconnect_attempts = 20  # ~10 minutes with backoff
+        base_delay = 5  # 5 seconds initial delay
+        max_delay = 60  # Max 60 seconds between retries
 
-                    if event_type == "ORDER_TRADE_UPDATE":
-                        self._handle_order_update(data)
-                    elif event_type == "ACCOUNT_UPDATE":
-                        # Could handle balance/position updates here
+        while reconnect_attempts < max_reconnect_attempts:
+            try:
+                async for message in self._user_data_ws:
+                    # Reset reconnect counter on successful message
+                    reconnect_attempts = 0
+
+                    try:
+                        data = json.loads(message)
+                        event_type = data.get("e")
+
+                        if event_type == "ORDER_TRADE_UPDATE":
+                            self._handle_order_update(data)
+                        elif event_type == "ACCOUNT_UPDATE":
+                            # Could handle balance/position updates here
+                            pass
+
+                    except json.JSONDecodeError:
+                        self.logger.warning(f"⚠️ Invalid JSON from User Data Stream: {message}")
+                    except Exception as e:
+                        self.logger.error(f"❌ Error processing User Data Stream message: {e}")
+
+            except websockets.exceptions.ConnectionClosed:
+                reconnect_attempts += 1
+                delay = min(base_delay * (2 ** (reconnect_attempts - 1)), max_delay)
+                self.logger.warning(
+                    f"⚠️ User Data Stream disconnected. "
+                    f"Reconnecting in {delay}s (attempt {reconnect_attempts}/{max_reconnect_attempts})..."
+                )
+                await asyncio.sleep(delay)
+
+                # Attempt reconnection
+                try:
+                    await self._reconnect_user_data_stream()
+                    self.logger.info("✅ User Data Stream reconnected successfully")
+                except Exception as e:
+                    self.logger.error(f"❌ Reconnection failed: {e}")
+
+            except Exception as e:
+                self.logger.error(f"❌ Error in User Data Stream listener: {e}")
+                reconnect_attempts += 1
+                if reconnect_attempts < max_reconnect_attempts:
+                    delay = min(base_delay * (2 ** (reconnect_attempts - 1)), max_delay)
+                    self.logger.info(f"🔄 Retrying in {delay}s...")
+                    await asyncio.sleep(delay)
+                    try:
+                        await self._reconnect_user_data_stream()
+                    except Exception:
                         pass
 
-                except json.JSONDecodeError:
-                    self.logger.warning(f"⚠️ Invalid JSON from User Data Stream: {message}")
-                except Exception as e:
-                    self.logger.error(f"❌ Error processing User Data Stream message: {e}")
+        self.logger.error("❌ Max reconnection attempts reached. User Data Stream stopped.")
 
-        except websockets.exceptions.ConnectionClosed:
-            self.logger.warning("⚠️ User Data Stream connection closed, attempting reconnect...")
-            # Could implement reconnection logic here
-        except Exception as e:
-            self.logger.error(f"❌ Error in User Data Stream listener: {e}")
+    async def _reconnect_user_data_stream(self):
+        """Reconnect the User Data Stream WebSocket."""
+        # Close existing connection if any
+        if self._user_data_ws:
+            try:
+                await self._user_data_ws.close()
+            except Exception:
+                pass
+
+        # Get new listen key (old one may have expired)
+        self._listen_key = await self._create_listen_key()
+
+        # Build WebSocket URL
+        ws_url = f"wss://fstream.binance.com/ws/{self._listen_key}"
+        if self._mode == "demo":
+            ws_url = f"wss://stream.binancefuture.com/ws/{self._listen_key}"
+
+        # Reconnect
+        self._user_data_ws = await websockets.connect(ws_url)
 
     def _normalize_order_status(self, binance_status: str) -> str:
         """Convert Binance order status to CCXT-like status."""
