@@ -3,20 +3,20 @@
 📊 Starting metrics server...
 📊 Metrics server started on http://0.0.0.0:8000/metrics
 🕒 Rate limiter initialized for Binance
-Stateless CCXTAdapter initialized | Symbol: LTCUSDT | Timeframe: 1m
+Stateless CCXTAdapter initialized | Symbol: BNBUSDT | Timeframe: 1m
 ⚠️ Connector does not expose 'exchange' attribute (Virtual/Simulated?).
 🔌 Connecting to Binance Native (demo)...
-✅ Server Time: 1764955309215 | Offset: -101ms
-✅ Markets loaded: 647
+✅ Server Time: 1765015881003 | Offset: -99ms
+✅ Markets loaded: 648
 ✅ Account is in One-Way Mode
 🔌 Starting Native WebSocket...
-✅ Listen key created: feuqYJqSA61vDD60B2EU...
+✅ Listen key created: qwQjpqeqRbHT5U0iGRbM...
 🔌 Connecting to User Data Stream...
 ✅ User Data Stream connected
-💰 Initial Balance: 3412.22 USDT
+💰 Initial Balance: 3408.93 USDT
 ✅ ErrorClassifier initialized
 PositionTracker inicializado | Max positions: 10
-✅ Croupier initialized | Balance: 3412.22363396 | Max Positions: 10
+✅ Croupier initialized | Balance: 3408.92681219 | Max Positions: 10
 ✅ BarAggregator initialized | Timeframes: ['1m', '5m', '15m', '1h', '4h']
 ⚡ SensorManager using sequential mode (stateful sensors)
 📊 Active strategies: ['DebugAll']
@@ -29,2167 +29,704 @@ PositionTracker inicializado | Max positions: 10
 ✅ Loaded stats for 46 sensors from state/sensor_stats.json
 ✅ SensorTracker initialized | Sensors: 46
 ✅ FixedPlayer initialized | Mode: Kelly | Bet Size: 1.0% | Kelly Max: 10.0% | Max Positions: 1
+ExitManager initialized | Strategy: breakeven | Params: {'breakeven_trigger': 0.5, 'trailing_activation': 0.3, 'trailing_step': 0.005, 'partial_trigger': 0.5, 'partial_close_pct': 0.5}
+🚪 ExitManager initialized | Strategy: breakeven
 ✅ Order update callback registered
 ✅ Order update callback registered for OCO cancellation
 🔄 Attempting state recovery...
 ⚠️ No state found to recover
 ⚠️ No state found to recover
 📝 Starting fresh session
-📝 Initialized new state: session_1764955312
+📝 Initialized new state: session_1765015884
 🚀 State manager started (auto-save every 5s)
 🚀 State manager started
-💰 Session Initial Balance: 3412.22 USDT
+💰 Session Initial Balance: 3408.93 USDT
 🚀 OrderManager started
-🔄 Startup Reconciliation for LTCUSDT...
-🔄 Starting reconciliation for LTCUSDT
+🔄 Startup Reconciliation for BNBUSDT...
+🔄 Starting reconciliation for BNBUSDT
 Using REST positions.
 ✅ Reconciliation complete: 0 fixed, 0 closed, 0 orders cancelled
 🚀 Starting Casino-V3 Engine...
 🔌 Connecting Data Feed...
 🔌 Connecting to Binance Native (demo)...
-✅ Server Time: 1764955312651 | Offset: -109ms
-✅ Markets loaded: 647
+✅ Server Time: 1765015884922 | Offset: -106ms
+✅ Markets loaded: 648
 ✅ Account is in One-Way Mode
 🔌 Starting Native WebSocket...
-✅ Listen key created: feuqYJqSA61vDD60B2EU...
+✅ Listen key created: qwQjpqeqRbHT5U0iGRbM...
 🔌 Connecting to User Data Stream...
 🔄 Keepalive task started
 ✅ User Data Stream connected
 ✅ Engine running. Waiting for events...
-📡 Subscribing to LTCUSDT...
-📡 Subscribing to ticker: LTCUSDT
+📡 Subscribing to BNBUSDT...
+📡 Subscribing to ticker: BNBUSDT
 ✅ Casino-V3 Running | Press Ctrl+C to stop
 🔄 Keepalive task started
-🔍 Starting ticker loop for LTCUSDT
-📡 Subscribing to ticker for LTCUSDT
+🔍 Starting ticker loop for BNBUSDT
+📡 Subscribing to ticker for BNBUSDT
 ✅ WS Subscription Response: {'result': None, 'id': 1}
-🕯️ Candle Closed: 80.41 | Vol: 3576747.4189999998
-⚡ Candle 0 | 51 sensors | 0.5ms
-⚡ Tick: LTCUSDT 80.4
-⚡ Tick: LTCUSDT 80.29
-🕯️ Candle Closed: 80.24 | Vol: 46496623.837
-⚡ Tick: LTCUSDT 80.24
-⚡ Tick: LTCUSDT 80.24
-⚡ Tick: LTCUSDT 80.24
-🕯️ Candle Closed: 80.24 | Vol: 46498303.349
-📡 Signal Detected: RSIReversion@1m -> LONG
-📡 Signal Detected: RSIReversion@5m -> LONG
-📡 Signal Detected: RSIReversion@15m -> LONG
-⚡ Tick: LTCUSDT 80.24
-⚡ Tick: LTCUSDT 80.24
-⚡ Tick: LTCUSDT 80.28
-🕯️ Candle Closed: 80.29 | Vol: 48287106.227000006
-📡 Signal Detected: PinBarReversal@1m -> SHORT
-📡 Signal Detected: PinBarReversal@5m -> SHORT
-📡 Signal Detected: PinBarReversal@15m -> SHORT
-📡 Signal Detected: WickRejection@1m -> SHORT
-📡 Signal Detected: WickRejection@5m -> SHORT
-📡 Signal Detected: WickRejection@15m -> SHORT
-⚡ Tick: LTCUSDT 80.24
-⚡ Tick: LTCUSDT 80.24
-🕯️ Candle Closed: 80.24 | Vol: 46499155.432000004
-📡 Signal Detected: LongTail@5m -> SHORT
-📡 Signal Detected: LongTail@15m -> SHORT
-✅ CONSENSUS SHORT: 0L/2S | Best: LongTail (score=0.912) | HTF: N/A
-🎯 Decision: SHORT | Kelly Bet: 8.81% of 3412.22 | Sensor: LongTail
-📩 Decision Received: LTCUSDT SHORT (Size: 8.81%, Step: 0)
-🔍 get_current_price | requested_symbol=LTCUSDT | adapter_symbol=LTCUSDT
-💰 Current price for LTCUSDT: 80.24
-📊 Order calculation: Equity=3412.22 | Size=8.81% | Value=300.62 | Price=80.24 | Amount=3.74700000 (raw=3.746500271401)
-📥 Execute order request: SHORT LTCUSDT
-🛡️ Creating OCO bracket for LTCUSDT SHORT | TP: 0.0970 | SL: 0.0050
-📤 Executing market order: sell 3.747 LTCUSDT
-📋 Sending Order: {'symbol': 'LTCUSDT', 'side': 'SELL', 'type': 'MARKET', 'quantity': 3.747, 'timestamp': 1764955563280, 'recvWindow': 20000}
-✅ Market order executed: 875992478 | Status: open
-⏳ Fill price not in response (status NEW?), waiting for fill...
-✅ Main order filled @ 80.24
-📈 Creating TP order @ 72.45672
-📤 Executing limit order: buy 3.747 LTCUSDT @ 72.46
-📋 Sending Order: {'symbol': 'LTCUSDT', 'side': 'BUY', 'type': 'LIMIT', 'quantity': 3.747, 'price': 72.46, 'timeInForce': 'GTC', 'timestamp': 1764955563696, 'recvWindow': 20000}
-✅ Limit order executed: 875992479 | Status: open
-📉 Creating SL order @ stop 80.64119999999998
-📤 Executing stop order: buy 3.747 LTCUSDT @ stop 80.64
-📋 Sending Order: {'symbol': 'LTCUSDT', 'side': 'BUY', 'type': 'STOP_MARKET', 'quantity': 3.747, 'stopPrice': 80.64, 'timestamp': 1764955564259, 'recvWindow': 20000}
-✅ Stop order executed: 875992480
-✅ OCO bracket created: Main=875992478, SL=875992480
-✅ Position opened: 875992478 | Entry: 80.24
-⚠️ Order Result: {'main_order': {'id': '875992478', 'order_id': '875992478', 'symbol': 'LTCUSDT', 'status': 'open', 'price': 0.0, 'amount': 3.747, 'filled': 0.0, 'type': 'market', 'side': 'sell', 'timestamp': 1764955563499, 'info': {'orderId': 875992478, 'symbol': 'LTCUSDT', 'status': 'NEW', 'clientOrderId': 'VHIzQJBA4hElHZtKNA0zoV', 'price': '0.00', 'avgPrice': '0.00', 'origQty': '3.747', 'executedQty': '0.000', 'cumQty': '0.000', 'cumQuote': '0.00000', 'timeInForce': 'GTC', 'type': 'MARKET', 'reduceOnly': False, 'closePosition': False, 'side': 'SELL', 'positionSide': 'BOTH', 'stopPrice': '0.00', 'workingType': 'CONTRACT_PRICE', 'priceProtect': False, 'origType': 'MARKET', 'priceMatch': 'NONE', 'selfTradePreventionMode': 'EXPIRE_MAKER', 'goodTillDate': 0, 'updateTime': 1764955563499}}, 'tp_order': {'id': '875992479', 'order_id': '875992479', 'symbol': 'LTCUSDT', 'status': 'open', 'price': 0.0, 'amount': 3.747, 'filled': 0.0, 'type': 'limit', 'side': 'buy', 'timestamp': 1764955564245, 'info': {'orderId': 875992479, 'symbol': 'LTCUSDT', 'status': 'NEW', 'clientOrderId': 'MjTtfKIzValHuqj8gAukYF', 'price': '72.46', 'avgPrice': '0.00', 'origQty': '3.747', 'executedQty': '0.000', 'cumQty': '0.000', 'cumQuote': '0.00000', 'timeInForce': 'GTC', 'type': 'LIMIT', 'reduceOnly': False, 'closePosition': False, 'side': 'BUY', 'positionSide': 'BOTH', 'stopPrice': '0.00', 'workingType': 'CONTRACT_PRICE', 'priceProtect': False, 'origType': 'LIMIT', 'priceMatch': 'NONE', 'selfTradePreventionMode': 'EXPIRE_MAKER', 'goodTillDate': 0, 'updateTime': 1764955564245}}, 'sl_order': {'id': '875992480', 'order_id': '875992480', 'symbol': 'LTCUSDT', 'status': 'open', 'price': 0.0, 'amount': 3.747, 'filled': 0.0, 'type': 'stop_market', 'side': 'buy', 'timestamp': 1764955564472, 'info': {'orderId': 875992480, 'symbol': 'LTCUSDT', 'status': 'NEW', 'clientOrderId': 'q2PpguPKj7yk1FQDhWqdJL', 'price': '0.00', 'avgPrice': '0.00', 'origQty': '3.747', 'executedQty': '0.000', 'cumQty': '0.000', 'cumQuote': '0.00000', 'timeInForce': 'GTC', 'type': 'STOP_MARKET', 'reduceOnly': False, 'closePosition': False, 'side': 'BUY', 'positionSide': 'BOTH', 'stopPrice': '80.64', 'workingType': 'CONTRACT_PRICE', 'priceProtect': False, 'origType': 'STOP_MARKET', 'priceMatch': 'NONE', 'selfTradePreventionMode': 'EXPIRE_MAKER', 'goodTillDate': 0, 'updateTime': 1764955564472}}, 'fill_price': 80.24, 'tp_price': 72.45672, 'sl_price': 80.64119999999998, 'contributors': ['LongTail'], 'position': OpenPosition(trade_id='875992478', symbol='LTCUSDT', side='SHORT', entry_price=80.24, entry_timestamp=1764955563499, margin_used=0, notional=0, leverage=1, tp_level=72.45672, sl_level=80.64119999999998, liquidation_level=160.0788, order={'trade_id': 'V3_1764955562551', 'symbol': 'LTCUSDT', 'side': 'SHORT', 'size': 0.08810066807617961, 'amount': 3.747, 'take_profit': 0.097, 'stop_loss': 0.005, 'timestamp': '1764955562.5517118', 'ghost': False, 'contributors': ['LongTail']}, main_order_id='875992478', tp_order_id='875992479', sl_order_id='875992480', bars_held=0, funding_accrued=0.0, contributors=['LongTail'])}
-⚡ Tick: LTCUSDT 80.24
-⚡ Tick: LTCUSDT 80.24
-⚡ Tick: LTCUSDT 80.24
-🕯️ Candle Closed: 80.24 | Vol: 46498594.11600001
-⚡ Tick: LTCUSDT 80.24
-⚡ Tick: LTCUSDT 80.24
-⚡ Tick: LTCUSDT 80.24
-🕯️ Candle Closed: 80.24 | Vol: 51863330.622999996
-⚡ Tick: LTCUSDT 80.24
-⚡ Tick: LTCUSDT 80.24
-🕯️ Candle Closed: 80.24 | Vol: 42921319.352
+⚡ Tick: BNBUSDT 882.99
+🕯️ Candle Closed: 882.99 | Vol: 107025922.26999998
+⚡ Candle 0 | 51 sensors | 0.4ms
+⚡ Tick: BNBUSDT 882.99
+⚡ Tick: BNBUSDT 882.99
+⚡ Tick: BNBUSDT 882.99
+🕯️ Candle Closed: 882.99 | Vol: 199781415.21999997
+⚡ Tick: BNBUSDT 882.99
+⚡ Tick: BNBUSDT 882.99
+⚡ Tick: BNBUSDT 882.99
+🕯️ Candle Closed: 882.99 | Vol: 206916421.13
 📡 Signal Detected: RSIReversion@1m -> SHORT
 📡 Signal Detected: RSIReversion@5m -> SHORT
 📡 Signal Detected: RSIReversion@15m -> SHORT
-⚡ Tick: LTCUSDT 80.24
-⚡ Tick: LTCUSDT 80.24
-⚡ Tick: LTCUSDT 80.24
-🕯️ Candle Closed: 80.24 | Vol: 46498116.26899999
-⚡ Tick: LTCUSDT 80.24
-⚡ Tick: LTCUSDT 80.24
-🕯️ Candle Closed: 80.24 | Vol: 46498138.603
-⚡ Tick: LTCUSDT 80.24
-⚡ Tick: LTCUSDT 80.26
-📬 Order Update | 875992480 SL filled @ 80.73 | Position: 875992478
-✅ CONFIRMED CLOSE | LTCUSDT SHORT | Exit: 80.73 (SL) | PnL REAL: -0.00 | Fee: 0.00 | Bars: 5
-✅ Cancelled opposite TP order: 875992479
-⚡ Tick: LTCUSDT 80.25
-🕯️ Candle Closed: 80.28 | Vol: 48285770.26299999
-📡 Signal Detected: PinBarReversal@1m -> SHORT
-📡 Signal Detected: PinBarReversal@5m -> SHORT
-📡 Signal Detected: PinBarReversal@15m -> SHORT
-📡 Signal Detected: WickRejection@1m -> SHORT
-📡 Signal Detected: WickRejection@5m -> SHORT
-📡 Signal Detected: WickRejection@15m -> SHORT
-⚡ Tick: LTCUSDT 80.34
-⚡ Tick: LTCUSDT 80.34
-⚡ Tick: LTCUSDT 80.33
-🕯️ Candle Closed: 80.33 | Vol: 44705603.40599999
-📡 Signal Detected: DecelerationCandles@15m -> LONG
-📊 No consensus: LONG=1, SHORT=0 (need 2+)
-⚡ Tick: LTCUSDT 80.27
-⚡ Tick: LTCUSDT 80.27
-🕯️ Candle Closed: 80.25 | Vol: 46493808.658000015
-📡 Signal Detected: RSIReversion@1m -> SHORT
-📡 Signal Detected: RSIReversion@5m -> SHORT
-📡 Signal Detected: RSIReversion@15m -> SHORT
-⚡ Tick: LTCUSDT 80.24
-⚡ Tick: LTCUSDT 80.24
-🕯️ Candle Closed: 80.24 | Vol: 37531919.218
-📡 Signal Detected: WilliamsRReversion@1m -> LONG
-📡 Signal Detected: WilliamsRReversion@5m -> LONG
-📡 Signal Detected: WilliamsRReversion@15m -> LONG
-⚡ Tick: LTCUSDT 80.24
-⚡ Tick: LTCUSDT 80.24
-⚡ Tick: LTCUSDT 80.24
-🕯️ Candle Closed: 80.24 | Vol: 46468042.369
-⚡ Tick: LTCUSDT 80.24
-⚡ Tick: LTCUSDT 80.24
-⚡ Tick: LTCUSDT 79.98
-🕯️ Candle Closed: 79.98 | Vol: 46957348.80899999
-📡 Signal Detected: StochasticReversion@1m -> LONG
-📡 Signal Detected: StochasticReversion@5m -> LONG
-📡 Signal Detected: StochasticReversion@15m -> LONG
-📡 Signal Detected: DojiIndecision@5m -> SHORT
-⚡ Tick: LTCUSDT 79.89
-⚡ Tick: LTCUSDT 79.91
-🕯️ Candle Closed: 79.96 | Vol: 52113339.877
+⚡ Tick: BNBUSDT 882.99
+⚡ Tick: BNBUSDT 883.29
+🕯️ Candle Closed: 883.3 | Vol: 185527991.06000003
+⚡ Tick: BNBUSDT 883.31
+⚡ Tick: BNBUSDT 883.32
+⚡ Tick: BNBUSDT 883.36
+🕯️ Candle Closed: 883.36 | Vol: 171263849.16
 📡 Signal Detected: PinBarReversal@1m -> LONG
-⚡ Tick: LTCUSDT 80.01
-⚡ Tick: LTCUSDT 80.03
-⚡ Tick: LTCUSDT 79.95
-🕯️ Candle Closed: 80.02 | Vol: 54387343.652
+⚡ Tick: BNBUSDT 883.36
+⚡ Tick: BNBUSDT 883.33
+⚡ Tick: BNBUSDT 883.27
+🕯️ Candle Closed: 883.27 | Vol: 199807922.90000004
+⚡ Tick: BNBUSDT 883.38
+⚡ Tick: BNBUSDT 883.35
+🕯️ Candle Closed: 883.39 | Vol: 192671598.61999997
+⚡ Tick: BNBUSDT 883.39
+⚡ Tick: BNBUSDT 883.4
+⚡ Tick: BNBUSDT 883.42
+🕯️ Candle Closed: 883.43 | Vol: 185535331.70000002
+📡 Signal Detected: RSIReversion@1m -> SHORT
+📡 Signal Detected: RSIReversion@5m -> SHORT
+📡 Signal Detected: RSIReversion@15m -> SHORT
+⚡ Tick: BNBUSDT 883.41
+⚡ Tick: BNBUSDT 883.33
+⚡ Tick: BNBUSDT 883.41
+🕯️ Candle Closed: 883.42 | Vol: 206942943.47999996
+⚡ Tick: BNBUSDT 883.43
+⚡ Tick: BNBUSDT 883.44
+⚡ Tick: BNBUSDT 883.44
+🕯️ Candle Closed: 883.44 | Vol: 199807004.22000003
+⚡ Tick: BNBUSDT 883.45
+⚡ Tick: BNBUSDT 883.48
+⚡ Tick: BNBUSDT 883.52
+🕯️ Candle Closed: 883.51 | Vol: 206942369.89
+📡 Signal Detected: PinBarReversal@1m -> LONG
+📡 Signal Detected: PinBarReversal@5m -> LONG
+⚡ Tick: BNBUSDT 883.56
+⚡ Tick: BNBUSDT 883.68
+🕯️ Candle Closed: 883.78 | Vol: 185535285.69999993
+⚡ Tick: BNBUSDT 883.97
+⚡ Tick: BNBUSDT 884.0
+🕯️ Candle Closed: 884.0 | Vol: 156991598.32
+📡 Signal Detected: RSIReversion@1m -> SHORT
+📡 Signal Detected: RSIReversion@5m -> SHORT
+📡 Signal Detected: RSIReversion@15m -> SHORT
+📡 Signal Detected: Supertrend@5m -> LONG
+⚡ Tick: BNBUSDT 884.0
+⚡ Tick: BNBUSDT 884.0
+🕯️ Candle Closed: 884.0 | Vol: 142719447.16
+📡 Signal Detected: WilliamsRReversion@1m -> SHORT
+📡 Signal Detected: WilliamsRReversion@5m -> SHORT
+📡 Signal Detected: WilliamsRReversion@15m -> SHORT
+⚡ Tick: BNBUSDT 883.97
+⚡ Tick: BNBUSDT 883.84
+⚡ Tick: BNBUSDT 883.84
+🕯️ Candle Closed: 883.85 | Vol: 192665546.81
+⚡ Tick: BNBUSDT 883.88
+⚡ Tick: BNBUSDT 883.51
+⚡ Tick: BNBUSDT 883.37
+🕯️ Candle Closed: 883.38 | Vol: 192665038.74
+⚡ Tick: BNBUSDT 883.51
+⚡ Tick: BNBUSDT 883.51
+⚡ Tick: BNBUSDT 883.29
+🕯️ Candle Closed: 883.29 | Vol: 199790942.32999998
+⚡ Tick: BNBUSDT 883.51
+⚡ Tick: BNBUSDT 883.51
+🕯️ Candle Closed: 883.33 | Vol: 192637269.30999997
+📡 Signal Detected: PinBarReversal@1m -> SHORT
+⚡ Tick: BNBUSDT 883.34
+⚡ Tick: BNBUSDT 883.33
+⚡ Tick: BNBUSDT 883.33
+🕯️ Candle Closed: 883.33 | Vol: 206907283.73000002
 📡 Signal Detected: RSIReversion@1m -> LONG
 📡 Signal Detected: RSIReversion@5m -> LONG
 📡 Signal Detected: RSIReversion@15m -> LONG
-⚡ Tick: LTCUSDT 80.04
-⚡ Tick: LTCUSDT 80.05
-⚡ Tick: LTCUSDT 80.11
-🕯️ Candle Closed: 80.11 | Vol: 52444958.808000006
-📡 Signal Detected: DecelerationCandles@5m -> LONG
+⚡ Tick: BNBUSDT 883.33
+⚡ Tick: BNBUSDT 883.33
+⚡ Tick: BNBUSDT 883.33
+🕯️ Candle Closed: 883.33 | Vol: 185503307.31000003
+⚡ Tick: BNBUSDT 883.33
+⚡ Tick: BNBUSDT 883.97
+🕯️ Candle Closed: 883.37 | Vol: 192638155.4
+📡 Signal Detected: InsideBarBreakout@1m -> LONG
+📡 Signal Detected: CCIReversion@5m -> SHORT
+⚡ Tick: BNBUSDT 883.37
+⚡ Tick: BNBUSDT 883.97
+⚡ Tick: BNBUSDT 883.19
+🕯️ Candle Closed: 883.14 | Vol: 192635700.07
+⚡ Tick: BNBUSDT 883.1
+⚡ Tick: BNBUSDT 883.0
+🕯️ Candle Closed: 882.98 | Vol: 149827009.76999998
+📡 Signal Detected: VWAPBreakout@15m -> SHORT
+⚡ Tick: BNBUSDT 883.13
+⚡ Tick: BNBUSDT 882.96
+⚡ Tick: BNBUSDT 882.96
+🕯️ Candle Closed: 882.94 | Vol: 199762987.28000003
+📡 Signal Detected: RSIReversion@1m -> LONG
+📡 Signal Detected: RSIReversion@5m -> LONG
+📡 Signal Detected: RSIReversion@15m -> LONG
+📡 Signal Detected: VolumeImbalance@5m -> SHORT
+📡 Signal Detected: VolumeImbalance@15m -> SHORT
+📡 Signal Detected: VolatilityWakeup@5m -> SHORT
+📡 Signal Detected: VolatilityWakeup@15m -> SHORT
+⚡ Tick: BNBUSDT 883.1
+⚡ Tick: BNBUSDT 883.09
+⚡ Tick: BNBUSDT 883.01
+🕯️ Candle Closed: 883.0 | Vol: 192628589.49999997
+⚡ Tick: BNBUSDT 882.99
+⚡ Tick: BNBUSDT 882.97
+⚡ Tick: BNBUSDT 883.03
+🕯️ Candle Closed: 883.03 | Vol: 213111029.55
 📡 Signal Detected: DecelerationCandles@15m -> LONG
+📡 Signal Detected: CCIReversion@1m -> LONG
+📡 Signal Detected: CCIReversion@5m -> LONG
+📊 No consensus: LONG=1, SHORT=0 (need 2+)
+⚡ Tick: BNBUSDT 882.97
+⚡ Tick: BNBUSDT 882.97
+🕯️ Candle Closed: 882.97 | Vol: 191760149.42999998
+📡 Signal Detected: RailsPattern@5m -> SHORT
+⚡ Tick: BNBUSDT 882.96
+⚡ Tick: BNBUSDT 882.89
+⚡ Tick: BNBUSDT 882.97
+🕯️ Candle Closed: 882.97 | Vol: 198820468.12000003
+📡 Signal Detected: PinBarReversal@1m -> LONG
+📡 Signal Detected: VWAPBreakout@15m -> SHORT
+📡 Signal Detected: ADXFilter@15m -> LONG
+📡 Signal Detected: AdaptiveRSI@5m -> LONG
+📡 Signal Detected: AdaptiveRSI@15m -> LONG
+⚡ Tick: BNBUSDT 882.97
+⚡ Tick: BNBUSDT 882.97
+⚡ Tick: BNBUSDT 882.97
+🕯️ Candle Closed: 882.97 | Vol: 184619001.63
+📡 Signal Detected: RSIReversion@1m -> LONG
+📡 Signal Detected: RSIReversion@5m -> LONG
+📡 Signal Detected: RSIReversion@15m -> LONG
 📡 Signal Detected: WilliamsRReversion@1m -> LONG
-📡 Signal Detected: WickRejection@5m -> LONG
-📡 Signal Detected: WickRejection@15m -> LONG
-✅ CONSENSUS LONG: 2L/0S | Best: DecelerationCandles (score=0.824) | HTF: N/A
-🎯 Decision: LONG | Kelly Bet: 1.69% of 3412.22 | Sensor: DecelerationCandles
-📩 Decision Received: LTCUSDT LONG (Size: 1.69%, Step: 0)
-🔍 get_current_price | requested_symbol=LTCUSDT | adapter_symbol=LTCUSDT
-💰 Current price for LTCUSDT: 80.12
-📊 Order calculation: Equity=3412.22 | Size=1.69% | Value=57.76 | Price=80.12 | Amount=0.72100000 (raw=0.720940004469)
-📥 Execute order request: LONG LTCUSDT
-🛡️ Creating OCO bracket for LTCUSDT LONG | TP: 0.0390 | SL: 0.0250
-📤 Executing market order: buy 0.721 LTCUSDT
-📋 Sending Order: {'symbol': 'LTCUSDT', 'side': 'BUY', 'type': 'MARKET', 'quantity': 0.721, 'timestamp': 1764956402217, 'recvWindow': 20000}
-✅ Market order executed: 875994239 | Status: open
-⏳ Fill price not in response (status NEW?), waiting for fill...
-✅ Main order filled @ 80.12
-📈 Creating TP order @ 83.24468
-📤 Executing limit order: sell 0.721 LTCUSDT @ 83.24
-📋 Sending Order: {'symbol': 'LTCUSDT', 'side': 'SELL', 'type': 'LIMIT', 'quantity': 0.721, 'price': 83.24, 'timeInForce': 'GTC', 'timestamp': 1764956403843, 'recvWindow': 20000}
-✅ Limit order executed: 875994242 | Status: open
-📉 Creating SL order @ stop 78.117
-📤 Executing stop order: sell 0.721 LTCUSDT @ stop 78.12
-📋 Sending Order: {'symbol': 'LTCUSDT', 'side': 'SELL', 'type': 'STOP_MARKET', 'quantity': 0.721, 'stopPrice': 78.12, 'timestamp': 1764956404058, 'recvWindow': 20000}
-✅ Stop order executed: 875994243
-✅ OCO bracket created: Main=875994239, SL=875994243
-✅ Position opened: 875994239 | Entry: 80.12
-⚠️ Order Result: {'main_order': {'id': '875994239', 'order_id': '875994239', 'symbol': 'LTCUSDT', 'status': 'open', 'price': 0.0, 'amount': 0.721, 'filled': 0.0, 'type': 'market', 'side': 'buy', 'timestamp': 1764956402433, 'info': {'orderId': 875994239, 'symbol': 'LTCUSDT', 'status': 'NEW', 'clientOrderId': '3rTlYf5PfjBltNqC26yPsX', 'price': '0.00', 'avgPrice': '0.00', 'origQty': '0.721', 'executedQty': '0.000', 'cumQty': '0.000', 'cumQuote': '0.00000', 'timeInForce': 'GTC', 'type': 'MARKET', 'reduceOnly': False, 'closePosition': False, 'side': 'BUY', 'positionSide': 'BOTH', 'stopPrice': '0.00', 'workingType': 'CONTRACT_PRICE', 'priceProtect': False, 'origType': 'MARKET', 'priceMatch': 'NONE', 'selfTradePreventionMode': 'EXPIRE_MAKER', 'goodTillDate': 0, 'updateTime': 1764956402433}}, 'tp_order': {'id': '875994242', 'order_id': '875994242', 'symbol': 'LTCUSDT', 'status': 'open', 'price': 0.0, 'amount': 0.721, 'filled': 0.0, 'type': 'limit', 'side': 'sell', 'timestamp': 1764956404058, 'info': {'orderId': 875994242, 'symbol': 'LTCUSDT', 'status': 'NEW', 'clientOrderId': 'dkYtMNBRGLQqvHtNQTjcfS', 'price': '83.24', 'avgPrice': '0.00', 'origQty': '0.721', 'executedQty': '0.000', 'cumQty': '0.000', 'cumQuote': '0.00000', 'timeInForce': 'GTWebsocket exception: Connection timed out
-❌ WebSocket Error: Connection timed out
-ositionSide': 'BOTH', 'stopPrice': '0.00', 'workingType': 'CONTRACT_PRICE', 'priceProtect': False, 'origType': 'LIMIT', 'priceMatch': 'NONE', 'selfTradePreventionMode': 'EXPIRE_MAKER', 'goodTillDate': 0, 'updateTime': 1764956404058}}, 'sl_order': {'id': '875994243', 'order_id': '875994243', 'symbol': 'LTCUSDT', 'status': 'open', 'price': 0.0, 'amount': 0.721, 'filled': 0.0, 'type': 'stop_market', 'side': 'sell', 'timestamp': 1764956404272, 'info': {'orderId': 875994243, 'symbol': 'LTCUSDT', 'status': 'NEW', 'clientOrderId': 'WAWs5Bl2ON92t6MhLDHAIZ', 'price': '0.00', 'avgPrice': '0.00', 'origQty': '0.721', 'executedQty': '0.000', 'cumQty': '0.000', 'cumQuote': '0.00000', 'timeInForce': 'GTC', 'type': 'STOP_MARKET', 'reduceOnly': False, 'closePosition': False, 'side': 'SELL', 'positionSide': 'BOTH', 'stopPrice': '78.12', 'workingType': 'CONTRACT_PRICE', 'priceProtect': False, 'origType': 'STOP_MARKET', 'priceMatch': 'NONE', 'selfTradePreventionMode': 'EXPIRE_MAKER', 'goodTillDate': 0, 'updateTime': 1764956404272}}, 'fill_price': 80.12, 'tp_price': 83.24468, 'sl_price': 78.117, 'contributors': ['DecelerationCandles'], 'position': OpenPosition(trade_id='875994239', symbol='LTCUSDT', side='LONG', entry_price=80.12, entry_timestamp=1764956402433, margin_used=0, notional=0, leverage=1, tp_level=83.24468, sl_level=78.117, liquidation_level=0.4006, order={'trade_id': 'V3_1764956401744', 'symbol': 'LTCUSDT', 'side': 'LONG', 'size': 0.016927880278179236, 'amount': 0.721, 'take_profit': 0.039, 'stop_loss': 0.025, 'timestamp': '1764956401.7439601', 'ghost': False, 'contributors': ['DecelerationCandles']}, main_order_id='875994239', tp_order_id='875994242', sl_order_id='875994243', bars_held=0, funding_accrued=0.0, contributors=['DecelerationCandles'])}
-⚡ Tick: LTCUSDT 80.12
-⚡ Tick: LTCUSDT 80.09
-🕯️ Candle Closed: 80.06 | Vol: 50499021.32
-📡 Signal Detected: VWAPBreakout@5m -> SHORT
+📡 Signal Detected: VolumeImbalance@15m -> SHORT
+📡 Signal Detected: VolatilityWakeup@5m -> SHORT
+📡 Signal Detected: VolatilityWakeup@15m -> SHORT
+⚡ Tick: BNBUSDT 882.97
+⚡ Tick: BNBUSDT 882.97
+⚡ Tick: BNBUSDT 882.97
+🕯️ Candle Closed: 882.97 | Vol: 198820468.22
+📡 Signal Detected: StochasticReversion@1m -> LONG
+⚡ Tick: BNBUSDT 882.97
+⚡ Tick: BNBUSDT 882.97
+🕯️ Candle Closed: 882.97 | Vol: 163316810.10999998
+📡 Signal Detected: DecelerationCandles@15m -> LONG
 📡 Signal Detected: CCIReversion@1m -> LONG
 📡 Signal Detected: CCIReversion@5m -> LONG
 📡 Signal Detected: CCIReversion@15m -> LONG
-⚡ Tick: LTCUSDT 80.05
-⚡ Tick: LTCUSDT 80.09
-⚡ Tick: LTCUSDT 80.13
-🕯️ Candle Closed: 80.13 | Vol: 48554775.90699998
-📡 Signal Detected: StochasticReversion@1m -> LONG
-📡 Signal Detected: StochasticReversion@5m -> LONG
-⚡ Tick: LTCUSDT 80.16
-⚡ Tick: LTCUSDT 80.14
-🕯️ Candle Closed: 80.14 | Vol: 48551263.642000005
-📡 Signal Detected: PinBarReversal@15m -> LONG
-📡 Signal Detected: InsideBarBreakout@5m -> LONG
-📡 Signal Detected: ThreeBar@5m -> LONG
-⚡ Tick: LTCUSDT 80.16
-⚡ Tick: LTCUSDT 80.11
-⚡ Tick: LTCUSDT 80.12
-🕯️ Candle Closed: 80.13 | Vol: 46605961.313999996
-⚡ Tick: LTCUSDT 80.18
-⚡ Tick: LTCUSDT 80.16
-🕯️ Candle Closed: 80.18 | Vol: 50485470.117
-📡 Signal Detected: DecelerationCandles@15m -> LONG
-📡 Signal Detected: RSIReversion@1m -> SHORT
-📡 Signal Detected: RSIReversion@5m -> SHORT
-📡 Signal Detected: RSIReversion@15m -> SHORT
-📡 Signal Detected: VolumeImbalance@5m -> LONG
-📡 Signal Detected: VolatilityWakeup@5m -> LONG
-📡 Signal Detected: WickRejection@15m -> LONG
 📊 No consensus: LONG=1, SHORT=0 (need 2+)
-⚡ Tick: LTCUSDT 80.18
-⚡ Tick: LTCUSDT 80.13
-⚡ Tick: LTCUSDT 80.18
-🕯️ Candle Closed: 80.19 | Vol: 54362315.948
-⚡ Tick: LTCUSDT 80.21
-⚡ Tick: LTCUSDT 80.26
-⚡ Tick: LTCUSDT 80.27
-🕯️ Candle Closed: 80.27 | Vol: 48543047.827999994
-📡 Signal Detected: BollingerRejection@15m -> LONG
-📡 Signal Detected: SupportResistance@15m -> LONG
-⚡ Tick: LTCUSDT 80.28
-⚡ Tick: LTCUSDT 80.36
-🕯️ Candle Closed: 80.38 | Vol: 48542171.932000004
-📡 Signal Detected: PinBarReversal@15m -> LONG
-⚡ Tick: LTCUSDT 80.45
-⚡ Tick: LTCUSDT 80.37
-⚡ Tick: LTCUSDT 80.37
-🕯️ Candle Closed: 80.37 | Vol: 50698668.353999995
-📡 Signal Detected: CCIReversion@1m -> SHORT
+⚡ Tick: BNBUSDT 882.97
+⚡ Tick: BNBUSDT 882.97
+🕯️ Candle Closed: 882.97 | Vol: 141750485.65999997
+⚡ Tick: BNBUSDT 882.97
+⚡ Tick: BNBUSDT 882.97
+⚡ Tick: BNBUSDT 882.97
+🕯️ Candle Closed: 882.89 | Vol: 197201529.01000002
+📡 Signal Detected: PinBarReversal@1m -> SHORT
+📡 Signal Detected: InsideBarBreakout@1m -> SHORT
 📡 Signal Detected: ADXFilter@5m -> SHORT
-📡 Signal Detected: ADXFilter@15m -> SHORT
-📡 Signal Detected: ADXFilter@1h -> SHORT
-📡 Signal Detected: MicroTrend@1m -> SHORT
-⚡ Tick: LTCUSDT 80.37
-⚡ Tick: LTCUSDT 80.37
-⚡ Tick: LTCUSDT 80.37
-🕯️ Candle Closed: 80.37 | Vol: 54608744.55
+📡 Signal Detected: ADXFilter@15m -> LONG
+📡 Signal Detected: AdaptiveRSI@5m -> LONG
+📡 Signal Detected: AdaptiveRSI@15m -> LONG
+⚡ Tick: BNBUSDT 882.97
+⚡ Tick: BNBUSDT 882.97
+⚡ Tick: BNBUSDT 882.97
+🕯️ Candle Closed: 882.97 | Vol: 203488056.77000004
 📡 Signal Detected: RSIReversion@1m -> SHORT
 📡 Signal Detected: RSIReversion@5m -> SHORT
 📡 Signal Detected: RSIReversion@15m -> SHORT
-📡 Signal Detected: VolumeImbalance@15m -> LONG
-📡 Signal Detected: VolatilityWakeup@5m -> LONG
-📡 Signal Detected: WickRejection@15m -> LONG
-⚡ Tick: LTCUSDT 80.39
-⚡ Tick: LTCUSDT 80.37
-🕯️ Candle Closed: 80.36 | Vol: 48760648.125
-📡 Signal Detected: AdaptiveRSI@5m -> SHORT
-📡 Signal Detected: AdaptiveRSI@15m -> SHORT
-⚡ Tick: LTCUSDT 80.38
-⚡ Tick: LTCUSDT 80.44
-🕯️ Candle Closed: 80.45 | Vol: 46812782.29799999
-📡 Signal Detected: DecelerationCandles@5m -> SHORT
-📡 Signal Detected: DecelerationCandles@15m -> SHORT
-✅ CONSENSUS SHORT: 0L/2S | Best: DecelerationCandles (score=0.824) | HTF: N/A
-⚡ Tick: LTCUSDT 80.45
-⚡ Tick: LTCUSDT 80.5
-⚡ Tick: LTCUSDT 80.58
-🕯️ Candle Closed: 80.67 | Vol: 49659745.378999986
-📡 Signal Detected: MarubozuMomentum@5m -> LONG
-📡 Signal Detected: MarubozuMomentum@15m -> LONG
+📡 Signal Detected: WilliamsRReversion@1m -> LONG
+⚡ Tick: BNBUSDT 882.97
+⚡ Tick: BNBUSDT 882.97
+🕯️ Candle Closed: 882.97 | Vol: 195678602.16
+📡 Signal Detected: StochasticReversion@1m -> LONG
+⚡ Tick: BNBUSDT 882.97
+⚡ Tick: BNBUSDT 882.97
+⚡ Tick: BNBUSDT 882.97
+🕯️ Candle Closed: 882.97 | Vol: 195547605.83
+📡 Signal Detected: MACDCrossover@5m -> LONG
+📡 Signal Detected: MACDCrossover@15m -> LONG
+📡 Signal Detected: MACDCrossover@1h -> LONG
+📡 Signal Detected: CCIReversion@1m -> LONG
+📡 Signal Detected: CCIReversion@5m -> LONG
+📡 Signal Detected: CCIReversion@15m -> LONG
+⚡ Tick: BNBUSDT 882.97
+⚡ Tick: BNBUSDT 882.97
+⚡ Tick: BNBUSDT 882.89
+🕯️ Candle Closed: 882.97 | Vol: 202536510.97000003
+📡 Signal Detected: MomentumBurst@1m -> LONG
+📡 Signal Detected: MomentumBurst@5m -> LONG
+📡 Signal Detected: MomentumBurst@15m -> LONG
+⚡ Tick: BNBUSDT 882.97
+⚡ Tick: BNBUSDT 882.97
+⚡ Tick: BNBUSDT 882.97
+🕯️ Candle Closed: 882.97 | Vol: 195553160.45000008
+📡 Signal Detected: PinBarReversal@5m -> LONG
+📡 Signal Detected: PinBarReversal@15m -> LONG
+📡 Signal Detected: ADXFilter@5m -> SHORT
+📡 Signal Detected: ADXFilter@15m -> LONG
+📡 Signal Detected: AdaptiveRSI@5m -> LONG
+📡 Signal Detected: AdaptiveRSI@15m -> LONG
+⚡ Tick: BNBUSDT 882.97
+⚡ Tick: BNBUSDT 882.97
+⚡ Tick: BNBUSDT 883.52
+🕯️ Candle Closed: 883.52 | Vol: 195553250.87
+📡 Signal Detected: VWAPBreakout@5m -> LONG
+📡 Signal Detected: VWAPBreakout@15m -> LONG
 📡 Signal Detected: ExtremeCandleRatio@1m -> LONG
-📡 Signal Detected: ExtremeCandleRatio@5m -> LONG
-📡 Signal Detected: ExtremeCandleRatio@15m -> LONG
+📡 Signal Detected: InsideBarBreakout@15m -> LONG
+📡 Signal Detected: RSIReversion@1m -> SHORT
+📡 Signal Detected: RSIReversion@5m -> SHORT
+📡 Signal Detected: RSIReversion@15m -> SHORT
 📡 Signal Detected: BollingerTouch@1m -> SHORT
 📡 Signal Detected: BollingerTouch@5m -> SHORT
 📡 Signal Detected: BollingerTouch@15m -> SHORT
 📡 Signal Detected: KeltnerReversion@1m -> SHORT
-📡 Signal Detected: WilliamsRReversion@1m -> SHORT
-📡 Signal Detected: WilliamsRReversion@5m -> SHORT
-📡 Signal Detected: WilliamsRReversion@15m -> SHORT
 📡 Signal Detected: ZScoreReversion@1m -> SHORT
 📡 Signal Detected: ZScoreReversion@5m -> SHORT
 📡 Signal Detected: ZScoreReversion@15m -> SHORT
-⚡ Tick: LTCUSDT 80.64
-⚡ Tick: LTCUSDT 80.65
-🕯️ Candle Closed: 80.65 | Vol: 48724451.65699999
-📡 Signal Detected: StochasticReversion@1m -> SHORT
-📡 Signal Detected: StochasticReversion@5m -> SHORT
-📡 Signal Detected: StochasticReversion@15m -> SHORT
-📡 Signal Detected: CCIReversion@1m -> SHORT
-📡 Signal Detected: CCIReversion@5m -> SHORT
-📡 Signal Detected: CCIReversion@15m -> SHORT
-📡 Signal Detected: ADXFilter@15m -> LONG
-📡 Signal Detected: ADXFilter@1h -> SHORT
-📡 Signal Detected: MicroTrend@1m -> SHORT
-⚡ Tick: LTCUSDT 80.65
-⚡ Tick: LTCUSDT 80.65
-⚡ Tick: LTCUSDT 80.65
-🕯️ Candle Closed: 80.65 | Vol: 56845305.33399999
-📡 Signal Detected: VWAPBreakout@5m -> LONG
-📡 Signal Detected: RSIReversion@1m -> SHORT
-📡 Signal Detected: RSIReversion@5m -> SHORT
-📡 Signal Detected: RSIReversion@15m -> SHORT
 📡 Signal Detected: VolumeImbalance@5m -> LONG
-📡 Signal Detected: VolatilityWakeup@5m -> LONG
-📡 Signal Detected: VWAPMomentum@5m -> LONG
-⚡ Tick: LTCUSDT 80.65
-⚡ Tick: LTCUSDT 80.65
-⚡ Tick: LTCUSDT 80.65
-🕯️ Candle Closed: 80.65 | Vol: 50754662.024
-📡 Signal Detected: AdaptiveRSI@5m -> SHORT
-📡 Signal Detected: AdaptiveRSI@15m -> SHORT
-⚡ Tick: LTCUSDT 80.65
-⚡ Tick: LTCUSDT 80.65
-🕯️ Candle Closed: 80.65 | Vol: 54811962.55199999
-⚡ Tick: LTCUSDT 80.65
-⚡ Tick: LTCUSDT 80.65
-⚡ Tick: LTCUSDT 80.65
-🕯️ Candle Closed: 80.65 | Vol: 58872097.244000025
-📡 Signal Detected: ExtremeCandleRatio@15m -> LONG
-📡 Signal Detected: KeltnerReversion@1m -> SHORT
-📡 Signal Detected: WilliamsRReversion@1m -> SHORT
-📡 Signal Detected: WilliamsRReversion@5m -> SHORT
-📡 Signal Detected: WilliamsRReversion@15m -> SHORT
-📡 Signal Detected: ZScoreReversion@1m -> SHORT
-📡 Signal Detected: ZScoreReversion@5m -> SHORT
-📡 Signal Detected: ZScoreReversion@15m -> SHORT
-⚡ Tick: LTCUSDT 80.65
-⚡ Tick: LTCUSDT 80.65
-⚡ Tick: LTCUSDT 80.65
-🕯️ Candle Closed: 80.65 | Vol: 52781146.48600002
-📡 Signal Detected: StochasticReversion@1m -> SHORT
-📡 Signal Detected: StochasticReversion@5m -> SHORT
-📡 Signal Detected: StochasticReversion@15m -> SHORT
-📡 Signal Detected: CCIReversion@1m -> SHORT
-📡 Signal Detected: CCIReversion@5m -> SHORT
-📡 Signal Detected: CCIReversion@15m -> SHORT
-📡 Signal Detected: ADXFilter@15m -> LONG
-📡 Signal Detected: ADXFilter@1h -> SHORT
-⚡ Tick: LTCUSDT 80.65
-⚡ Tick: LTCUSDT 80.65
-⚡ Tick: LTCUSDT 80.65
-🕯️ Candle Closed: 80.65 | Vol: 54811195.481
-📡 Signal Detected: VWAPBreakout@15m -> LONG
-📡 Signal Detected: RSIReversion@1m -> SHORT
-📡 Signal Detected: RSIReversion@5m -> SHORT
-📡 Signal Detected: RSIReversion@15m -> SHORT
 📡 Signal Detected: VolumeImbalance@15m -> LONG
-⚡ Tick: LTCUSDT 80.65
-⚡ Tick: LTCUSDT 80.65
-🕯️ Candle Closed: 80.65 | Vol: 54811143.022
-📡 Signal Detected: AdaptiveRSI@5m -> SHORT
-📡 Signal Detected: AdaptiveRSI@15m -> SHORT
-⚡ Tick: LTCUSDT 80.65
-⚡ Tick: LTCUSDT 80.65
-⚡ Tick: LTCUSDT 80.65
-🕯️ Candle Closed: 80.65 | Vol: 52781127.826000005
-📡 Signal Detected: SupportResistance@15m -> LONG
-⚡ Tick: LTCUSDT 80.65
-⚡ Tick: LTCUSDT 80.65
-⚡ Tick: LTCUSDT 80.65
-🕯️ Candle Closed: 80.65 | Vol: 54811020.65400001
-📡 Signal Detected: PinBarReversal@1m -> SHORT
-📡 Signal Detected: PinBarReversal@5m -> SHORT
-📡 Signal Detected: ExtremeCandleRatio@15m -> LONG
-📡 Signal Detected: KeltnerReversion@1m -> SHORT
-📡 Signal Detected: WilliamsRReversion@1m -> SHORT
-📡 Signal Detected: WilliamsRReversion@5m -> SHORT
-📡 Signal Detected: WilliamsRReversion@15m -> SHORT
-⚡ Tick: LTCUSDT 80.65
-⚡ Tick: LTCUSDT 80.65
-🕯️ Candle Closed: 80.65 | Vol: 56841269.993999995
-📡 Signal Detected: StochasticReversion@1m -> SHORT
-📡 Signal Detected: StochasticReversion@5m -> SHORT
-📡 Signal Detected: StochasticReversion@15m -> SHORT
-📡 Signal Detected: CCIReversion@1m -> SHORT
-📡 Signal Detected: CCIReversion@5m -> SHORT
-📡 Signal Detected: CCIReversion@15m -> SHORT
-📡 Signal Detected: ADXFilter@5m -> LONG
-📡 Signal Detected: ADXFilter@15m -> LONG
-⚡ Tick: LTCUSDT 80.65
-⚡ Tick: LTCUSDT 80.65
-⚡ Tick: LTCUSDT 80.65
-🕯️ Candle Closed: 80.65 | Vol: 46690791.196
-📡 Signal Detected: VWAPBreakout@15m -> LONG
-📡 Signal Detected: RSIReversion@1m -> SHORT
-📡 Signal Detected: RSIReversion@5m -> SHORT
-📡 Signal Detected: RSIReversion@15m -> SHORT
-📡 Signal Detected: VolumeImbalance@15m -> LONG
-⚡ Tick: LTCUSDT 80.65
-⚡ Tick: LTCUSDT 80.65
-🕯️ Candle Closed: 80.65 | Vol: 54810876.622999996
-📡 Signal Detected: AdaptiveRSI@5m -> SHORT
-📡 Signal Detected: AdaptiveRSI@15m -> SHORT
-⚡ Tick: LTCUSDT 80.65
-⚡ Tick: LTCUSDT 80.69
-⚡ Tick: LTCUSDT 80.7
-🕯️ Candle Closed: 80.7 | Vol: 46748200.841
-📡 Signal Detected: InsideBarBreakout@1m -> LONG
-📡 Signal Detected: InsideBarBreakout@5m -> LONG
-📡 Signal Detected: Supertrend@5m -> LONG
-📡 Signal Detected: MomentumBurst@1m -> SHORT
-📡 Signal Detected: MomentumBurst@5m -> SHORT
-📡 Signal Detected: MomentumBurst@15m -> SHORT
 📡 Signal Detected: KeltnerBreakout@5m -> LONG
-⚡ Tick: LTCUSDT 80.74
-⚡ Tick: LTCUSDT 80.78
-🕯️ Candle Closed: 80.8 | Vol: 48959072.58999999
-📡 Signal Detected: KeltnerReversion@1m -> SHORT
-📡 Signal Detected: KeltnerReversion@5m -> SHORT
-📡 Signal Detected: WilliamsRReversion@1m -> SHORT
-📡 Signal Detected: WilliamsRReversion@5m -> SHORT
-📡 Signal Detected: WilliamsRReversion@15m -> SHORT
-⚡ Tick: LTCUSDT 80.81
-⚡ Tick: LTCUSDT 80.88
-⚡ Tick: LTCUSDT 80.95
-🕯️ Candle Closed: 80.94 | Vol: 51254078.31799998
-📡 Signal Detected: ExtremeCandleRatio@5m -> LONG
-📡 Signal Detected: StochasticReversion@1m -> SHORT
-📡 Signal Detected: StochasticReversion@5m -> SHORT
-📡 Signal Detected: StochasticReversion@15m -> SHORT
-📡 Signal Detected: CCIReversion@1m -> SHORT
-📡 Signal Detected: CCIReversion@5m -> SHORT
-📡 Signal Detected: CCIReversion@15m -> SHORT
-📡 Signal Detected: ADXFilter@5m -> LONG
-📡 Signal Detected: ADXFilter@15m -> LONG
-📡 Signal Detected: ADXFilter@1h -> LONG
-⚡ Tick: LTCUSDT 80.95
-⚡ Tick: LTCUSDT 80.95
-🕯️ Candle Closed: 80.93 | Vol: 55614258.86100001
-📡 Signal Detected: VWAPBreakout@5m -> LONG
-📡 Signal Detected: RSIReversion@1m -> SHORT
-📡 Signal Detected: RSIReversion@5m -> SHORT
-📡 Signal Detected: RSIReversion@15m -> SHORT
-📡 Signal Detected: VolumeImbalance@5m -> LONG
-⚡ Tick: LTCUSDT 80.96
-⚡ Tick: LTCUSDT 80.9
-⚡ Tick: LTCUSDT 80.96
-🕯️ Candle Closed: 80.96 | Vol: 53551448.257
-📡 Signal Detected: EMA50Support@1h -> LONG
-📡 Signal Detected: MTFImpulse@5m -> LONG
-📡 Signal Detected: AdaptiveRSI@5m -> SHORT
-📡 Signal Detected: AdaptiveRSI@15m -> SHORT
-📡 Signal Detected: HurstRegime@5m -> LONG
-📡 Signal Detected: HurstRegime@15m -> LONG
-📡 Signal Detected: VWAPMomentum@5m -> LONG
-📡 Signal Detected: SupportResistance@5m -> LONG
-⚡ Tick: LTCUSDT 80.98
-⚡ Tick: LTCUSDT 81.0
-⚡ Tick: LTCUSDT 80.97
-🕯️ Candle Closed: 80.97 | Vol: 59772088.83399999
-📡 Signal Detected: PinBarReversal@1m -> SHORT
-📡 Signal Detected: PinBarReversal@5m -> SHORT
-📡 Signal Detected: KeltnerBreakout@5m -> LONG
-⚡ Tick: LTCUSDT 81.01
-⚡ Tick: LTCUSDT 80.97
-🕯️ Candle Closed: 80.94 | Vol: 49489805.421
-📡 Signal Detected: KeltnerReversion@1m -> SHORT
-📡 Signal Detected: KeltnerReversion@5m -> SHORT
-📡 Signal Detected: WilliamsRReversion@1m -> SHORT
-📡 Signal Detected: WilliamsRReversion@5m -> SHORT
-📡 Signal Detected: WilliamsRReversion@15m -> SHORT
-⚡ Tick: LTCUSDT 80.93
-⚡ Tick: LTCUSDT 80.97
-⚡ Tick: LTCUSDT 80.93
-🕯️ Candle Closed: 80.93 | Vol: 51405801.286
-📡 Signal Detected: DecelerationCandles@15m -> SHORT
-📡 Signal Detected: StochasticReversion@1m -> SHORT
-📡 Signal Detected: StochasticReversion@5m -> SHORT
-📡 Signal Detected: StochasticReversion@15m -> SHORT
-📡 Signal Detected: CCIReversion@1m -> SHORT
-📡 Signal Detected: CCIReversion@5m -> SHORT
-📡 Signal Detected: CCIReversion@15m -> SHORT
-📡 Signal Detected: ADXFilter@5m -> LONG
-📡 Signal Detected: ADXFilter@15m -> LONG
-📡 Signal Detected: ADXFilter@1h -> LONG
-📊 No consensus: LONG=0, SHORT=1 (need 2+)
-⚡ Tick: LTCUSDT 80.93
-⚡ Tick: LTCUSDT 80.91
-🕯️ Candle Closed: 80.9 | Vol: 53432680.477
-📡 Signal Detected: VWAPBreakout@15m -> LONG
-📡 Signal Detected: RSIReversion@1m -> SHORT
-📡 Signal Detected: RSIReversion@5m -> SHORT
-📡 Signal Detected: RSIReversion@15m -> SHORT
-📡 Signal Detected: VolumeImbalance@5m -> SHORT
-⚡ Tick: LTCUSDT 80.92
-⚡ Tick: LTCUSDT 80.91
-🕯️ Candle Closed: 80.94 | Vol: 45164111.90099999
-📡 Signal Detected: EMA50Support@1h -> LONG
-📡 Signal Detected: MTFImpulse@5m -> LONG
-📡 Signal Detected: AdaptiveRSI@5m -> SHORT
-📡 Signal Detected: AdaptiveRSI@15m -> SHORT
-📡 Signal Detected: HurstRegime@5m -> LONG
-📡 Signal Detected: HurstRegime@15m -> LONG
-⚡ Tick: LTCUSDT 80.95
-⚡ Tick: LTCUSDT 80.93
-⚡ Tick: LTCUSDT 80.93
-🕯️ Candle Closed: 80.9 | Vol: 53374011.14099999
-📡 Signal Detected: MACDCrossover@5m -> SHORT
-📡 Signal Detected: MACDCrossover@15m -> SHORT
-📡 Signal Detected: MACDCrossover@1h -> SHORT
-⚡ Tick: LTCUSDT 80.95
-⚡ Tick: LTCUSDT 80.9
-⚡ Tick: LTCUSDT 80.89
-🕯️ Candle Closed: 80.89 | Vol: 53374019.352000006
-📡 Signal Detected: PinBarReversal@1m -> SHORT
-📡 Signal Detected: KeltnerReversion@1m -> SHORT
-📡 Signal Detected: KeltnerReversion@5m -> SHORT
-📡 Signal Detected: WilliamsRReversion@1m -> SHORT
-📡 Signal Detected: WilliamsRReversion@5m -> SHORT
-📡 Signal Detected: WilliamsRReversion@15m -> SHORT
-⚡ Tick: LTCUSDT 80.88
-⚡ Tick: LTCUSDT 80.87
-🕯️ Candle Closed: 80.86 | Vol: 55426561.149000004
-📡 Signal Detected: DecelerationCandles@15m -> SHORT
-📡 Signal Detected: StochasticReversion@1m -> SHORT
-📡 Signal Detected: StochasticReversion@5m -> SHORT
-📡 Signal Detected: StochasticReversion@15m -> SHORT
-📡 Signal Detected: CCIReversion@1m -> SHORT
-📡 Signal Detected: CCIReversion@5m -> SHORT
-📡 Signal Detected: CCIReversion@15m -> SHORT
-📡 Signal Detected: ADXFilter@5m -> LONG
-📡 Signal Detected: ADXFilter@15m -> LONG
-📡 Signal Detected: ADXFilter@1h -> LONG
-📊 No consensus: LONG=0, SHORT=1 (need 2+)
-⚡ Tick: LTCUSDT 80.86
-⚡ Tick: LTCUSDT 80.85
-⚡ Tick: LTCUSDT 80.84
-🕯️ Candle Closed: 80.84 | Vol: 55426566.42
-📡 Signal Detected: VWAPBreakout@15m -> LONG
-📡 Signal Detected: RSIReversion@1m -> LONG
-📡 Signal Detected: RSIReversion@5m -> LONG
-📡 Signal Detected: RSIReversion@15m -> LONG
-📡 Signal Detected: Supertrend@5m -> SHORT
-📡 Signal Detected: VolumeImbalance@5m -> SHORT
-📡 Signal Detected: VolatilityWakeup@5m -> SHORT
-⚡ Tick: LTCUSDT 80.82
-⚡ Tick: LTCUSDT 80.8
-⚡ Tick: LTCUSDT 80.77
-🕯️ Candle Closed: 80.77 | Vol: 51320907.69400001
-📡 Signal Detected: EMA50Support@1h -> LONG
-📡 Signal Detected: MTFImpulse@5m -> LONG
-📡 Signal Detected: AdaptiveRSI@5m -> SHORT
-📡 Signal Detected: AdaptiveRSI@15m -> SHORT
-📡 Signal Detected: HurstRegime@5m -> SHORT
-📡 Signal Detected: HurstRegime@15m -> SHORT
-📡 Signal Detected: SupportResistance@5m -> SHORT
-⚡ Tick: LTCUSDT 80.73
-⚡ Tick: LTCUSDT 80.69
-❌ Error renewing listen key: HTTPSConnectionPool(host='testnet.binancefuture.com', port=443): Read timed out. (read timeout=None)
-🕯️ Candle Closed: 80.67 | Vol: 53373759.639000006
-⚡ Tick: LTCUSDT 80.66
-⚡ Tick: LTCUSDT 80.65
-⚡ Tick: LTCUSDT 80.65
-🕯️ Candle Closed: 80.65 | Vol: 51320936.90400001
-📡 Signal Detected: InsideBarBreakout@15m -> SHORT
-📡 Signal Detected: ThreeBar@15m -> SHORT
-⚡ Tick: LTCUSDT 80.65
-⚡ Tick: LTCUSDT 80.65
-🕯️ Candle Closed: 80.65 | Vol: 55363376.299
-📡 Signal Detected: ADXFilter@5m -> LONG
-📡 Signal Detected: ADXFilter@15m -> LONG
-📡 Signal Detected: ADXFilter@1h -> LONG
-⚡ Tick: LTCUSDT 80.65
-⚡ Tick: LTCUSDT 80.65
-⚡ Tick: LTCUSDT 80.65
-🕯️ Candle Closed: 80.65 | Vol: 55203172.907
-📡 Signal Detected: RSIReversion@1m -> LONG
-📡 Signal Detected: RSIReversion@5m -> LONG
-📡 Signal Detected: RSIReversion@15m -> LONG
-📡 Signal Detected: VolumeImbalance@5m -> SHORT
-📡 Signal Detected: VolatilityWakeup@5m -> SHORT
-⚡ Tick: LTCUSDT 80.65
-⚡ Tick: LTCUSDT 80.29
-⚠️ User Data Stream connection closed, attempting reconnect...
-⚠️ User Data Stream connection closed, attempting reconnect...
-🕯️ Candle Closed: 80.29 | Vol: 37810377.76399999
-📡 Signal Detected: EMACrossover@5m -> SHORT
-📡 Signal Detected: EMACrossover@15m -> SHORT
-📡 Signal Detected: EMACrossover@1h -> SHORT
-📡 Signal Detected: EMA50Support@5m -> SHORT
-📡 Signal Detected: EMA50Support@15m -> SHORT
-📡 Signal Detected: EMA50Support@1h -> SHORT
-📡 Signal Detected: MarubozuMomentum@5m -> SHORT
-📡 Signal Detected: MarubozuMomentum@15m -> SHORT
-📡 Signal Detected: ExtremeCandleRatio@1m -> SHORT
-📡 Signal Detected: ExtremeCandleRatio@5m -> SHORT
-📡 Signal Detected: ExtremeCandleRatio@15m -> SHORT
-📡 Signal Detected: BollingerTouch@1m -> LONG
-📡 Signal Detected: BollingerTouch@5m -> LONG
-📡 Signal Detected: BollingerTouch@15m -> LONG
-📡 Signal Detected: KeltnerReversion@1m -> LONG
-📡 Signal Detected: WilliamsRReversion@1m -> LONG
-📡 Signal Detected: WilliamsRReversion@5m -> LONG
-📡 Signal Detected: ZScoreReversion@1m -> LONG
-📡 Signal Detected: ZScoreReversion@5m -> LONG
-📡 Signal Detected: ZScoreReversion@15m -> LONG
-📡 Signal Detected: HurstRegime@5m -> SHORT
-📡 Signal Detected: HurstRegime@15m -> SHORT
-📡 Signal Detected: KeltnerBreakout@5m -> SHORT
-⚡ Tick: LTCUSDT 80.3
-🕯️ Candle Closed: 80.3 | Vol: 31895268.169000003
-⚡ Tick: LTCUSDT 80.31
-⚡ Tick: LTCUSDT 80.33
-⚡ Tick: LTCUSDT 80.34
-🕯️ Candle Closed: 80.34 | Vol: 48906065.006
-📡 Signal Detected: DecelerationCandles@15m -> LONG
-📡 Signal Detected: StochasticReversion@1m -> LONG
-📡 Signal Detected: StochasticReversion@5m -> LONG
-📡 Signal Detected: FVGRetest@5m -> SHORT
-📊 No consensus: LONG=1, SHORT=0 (need 2+)
-⚡ Tick: LTCUSDT 80.26
-⚡ Tick: LTCUSDT 80.26
-🕯️ Candle Closed: 80.26 | Vol: 51032404.276999995
-📡 Signal Detected: ADXFilter@5m -> LONG
-📡 Signal Detected: ADXFilter@15m -> LONG
-📡 Signal Detected: ADXFilter@1h -> SHORT
-⚡ Tick: LTCUSDT 80.26
-⚡ Tick: LTCUSDT 80.26
-⚡ Tick: LTCUSDT 80.21
-🕯️ Candle Closed: 80.22 | Vol: 53158655.297
-📡 Signal Detected: RSIReversion@1m -> LONG
-📡 Signal Detected: RSIReversion@5m -> LONG
-📡 Signal Detected: RSIReversion@15m -> LONG
-📡 Signal Detected: VolumeImbalance@5m -> SHORT
-📡 Signal Detected: VolumeImbalance@15m -> SHORT
-📡 Signal Detected: VolatilityWakeup@5m -> SHORT
-⚡ Tick: LTCUSDT 80.16
-⚡ Tick: LTCUSDT 80.08
-🕯️ Candle Closed: 80.06 | Vol: 55284902.12499999
-📡 Signal Detected: EMA50Support@15m -> SHORT
-📡 Signal Detected: EMA50Support@1h -> SHORT
-📡 Signal Detected: MarubozuMomentum@15m -> SHORT
-📡 Signal Detected: VWAPBreakout@5m -> SHORT
-📡 Signal Detected: VWAPBreakout@15m -> SHORT
-📡 Signal Detected: ExtremeCandleRatio@15m -> SHORT
-📡 Signal Detected: BollingerTouch@1m -> LONG
-📡 Signal Detected: BollingerTouch@5m -> LONG
-📡 Signal Detected: BollingerTouch@15m -> LONG
-📡 Signal Detected: KeltnerReversion@1m -> LONG
-📡 Signal Detected: KeltnerReversion@5m -> LONG
-📡 Signal Detected: WilliamsRReversion@1m -> LONG
-📡 Signal Detected: WilliamsRReversion@5m -> LONG
-📡 Signal Detected: WilliamsRReversion@15m -> LONG
-📡 Signal Detected: ZScoreReversion@1m -> LONG
-📡 Signal Detected: ZScoreReversion@5m -> LONG
-📡 Signal Detected: ZScoreReversion@15m -> LONG
-📡 Signal Detected: HurstRegime@5m -> SHORT
-📡 Signal Detected: HurstRegime@15m -> SHORT
-📡 Signal Detected: KeltnerBreakout@5m -> SHORT
-📡 Signal Detected: VWAPMomentum@5m -> SHORT
-⚡ Tick: LTCUSDT 80.04
-⚡ Tick: LTCUSDT 80.03
-⚡ Tick: LTCUSDT 80.02
-🕯️ Candle Closed: 80.02 | Vol: 55277057.33800001
-📡 Signal Detected: CCIReversion@1m -> LONG
-📡 Signal Detected: CCIReversion@5m -> LONG
-⚡ Tick: LTCUSDT 80.01
-⚡ Tick: LTCUSDT 80.0
-🕯️ Candle Closed: 79.99 | Vol: 55277103.76199999
-📡 Signal Detected: StochasticReversion@1m -> LONG
-📡 Signal Detected: StochasticReversion@5m -> LONG
-⚡ Tick: LTCUSDT 79.98
-⚡ Tick: LTCUSDT 79.98
-⚡ Tick: LTCUSDT 79.97
-🕯️ Candle Closed: 79.96 | Vol: 57402280.81999999
-📡 Signal Detected: ADXFilter@5m -> SHORT
-📡 Signal Detected: ADXFilter@15m -> LONG
-📡 Signal Detected: ADXFilter@1h -> SHORT
-📡 Signal Detected: FVGRetest@5m -> SHORT
-📡 Signal Detected: AdaptiveRSI@5m -> LONG
-📡 Signal Detected: AdaptiveRSI@15m -> LONG
-⚡ Tick: LTCUSDT 79.96
-⚡ Tick: LTCUSDT 79.99
-⚡ Tick: LTCUSDT 79.99
-🕯️ Candle Closed: 79.99 | Vol: 55276288.598000005
-📡 Signal Detected: RSIReversion@1m -> LONG
-📡 Signal Detected: RSIReversion@5m -> LONG
-📡 Signal Detected: RSIReversion@15m -> LONG
-📡 Signal Detected: VolumeImbalance@15m -> SHORT
-📡 Signal Detected: VolatilityWakeup@5m -> SHORT
-⚡ Tick: LTCUSDT 79.99
-⚡ Tick: LTCUSDT 79.95
-🕯️ Candle Closed: 79.95 | Vol: 59528253.749
-📡 Signal Detected: EMA50Support@15m -> SHORT
-📡 Signal Detected: EMA50Support@1h -> SHORT
-📡 Signal Detected: MarubozuMomentum@15m -> SHORT
-📡 Signal Detected: VWAPBreakout@5m -> SHORT
-📡 Signal Detected: VWAPBreakout@15m -> SHORT
-📡 Signal Detected: ExtremeCandleRatio@15m -> SHORT
-📡 Signal Detected: BollingerTouch@1m -> LONG
-📡 Signal Detected: BollingerTouch@5m -> LONG
-📡 Signal Detected: BollingerTouch@15m -> LONG
-📡 Signal Detected: KeltnerReversion@1m -> LONG
-📡 Signal Detected: KeltnerReversion@5m -> LONG
-📡 Signal Detected: WilliamsRReversion@1m -> LONG
-📡 Signal Detected: WilliamsRReversion@5m -> LONG
-📡 Signal Detected: WilliamsRReversion@15m -> LONG
-📡 Signal Detected: ZScoreReversion@1m -> LONG
-📡 Signal Detected: ZScoreReversion@5m -> LONG
-📡 Signal Detected: ZScoreReversion@15m -> LONG
-📡 Signal Detected: MTFImpulse@5m -> SHORT
-📡 Signal Detected: HurstRegime@5m -> SHORT
-📡 Signal Detected: HurstRegime@15m -> SHORT
-📡 Signal Detected: KeltnerBreakout@5m -> SHORT
-📡 Signal Detected: VWAPMomentum@5m -> SHORT
-📡 Signal Detected: SupportResistance@15m -> SHORT
-⚡ Tick: LTCUSDT 79.95
-⚡ Tick: LTCUSDT 79.96
-⚡ Tick: LTCUSDT 79.95
-🕯️ Candle Closed: 79.95 | Vol: 53150078.753
-📡 Signal Detected: PinBarReversal@1m -> SHORT
-📡 Signal Detected: PinBarReversal@5m -> SHORT
-📡 Signal Detected: PinBarReversal@15m -> SHORT
-📡 Signal Detected: CCIReversion@1m -> LONG
-📡 Signal Detected: CCIReversion@5m -> LONG
-📡 Signal Detected: CCIReversion@15m -> LONG
-⚡ Tick: LTCUSDT 80.0
-⚡ Tick: LTCUSDT 80.05
-🕯️ Candle Closed: 80.11 | Vol: 53157575.199999996
-📡 Signal Detected: StochasticReversion@1m -> LONG
-📡 Signal Detected: StochasticReversion@5m -> LONG
-📡 Signal Detected: StochasticReversion@15m -> LONG
-📡 Signal Detected: WickRejection@1m -> SHORT
-📡 Signal Detected: WickRejection@5m -> SHORT
-📡 Signal Detected: WickRejection@15m -> SHORT
-📡 Signal Detected: ThreeBar@5m -> LONG
-⚡ Tick: LTCUSDT 80.13
-⚡ Tick: LTCUSDT 80.04
-⚡ Tick: LTCUSDT 80.03
-🕯️ Candle Closed: 80.03 | Vol: 51038177.017
-📡 Signal Detected: ADXFilter@5m -> LONG
-📡 Signal Detected: ADXFilter@15m -> LONG
-📡 Signal Detected: ADXFilter@1h -> SHORT
-📡 Signal Detected: MicroTrend@1m -> SHORT
-📡 Signal Detected: SmartRange@5m -> LONG
-⚡ Tick: LTCUSDT 79.98
-⚡ Tick: LTCUSDT 79.97
-⚡ Tick: LTCUSDT 79.95
-🕯️ Candle Closed: 79.95 | Vol: 59544542.043000005
-📡 Signal Detected: InsideBarBreakout@1m -> SHORT
-📡 Signal Detected: RSIReversion@1m -> LONG
-📡 Signal Detected: RSIReversion@5m -> LONG
-📡 Signal Detected: RSIReversion@15m -> LONG
-📡 Signal Detected: AdaptiveRSI@5m -> LONG
-📡 Signal Detected: AdaptiveRSI@15m -> LONG
-⚡ Tick: LTCUSDT 79.94
-⚡ Tick: LTCUSDT 79.93
-🕯️ Candle Closed: 79.93 | Vol: 59544501.748
-📡 Signal Detected: EMA50Support@5m -> SHORT
-📡 Signal Detected: EMA50Support@15m -> SHORT
-📡 Signal Detected: EMA50Support@1h -> SHORT
-📡 Signal Detected: VWAPBreakout@5m -> SHORT
-📡 Signal Detected: KeltnerReversion@1m -> LONG
-📡 Signal Detected: KeltnerReversion@5m -> LONG
-📡 Signal Detected: WilliamsRReversion@1m -> LONG
-📡 Signal Detected: WilliamsRReversion@5m -> LONG
-📡 Signal Detected: WilliamsRReversion@15m -> LONG
-📡 Signal Detected: ZScoreReversion@1m -> LONG
-📡 Signal Detected: ZScoreReversion@5m -> LONG
-📡 Signal Detected: ZScoreReversion@15m -> LONG
-📡 Signal Detected: VolumeImbalance@5m -> SHORT
-📡 Signal Detected: LongTail@5m -> SHORT
-📡 Signal Detected: LongTail@15m -> SHORT
-📡 Signal Detected: MTFImpulse@5m -> SHORT
-📡 Signal Detected: KeltnerBreakout@5m -> SHORT
-📡 Signal Detected: VolatilityWakeup@5m -> SHORT
-📡 Signal Detected: VolatilityWakeup@15m -> SHORT
-📡 Signal Detected: VWAPMomentum@5m -> SHORT
-✅ CONSENSUS SHORT: 0L/2S | Best: LongTail (score=0.912) | HTF: N/A
-⚡ Tick: LTCUSDT 80.0
-⚡ Tick: LTCUSDT 80.03
-⚡ Tick: LTCUSDT 80.02
-🕯️ Candle Closed: 80.03 | Vol: 55291141.45
-📡 Signal Detected: PinBarReversal@15m -> SHORT
-📡 Signal Detected: CCIReversion@1m -> LONG
-📡 Signal Detected: CCIReversion@5m -> LONG
-📡 Signal Detected: CCIReversion@15m -> LONG
-⚡ Tick: LTCUSDT 80.02
-⚡ Tick: LTCUSDT 79.98
-🕯️ Candle Closed: 79.97 | Vol: 48911387.475999996
-📡 Signal Detected: MACDCrossover@5m -> LONG
-📡 Signal Detected: MACDCrossover@15m -> LONG
-📡 Signal Detected: MACDCrossover@1h -> LONG
-📡 Signal Detected: StochasticReversion@1m -> LONG
-📡 Signal Detected: StochasticReversion@5m -> LONG
-📡 Signal Detected: StochasticReversion@15m -> LONG
-📡 Signal Detected: WickRejection@15m -> SHORT
-⚡ Tick: LTCUSDT 79.93
-⚡ Tick: LTCUSDT 79.96
-⚡ Tick: LTCUSDT 80.0
-🕯️ Candle Closed: 79.97 | Vol: 55291056.914000005
-📡 Signal Detected: ADXFilter@5m -> LONG
-📡 Signal Detected: ADXFilter@15m -> LONG
-📡 Signal Detected: ADXFilter@1h -> SHORT
-📡 Signal Detected: SmartRange@1m -> LONG
-📡 Signal Detected: ThreeBar@5m -> SHORT
-⚡ Tick: LTCUSDT 79.97
-⚡ Tick: LTCUSDT 80.0
-⚡ Tick: LTCUSDT 79.98
-🕯️ Candle Closed: 79.98 | Vol: 55290990.15999999
-📡 Signal Detected: AdaptiveRSI@5m -> LONG
-📡 Signal Detected: AdaptiveRSI@15m -> LONG
-⚡ Tick: LTCUSDT 80.06
-⚡ Tick: LTCUSDT 80.0
-🕯️ Candle Closed: 79.99 | Vol: 48911232.447
-📡 Signal Detected: EMA50Support@15m -> SHORT
-📡 Signal Detected: EMA50Support@1h -> SHORT
-📡 Signal Detected: RSIReversion@1m -> SHORT
-📡 Signal Detected: RSIReversion@5m -> SHORT
-📡 Signal Detected: RSIReversion@15m -> SHORT
-📡 Signal Detected: KeltnerReversion@1m -> LONG
-📡 Signal Detected: WilliamsRReversion@1m -> LONG
-📡 Signal Detected: WilliamsRReversion@5m -> LONG
-📡 Signal Detected: WilliamsRReversion@15m -> LONG
-📡 Signal Detected: FVGRetest@5m -> SHORT
-📡 Signal Detected: MTFImpulse@5m -> SHORT
-📡 Signal Detected: HurstRegime@5m -> SHORT
-📡 Signal Detected: HurstRegime@15m -> SHORT
-📡 Signal Detected: VolatilityWakeup@5m -> LONG
-📡 Signal Detected: VolatilityWakeup@15m -> LONG
-⚡ Tick: LTCUSDT 79.97
-⚡ Tick: LTCUSDT 79.93
-⚡ Tick: LTCUSDT 79.96
-🕯️ Candle Closed: 79.94 | Vol: 57417521.838
-📡 Signal Detected: PinBarReversal@15m -> SHORT
-📡 Signal Detected: VWAPBreakout@15m -> SHORT
-📡 Signal Detected: CCIReversion@1m -> LONG
-📡 Signal Detected: CCIReversion@5m -> LONG
-📡 Signal Detected: CCIReversion@15m -> LONG
-📡 Signal Detected: VolumeImbalance@15m -> SHORT
-📡 Signal Detected: BollingerRejection@15m -> SHORT
-📡 Signal Detected: KeltnerBreakout@5m -> SHORT
-⚡ Tick: LTCUSDT 79.95
-⚡ Tick: LTCUSDT 79.95
-🕯️ Candle Closed: 79.93 | Vol: 55290903.72599999
-📡 Signal Detected: StochasticReversion@1m -> LONG
-📡 Signal Detected: StochasticReversion@5m -> LONG
-📡 Signal Detected: StochasticReversion@15m -> LONG
-📡 Signal Detected: WickRejection@15m -> SHORT
-⚡ Tick: LTCUSDT 80.46
-⚡ Tick: LTCUSDT 79.68
-⚡ Tick: LTCUSDT 79.71
-🕯️ Candle Closed: 79.71 | Vol: 55069352.088999994
-📡 Signal Detected: ExtremeCandleRatio@1m -> SHORT
-📡 Signal Detected: InsideBarBreakout@1m -> SHORT
-📡 Signal Detected: MACDCrossover@5m -> SHORT
-📡 Signal Detected: MACDCrossover@15m -> SHORT
-📡 Signal Detected: MACDCrossover@1h -> SHORT
-📡 Signal Detected: ADXFilter@5m -> LONG
-📡 Signal Detected: ADXFilter@15m -> SHORT
-📡 Signal Detected: ADXFilter@1h -> SHORT
-📡 Signal Detected: LongTail@1m -> SHORT
-📡 Signal Detected: SupportResistance@5m -> SHORT
-📊 No consensus: LONG=0, SHORT=1 (need 2+)
-⚡ Tick: LTCUSDT 79.67
-⚡ Tick: LTCUSDT 79.65
-⚡ Tick: LTCUSDT 79.68
-🕯️ Candle Closed: 79.68 | Vol: 64981847.559
-📡 Signal Detected: AdaptiveRSI@5m -> LONG
-📡 Signal Detected: AdaptiveRSI@15m -> LONG
-⚡ Tick: LTCUSDT 79.73
-⚡ Tick: LTCUSDT 79.58
-🕯️ Candle Closed: 79.65 | Vol: 63171572.153
-📡 Signal Detected: EMA50Support@5m -> SHORT
-📡 Signal Detected: EMA50Support@15m -> SHORT
-📡 Signal Detected: EMA50Support@1h -> SHORT
-📡 Signal Detected: RSIReversion@1m -> LONG
-📡 Signal Detected: RSIReversion@5m -> LONG
-📡 Signal Detected: RSIReversion@15m -> LONG
-📡 Signal Detected: KeltnerReversion@1m -> LONG
-📡 Signal Detected: KeltnerReversion@5m -> LONG
-📡 Signal Detected: WilliamsRReversion@1m -> LONG
-📡 Signal Detected: WilliamsRReversion@5m -> LONG
-📡 Signal Detected: WilliamsRReversion@15m -> LONG
-📡 Signal Detected: MTFImpulse@5m -> SHORT
-📡 Signal Detected: HurstRegime@5m -> SHORT
-📡 Signal Detected: HurstRegime@15m -> SHORT
-📡 Signal Detected: VolatilityWakeup@5m -> SHORT
-📡 Signal Detected: VolatilityWakeup@15m -> SHORT
-📡 Signal Detected: VWAPMomentum@5m -> SHORT
-⚡ Tick: LTCUSDT 79.68
-⚡ Tick: LTCUSDT 79.74
-⚡ Tick: LTCUSDT 79.65
-🕯️ Candle Closed: 79.65 | Vol: 56403048.831
-📡 Signal Detected: PinBarReversal@1m -> SHORT
-📡 Signal Detected: PinBarReversal@5m -> SHORT
-📡 Signal Detected: PinBarReversal@15m -> SHORT
-📡 Signal Detected: CCIReversion@1m -> LONG
-📡 Signal Detected: CCIReversion@5m -> LONG
-📡 Signal Detected: CCIReversion@15m -> LONG
-⚡ Tick: LTCUSDT 79.65
-⚡ Tick: LTCUSDT 79.62
-⚡ Tick: LTCUSDT 79.59
-🕯️ Candle Closed: 79.59 | Vol: 60915241.626
-📡 Signal Detected: StochasticReversion@1m -> LONG
-📡 Signal Detected: StochasticReversion@5m -> LONG
-📡 Signal Detected: StochasticReversion@15m -> LONG
-📡 Signal Detected: FVGRetest@5m -> SHORT
-📡 Signal Detected: FVGRetest@15m -> SHORT
-📡 Signal Detected: KeltnerBreakout@5m -> SHORT
-⚡ Tick: LTCUSDT 79.65
-⚡ Tick: LTCUSDT 79.65
-🕯️ Candle Closed: 79.65 | Vol: 60915006.00299999
-📡 Signal Detected: ADXFilter@5m -> LONG
-📡 Signal Detected: ADXFilter@15m -> SHORT
-📡 Signal Detected: ADXFilter@1h -> SHORT
-⚡ Tick: LTCUSDT 79.76
-⚡ Tick: LTCUSDT 79.76
-⚡ Tick: LTCUSDT 79.75
-🕯️ Candle Closed: 79.76 | Vol: 58650207.995
-📡 Signal Detected: VolumeImbalance@5m -> LONG
-📡 Signal Detected: AdaptiveRSI@5m -> LONG
-📡 Signal Detected: AdaptiveRSI@15m -> LONG
-📡 Signal Detected: BollingerRejection@5m -> LONG
-📡 Signal Detected: BollingerRejection@15m -> LONG
-📡 Signal Detected: SupportResistance@5m -> LONG
-📡 Signal Detected: SupportResistance@15m -> LONG
-⚡ Tick: LTCUSDT 79.75
-⚡ Tick: LTCUSDT 79.76
-🕯️ Candle Closed: 79.76 | Vol: 58650053.44699999
-📡 Signal Detected: EMA50Support@1h -> SHORT
-📡 Signal Detected: KeltnerReversion@1m -> LONG
-📡 Signal Detected: KeltnerReversion@5m -> LONG
-📡 Signal Detected: WilliamsRReversion@1m -> LONG
-📡 Signal Detected: WilliamsRReversion@5m -> LONG
-📡 Signal Detected: WilliamsRReversion@15m -> LONG
-📡 Signal Detected: MTFImpulse@5m -> SHORT
-📡 Signal Detected: HurstRegime@5m -> SHORT
-📡 Signal Detected: HurstRegime@15m -> SHORT
-📡 Signal Detected: VolatilityWakeup@5m -> LONG
-📡 Signal Detected: VolatilityWakeup@15m -> LONG
-⚡ Tick: LTCUSDT 79.77
-⚡ Tick: LTCUSDT 79.76
-⚡ Tick: LTCUSDT 79.75
-🕯️ Candle Closed: 79.75 | Vol: 58650104.945999995
-📡 Signal Detected: PinBarReversal@1m -> LONG
-📡 Signal Detected: PinBarReversal@5m -> LONG
-📡 Signal Detected: RSIReversion@1m -> SHORT
-📡 Signal Detected: RSIReversion@5m -> SHORT
-📡 Signal Detected: RSIReversion@15m -> SHORT
-📡 Signal Detected: CCIReversion@1m -> LONG
-📡 Signal Detected: CCIReversion@5m -> LONG
-📡 Signal Detected: CCIReversion@15m -> LONG
-📡 Signal Detected: MicroTrend@1m -> SHORT
-📡 Signal Detected: MicroTrend@5m -> SHORT
-⚡ Tick: LTCUSDT 79.78
-⚡ Tick: LTCUSDT 79.81
-⚡ Tick: LTCUSDT 79.82
-🕯️ Candle Closed: 79.82 | Vol: 60905549.767000005
-📡 Signal Detected: MACDCrossover@5m -> LONG
-📡 Signal Detected: MACDCrossover@15m -> LONG
-📡 Signal Detected: MACDCrossover@1h -> LONG
-📡 Signal Detected: StochasticReversion@1m -> LONG
-📡 Signal Detected: StochasticReversion@5m -> LONG
-📡 Signal Detected: StochasticReversion@15m -> LONG
-⚡ Tick: LTCUSDT 79.82
-⚡ Tick: LTCUSDT 79.83
-🕯️ Candle Closed: 79.85 | Vol: 56393056.706
-📡 Signal Detected: ADXFilter@5m -> LONG
-📡 Signal Detected: ADXFilter@15m -> SHORT
-📡 Signal Detected: ADXFilter@1h -> SHORT
-⚡ Tick: LTCUSDT 79.86
-⚡ Tick: LTCUSDT 79.86
-⚡ Tick: LTCUSDT 79.87
-🕯️ Candle Closed: 79.87 | Vol: 60904502.127000004
-📡 Signal Detected: VolumeImbalance@5m -> LONG
-📡 Signal Detected: VolumeImbalance@15m -> LONG
-📡 Signal Detected: BollingerRejection@5m -> LONG
-📡 Signal Detected: BollingerRejection@15m -> LONG
-📡 Signal Detected: SupportResistance@5m -> LONG
-📡 Signal Detected: SupportResistance@15m -> LONG
-⚡ Tick: LTCUSDT 79.89
-⚡ Tick: LTCUSDT 79.92
-🕯️ Candle Closed: 79.88 | Vol: 51881570.95
-📡 Signal Detected: EMA50Support@1h -> SHORT
-📡 Signal Detected: KeltnerReversion@1m -> LONG
-📡 Signal Detected: MTFImpulse@5m -> SHORT
-📡 Signal Detected: HurstRegime@5m -> SHORT
-📡 Signal Detected: HurstRegime@15m -> SHORT
-📡 Signal Detected: VolatilityWakeup@5m -> LONG
-📡 Signal Detected: VolatilityWakeup@15m -> LONG
-⚡ Tick: LTCUSDT 79.91
-⚡ Tick: LTCUSDT 79.92
-⚡ Tick: LTCUSDT 79.94
-🕯️ Candle Closed: 79.94 | Vol: 58648676.98199999
-📡 Signal Detected: PinBarReversal@1m -> LONG
-📡 Signal Detected: PinBarReversal@5m -> LONG
-📡 Signal Detected: RSIReversion@1m -> SHORT
-📡 Signal Detected: RSIReversion@5m -> SHORT
-📡 Signal Detected: RSIReversion@15m -> SHORT
-📡 Signal Detected: CCIReversion@15m -> LONG
-📡 Signal Detected: LongTail@1m -> LONG
-📡 Signal Detected: WickRejection@1m -> LONG
-📡 Signal Detected: WickRejection@5m -> LONG
-⚡ Candle 100 | 40 sensors | 2.7ms
-📊 No consensus: LONG=1, SHORT=0 (need 2+)
-⚡ Tick: LTCUSDT 79.98
-⚡ Tick: LTCUSDT 80.03
-🕯️ Candle Closed: 80.06 | Vol: 54924730.996
-📡 Signal Detected: MarubozuMomentum@15m -> LONG
-⚡ Tick: LTCUSDT 80.06
-⚡ Tick: LTCUSDT 80.14
-⚡ Tick: LTCUSDT 80.19
-🕯️ Candle Closed: 80.19 | Vol: 48800779.815
-📡 Signal Detected: ExtremeCandleRatio@5m -> LONG
-📡 Signal Detected: ZScoreReversion@1m -> SHORT
-📡 Signal Detected: ZScoreReversion@5m -> SHORT
-📡 Signal Detected: ZScoreReversion@15m -> SHORT
-📡 Signal Detected: ADXFilter@5m -> LONG
-📡 Signal Detected: ADXFilter@15m -> SHORT
-📡 Signal Detected: ADXFilter@1h -> SHORT
-⚡ Tick: LTCUSDT 80.13
-⚡ Tick: LTCUSDT 80.13
-🕯️ Candle Closed: 80.13 | Vol: 48996650.62400001
-📡 Signal Detected: VolumeImbalance@5m -> LONG
-📡 Signal Detected: VolumeImbalance@15m -> LONG
-📡 Signal Detected: BollingerRejection@5m -> LONG
-📡 Signal Detected: BollingerRejection@15m -> LONG
-📡 Signal Detected: MicroTrend@1m -> SHORT
-📡 Signal Detected: SupportResistance@5m -> LONG
-📡 Signal Detected: SupportResistance@15m -> LONG
-⚡ Tick: LTCUSDT 80.13
-⚡ Tick: LTCUSDT 80.13
-⚡ Tick: LTCUSDT 80.2
-🕯️ Candle Closed: 80.2 | Vol: 55386751.30999999
+⚡ Tick: BNBUSDT 883.64
+⚡ Tick: BNBUSDT 883.65
+🕯️ Candle Closed: 883.54 | Vol: 153650807.09
+⚡ Tick: BNBUSDT 883.75
+⚡ Tick: BNBUSDT 883.48
+🕯️ Candle Closed: 883.48 | Vol: 111746031.33999999
 📡 Signal Detected: EMACrossover@5m -> LONG
-📡 Signal Detected: EMACrossover@15m -> LONG
-📡 Signal Detected: EMA50Support@1h -> SHORT
-📡 Signal Detected: MTFImpulse@5m -> SHORT
-📡 Signal Detected: HurstRegime@5m -> LONG
-📡 Signal Detected: HurstRegime@15m -> LONG
-📡 Signal Detected: VolatilityWakeup@5m -> LONG
-📡 Signal Detected: VolatilityWakeup@15m -> LONG
-⚡ Tick: LTCUSDT 80.21
-⚡ Tick: LTCUSDT 80.28
-🕯️ Candle Closed: 80.29 | Vol: 49317616.812
-📡 Signal Detected: RSIReversion@1m -> SHORT
-📡 Signal Detected: RSIReversion@5m -> SHORT
-📡 Signal Detected: RSIReversion@15m -> SHORT
-📡 Signal Detected: Supertrend@5m -> LONG
-⚡ Tick: LTCUSDT 80.3
-⚡ Tick: LTCUSDT 80.32
-⚡ Tick: LTCUSDT 80.33
-🕯️ Candle Closed: 80.3 | Vol: 60716338.762
-📡 Signal Detected: PinBarReversal@1m -> SHORT
-📡 Signal Detected: WilliamsRReversion@1m -> SHORT
-📡 Signal Detected: WilliamsRReversion@5m -> SHORT
-⚡ Tick: LTCUSDT 80.33
-⚡ Tick: LTCUSDT 80.34
-🕯️ Candle Closed: 80.35 | Vol: 52050194.805999994
-📡 Signal Detected: ZScoreReversion@1m -> SHORT
-📡 Signal Detected: ZScoreReversion@5m -> SHORT
-📡 Signal Detected: ZScoreReversion@15m -> SHORT
-📡 Signal Detected: ADXFilter@5m -> LONG
-📡 Signal Detected: ADXFilter@15m -> SHORT
-📡 Signal Detected: ADXFilter@1h -> SHORT
-⚡ Tick: LTCUSDT 80.34
-⚡ Tick: LTCUSDT 80.36
-⚡ Tick: LTCUSDT 80.35
-🕯️ Candle Closed: 80.35 | Vol: 56415027.65100001
-📡 Signal Detected: StochasticReversion@1m -> SHORT
-📡 Signal Detected: StochasticReversion@5m -> SHORT
-📡 Signal Detected: VolumeImbalance@5m -> LONG
-⚡ Tick: LTCUSDT 80.36
-⚡ Tick: LTCUSDT 80.29
-🕯️ Candle Closed: 80.27 | Vol: 53231729.48200001
-📡 Signal Detected: EMA50Support@5m -> SHORT
-📡 Signal Detected: EMA50Support@15m -> SHORT
-📡 Signal Detected: EMA50Support@1h -> SHORT
-📡 Signal Detected: HurstRegime@5m -> LONG
-📡 Signal Detected: HurstRegime@15m -> LONG
-📡 Signal Detected: MicroTrend@1m -> SHORT
-📡 Signal Detected: VolatilityWakeup@5m -> LONG
-⚡ Tick: LTCUSDT 80.26
-⚡ Tick: LTCUSDT 80.24
-⚡ Tick: LTCUSDT 80.29
-🕯️ Candle Closed: 80.29 | Vol: 55292140.209
-📡 Signal Detected: DecelerationCandles@5m -> SHORT
-📡 Signal Detected: RSIReversion@1m -> SHORT
-📡 Signal Detected: RSIReversion@5m -> SHORT
-📡 Signal Detected: RSIReversion@15m -> SHORT
-📡 Signal Detected: AdaptiveRSI@5m -> SHORT
-📡 Signal Detected: AdaptiveRSI@15m -> SHORT
+⚡ Tick: BNBUSDT 883.64
+⚡ Tick: BNBUSDT 883.45
+🕯️ Candle Closed: 883.45 | Vol: 181587289.85000005
+📡 Signal Detected: DecelerationCandles@15m -> SHORT
 📊 No consensus: LONG=0, SHORT=1 (need 2+)
-⚡ Tick: LTCUSDT 80.32
-⚡ Tick: LTCUSDT 80.36
-🕯️ Candle Closed: 80.37 | Vol: 49109191.461
-📡 Signal Detected: WilliamsRReversion@1m -> SHORT
-📡 Signal Detected: WilliamsRReversion@5m -> SHORT
-⚡ Tick: LTCUSDT 80.35
-⚡ Tick: LTCUSDT 80.34
-⚡ Tick: LTCUSDT 80.38
-🕯️ Candle Closed: 80.38 | Vol: 51214941.625
-📡 Signal Detected: PinBarReversal@1m -> LONG
-📡 Signal Detected: ZScoreReversion@1m -> SHORT
-📡 Signal Detected: ZScoreReversion@5m -> SHORT
-📡 Signal Detected: ZScoreReversion@15m -> SHORT
-📡 Signal Detected: ADXFilter@5m -> LONG
-📡 Signal Detected: ADXFilter@15m -> SHORT
-📡 Signal Detected: ADXFilter@1h -> SHORT
-⚡ Tick: LTCUSDT 80.41
-⚡ Tick: LTCUSDT 80.42
-🕯️ Candle Closed: 80.42 | Vol: 49328352.486999996
-📡 Signal Detected: Supertrend@15m -> LONG
-📡 Signal Detected: StochasticReversion@1m -> SHORT
-📡 Signal Detected: StochasticReversion@5m -> SHORT
-📡 Signal Detected: VolumeImbalance@5m -> LONG
-📡 Signal Detected: VolumeImbalance@15m -> LONG
-⚡ Tick: LTCUSDT 80.41
-⚡ Tick: LTCUSDT 80.42
-⚡ Tick: LTCUSDT 80.42
-🕯️ Candle Closed: 80.42 | Vol: 51415602.953999996
-📡 Signal Detected: EMA50Support@5m -> LONG
-📡 Signal Detected: EMA50Support@15m -> LONG
-📡 Signal Detected: EMA50Support@1h -> LONG
-📡 Signal Detected: MTFImpulse@5m -> LONG
-📡 Signal Detected: HurstRegime@5m -> LONG
-📡 Signal Detected: HurstRegime@15m -> LONG
-📡 Signal Detected: VolatilityWakeup@5m -> LONG
-⚡ Tick: LTCUSDT 80.4
-⚡ Tick: LTCUSDT 80.4
-🕯️ Candle Closed: 80.39 | Vol: 49374224.44200001
-📡 Signal Detected: RSIReversion@1m -> SHORT
-📡 Signal Detected: RSIReversion@5m -> SHORT
-📡 Signal Detected: RSIReversion@15m -> SHORT
-📡 Signal Detected: AdaptiveRSI@5m -> SHORT
-📡 Signal Detected: AdaptiveRSI@15m -> SHORT
-📡 Signal Detected: MicroTrend@1m -> SHORT
-📡 Signal Detected: MicroTrend@5m -> SHORT
-⚡ Tick: LTCUSDT 80.39
-⚡ Tick: LTCUSDT 80.43
-🕯️ Candle Closed: 80.43 | Vol: 49374212.714999996
-📡 Signal Detected: WilliamsRReversion@1m -> SHORT
-📡 Signal Detected: WilliamsRReversion@5m -> SHORT
-📡 Signal Detected: WilliamsRReversion@15m -> SHORT
-⚡ Tick: LTCUSDT 80.43
-⚡ Tick: LTCUSDT 80.43
-⚡ Tick: LTCUSDT 80.44
-🕯️ Candle Closed: 80.44 | Vol: 49374935.999
-📡 Signal Detected: ZScoreReversion@1m -> SHORT
-📡 Signal Detected: ZScoreReversion@5m -> SHORT
-📡 Signal Detected: ZScoreReversion@15m -> SHORT
-📡 Signal Detected: ADXFilter@5m -> LONG
-📡 Signal Detected: ADXFilter@15m -> SHORT
-📡 Signal Detected: ADXFilter@1h -> SHORT
-⚡ Tick: LTCUSDT 80.45
-⚡ Tick: LTCUSDT 80.46
-🕯️ Candle Closed: 80.42 | Vol: 53489723.427999996
-📡 Signal Detected: StochasticReversion@1m -> SHORT
-📡 Signal Detected: StochasticReversion@5m -> SHORT
-📡 Signal Detected: StochasticReversion@15m -> SHORT
-📡 Signal Detected: VolumeImbalance@15m -> LONG
-📡 Signal Detected: SupportResistance@15m -> LONG
-⚡ Tick: LTCUSDT 80.44
-⚡ Tick: LTCUSDT 80.44
-⚡ Tick: LTCUSDT 80.44
-🕯️ Candle Closed: 80.44 | Vol: 45220152.562
-📡 Signal Detected: EMA50Support@5m -> LONG
-📡 Signal Detected: EMA50Support@15m -> LONG
-📡 Signal Detected: EMA50Support@1h -> LONG
-📡 Signal Detected: MTFImpulse@5m -> LONG
-📡 Signal Detected: HurstRegime@5m -> LONG
-📡 Signal Detected: HurstRegime@15m -> LONG
-📡 Signal Detected: VolatilityWakeup@5m -> LONG
-⚡ Tick: LTCUSDT 80.46
-⚡ Tick: LTCUSDT 80.48
-⚡ Tick: LTCUSDT 80.49
-🕯️ Candle Closed: 80.47 | Vol: 59229784.28899999
-📡 Signal Detected: RSIReversion@1m -> SHORT
-📡 Signal Detected: RSIReversion@5m -> SHORT
-📡 Signal Detected: RSIReversion@15m -> SHORT
-📡 Signal Detected: KeltnerReversion@1m -> SHORT
-📡 Signal Detected: AdaptiveRSI@5m -> SHORT
-📡 Signal Detected: AdaptiveRSI@15m -> SHORT
-⚡ Tick: LTCUSDT 80.51
-⚡ Tick: LTCUSDT 80.5
-🕯️ Candle Closed: 80.51 | Vol: 50558679.565000005
+⚡ Tick: BNBUSDT 883.62
+⚡ Tick: BNBUSDT 883.73
+⚡ Tick: BNBUSDT 883.73
+🕯️ Candle Closed: 883.78 | Vol: 195555530.29000002
+📡 Signal Detected: PinBarReversal@5m -> LONG
 📡 Signal Detected: CCIReversion@15m -> SHORT
 📡 Signal Detected: WilliamsRReversion@1m -> SHORT
 📡 Signal Detected: WilliamsRReversion@5m -> SHORT
 📡 Signal Detected: WilliamsRReversion@15m -> SHORT
-📡 Signal Detected: KeltnerBreakout@5m -> LONG
-⚡ Tick: LTCUSDT 80.51
-⚡ Tick: LTCUSDT 80.51
-🕯️ Candle Closed: 80.52 | Vol: 48573586.809999995
-📡 Signal Detected: ZScoreReversion@1m -> SHORT
-📡 Signal Detected: ZScoreReversion@5m -> SHORT
-📡 Signal Detected: ZScoreReversion@15m -> SHORT
-📡 Signal Detected: ADXFilter@15m -> SHORT
-📡 Signal Detected: ADXFilter@1h -> SHORT
-⚡ Tick: LTCUSDT 80.52
-⚡ Tick: LTCUSDT 80.53
-⚡ Tick: LTCUSDT 80.53
-🕯️ Candle Closed: 80.54 | Vol: 56732286.382999994
-📡 Signal Detected: StochasticReversion@1m -> SHORT
-📡 Signal Detected: StochasticReversion@5m -> SHORT
-📡 Signal Detected: StochasticReversion@15m -> SHORT
-📡 Signal Detected: VolumeImbalance@5m -> LONG
-⚡ Tick: LTCUSDT 80.54
-⚡ Tick: LTCUSDT 80.54
-⚡ Tick: LTCUSDT 80.55
-🕯️ Candle Closed: 80.54 | Vol: 54735785.25299999
-📡 Signal Detected: PinBarReversal@1m -> SHORT
-📡 Signal Detected: EMA50Support@5m -> LONG
-📡 Signal Detected: EMA50Support@15m -> LONG
-📡 Signal Detected: EMA50Support@1h -> LONG
-📡 Signal Detected: MTFImpulse@5m -> LONG
-📡 Signal Detected: HurstRegime@5m -> LONG
-📡 Signal Detected: HurstRegime@15m -> LONG
-📡 Signal Detected: VolatilityWakeup@5m -> LONG
-⚡ Tick: LTCUSDT 80.55
-⚡ Tick: LTCUSDT 80.55
-⚡ Tick: LTCUSDT 80.56
-🕯️ Candle Closed: 80.56 | Vol: 54726276.85399999
+📡 Signal Detected: ADXFilter@5m -> LONG
+📡 Signal Detected: ADXFilter@15m -> LONG
+⚡ Tick: BNBUSDT 883.79
+⚡ Tick: BNBUSDT 883.81
+⚡ Tick: BNBUSDT 883.74
+🕯️ Candle Closed: 883.74 | Vol: 188571375.81999993
+📡 Signal Detected: VWAPBreakout@5m -> LONG
+📡 Signal Detected: VWAPBreakout@15m -> LONG
 📡 Signal Detected: RSIReversion@1m -> SHORT
 📡 Signal Detected: RSIReversion@5m -> SHORT
 📡 Signal Detected: RSIReversion@15m -> SHORT
+📡 Signal Detected: BollingerTouch@1m -> SHORT
+📡 Signal Detected: BollingerTouch@5m -> SHORT
+📡 Signal Detected: BollingerTouch@15m -> SHORT
 📡 Signal Detected: KeltnerReversion@1m -> SHORT
-📡 Signal Detected: AdaptiveRSI@5m -> SHORT
-📡 Signal Detected: AdaptiveRSI@15m -> SHORT
-⚡ Tick: LTCUSDT 80.56
-⚡ Tick: LTCUSDT 80.57
-🕯️ Candle Closed: 80.58 | Vol: 52704277.36
+📡 Signal Detected: ZScoreReversion@1m -> SHORT
+📡 Signal Detected: ZScoreReversion@5m -> SHORT
+📡 Signal Detected: ZScoreReversion@15m -> SHORT
+📡 Signal Detected: VolumeImbalance@5m -> LONG
+📡 Signal Detected: VolumeImbalance@15m -> LONG
+📡 Signal Detected: KeltnerBreakout@5m -> LONG
+📡 Signal Detected: KeltnerBreakout@15m -> LONG
+⚡ Tick: BNBUSDT 883.82
+⚡ Tick: BNBUSDT 883.82
+🕯️ Candle Closed: 883.82 | Vol: 195556011.73000002
+📡 Signal Detected: StochasticReversion@1m -> SHORT
+📡 Signal Detected: StochasticReversion@5m -> SHORT
+📡 Signal Detected: StochasticReversion@15m -> SHORT
+⚡ Tick: BNBUSDT 883.82
+⚡ Tick: BNBUSDT 883.82
+⚡ Tick: BNBUSDT 883.67
+🕯️ Candle Closed: 883.71 | Vol: 188572981.15000004
+⚡ Tick: BNBUSDT 883.67
+⚡ Tick: BNBUSDT 883.77
+⚡ Tick: BNBUSDT 883.84
+🕯️ Candle Closed: 883.85 | Vol: 195557162.36
+📡 Signal Detected: DecelerationCandles@15m -> SHORT
+📊 No consensus: LONG=0, SHORT=1 (need 2+)
+⚡ Tick: BNBUSDT 883.88
+⚡ Tick: BNBUSDT 883.92
+⚡ Tick: BNBUSDT 883.93
+🕯️ Candle Closed: 883.93 | Vol: 188573021.29999995
+📡 Signal Detected: Supertrend@15m -> LONG
 📡 Signal Detected: CCIReversion@1m -> SHORT
 📡 Signal Detected: CCIReversion@5m -> SHORT
 📡 Signal Detected: CCIReversion@15m -> SHORT
 📡 Signal Detected: WilliamsRReversion@1m -> SHORT
 📡 Signal Detected: WilliamsRReversion@5m -> SHORT
 📡 Signal Detected: WilliamsRReversion@15m -> SHORT
-📡 Signal Detected: KeltnerBreakout@5m -> LONG
-⚡ Tick: LTCUSDT 80.58
-⚡ Tick: LTCUSDT 80.59
-⚡ Tick: LTCUSDT 80.6
-🕯️ Candle Closed: 80.6 | Vol: 54803725.232
-📡 Signal Detected: ADXFilter@1h -> SHORT
-⚡ Tick: LTCUSDT 80.62
-⚡ Tick: LTCUSDT 80.63
-⚡ Tick: LTCUSDT 80.65
-🕯️ Candle Closed: 80.65 | Vol: 54997493.68200001
-📡 Signal Detected: VWAPBreakout@5m -> LONG
-📡 Signal Detected: VWAPBreakout@15m -> LONG
-📡 Signal Detected: StochasticReversion@1m -> SHORT
-📡 Signal Detected: StochasticReversion@5m -> SHORT
-📡 Signal Detected: StochasticReversion@15m -> SHORT
-📡 Signal Detected: VolumeImbalance@5m -> LONG
-📡 Signal Detected: VolumeImbalance@15m -> LONG
-⚡ Tick: LTCUSDT 80.66
-⚡ Tick: LTCUSDT 80.67
-🕯️ Candle Closed: 80.68 | Vol: 53089053.75800002
+📡 Signal Detected: ADXFilter@5m -> LONG
+📡 Signal Detected: ADXFilter@15m -> LONG
+📡 Signal Detected: AdaptiveRSI@5m -> SHORT
+📡 Signal Detected: AdaptiveRSI@15m -> SHORT
+⚡ Tick: BNBUSDT 883.87
+⚡ Tick: BNBUSDT 883.73
+🕯️ Candle Closed: 883.62 | Vol: 181588850.05999997
+📡 Signal Detected: KeltnerReversion@1m -> SHORT
+📡 Signal Detected: ZScoreReversion@1m -> SHORT
+📡 Signal Detected: ZScoreReversion@5m -> SHORT
+📡 Signal Detected: ZScoreReversion@15m -> SHORT
+📡 Signal Detected: MomentumBurst@1m -> SHORT
+📡 Signal Detected: MomentumBurst@5m -> SHORT
+📡 Signal Detected: MomentumBurst@15m -> SHORT
+📡 Signal Detected: VolumeImbalance@5m -> SHORT
+⚡ Tick: BNBUSDT 882.97
+⚡ Tick: BNBUSDT 883.52
+🕯️ Candle Closed: 883.52 | Vol: 132699502.2
+📡 Signal Detected: EMA50Support@5m -> LONG
 📡 Signal Detected: EMA50Support@15m -> LONG
 📡 Signal Detected: EMA50Support@1h -> LONG
-📡 Signal Detected: MTFImpulse@5m -> LONG
-📡 Signal Detected: HurstRegime@5m -> LONG
-📡 Signal Detected: HurstRegime@15m -> LONG
+📡 Signal Detected: RSIReversion@1m -> LONG
+📡 Signal Detected: RSIReversion@5m -> LONG
+📡 Signal Detected: RSIReversion@15m -> LONG
+📡 Signal Detected: HurstRegime@5m -> SHORT
+📡 Signal Detected: HurstRegime@15m -> SHORT
+⚡ Tick: BNBUSDT 883.52
+⚡ Tick: BNBUSDT 883.77
+🕯️ Candle Closed: 883.89 | Vol: 160636154.3
+📡 Signal Detected: PinBarReversal@15m -> LONG
+📡 Signal Detected: StochasticReversion@1m -> SHORT
+📡 Signal Detected: StochasticReversion@15m -> SHORT
+⚡ Tick: BNBUSDT 883.81
+⚡ Tick: BNBUSDT 884.01
+⚡ Tick: BNBUSDT 884.03
+🕯️ Candle Closed: 883.95 | Vol: 188539480.52999997
 📡 Signal Detected: VolatilityWakeup@5m -> LONG
-📡 Signal Detected: VWAPMomentum@5m -> LONG
-⚡ Tick: LTCUSDT 80.68
-⚡ Tick: LTCUSDT 80.65
-⚡ Tick: LTCUSDT 80.62
-🕯️ Candle Closed: 80.61 | Vol: 59281506.038
+📡 Signal Detected: ThreeBar@5m -> LONG
+⚡ Tick: BNBUSDT 883.87
+⚡ Tick: BNBUSDT 883.91
+⚡ Tick: BNBUSDT 883.76
+🕯️ Candle Closed: 883.76 | Vol: 174573329.87999997
+📡 Signal Detected: CCIReversion@5m -> SHORT
+📡 Signal Detected: CCIReversion@15m -> SHORT
+📡 Signal Detected: WilliamsRReversion@1m -> SHORT
+📡 Signal Detected: WilliamsRReversion@15m -> SHORT
+📡 Signal Detected: ADXFilter@5m -> LONG
+📡 Signal Detected: ADXFilter@15m -> LONG
+📡 Signal Detected: AdaptiveRSI@5m -> SHORT
+📡 Signal Detected: AdaptiveRSI@15m -> SHORT
+⚡ Tick: BNBUSDT 883.54
+⚡ Tick: BNBUSDT 883.43
+⚡ Tick: BNBUSDT 883.54
+🕯️ Candle Closed: 883.54 | Vol: 202505070.38000003
+📡 Signal Detected: DecelerationCandles@5m -> SHORT
+📡 Signal Detected: KeltnerReversion@1m -> SHORT
+📊 No consensus: LONG=0, SHORT=1 (need 2+)
+⚡ Tick: BNBUSDT 883.64
+⚡ Tick: BNBUSDT 883.76
+⚡ Tick: BNBUSDT 883.76
+🕯️ Candle Closed: 883.76 | Vol: 209490786.38
+📡 Signal Detected: EMA50Support@5m -> LONG
+📡 Signal Detected: EMA50Support@15m -> LONG
+📡 Signal Detected: EMA50Support@1h -> LONG
+📡 Signal Detected: VWAPBreakout@5m -> LONG
+📡 Signal Detected: ZScoreReversion@1m -> SHORT
+📡 Signal Detected: ZScoreReversion@5m -> SHORT
+📡 Signal Detected: ZScoreReversion@15m -> SHORT
+📡 Signal Detected: VolumeImbalance@5m -> LONG
+📡 Signal Detected: HurstRegime@5m -> SHORT
+📡 Signal Detected: HurstRegime@15m -> SHORT
+⚡ Tick: BNBUSDT 883.7
+⚡ Tick: BNBUSDT 883.7
+🕯️ Candle Closed: 883.7 | Vol: 174576183.73
+📡 Signal Detected: PinBarReversal@15m -> LONG
+⚡ Tick: BNBUSDT 883.7
+⚡ Tick: BNBUSDT 883.76
+⚡ Tick: BNBUSDT 883.76
+🕯️ Candle Closed: 883.76 | Vol: 174576332.53
+📡 Signal Detected: MACDCrossover@5m -> SHORT
+📡 Signal Detected: MACDCrossover@15m -> SHORT
+📡 Signal Detected: MACDCrossover@1h -> SHORT
+📡 Signal Detected: StochasticReversion@15m -> SHORT
+⚡ Tick: BNBUSDT 883.76
+⚡ Tick: BNBUSDT 883.76
+🕯️ Candle Closed: 883.76 | Vol: 139661054.68
 📡 Signal Detected: RSIReversion@1m -> SHORT
 📡 Signal Detected: RSIReversion@5m -> SHORT
 📡 Signal Detected: RSIReversion@15m -> SHORT
+📡 Signal Detected: CCIReversion@5m -> SHORT
+📡 Signal Detected: WilliamsRReversion@1m -> SHORT
+📡 Signal Detected: WilliamsRReversion@15m -> SHORT
+📡 Signal Detected: ADXFilter@5m -> LONG
+📡 Signal Detected: ADXFilter@15m -> LONG
+📡 Signal Detected: ADXFilter@1h -> LONG
+📡 Signal Detected: AdaptiveRSI@5m -> SHORT
+📡 Signal Detected: AdaptiveRSI@15m -> SHORT
+⚡ Tick: BNBUSDT 883.76
+⚡ Tick: BNBUSDT 883.76
+🕯️ Candle Closed: 883.76 | Vol: 153626688.19000003
+📡 Signal Detected: KeltnerReversion@1m -> SHORT
+⚡ Tick: BNBUSDT 883.76
+⚡ Tick: BNBUSDT 883.76
+🕯️ Candle Closed: 883.76 | Vol: 174576655.86999997
+📡 Signal Detected: EMA50Support@5m -> LONG
+📡 Signal Detected: EMA50Support@15m -> LONG
+📡 Signal Detected: EMA50Support@1h -> LONG
+📡 Signal Detected: HurstRegime@5m -> SHORT
+📡 Signal Detected: HurstRegime@15m -> SHORT
+📡 Signal Detected: VolatilityWakeup@15m -> SHORT
+⚡ Tick: BNBUSDT 883.76
+⚡ Tick: BNBUSDT 883.76
+⚡ Tick: BNBUSDT 883.76
+🕯️ Candle Closed: 883.76 | Vol: 181559697.39999995
+⚡ Tick: BNBUSDT 883.76
+⚡ Tick: BNBUSDT 884.76
+⚡ Tick: BNBUSDT 884.85
+🕯️ Candle Closed: 884.87 | Vol: 188541901.28000003
+📡 Signal Detected: ExtremeCandleRatio@1m -> LONG
+📡 Signal Detected: ExtremeCandleRatio@5m -> LONG
+📡 Signal Detected: ExtremeCandleRatio@15m -> LONG
+📡 Signal Detected: InsideBarBreakout@5m -> LONG
+📡 Signal Detected: InsideBarBreakout@15m -> LONG
+📡 Signal Detected: BollingerTouch@1m -> SHORT
+📡 Signal Detected: BollingerTouch@5m -> SHORT
+📡 Signal Detected: BollingerTouch@15m -> SHORT
+📡 Signal Detected: MACDCrossover@5m -> LONG
+📡 Signal Detected: MACDCrossover@15m -> LONG
+📡 Signal Detected: MACDCrossover@1h -> LONG
+📡 Signal Detected: Supertrend@1h -> LONG
+📡 Signal Detected: StochasticReversion@1m -> SHORT
+📡 Signal Detected: StochasticReversion@5m -> SHORT
+📡 Signal Detected: StochasticReversion@15m -> SHORT
+📡 Signal Detected: ZScoreReversion@1m -> SHORT
+📡 Signal Detected: ZScoreReversion@5m -> SHORT
+📡 Signal Detected: ZScoreReversion@15m -> SHORT
+📡 Signal Detected: BollingerRejection@5m -> LONG
+📡 Signal Detected: BollingerRejection@15m -> LONG
+📡 Signal Detected: ThreeBar@15m -> LONG
+📡 Signal Detected: SupportResistance@5m -> LONG
+📡 Signal Detected: SupportResistance@15m -> LONG
+⚡ Tick: BNBUSDT 884.92
+⚡ Tick: BNBUSDT 884.93
+🕯️ Candle Closed: 884.86 | Vol: 181558902.58
+📡 Signal Detected: RSIReversion@1m -> SHORT
+📡 Signal Detected: RSIReversion@5m -> SHORT
+📡 Signal Detected: RSIReversion@15m -> SHORT
+📡 Signal Detected: CCIReversion@1m -> SHORT
+📡 Signal Detected: CCIReversion@5m -> SHORT
+📡 Signal Detected: CCIReversion@15m -> SHORT
+📡 Signal Detected: WilliamsRReversion@1m -> SHORT
+📡 Signal Detected: WilliamsRReversion@5m -> SHORT
+📡 Signal Detected: WilliamsRReversion@15m -> SHORT
+📡 Signal Detected: ADXFilter@5m -> LONG
+📡 Signal Detected: ADXFilter@15m -> LONG
+📡 Signal Detected: ADXFilter@1h -> LONG
+📡 Signal Detected: AdaptiveRSI@5m -> SHORT
+📡 Signal Detected: AdaptiveRSI@15m -> SHORT
+⚡ Tick: BNBUSDT 884.8
+⚡ Tick: BNBUSDT 884.82
+⚡ Tick: BNBUSDT 884.83
+🕯️ Candle Closed: 884.82 | Vol: 202507829.98000002
+📡 Signal Detected: VWAPBreakout@5m -> LONG
+📡 Signal Detected: DecelerationCandles@5m -> SHORT
+📡 Signal Detected: DecelerationCandles@15m -> SHORT
 📡 Signal Detected: KeltnerReversion@1m -> SHORT
 📡 Signal Detected: KeltnerReversion@5m -> SHORT
-📡 Signal Detected: MomentumBurst@1m -> SHORT
-📡 Signal Detected: MomentumBurst@5m -> SHORT
-📡 Signal Detected: MomentumBurst@15m -> SHORT
-📡 Signal Detected: AdaptiveRSI@5m -> SHORT
-📡 Signal Detected: AdaptiveRSI@15m -> SHORT
-⚡ Tick: LTCUSDT 80.62
-⚡ Tick: LTCUSDT 80.65
-⚡ Tick: LTCUSDT 80.63
-🕯️ Candle Closed: 80.63 | Vol: 51108472.763
-📡 Signal Detected: CCIReversion@1m -> SHORT
-📡 Signal Detected: CCIReversion@5m -> SHORT
-📡 Signal Detected: CCIReversion@15m -> SHORT
-📡 Signal Detected: WilliamsRReversion@1m -> SHORT
-📡 Signal Detected: WilliamsRReversion@5m -> SHORT
-📡 Signal Detected: WilliamsRReversion@15m -> SHORT
-⚡ Tick: LTCUSDT 80.65
-⚡ Tick: LTCUSDT 80.66
-🕯️ Candle Closed: 80.65 | Vol: 51108478.10599999
-📡 Signal Detected: DecelerationCandles@5m -> LONG
-📡 Signal Detected: ADXFilter@1h -> SHORT
-📊 No consensus: LONG=1, SHORT=0 (need 2+)
-⚡ Tick: LTCUSDT 80.63
-⚡ Tick: LTCUSDT 80.61
-⚡ Tick: LTCUSDT 80.6
-🕯️ Candle Closed: 80.6 | Vol: 49064089.32699999
-📡 Signal Detected: VWAPBreakout@15m -> LONG
-📡 Signal Detected: MACDCrossover@5m -> SHORT
-📡 Signal Detected: MACDCrossover@15m -> SHORT
-📡 Signal Detected: MACDCrossover@1h -> SHORT
-📡 Signal Detected: StochasticReversion@1m -> SHORT
-📡 Signal Detected: StochasticReversion@5m -> SHORT
-📡 Signal Detected: StochasticReversion@15m -> SHORT
-📡 Signal Detected: VolumeImbalance@5m -> SHORT
-📡 Signal Detected: SupportResistance@15m -> LONG
-⚡ Tick: LTCUSDT 80.59
-⚡ Tick: LTCUSDT 80.59
-🕯️ Candle Closed: 80.58 | Vol: 53152718.92699999
-📡 Signal Detected: EMA50Support@15m -> LONG
-📡 Signal Detected: EMA50Support@1h -> LONG
-📡 Signal Detected: MTFImpulse@5m -> LONG
-📡 Signal Detected: HurstRegime@5m -> LONG
-📡 Signal Detected: HurstRegime@15m -> LONG
-📡 Signal Detected: VolatilityWakeup@5m -> SHORT
-⚡ Tick: LTCUSDT 80.58
-⚡ Tick: LTCUSDT 80.58
-⚡ Tick: LTCUSDT 80.57
-🕯️ Candle Closed: 80.57 | Vol: 51108395.498
-📡 Signal Detected: PinBarReversal@1m -> SHORT
-📡 Signal Detected: PinBarReversal@5m -> SHORT
-📡 Signal Detected: PinBarReversal@15m -> SHORT
-📡 Signal Detected: KeltnerReversion@1m -> SHORT
-📡 Signal Detected: AdaptiveRSI@5m -> SHORT
-📡 Signal Detected: AdaptiveRSI@15m -> SHORT
-⚡ Tick: LTCUSDT 80.56
-⚡ Tick: LTCUSDT 80.56
-🕯️ Candle Closed: 80.56 | Vol: 55197053.771000005
-📡 Signal Detected: RSIReversion@1m -> LONG
-📡 Signal Detected: RSIReversion@5m -> LONG
-📡 Signal Detected: RSIReversion@15m -> LONG
-📡 Signal Detected: CCIReversion@1m -> SHORT
-📡 Signal Detected: CCIReversion@5m -> SHORT
-📡 Signal Detected: CCIReversion@15m -> SHORT
-📡 Signal Detected: WilliamsRReversion@1m -> SHORT
-📡 Signal Detected: WilliamsRReversion@5m -> SHORT
-📡 Signal Detected: WilliamsRReversion@15m -> SHORT
-⚡ Tick: LTCUSDT 80.56
-⚡ Tick: LTCUSDT 80.6
-⚡ Tick: LTCUSDT 80.56
-🕯️ Candle Closed: 80.56 | Vol: 51096060.50299999
-📡 Signal Detected: DecelerationCandles@5m -> LONG
-📡 Signal Detected: ADXFilter@1h -> SHORT
-📊 No consensus: LONG=1, SHORT=0 (need 2+)
-⚡ Tick: LTCUSDT 80.6
-⚡ Tick: LTCUSDT 80.6
-🕯️ Candle Closed: 80.6 | Vol: 49052241.805
-📡 Signal Detected: RailsPattern@5m -> LONG
-⏳ Time Limit Reached for 875994239 (120 bars). Closing at 80.6
-⏳ PENDING | LTCUSDT LONG | Detected: TIME_EXIT @ 80.60 | PnL estimado: +0.00 | Esperando confirmación del exchange...
-⏳ Executing TIME_EXIT for 875994239 in demo mode
-📤 Closing position: 875994239 | LTCUSDT LONG
-✅ Cancelled TP order: 875994242
-✅ Cancelled SL order: 875994243
-📉 Sending close order: sell 0.721 LTCUSDT
-📤 Executing market order: sell 0.721 LTCUSDT
-📋 Sending Order: {'symbol': 'LTCUSDT', 'side': 'SELL', 'type': 'MARKET', 'quantity': 0.721, 'timestamp': 1764964323704, 'recvWindow': 20000}
-✅ Market order executed: 876008878 | Status: open
-✅ Position closed: 875994239 | Fill: 0.0
-✅ CONFIRMED CLOSE | LTCUSDT LONG | Exit: 0.00 (MANUAL) | PnL REAL: -0.00 | Fee: 0.00 | Bars: 120
-✅ TIME_EXIT executed successfully for 875994239
-📡 Signal Detected: RailsPattern@15m -> LONG
-📡 Signal Detected: StochasticReversion@1m -> SHORT
-📡 Signal Detected: StochasticReversion@5m -> SHORT
-📡 Signal Detected: StochasticReversion@15m -> SHORT
-⚡ Tick: LTCUSDT 80.6
-⚡ Tick: LTCUSDT 80.6
-⚡ Tick: LTCUSDT 80.59
-🕯️ Candle Closed: 80.59 | Vol: 51094676.465
-📡 Signal Detected: EMA50Support@1h -> LONG
-📡 Signal Detected: MTFImpulse@5m -> LONG
-📡 Signal Detected: HurstRegime@5m -> LONG
-📡 Signal Detected: HurstRegime@15m -> LONG
-📡 Signal Detected: VolatilityWakeup@5m -> LONG
-⚡ Tick: LTCUSDT 80.59
-⚡ Tick: LTCUSDT 80.56
-🕯️ Candle Closed: 80.55 | Vol: 51080360.37899999
-📡 Signal Detected: PinBarReversal@15m -> SHORT
-📡 Signal Detected: AdaptiveRSI@5m -> SHORT
-📡 Signal Detected: AdaptiveRSI@15m -> SHORT
-⚡ Tick: LTCUSDT 80.55
-⚡ Tick: LTCUSDT 80.55
-⚡ Tick: LTCUSDT 80.55
-🕯️ Candle Closed: 80.55 | Vol: 55165991.071
-📡 Signal Detected: RSIReversion@1m -> LONG
-📡 Signal Detected: RSIReversion@5m -> LONG
-📡 Signal Detected: RSIReversion@15m -> LONG
-📡 Signal Detected: CCIReversion@1m -> SHORT
-📡 Signal Detected: CCIReversion@5m -> SHORT
-📡 Signal Detected: CCIReversion@15m -> SHORT
-📡 Signal Detected: WilliamsRReversion@1m -> SHORT
-📡 Signal Detected: WilliamsRReversion@5m -> SHORT
-📡 Signal Detected: WilliamsRReversion@15m -> SHORT
-📡 Signal Detected: ThreeBar@5m -> SHORT
-⚡ Tick: LTCUSDT 80.55
-⚡ Tick: LTCUSDT 80.55
-🕯️ Candle Closed: 80.55 | Vol: 49036248.23499999
-📡 Signal Detected: ADXFilter@5m -> LONG
-📡 Signal Detected: ADXFilter@1h -> SHORT
-📡 Signal Detected: VolumeImbalance@15m -> SHORT
-⚡ Tick: LTCUSDT 80.56
-⚡ Tick: LTCUSDT 80.58
-⚡ Tick: LTCUSDT 80.66
-🕯️ Candle Closed: 80.66 | Vol: 44949881.19
-📡 Signal Detected: ExtremeCandleRatio@1m -> LONG
-📡 Signal Detected: KeltnerReversion@1m -> SHORT
-📡 Signal Detected: StochasticReversion@1m -> SHORT
-📡 Signal Detected: StochasticReversion@5m -> SHORT
-📡 Signal Detected: StochasticReversion@15m -> SHORT
-⚡ Tick: LTCUSDT 80.69
-⚡ Tick: LTCUSDT 80.69
-🕯️ Candle Closed: 80.7 | Vol: 51075277.372000016
-📡 Signal Detected: EMA50Support@1h -> LONG
-📡 Signal Detected: VWAPBreakout@5m -> LONG
-📡 Signal Detected: VWAPBreakout@15m -> LONG
-📡 Signal Detected: MTFImpulse@5m -> LONG
-📡 Signal Detected: HurstRegime@5m -> LONG
-📡 Signal Detected: HurstRegime@15m -> LONG
-📡 Signal Detected: VWAPMomentum@5m -> LONG
-⚡ Tick: LTCUSDT 80.67
-⚡ Tick: LTCUSDT 80.55
-🕯️ Candle Closed: 80.54 | Vol: 49039374.686999984
-📡 Signal Detected: PinBarReversal@15m -> SHORT
-📡 Signal Detected: MomentumBurst@1m -> SHORT
-📡 Signal Detected: MomentumBurst@5m -> SHORT
-📡 Signal Detected: MomentumBurst@15m -> SHORT
-📡 Signal Detected: AdaptiveRSI@5m -> SHORT
-📡 Signal Detected: AdaptiveRSI@15m -> SHORT
-⚡ Tick: LTCUSDT 80.54
-⚡ Tick: LTCUSDT 80.53
-⚡ Tick: LTCUSDT 80.51
-🕯️ Candle Closed: 80.5 | Vol: 55169324.744
-📡 Signal Detected: RSIReversion@1m -> LONG
-📡 Signal Detected: RSIReversion@5m -> LONG
-📡 Signal Detected: RSIReversion@15m -> LONG
-📡 Signal Detected: CCIReversion@5m -> SHORT
-📡 Signal Detected: CCIReversion@15m -> SHORT
-📡 Signal Detected: WilliamsRReversion@5m -> SHORT
-📡 Signal Detected: WilliamsRReversion@15m -> SHORT
-📡 Signal Detected: BollingerRejection@5m -> SHORT
-📡 Signal Detected: BollingerRejection@15m -> SHORT
-📡 Signal Detected: SupportResistance@5m -> SHORT
-📡 Signal Detected: SupportResistance@15m -> SHORT
-⚡ Tick: LTCUSDT 80.45
-⚡ Tick: LTCUSDT 80.41
-🕯️ Candle Closed: 80.37 | Vol: 46996156.30900001
-📡 Signal Detected: MarubozuMomentum@5m -> SHORT
-📡 Signal Detected: BollingerTouch@1m -> LONG
-📡 Signal Detected: BollingerTouch@5m -> LONG
-📡 Signal Detected: BollingerTouch@15m -> LONG
-📡 Signal Detected: Supertrend@5m -> SHORT
-📡 Signal Detected: ZScoreReversion@1m -> LONG
-📡 Signal Detected: ZScoreReversion@5m -> LONG
-📡 Signal Detected: ZScoreReversion@15m -> LONG
-📡 Signal Detected: ADXFilter@5m -> LONG
-📡 Signal Detected: ADXFilter@1h -> SHORT
-📡 Signal Detected: VolumeImbalance@15m -> SHORT
-⚡ Tick: LTCUSDT 80.37
-⚡ Tick: LTCUSDT 80.36
-⚡ Tick: LTCUSDT 80.36
-🕯️ Candle Closed: 80.35 | Vol: 51082833.89599999
-📡 Signal Detected: ExtremeCandleRatio@5m -> SHORT
-⚡ Tick: LTCUSDT 80.35
-⚡ Tick: LTCUSDT 80.34
-⚡ Tick: LTCUSDT 80.37
-🕯️ Candle Closed: 80.35 | Vol: 53123146.21500001
-📡 Signal Detected: EMACrossover@5m -> SHORT
-📡 Signal Detected: EMACrossover@15m -> SHORT
-📡 Signal Detected: EMACrossover@1h -> SHORT
-📡 Signal Detected: EMA50Support@5m -> SHORT
-📡 Signal Detected: EMA50Support@15m -> SHORT
-📡 Signal Detected: EMA50Support@1h -> SHORT
-📡 Signal Detected: HurstRegime@5m -> SHORT
-📡 Signal Detected: HurstRegime@15m -> SHORT
-⚡ Tick: LTCUSDT 80.34
-⚡ Tick: LTCUSDT 80.36
-🕯️ Candle Closed: 80.34 | Vol: 53123206.837
-⚡ Tick: LTCUSDT 80.34
-⚡ Tick: LTCUSDT 80.34
-⚡ Tick: LTCUSDT 80.33
-🕯️ Candle Closed: 80.33 | Vol: 55165931.71600001
-📡 Signal Detected: RSIReversion@1m -> LONG
-📡 Signal Detected: RSIReversion@5m -> LONG
-📡 Signal Detected: RSIReversion@15m -> LONG
-⚡ Tick: LTCUSDT 80.32
-⚡ Tick: LTCUSDT 80.3
-⚡ Tick: LTCUSDT 80.28
-🕯️ Candle Closed: 80.28 | Vol: 57209139.654999994
-📡 Signal Detected: BollingerTouch@1m -> LONG
-📡 Signal Detected: BollingerTouch@5m -> LONG
-📡 Signal Detected: BollingerTouch@15m -> LONG
-📡 Signal Detected: KeltnerReversion@1m -> LONG
-📡 Signal Detected: StochasticReversion@1m -> LONG
-📡 Signal Detected: CCIReversion@1m -> LONG
-📡 Signal Detected: ZScoreReversion@1m -> LONG
-📡 Signal Detected: ZScoreReversion@5m -> LONG
-📡 Signal Detected: ZScoreReversion@15m -> LONG
-📡 Signal Detected: ADXFilter@5m -> LONG
-📡 Signal Detected: ADXFilter@1h -> SHORT
-⚡ Tick: LTCUSDT 80.27
-⚡ Tick: LTCUSDT 80.27
-🕯️ Candle Closed: 80.26 | Vol: 53122702.169
-📡 Signal Detected: VolumeImbalance@5m -> SHORT
-⚡ Tick: LTCUSDT 80.26
-⚡ Tick: LTCUSDT 80.25
-⚡ Tick: LTCUSDT 80.24
-🕯️ Candle Closed: 80.23 | Vol: 51079535.644999996
-📡 Signal Detected: EMA50Support@5m -> SHORT
-📡 Signal Detected: EMA50Support@15m -> SHORT
-📡 Signal Detected: EMA50Support@1h -> SHORT
-📡 Signal Detected: ExtremeCandleRatio@5m -> SHORT
-📡 Signal Detected: WilliamsRReversion@1m -> LONG
-📡 Signal Detected: WilliamsRReversion@5m -> LONG
-📡 Signal Detected: WilliamsRReversion@15m -> LONG
-📡 Signal Detected: HurstRegime@5m -> SHORT
-📡 Signal Detected: HurstRegime@15m -> SHORT
-⚡ Tick: LTCUSDT 80.22
-⚡ Tick: LTCUSDT 80.22
-🕯️ Candle Closed: 80.21 | Vol: 53122695.576000005
-📡 Signal Detected: Supertrend@15m -> SHORT
-⚡ Tick: LTCUSDT 80.21
-⚡ Tick: LTCUSDT 80.19
-⚡ Tick: LTCUSDT 80.17
-🕯️ Candle Closed: 80.17 | Vol: 51079528.21599998
-📡 Signal Detected: RSIReversion@1m -> LONG
-📡 Signal Detected: RSIReversion@5m -> LONG
-📡 Signal Detected: RSIReversion@15m -> LONG
-⚡ Tick: LTCUSDT 80.16
-⚡ Tick: LTCUSDT 80.14
-⚡ Tick: LTCUSDT 80.13
-🕯️ Candle Closed: 80.13 | Vol: 55165914.456
-📡 Signal Detected: BollingerTouch@1m -> LONG
-📡 Signal Detected: BollingerTouch@5m -> LONG
-📡 Signal Detected: BollingerTouch@15m -> LONG
-📡 Signal Detected: KeltnerReversion@1m -> LONG
-📡 Signal Detected: KeltnerReversion@5m -> LONG
-📡 Signal Detected: StochasticReversion@1m -> LONG
-📡 Signal Detected: StochasticReversion@5m -> LONG
-📡 Signal Detected: StochasticReversion@15m -> LONG
-📡 Signal Detected: CCIReversion@1m -> LONG
-📡 Signal Detected: CCIReversion@5m -> LONG
-📡 Signal Detected: CCIReversion@15m -> LONG
-📡 Signal Detected: ZScoreReversion@1m -> LONG
-📡 Signal Detected: ZScoreReversion@5m -> LONG
-📡 Signal Detected: ZScoreReversion@15m -> LONG
-📡 Signal Detected: ADXFilter@5m -> LONG
-📡 Signal Detected: ADXFilter@1h -> SHORT
-⚡ Tick: LTCUSDT 80.19
-⚡ Tick: LTCUSDT 80.2
-🕯️ Candle Closed: 80.21 | Vol: 53122688.623
-📡 Signal Detected: PinBarReversal@5m -> LONG
-⚡ Tick: LTCUSDT 80.21
-⚡ Tick: LTCUSDT 80.22
-⚡ Tick: LTCUSDT 80.22
-🕯️ Candle Closed: 80.23 | Vol: 49036275.88099999
-📡 Signal Detected: EMA50Support@15m -> SHORT
-📡 Signal Detected: EMA50Support@1h -> SHORT
-📡 Signal Detected: DecelerationCandles@5m -> LONG
-📡 Signal Detected: DecelerationCandles@15m -> LONG
-📡 Signal Detected: WilliamsRReversion@1m -> LONG
-📡 Signal Detected: WilliamsRReversion@5m -> LONG
-📡 Signal Detected: WilliamsRReversion@15m -> LONG
-📡 Signal Detected: AdaptiveRSI@5m -> LONG
-📡 Signal Detected: AdaptiveRSI@15m -> LONG
-📡 Signal Detected: HurstRegime@5m -> SHORT
-📡 Signal Detected: HurstRegime@15m -> SHORT
-✅ CONSENSUS LONG: 2L/0S | Best: DecelerationCandles (score=0.824) | HTF: N/A
-🎯 Decision: LONG | Kelly Bet: 1.69% of 3412.22 | Sensor: DecelerationCandles
-📩 Decision Received: LTCUSDT LONG (Size: 1.69%, Step: 0)
-🔍 get_current_price | requested_symbol=LTCUSDT | adapter_symbol=LTCUSDT
-💰 Current price for LTCUSDT: 80.21
-📊 Order calculation: Equity=3412.22 | Size=1.69% | Value=57.76 | Price=80.21 | Amount=0.72000000 (raw=0.720131070416)
-📥 Execute order request: LONG LTCUSDT
-🛡️ Creating OCO bracket for LTCUSDT LONG | TP: 0.0390 | SL: 0.0250
-📤 Executing market order: buy 0.72 LTCUSDT
-📋 Sending Order: {'symbol': 'LTCUSDT', 'side': 'BUY', 'type': 'MARKET', 'quantity': 0.72, 'timestamp': 1764965582097, 'recvWindow': 20000}
-✅ Market order executed: 876011047 | Status: open
-⏳ Fill price not in response (status NEW?), waiting for fill...
-✅ Main order filled @ 80.65975
-📈 Creating TP order @ 83.80548025
-📤 Executing limit order: sell 0.72 LTCUSDT @ 83.81
-📋 Sending Order: {'symbol': 'LTCUSDT', 'side': 'SELL', 'type': 'LIMIT', 'quantity': 0.72, 'price': 83.81, 'timeInForce': 'GTC', 'timestamp': 1764965582517, 'recvWindow': 20000}
-✅ Limit order executed: 876011048 | Status: open
-📉 Creating SL order @ stop 78.64325625000001
-📤 Executing stop order: sell 0.72 LTCUSDT @ stop 78.64
-📋 Sending Order: {'symbol': 'LTCUSDT', 'side': 'SELL', 'type': 'STOP_MARKET', 'quantity': 0.72, 'stopPrice': 78.64, 'timestamp': 1764965583123, 'recvWindow': 20000}
-✅ Stop order executed: 876011049
-✅ OCO bracket created: Main=876011047, SL=876011049
-✅ Position opened: 876011047 | Entry: 80.66
-⚠️ Order Result: {'main_order': {'id': '876011047', 'order_id': '876011047', 'symbol': 'LTCUSDT', 'status': 'open', 'price': 0.0, 'amount': 0.72, 'filled': 0.0, 'type': 'market', 'side': 'buy', 'timestamp': 1764965582308, 'info': {'orderId': 876011047, 'symbol': 'LTCUSDT', 'status': 'NEW', 'clientOrderId': 'WEMH5xEB51IS4ZecoVjN6e', 'price': '0.00', 'avgPrice': '0.00', 'origQty': '0.720', 'executedQty': '0.000', 'cumQty': '0.000', 'cumQuote': '0.00000', 'timeInForce': 'GTC', 'type': 'MARKET', 'reduceOnly': False, 'closePosition': False, 'side': 'BUY', 'positionSide': 'BOTH', 'stopPrice': '0.00', 'workingType': 'CONTRACT_PRICE', 'priceProtect': False, 'origType': 'MARKET', 'priceMatch': 'NONE', 'selfTradePreventionMode': 'EXPIRE_MAKER', 'goodTillDate': 0, 'updateTime': 1764965582308}}, 'tp_order': {'id': '876011048', 'order_id': '876011048', 'symbol': 'LTCUSDT', 'status': 'open', 'price': 0.0, 'amount': 0.72, 'filled': 0.0, 'type': 'limit', 'side': 'sell', 'timestamp': 1764965583114, 'info': {'orderId': 876011048, 'symbol': 'LTCUSDT', 'status': 'NEW', 'clientOrderId': 'I1Ge6d5Q8yidQg2LMIeDxb', 'price': '83.81', 'avgPrice': '0.00', 'origQty': '0.720', 'executedQty': '0.000', 'cumQty': '0.000', 'cumQuote': '0.00000', 'timeInForce': 'GTC', 'type': 'LIMIT', 'reduceOnly': False, 'closePosition': False, 'side': 'SELL', 'positionSide': 'BOTH', 'stopPrice': '0.00', 'workingType': 'CONTRACT_PRICE', 'priceProtect': False, 'origType': 'LIMIT', 'priceMatch': 'NONE', 'selfTradePreventionMode': 'EXPIRE_MAKER', 'goodTillDate': 0, 'updateTime': 1764965583114}}, 'sl_order': {'id': '876011049', 'order_id': '876011049', 'symbol': 'LTCUSDT', 'status': 'open', 'price': 0.0, 'amount': 0.72, 'filled': 0.0, 'type': 'stop_market', 'side': 'sell', 'timestamp': 1764965583337, 'info': {'orderId': 876011049, 'symbol': 'LTCUSDT', 'status': 'NEW', 'clientOrderId': 'Bz9IsTxy1g7fbSza5LHKWU', 'price': '0.00', 'avgPrice': '0.00', 'origQty': '0.720', 'executedQty': '0.000', 'cumQty': '0.000', 'cumQuote': '0.00000', 'timeInForce': 'GTC', 'type': 'STOP_MARKET', 'reduceOnly': False, 'closePosition': False, 'side': 'SELL', 'positionSide': 'BOTH', 'stopPrice': '78.64', 'workingType': 'CONTRACT_PRICE', 'priceProtect': False, 'origType': 'STOP_MARKET', 'priceMatch': 'NONE', 'selfTradePreventionMode': 'EXPIRE_MAKER', 'goodTillDate': 0, 'updateTime': 1764965583337}}, 'fill_price': 80.65975, 'tp_price': 83.80548025, 'sl_price': 78.64325625000001, 'contributors': ['DecelerationCandles'], 'position': OpenPosition(trade_id='876011047', symbol='LTCUSDT', side='LONG', entry_price=80.65975, entry_timestamp=1764965582308, margin_used=0, notional=0, leverage=1, tp_level=83.80548025, sl_level=78.64325625000001, liquidation_level=0.40329875000000004, order={'trade_id': 'V3_1764965581385', 'symbol': 'LTCUSDT', 'side': 'LONG', 'size': 0.016927880278179236, 'amount': 0.72, 'take_profit': 0.039, 'stop_loss': 0.025, 'timestamp': '1764965581.385229', 'ghost': False, 'contributors': ['DecelerationCandles']}, main_order_id='876011047', tp_order_id='876011048', sl_order_id='876011049', bars_held=0, funding_accrued=0.0, contributors=['DecelerationCandles'])}
-⚡ Tick: LTCUSDT 80.23
-⚡ Tick: LTCUSDT 80.26
-🕯️ Candle Closed: 80.27 | Vol: 51080633.272999994
-📡 Signal Detected: VolumeImbalance@15m -> SHORT
-📡 Signal Detected: LongTail@15m -> SHORT
-📡 Signal Detected: WickRejection@1m -> SHORT
-📡 Signal Detected: WickRejection@5m -> SHORT
-📡 Signal Detected: WickRejection@15m -> SHORT
-📡 Signal Detected: SupportResistance@15m -> SHORT
-📊 No consensus: LONG=0, SHORT=1 (need 2+)
-⚡ Tick: LTCUSDT 80.24
-⚡ Tick: LTCUSDT 80.3
-⚡ Tick: LTCUSDT 80.32
-🕯️ Candle Closed: 80.32 | Vol: 53124979.374
-⚡ Tick: LTCUSDT 80.34
-⚡ Tick: LTCUSDT 80.32
-🕯️ Candle Closed: 80.3 | Vol: 49038674.901
-📡 Signal Detected: MACDCrossover@5m -> LONG
-📡 Signal Detected: MACDCrossover@15m -> LONG
-📡 Signal Detected: MACDCrossover@1h -> LONG
-📡 Signal Detected: ADXFilter@5m -> LONG
-📡 Signal Detected: ADXFilter@1h -> SHORT
-📡 Signal Detected: MicroTrend@1m -> SHORT
-⚡ Tick: LTCUSDT 80.28
-⚡ Tick: LTCUSDT 80.31
-⚡ Tick: LTCUSDT 80.28
-🕯️ Candle Closed: 80.28 | Vol: 53125236.925
-📡 Signal Detected: PinBarReversal@1m -> SHORT
-📡 Signal Detected: PinBarReversal@5m -> SHORT
-📡 Signal Detected: PinBarReversal@15m -> SHORT
-📡 Signal Detected: RSIReversion@1m -> LONG
-📡 Signal Detected: RSIReversion@5m -> LONG
-📡 Signal Detected: RSIReversion@15m -> LONG
-📡 Signal Detected: CCIReversion@1m -> LONG
-⚡ Tick: LTCUSDT 80.25
-⚡ Tick: LTCUSDT 80.27
-🕯️ Candle Closed: 80.31 | Vol: 55168324.730000004
-📡 Signal Detected: EMA50Support@5m -> SHORT
-📡 Signal Detected: EMA50Support@15m -> SHORT
-📡 Signal Detected: EMA50Support@1h -> SHORT
-📡 Signal Detected: DecelerationCandles@15m -> LONG
-📡 Signal Detected: MomentumBurst@1m -> LONG
-📡 Signal Detected: MomentumBurst@5m -> LONG
-📡 Signal Detected: MomentumBurst@15m -> LONG
-📡 Signal Detected: AdaptiveRSI@5m -> LONG
-📡 Signal Detected: AdaptiveRSI@15m -> LONG
-📡 Signal Detected: BollingerRejection@15m -> SHORT
-📡 Signal Detected: HurstRegime@5m -> SHORT
-📡 Signal Detected: HurstRegime@15m -> SHORT
-📊 No consensus: LONG=1, SHORT=0 (need 2+)
-⚡ Tick: LTCUSDT 80.32
-⚡ Tick: LTCUSDT 80.36
-⚡ Tick: LTCUSDT 80.39
-🕯️ Candle Closed: 80.38 | Vol: 55170593.426
-📡 Signal Detected: ExtremeCandleRatio@1m -> LONG
-📡 Signal Detected: InsideBarBreakout@1m -> LONG
-📡 Signal Detected: VolatilityWakeup@15m -> LONG
-⚡ Tick: LTCUSDT 80.36
-⚡ Tick: LTCUSDT 80.36
-🕯️ Candle Closed: 80.34 | Vol: 49042890.35999999
-📡 Signal Detected: ThreeBar@15m -> LONG
-⚡ Tick: LTCUSDT 80.32
-⚡ Tick: LTCUSDT 80.31
-⚡ Tick: LTCUSDT 80.35
-🕯️ Candle Closed: 80.34 | Vol: 51086347.113000005
-📡 Signal Detected: ADXFilter@5m -> LONG
-📡 Signal Detected: ADXFilter@1h -> SHORT
-⚡ Tick: LTCUSDT 80.34
-⚡ Tick: LTCUSDT 80.38
-⚡ Tick: LTCUSDT 80.39
-🕯️ Candle Closed: 80.4 | Vol: 53128771.115
+📡 Signal Detected: KeltnerReversion@15m -> SHORT
 📡 Signal Detected: VolumeImbalance@5m -> LONG
-⚡ Tick: LTCUSDT 80.39
-⚡ Tick: LTCUSDT 80.26
-🕯️ Candle Closed: 80.27 | Vol: 46997916.061000004
-📡 Signal Detected: PinBarReversal@5m -> SHORT
-📡 Signal Detected: PinBarReversal@15m -> SHORT
-📡 Signal Detected: EMA50Support@5m -> SHORT
-📡 Signal Detected: EMA50Support@15m -> SHORT
-📡 Signal Detected: EMA50Support@1h -> SHORT
-📡 Signal Detected: DecelerationCandles@15m -> LONG
-📡 Signal Detected: WilliamsRReversion@1m -> LONG
-📡 Signal Detected: MTFImpulse@5m -> SHORT
-📡 Signal Detected: AdaptiveRSI@5m -> LONG
-📡 Signal Detected: AdaptiveRSI@15m -> LONG
-📡 Signal Detected: HurstRegime@5m -> SHORT
-📡 Signal Detected: HurstRegime@15m -> SHORT
-📡 Signal Detected: MicroTrend@1m -> SHORT
-📡 Signal Detected: MicroTrend@5m -> SHORT
-📡 Signal Detected: VSAReversal@5m -> SHORT
-📊 No consensus: LONG=1, SHORT=0 (need 2+)
-⚡ Tick: LTCUSDT 80.29
-⚡ Tick: LTCUSDT 80.29
-🕯️ Candle Closed: 80.28 | Vol: 51084542.870000005
-📡 Signal Detected: InsideBarBreakout@5m -> SHORT
-📡 Signal Detected: InsideBarBreakout@15m -> SHORT
-📡 Signal Detected: RSIReversion@1m -> LONG
-📡 Signal Detected: RSIReversion@5m -> LONG
-📡 Signal Detected: RSIReversion@15m -> LONG
-📡 Signal Detected: CCIReversion@5m -> LONG
-📡 Signal Detected: VolatilityWakeup@15m -> SHORT
-⚡ Tick: LTCUSDT 80.3
-⚡ Tick: LTCUSDT 80.36
-⚡ Tick: LTCUSDT 80.35
-🕯️ Candle Closed: 80.39 | Vol: 51073332.16599999
-📡 Signal Detected: ExtremeCandleRatio@1m -> LONG
-⚡ Tick: LTCUSDT 80.35
-⚡ Tick: LTCUSDT 80.32
-🕯️ Candle Closed: 80.32 | Vol: 44944316.569000006
-📡 Signal Detected: ADXFilter@5m -> LONG
-📡 Signal Detected: ADXFilter@1h -> SHORT
-⚡ Tick: LTCUSDT 80.34
-⚡ Tick: LTCUSDT 80.31
-⚡ Tick: LTCUSDT 80.3
-🕯️ Candle Closed: 80.3 | Vol: 52976798.701000005
-📡 Signal Detected: RailsPattern@15m -> SHORT
-📡 Signal Detected: VolumeImbalance@15m -> SHORT
-📡 Signal Detected: LongTail@15m -> SHORT
-📡 Signal Detected: BollingerRejection@15m -> SHORT
-📡 Signal Detected: WickRejection@1m -> SHORT
-📡 Signal Detected: WickRejection@5m -> SHORT
-📡 Signal Detected: WickRejection@15m -> SHORT
-📡 Signal Detected: SupportResistance@15m -> SHORT
-📊 No consensus: LONG=0, SHORT=1 (need 2+)
-⚡ Tick: LTCUSDT 80.33
-⚡ Tick: LTCUSDT 80.34
-🕯️ Candle Closed: 80.36 | Vol: 54395078.581
-📡 Signal Detected: PinBarReversal@1m -> SHORT
-📡 Signal Detected: PinBarReversal@5m -> SHORT
-📡 Signal Detected: PinBarReversal@15m -> SHORT
+✅ CONSENSUS SHORT: 0L/2S | Best: DecelerationCandles (score=0.827) | HTF: N/A
+🎯 Decision: SHORT | Kelly Bet: 1.63% of 3408.93 | Sensor: DecelerationCandles
+📩 Decision Received: BNBUSDT SHORT (Size: 1.63%, Step: 0)
+🔍 get_current_price | requested_symbol=BNBUSDT | adapter_symbol=BNBUSDT
+💰 Current price for BNBUSDT: 884.83
+📊 Order calculation: Equity=3408.93 | Size=1.63% | Value=55.45 | Price=884.83 | Amount=0.06000000 (raw=0.062672668465)
+📥 Execute order request: SHORT BNBUSDT
+🛡️ Creating OCO bracket for BNBUSDT SHORT | TP: 0.0390 | SL: 0.0250
+📤 Executing market order: sell 0.06 BNBUSDT
+📋 Sending Order: {'symbol': 'BNBUSDT', 'side': 'SELL', 'type': 'MARKET', 'quantity': 0.06, 'timestamp': 1765019701304, 'recvWindow': 20000}
+✅ Market order executed: 1038433846 | Status: open
+⏳ Fill price not in response (status NEW?), waiting for fill...
+✅ Main order filled @ 882.89
+📈 Creating TP order @ 848.45729
+📤 Executing limit order: buy 0.06 BNBUSDT @ 848.457
+📋 Sending Order: {'symbol': 'BNBUSDT', 'side': 'BUY', 'type': 'LIMIT', 'quantity': 0.06, 'price': 848.457, 'timeInForce': 'GTC', 'timestamp': 1765019701724, 'recvWindow': 20000}
+❌ Order Failed: Price not increased by tick size.
+❌ Error executing order: (400, -4014, 'Price not increased by tick size.', {'Content-Type': 'application/json', 'Content-Length': '56', 'Connection': 'keep-alive', 'Date': 'Sat, 06 Dec 2025 11:15:02 GMT', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS', 'Server': 'Bengine', 'x-mbx-used-weight-1m': '-1', 'x-mbx-order-count-10s': '2', 'x-mbx-order-count-1m': '2', 'x-response-time': '4ms', 'Access-Control-Allow-Origin': '*', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 afbefb862cbc68ce1a43b2892cbd35d4.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'MIA50-P7', 'X-Amz-Cf-Id': 'mQ3W2ZU4GZcRbaz6ni-kLVyemfDggrA5H5pw5BIx3BsuHNJwwumO3A=='})
+⚠️ Error in exchange_orders.execute_order (attempt 1/3): authentication | (400, -4014, 'Price not increased by tick size.', {'Content-Type': 'application/json', 'Content-Leng
+❌ Non-retriable error in exchange_orders.execute_order: authentication | authentication: (400, -4014, 'price not increased by tick size.', {'content-type': 'application/json', 'content-leng
+❌ Limit order failed: (400, -4014, 'Price not increased by tick size.', {'Content-Type': 'application/json', 'Content-Length': '56', 'Connection': 'keep-alive', 'Date': 'Sat, 06 Dec 2025 11:15:02 GMT', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS', 'Server': 'Bengine', 'x-mbx-used-weight-1m': '-1', 'x-mbx-order-count-10s': '2', 'x-mbx-order-count-1m': '2', 'x-response-time': '4ms', 'Access-Control-Allow-Origin': '*', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 afbefb862cbc68ce1a43b2892cbd35d4.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'MIA50-P7', 'X-Amz-Cf-Id': 'mQ3W2ZU4GZcRbaz6ni-kLVyemfDggrA5H5pw5BIx3BsuHNJwwumO3A=='})
+⚠️ Error in oco_tp_orders.execute_limit_order (attempt 1/5): authentication | (400, -4014, 'Price not increased by tick size.', {'Content-Type': 'application/json', 'Content-Leng
+❌ Non-retriable error in oco_tp_orders.execute_limit_order: authentication | authentication: (400, -4014, 'price not increased by tick size.', {'content-type': 'application/json', 'content-leng
+❌ OCO bracket creation failed: (400, -4014, 'Price not increased by tick size.', {'Content-Type': 'application/json', 'Content-Length': '56', 'Connection': 'keep-alive', 'Date': 'Sat, 06 Dec 2025 11:15:02 GMT', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS', 'Server': 'Bengine', 'x-mbx-used-weight-1m': '-1', 'x-mbx-order-count-10s': '2', 'x-mbx-order-count-1m': '2', 'x-response-time': '4ms', 'Access-Control-Allow-Origin': '*', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 afbefb862cbc68ce1a43b2892cbd35d4.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'MIA50-P7', 'X-Amz-Cf-Id': 'mQ3W2ZU4GZcRbaz6ni-kLVyemfDggrA5H5pw5BIx3BsuHNJwwumO3A=='})
+🧹 Cleaning up partial OCO bracket...
+❌ Cancel Failed: (400, -2011, 'Unknown order sent.', {'Content-Type': 'application/json', 'Content-Length': '42', 'Connection': 'keep-alive', 'Date': 'Sat, 06 Dec 2025 11:15:02 GMT', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS', 'Server': 'Bengine', 'x-mbx-used-weight-1m': '1', 'x-response-time': '17ms', 'Access-Control-Allow-Origin': '*', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 afbefb862cbc68ce1a43b2892cbd35d4.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'MIA50-P7', 'X-Amz-Cf-Id': 'dQyfi9oyyyBdLsu1xn3bC-NFWIOEelJ-P5a-3jZbM_wJ37wF69VGQA=='})
+❌ Failed to cancel Main order 1038433846: (400, -2011, 'Unknown order sent.', {'Content-Type': 'application/json', 'Content-Length': '42', 'Connection': 'keep-alive', 'Date': 'Sat, 06 Dec 2025 11:15:02 GMT', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS', 'Server': 'Bengine', 'x-mbx-used-weight-1m': '1', 'x-response-time': '17ms', 'Access-Control-Allow-Origin': '*', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 afbefb862cbc68ce1a43b2892cbd35d4.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'MIA50-P7', 'X-Amz-Cf-Id': 'dQyfi9oyyyBdLsu1xn3bC-NFWIOEelJ-P5a-3jZbM_wJ37wF69VGQA=='})
+🧹 Cleaned up 1 orders
+⚠️ Error in execute_order_BNBUSDT (attempt 1/3): authentication | Failed to create OCO bracket: (400, -4014, 'Price not increased by tick size.', {'Content-Type': 'ap
+❌ Non-retriable error in execute_order_BNBUSDT: authentication | authentication: failed to create oco bracket: (400, -4014, 'price not increased by tick size.', {'content-type': 'ap
+❌ Execution Failed after retries: Failed to create OCO bracket: (400, -4014, 'Price not increased by tick size.', {'Content-Type': 'application/json', 'Content-Length': '56', 'Connection': 'keep-alive', 'Date': 'Sat, 06 Dec 2025 11:15:02 GMT', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS', 'Server': 'Bengine', 'x-mbx-used-weight-1m': '-1', 'x-mbx-order-count-10s': '2', 'x-mbx-order-count-1m': '2', 'x-response-time': '4ms', 'Access-Control-Allow-Origin': '*', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 afbefb862cbc68ce1a43b2892cbd35d4.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'MIA50-P7', 'X-Amz-Cf-Id': 'mQ3W2ZU4GZcRbaz6ni-kLVyemfDggrA5H5pw5BIx3BsuHNJwwumO3A=='})
+Traceback (most recent call last):
+  File "/home/chesterbelle/Casino-V2/croupier/components/oco_manager.py", line 181, in create_bracketed_order
+    tp_order = await self._create_tp_order(symbol, side, main_order["amount"], tp_price)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/chesterbelle/Casino-V2/croupier/components/oco_manager.py", line 339, in _create_tp_order
+    return await self.error_handler.execute_with_breaker(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<7 lines>...
+    )
+    ^
+  File "/home/chesterbelle/Casino-V2/core/error_handling/error_handler.py", line 214, in execute_with_breaker
+    return await self.execute(
+           ^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+    )
+    ^
+  File "/home/chesterbelle/Casino-V2/core/error_handling/error_handler.py", line 124, in execute
+    result = await func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/chesterbelle/Casino-V2/core/error_handling/error_handler.py", line 211, in wrapped
+    return await func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/chesterbelle/Casino-V2/croupier/components/order_executor.py", line 111, in execute_limit_order
+    result = await self.error_handler.execute_with_breaker(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        "exchange_orders", self.adapter.execute_order, order, retry_config=retry_cfg
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/chesterbelle/Casino-V2/core/error_handling/error_handler.py", line 214, in execute_with_breaker
+    return await self.execute(
+           ^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+    )
+    ^
+  File "/home/chesterbelle/Casino-V2/core/error_handling/error_handler.py", line 124, in execute
+    result = await func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/chesterbelle/Casino-V2/core/error_handling/error_handler.py", line 211, in wrapped
+    return await func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/chesterbelle/Casino-V2/exchanges/adapters/exchange_adapter.py", line 366, in execute_order
+    result = await self.connector.create_order(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "/home/chesterbelle/Casino-V2/exchanges/connectors/binance/binance_native_connector.py", line 688, in create_order
+    response = self.client.new_order(**args)
+  File "/home/chesterbelle/Casino-V2/.venv/lib/python3.13/site-packages/binance/um_futures/account.py", line 116, in new_order
+    return self.sign_request("POST", url_path, params)
+           ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/chesterbelle/Casino-V2/.venv/lib/python3.13/site-packages/binance/api.py", line 83, in sign_request
+    return self.send_request(http_method, url_path, payload, special)
+           ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/chesterbelle/Casino-V2/.venv/lib/python3.13/site-packages/binance/api.py", line 118, in send_request
+    self._handle_exception(response)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/home/chesterbelle/Casino-V2/.venv/lib/python3.13/site-packages/binance/api.py", line 172, in _handle_exception
+    raise ClientError(status_code, err["code"], err["msg"], response.headers)
+binance.error.ClientError: (400, -4014, 'Price not increased by tick size.', {'Content-Type': 'application/json', 'Content-Length': '56', 'Connection': 'keep-alive', 'Date': 'Sat, 06 Dec 2025 11:15:02 GMT', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS', 'Server': 'Bengine', 'x-mbx-used-weight-1m': '-1', 'x-mbx-order-count-10s': '2', 'x-mbx-order-count-1m': '2', 'x-response-time': '4ms', 'Access-Control-Allow-Origin': '*', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 afbefb862cbc68ce1a43b2892cbd35d4.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'MIA50-P7', 'X-Amz-Cf-Id': 'mQ3W2ZU4GZcRbaz6ni-kLVyemfDggrA5H5pw5BIx3BsuHNJwwumO3A=='})
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/chesterbelle/Casino-V2/core/execution.py", line 170, in on_decision
+    result = await error_handler.execute(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<8 lines>...
+    )
+    ^
+  File "/home/chesterbelle/Casino-V2/core/error_handling/error_handler.py", line 124, in execute
+    result = await func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/chesterbelle/Casino-V2/croupier/croupier.py", line 149, in execute_order
+    result = await self.oco_manager.create_bracketed_order(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        order, wait_for_fill=wait_for_fill, contributors=contributors
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/chesterbelle/Casino-V2/croupier/components/oco_manager.py", line 250, in create_bracketed_order
+    raise OCOAtomicityError(f"Failed to create OCO bracket: {e}") from e
+croupier.components.oco_manager.OCOAtomicityError: Failed to create OCO bracket: (400, -4014, 'Price not increased by tick size.', {'Content-Type': 'application/json', 'Content-Length': '56', 'Connection': 'keep-alive', 'Date': 'Sat, 06 Dec 2025 11:15:02 GMT', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS', 'Server': 'Bengine', 'x-mbx-used-weight-1m': '-1', 'x-mbx-order-count-10s': '2', 'x-mbx-order-count-1m': '2', 'x-response-time': '4ms', 'Access-Control-Allow-Origin': '*', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 afbefb862cbc68ce1a43b2892cbd35d4.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'MIA50-P7', 'X-Amz-Cf-Id': 'mQ3W2ZU4GZcRbaz6ni-kLVyemfDggrA5H5pw5BIx3BsuHNJwwumO3A=='})
+⚡ Tick: BNBUSDT 884.7
+⚡ Tick: BNBUSDT 884.98
+⚡ Tick: BNBUSDT 884.66
+🕯️ Candle Closed: 885.0 | Vol: 195524698.42
+📡 Signal Detected: PinBarReversal@1m -> LONG
 📡 Signal Detected: EMA50Support@5m -> LONG
 📡 Signal Detected: EMA50Support@15m -> LONG
 📡 Signal Detected: EMA50Support@1h -> LONG
-📡 Signal Detected: MTFImpulse@5m -> SHORT
 📡 Signal Detected: HurstRegime@5m -> LONG
 📡 Signal Detected: HurstRegime@15m -> LONG
-⚡ Tick: LTCUSDT 80.37
-⚡ Tick: LTCUSDT 80.37
-⚡ Tick: LTCUSDT 80.34
-🕯️ Candle Closed: 80.33 | Vol: 50257779.634
-📡 Signal Detected: RSIReversion@1m -> SHORT
-📡 Signal Detected: RSIReversion@5m -> SHORT
-📡 Signal Detected: RSIReversion@15m -> SHORT
 📡 Signal Detected: VolatilityWakeup@15m -> LONG
-⚡ Tick: LTCUSDT 80.25
-⚡ Tick: LTCUSDT 80.24
-⚡ Tick: LTCUSDT 80.22
-🕯️ Candle Closed: 80.22 | Vol: 56272342.899
-📡 Signal Detected: ExtremeCandleRatio@5m -> SHORT
-📡 Signal Detected: StochasticReversion@1m -> LONG
-📡 Signal Detected: WilliamsRReversion@1m -> LONG
-📡 Signal Detected: WilliamsRReversion@5m -> LONG
-📡 Signal Detected: WilliamsRReversion@15m -> LONG
+⚡ Tick: BNBUSDT 884.3
+⚡ Tick: BNBUSDT 884.23
+🕯️ Candle Closed: 883.84 | Vol: 181558668.14000002
 📡 Signal Detected: MomentumBurst@1m -> SHORT
 📡 Signal Detected: MomentumBurst@5m -> SHORT
 📡 Signal Detected: MomentumBurst@15m -> SHORT
-📡 Signal Detected: ThreeBar@5m -> SHORT
-⚡ Tick: LTCUSDT 80.21
-⚡ Tick: LTCUSDT 80.2
-🕯️ Candle Closed: 80.2 | Vol: 48233431.50899999
+⚡ Tick: BNBUSDT 883.84
+⚡ Tick: BNBUSDT 885.0
+⚡ Tick: BNBUSDT 884.17
+🕯️ Candle Closed: 884.17 | Vol: 153627087.99999997
+📡 Signal Detected: ExtremeCandleRatio@1m -> SHORT
+⚡ Tick: BNBUSDT 884.23
+🕯️ Candle Closed: 884.24 | Vol: 125695791.33000001
+📡 Signal Detected: CCIReversion@5m -> SHORT
+📡 Signal Detected: CCIReversion@15m -> SHORT
+📡 Signal Detected: ADXFilter@5m -> LONG
+📡 Signal Detected: ADXFilter@15m -> LONG
+📡 Signal Detected: ADXFilter@1h -> LONG
+⚡ Tick: BNBUSDT 884.3
+⚡ Tick: BNBUSDT 884.28
+⚡ Tick: BNBUSDT 884.0
+🕯️ Candle Closed: 883.97 | Vol: 160611254.73000002
+📡 Signal Detected: VWAPBreakout@15m -> LONG
+📡 Signal Detected: DecelerationCandles@15m -> SHORT
+📡 Signal Detected: RSIReversion@1m -> LONG
+📡 Signal Detected: RSIReversion@5m -> LONG
+📡 Signal Detected: RSIReversion@15m -> LONG
+📊 No consensus: LONG=0, SHORT=1 (need 2+)
+⚡ Tick: BNBUSDT 883.65
+⚡ Tick: BNBUSDT 883.86
+⚡ Tick: BNBUSDT 884.16
+🕯️ Candle Closed: 884.17 | Vol: 195526436.96
+📡 Signal Detected: EMA50Support@5m -> LONG
+📡 Signal Detected: EMA50Support@15m -> LONG
+📡 Signal Detected: EMA50Support@1h -> LONG
+📡 Signal Detected: HurstRegime@5m -> LONG
+📡 Signal Detected: HurstRegime@15m -> LONG
+📡 Signal Detected: VolatilityWakeup@15m -> LONG
+⚡ Tick: BNBUSDT 884.16
+⚡ Tick: BNBUSDT 884.12
+🕯️ Candle Closed: 883.62 | Vol: 195526418.41
+📡 Signal Detected: InsideBarBreakout@1m -> SHORT
 📡 Signal Detected: MACDCrossover@5m -> SHORT
 📡 Signal Detected: MACDCrossover@15m -> SHORT
 📡 Signal Detected: MACDCrossover@1h -> SHORT
-📡 Signal Detected: CCIReversion@1m -> LONG
-📡 Signal Detected: ADXFilter@5m -> LONG
-📡 Signal Detected: ADXFilter@1h -> SHORT
-⚡ Tick: LTCUSDT 80.19
-⚡ Tick: LTCUSDT 80.18
-⚡ Tick: LTCUSDT 80.15
-🕯️ Candle Closed: 80.15 | Vol: 56272270.70900001
-📡 Signal Detected: VWAPBreakout@5m -> SHORT
-📡 Signal Detected: VWAPBreakout@15m -> SHORT
-📡 Signal Detected: ZScoreReversion@1m -> LONG
-📡 Signal Detected: ZScoreReversion@5m -> LONG
-📡 Signal Detected: ZScoreReversion@15m -> LONG
-📡 Signal Detected: VolumeImbalance@5m -> SHORT
-📡 Signal Detected: VolumeImbalance@15m -> SHORT
-📡 Signal Detected: LongTail@5m -> SHORT
-📡 Signal Detected: LongTail@15m -> SHORT
-📡 Signal Detected: BollingerRejection@5m -> SHORT
-📡 Signal Detected: BollingerRejection@15m -> SHORT
-📡 Signal Detected: WickRejection@15m -> SHORT
-📡 Signal Detected: SupportResistance@5m -> SHORT
-📡 Signal Detected: SupportResistance@15m -> SHORT
-✅ CONSENSUS SHORT: 0L/2S | Best: LongTail (score=0.912) | HTF: N/A
-⚡ Tick: LTCUSDT 80.14
-⚡ Tick: LTCUSDT 80.13
-⚡ Tick: LTCUSDT 80.12
-🕯️ Candle Closed: 80.12 | Vol: 56272207.879999995
-📡 Signal Detected: PinBarReversal@15m -> SHORT
-📡 Signal Detected: EMA50Support@5m -> SHORT
-📡 Signal Detected: EMA50Support@15m -> SHORT
-📡 Signal Detected: EMA50Support@1h -> SHORT
-📡 Signal Detected: MTFImpulse@5m -> SHORT
-📡 Signal Detected: MTFImpulse@15m -> SHORT
-📡 Signal Detected: HurstRegime@5m -> SHORT
-📡 Signal Detected: HurstRegime@15m -> SHORT
-⚡ Tick: LTCUSDT 80.1
-⚡ Tick: LTCUSDT 80.11
-⚡ Tick: LTCUSDT 80.12
-🕯️ Candle Closed: 80.11 | Vol: 58281494.842
-📡 Signal Detected: VolatilityWakeup@15m -> SHORT
-⚡ Tick: LTCUSDT 80.15
-⚡ Tick: LTCUSDT 80.13
-🕯️ Candle Closed: 80.15 | Vol: 50248224.90800001
-📡 Signal Detected: StochasticReversion@1m -> LONG
-📡 Signal Detected: StochasticReversion@5m -> LONG
-📡 Signal Detected: StochasticReversion@15m -> LONG
-📡 Signal Detected: WilliamsRReversion@1m -> LONG
-📡 Signal Detected: WilliamsRReversion@5m -> LONG
-📡 Signal Detected: WilliamsRReversion@15m -> LONG
-⚡ Tick: LTCUSDT 80.13
-⚡ Tick: LTCUSDT 80.1
-⚡ Tick: LTCUSDT 80.08
-🕯️ Candle Closed: 80.08 | Vol: 50251245.793
-📡 Signal Detected: CCIReversion@1m -> LONG
-📡 Signal Detected: CCIReversion@5m -> LONG
-📡 Signal Detected: CCIReversion@15m -> LONG
-📡 Signal Detected: ADXFilter@5m -> LONG
-📡 Signal Detected: ADXFilter@15m -> LONG
-📡 Signal Detected: ADXFilter@1h -> SHORT
-⚡ Tick: LTCUSDT 80.08
-⚡ Tick: LTCUSDT 80.07
-🕯️ Candle Closed: 80.07 | Vol: 54271350.221
-📡 Signal Detected: VWAPBreakout@5m -> SHORT
-📡 Signal Detected: RSIReversion@1m -> LONG
-📡 Signal Detected: RSIReversion@5m -> LONG
-📡 Signal Detected: RSIReversion@15m -> LONG
-📡 Signal Detected: ZScoreReversion@1m -> LONG
-📡 Signal Detected: ZScoreReversion@5m -> LONG
-📡 Signal Detected: ZScoreReversion@15m -> LONG
-📡 Signal Detected: VolumeImbalance@5m -> SHORT
-⚡ Tick: LTCUSDT 80.06
-⚡ Tick: LTCUSDT 80.06
-⚡ Tick: LTCUSDT 80.09
-🕯️ Candle Closed: 80.08 | Vol: 50251252.564
-📡 Signal Detected: MTFImpulse@5m -> SHORT
-📡 Signal Detected: HurstRegime@5m -> SHORT
-📡 Signal Detected: HurstRegime@15m -> SHORT
-📡 Signal Detected: VWAPMomentum@5m -> SHORT
-⚡ Tick: LTCUSDT 80.14
-⚡ Tick: LTCUSDT 80.07
-🕯️ Candle Closed: 80.07 | Vol: 44221107.536000006
-📡 Signal Detected: VolatilityWakeup@15m -> SHORT
-⚡ Tick: LTCUSDT 80.06
-⚡ Tick: LTCUSDT 80.09
-⚡ Tick: LTCUSDT 80.08
-🕯️ Candle Closed: 80.09 | Vol: 52261299.17600001
-📡 Signal Detected: StochasticReversion@1m -> LONG
-📡 Signal Detected: StochasticReversion@5m -> LONG
-📡 Signal Detected: StochasticReversion@15m -> LONG
-📡 Signal Detected: WilliamsRReversion@1m -> LONG
-📡 Signal Detected: WilliamsRReversion@5m -> LONG
-📡 Signal Detected: WilliamsRReversion@15m -> LONG
-📡 Signal Detected: AdaptiveRSI@5m -> LONG
-📡 Signal Detected: AdaptiveRSI@15m -> LONG
-📡 Signal Detected: SmartRange@1m -> LONG
-⚡ Tick: LTCUSDT 80.14
-⚡ Tick: LTCUSDT 80.11
-🕯️ Candle Closed: 80.11 | Vol: 48241185.174
-📡 Signal Detected: DecelerationCandles@5m -> LONG
-📡 Signal Detected: DecelerationCandles@15m -> LONG
-📡 Signal Detected: CCIReversion@1m -> LONG
-📡 Signal Detected: CCIReversion@5m -> LONG
-📡 Signal Detected: CCIReversion@15m -> LONG
-📡 Signal Detected: ADXFilter@5m -> LONG
-📡 Signal Detected: ADXFilter@15m -> LONG
-📡 Signal Detected: ADXFilter@1h -> SHORT
-✅ CONSENSUS LONG: 2L/0S | Best: DecelerationCandles (score=0.824) | HTF: N/A
-⚡ Tick: LTCUSDT 80.1
-⚡ Tick: LTCUSDT 80.09
-🕯️ Candle Closed: 80.08 | Vol: 50251228.555999994
-📡 Signal Detected: VWAPBreakout@5m -> SHORT
-📡 Signal Detected: VolumeImbalance@5m -> SHORT
-📡 Signal Detected: VolumeImbalance@15m -> SHORT
-⚡ Tick: LTCUSDT 80.06
-⚡ Tick: LTCUSDT 80.06
-⚡ Tick: LTCUSDT 80.08
-🕯️ Candle Closed: 80.06 | Vol: 56281340.82299999
+⚡ Tick: BNBUSDT 883.66
+⚡ Tick: BNBUSDT 883.47
+⚡ Tick: BNBUSDT 883.8
+🕯️ Candle Closed: 883.88 | Vol: 188540428.29999998
 📡 Signal Detected: PinBarReversal@1m -> SHORT
-📡 Signal Detected: InsideBarBreakout@5m -> SHORT
-📡 Signal Detected: ZScoreReversion@1m -> LONG
-📡 Signal Detected: ZScoreReversion@5m -> LONG
-📡 Signal Detected: ZScoreReversion@15m -> LONG
-📡 Signal Detected: MTFImpulse@5m -> SHORT
-📡 Signal Detected: HurstRegime@5m -> SHORT
-📡 Signal Detected: HurstRegime@15m -> SHORT
-📡 Signal Detected: VSAReversal@5m -> SHORT
-📡 Signal Detected: VWAPMomentum@5m -> SHORT
-⚡ Tick: LTCUSDT 80.06
-⚡ Tick: LTCUSDT 80.06
-⚡ Tick: LTCUSDT 80.07
-🕯️ Candle Closed: 80.07 | Vol: 52261193.34600001
-📡 Signal Detected: VolatilityWakeup@5m -> LONG
-📡 Signal Detected: VolatilityWakeup@15m -> SHORT
-⚡ Tick: LTCUSDT 80.09
-⚡ Tick: LTCUSDT 80.06
-⚡ Tick: LTCUSDT 80.06
-🕯️ Candle Closed: 80.06 | Vol: 56281213.616000004
-📡 Signal Detected: StochasticReversion@1m -> LONG
-📡 Signal Detected: StochasticReversion@5m -> LONG
-📡 Signal Detected: StochasticReversion@15m -> LONG
-📡 Signal Detected: WilliamsRReversion@1m -> LONG
-📡 Signal Detected: WilliamsRReversion@5m -> LONG
-📡 Signal Detected: WilliamsRReversion@15m -> LONG
-⚡ Tick: LTCUSDT 80.05
-⚡ Tick: LTCUSDT 80.04
-🕯️ Candle Closed: 80.04 | Vol: 56281126.035000004
-📡 Signal Detected: RSIReversion@1m -> LONG
-📡 Signal Detected: RSIReversion@5m -> LONG
-📡 Signal Detected: RSIReversion@15m -> LONG
-📡 Signal Detected: CCIReversion@1m -> LONG
-📡 Signal Detected: CCIReversion@5m -> LONG
-📡 Signal Detected: CCIReversion@15m -> LONG
+⚡ Tick: BNBUSDT 883.81
+⚡ Tick: BNBUSDT 883.81
+⚡ Tick: BNBUSDT 883.81
+🕯️ Candle Closed: 883.82 | Vol: 195523770.72
+📡 Signal Detected: CCIReversion@1m -> SHORT
+📡 Signal Detected: CCIReversion@5m -> SHORT
+📡 Signal Detected: CCIReversion@15m -> SHORT
 📡 Signal Detected: ADXFilter@5m -> LONG
 📡 Signal Detected: ADXFilter@15m -> LONG
-📡 Signal Detected: ADXFilter@1h -> SHORT
-📡 Signal Detected: AdaptiveRSI@5m -> LONG
-📡 Signal Detected: AdaptiveRSI@15m -> LONG
-⚡ Tick: LTCUSDT 80.04
-⚡ Tick: LTCUSDT 80.03
-⚡ Tick: LTCUSDT 80.03
-🕯️ Candle Closed: 80.03 | Vol: 52261057.39999999
-📡 Signal Detected: VWAPBreakout@5m -> SHORT
-📡 Signal Detected: VWAPBreakout@15m -> SHORT
-📡 Signal Detected: VolumeImbalance@5m -> SHORT
-📡 Signal Detected: VolumeImbalance@15m -> SHORT
-⚡ Tick: LTCUSDT 80.03
-⚡ Tick: LTCUSDT 80.02
-⚡ Tick: LTCUSDT 79.94
-🕯️ Candle Closed: 79.94 | Vol: 54684397.44499999
-📡 Signal Detected: ExtremeCandleRatio@15m -> SHORT
-📡 Signal Detected: KeltnerReversion@1m -> LONG
-📡 Signal Detected: ZScoreReversion@1m -> LONG
-📡 Signal Detected: ZScoreReversion@5m -> LONG
-📡 Signal Detected: ZScoreReversion@15m -> LONG
-📡 Signal Detected: MTFImpulse@5m -> SHORT
-📡 Signal Detected: MTFImpulse@15m -> SHORT
-📡 Signal Detected: HurstRegime@5m -> SHORT
-📡 Signal Detected: HurstRegime@15m -> SHORT
-📡 Signal Detected: KeltnerBreakout@5m -> SHORT
-📡 Signal Detected: VWAPMomentum@5m -> SHORT
-📡 Signal Detected: SupportResistance@15m -> SHORT
-⚡ Tick: LTCUSDT 79.95
-⚡ Tick: LTCUSDT 79.94
-🕯️ Candle Closed: 79.93 | Vol: 51539390.993
-📡 Signal Detected: PinBarReversal@1m -> SHORT
-📡 Signal Detected: PinBarReversal@5m -> SHORT
-📡 Signal Detected: PinBarReversal@15m -> SHORT
-📡 Signal Detected: VolatilityWakeup@5m -> SHORT
-📡 Signal Detected: VolatilityWakeup@15m -> SHORT
-⚡ Tick: LTCUSDT 79.92
-⚡ Tick: LTCUSDT 79.95
-⚡ Tick: LTCUSDT 79.96
-🕯️ Candle Closed: 79.97 | Vol: 55768466.39500002
-📡 Signal Detected: StochasticReversion@1m -> LONG
-📡 Signal Detected: StochasticReversion@5m -> LONG
-📡 Signal Detected: StochasticReversion@15m -> LONG
-📡 Signal Detected: WilliamsRReversion@1m -> LONG
-📡 Signal Detected: WilliamsRReversion@5m -> LONG
-📡 Signal Detected: WilliamsRReversion@15m -> LONG
-⚡ Tick: LTCUSDT 79.97
-⚡ Tick: LTCUSDT 79.97
-⚡ Tick: LTCUSDT 79.97
-🕯️ Candle Closed: 79.97 | Vol: 57844465.506
-📡 Signal Detected: EMA50Support@1h -> SHORT
-📡 Signal Detected: RSIReversion@1m -> LONG
-📡 Signal Detected: RSIReversion@5m -> LONG
-📡 Signal Detected: RSIReversion@15m -> LONG
-📡 Signal Detected: CCIReversion@1m -> LONG
-📡 Signal Detected: CCIReversion@5m -> LONG
-📡 Signal Detected: CCIReversion@15m -> LONG
-📡 Signal Detected: ADXFilter@5m -> LONG
-📡 Signal Detected: ADXFilter@1h -> SHORT
-📡 Signal Detected: AdaptiveRSI@5m -> LONG
-📡 Signal Detected: AdaptiveRSI@15m -> LONG
-⚡ Tick: LTCUSDT 79.97
-⚡ Tick: LTCUSDT 79.96
-🕯️ Candle Closed: 79.96 | Vol: 51649538.65200001
-📡 Signal Detected: SmartRange@5m -> LONG
-⚡ Tick: LTCUSDT 79.97
-⚡ Tick: LTCUSDT 79.98
-⚡ Tick: LTCUSDT 79.99
-🕯️ Candle Closed: 80.0 | Vol: 57840325.46200001
-📡 Signal Detected: KeltnerReversion@1m -> LONG
-📡 Signal Detected: MACDCrossover@5m -> LONG
-📡 Signal Detected: MACDCrossover@15m -> LONG
-📡 Signal Detected: MACDCrossover@1h -> LONG
-📡 Signal Detected: VolumeImbalance@5m -> LONG
-📡 Signal Detected: HurstRegime@5m -> SHORT
-📡 Signal Detected: HurstRegime@15m -> SHORT
-⚡ Tick: LTCUSDT 79.99
-⚡ Tick: LTCUSDT 80.0
-🕯️ Candle Closed: 80.01 | Vol: 49577431.663
-📡 Signal Detected: VolatilityWakeup@5m -> LONG
-📡 Signal Detected: VolatilityWakeup@15m -> LONG
-⚡ Candle 200 | 39 sensors | 1.9ms
-⚡ Tick: LTCUSDT 80.0
-⚡ Tick: LTCUSDT 80.01
-⚡ Tick: LTCUSDT 79.98
-🕯️ Candle Closed: 79.98 | Vol: 51642955.282000005
-📡 Signal Detected: StochasticReversion@1m -> LONG
-📡 Signal Detected: StochasticReversion@5m -> LONG
-📡 Signal Detected: StochasticReversion@15m -> LONG
-📡 Signal Detected: WilliamsRReversion@1m -> LONG
-📡 Signal Detected: WilliamsRReversion@5m -> LONG
-📡 Signal Detected: WilliamsRReversion@15m -> LONG
-⚡ Tick: LTCUSDT 80.01
-⚡ Tick: LTCUSDT 80.02
-⚡ Tick: LTCUSDT 80.03
-🕯️ Candle Closed: 80.03 | Vol: 57839891.968
-📡 Signal Detected: EMA50Support@1h -> SHORT
-📡 Signal Detected: CCIReversion@1m -> LONG
-📡 Signal Detected: CCIReversion@5m -> LONG
-📡 Signal Detected: CCIReversion@15m -> LONG
-📡 Signal Detected: ADXFilter@5m -> LONG
-📡 Signal Detected: ADXFilter@1h -> SHORT
-📡 Signal Detected: AdaptiveRSI@5m -> LONG
-📡 Signal Detected: AdaptiveRSI@15m -> LONG
-⚡ Tick: LTCUSDT 80.04
-⚡ Tick: LTCUSDT 80.06
-🕯️ Candle Closed: 80.08 | Vol: 55774195.76999999
-📡 Signal Detected: RSIReversion@1m -> SHORT
-📡 Signal Detected: RSIReversion@5m -> SHORT
-📡 Signal Detected: RSIReversion@15m -> SHORT
-📡 Signal Detected: BollingerRejection@15m -> LONG
-📡 Signal Detected: SupportResistance@15m -> LONG
-⚡ Tick: LTCUSDT 80.08
-⚡ Tick: LTCUSDT 80.1
-⚡ Tick: LTCUSDT 80.11
-🕯️ Candle Closed: 80.1 | Vol: 59953724.907000005
-📡 Signal Detected: ExtremeCandleRatio@15m -> LONG
-📡 Signal Detected: VolumeImbalance@5m -> LONG
-📡 Signal Detected: VolumeImbalance@15m -> LONG
-📡 Signal Detected: HurstRegime@5m -> LONG
-📡 Signal Detected: HurstRegime@15m -> LONG
-⚡ Tick: LTCUSDT 80.08
-⚡ Tick: LTCUSDT 80.08
-⚡ Tick: LTCUSDT 80.08
-🕯️ Candle Closed: 80.08 | Vol: 57908531.934
-📡 Signal Detected: VolatilityWakeup@5m -> SHORT
-📡 Signal Detected: VolatilityWakeup@15m -> LONG
-⚡ Tick: LTCUSDT 80.08
-⚡ Tick: LTCUSDT 80.08
-⚡ Tick: LTCUSDT 80.06
-🕯️ Candle Closed: 80.06 | Vol: 51704103.415
-📡 Signal Detected: InsideBarBreakout@5m -> SHORT
-📡 Signal Detected: DecelerationCandles@15m -> SHORT
-📡 Signal Detected: StochasticReversion@1m -> LONG
-📡 Signal Detected: StochasticReversion@5m -> LONG
-📡 Signal Detected: StochasticReversion@15m -> LONG
-📡 Signal Detected: WilliamsRReversion@1m -> LONG
-📡 Signal Detected: WilliamsRReversion@5m -> LONG
-📡 Signal Detected: WilliamsRReversion@15m -> LONG
-📊 No consensus: LONG=0, SHORT=1 (need 2+)
-⚡ Tick: LTCUSDT 80.05
-⚡ Tick: LTCUSDT 80.05
-🕯️ Candle Closed: 80.07 | Vol: 57908623.99
-📡 Signal Detected: PinBarReversal@1m -> LONG
-📡 Signal Detected: EMA50Support@1h -> SHORT
-📡 Signal Detected: CCIReversion@15m -> LONG
-📡 Signal Detected: ADXFilter@5m -> LONG
-📡 Signal Detected: ADXFilter@1h -> SHORT
-⚡ Tick: LTCUSDT 80.04
-⚡ Tick: LTCUSDT 80.11
-⚡ Tick: LTCUSDT 80.11
-🕯️ Candle Closed: 80.11 | Vol: 55840446.842
-📡 Signal Detected: RSIReversion@1m -> SHORT
-📡 Signal Detected: RSIReversion@5m -> SHORT
-📡 Signal Detected: RSIReversion@15m -> SHORT
-📡 Signal Detected: SupportResistance@15m -> LONG
-⚡ Tick: LTCUSDT 80.1
-⚡ Tick: LTCUSDT 80.12
-⚡ Tick: LTCUSDT 80.12
-🕯️ Candle Closed: 80.12 | Vol: 53773020.699999996
-📡 Signal Detected: ExtremeCandleRatio@15m -> LONG
-📡 Signal Detected: VolumeImbalance@5m -> LONG
-📡 Signal Detected: VolumeImbalance@15m -> LONG
-📡 Signal Detected: HurstRegime@5m -> LONG
-📡 Signal Detected: HurstRegime@15m -> LONG
-⚡ Tick: LTCUSDT 80.12
-⚡ Tick: LTCUSDT 80.11
-🕯️ Candle Closed: 80.12 | Vol: 47567947.80199999
-⚡ Tick: LTCUSDT 80.14
-⚡ Tick: LTCUSDT 80.05
-🕯️ Candle Closed: 80.11 | Vol: 47567767.35
-📡 Signal Detected: ThreeBar@5m -> SHORT
-⚡ Tick: LTCUSDT 80.08
-⚡ Tick: LTCUSDT 80.07
-⚡ Tick: LTCUSDT 80.12
-🕯️ Candle Closed: 80.11 | Vol: 51704101.47800001
-📡 Signal Detected: EMA50Support@5m -> SHORT
-📡 Signal Detected: EMA50Support@15m -> SHORT
-📡 Signal Detected: EMA50Support@1h -> SHORT
-📡 Signal Detected: ADXFilter@5m -> LONG
-📡 Signal Detected: ADXFilter@1h -> SHORT
-⚡ Tick: LTCUSDT 80.09
-⚡ Tick: LTCUSDT 80.13
-🕯️ Candle Closed: 80.07 | Vol: 47567636.366000004
-📡 Signal Detected: WilliamsRReversion@1m -> LONG
-📡 Signal Detected: WilliamsRReversion@5m -> LONG
-📡 Signal Detected: WilliamsRReversion@15m -> LONG
-⚡ Tick: LTCUSDT 80.03
-⚡ Tick: LTCUSDT 80.05
-🧹 Cleaning up resources...
-🛑 Stopping Engine...
-🔌 Disconnecting Data Feed...
-🔌 BinanceNativeConnector.close() called
-📡 Ticker stream for LTCUSDT cancelled
-🛑 Keepalive task cancelled
-CLOSE frame received, closing websocket connection
-⚠️ WebSocket Closed
-👋 Engine stopped.
-🛑 Keepalive task cancelled
-🛑 OrderManager stopped
-💾 Syncing final state...
-🧹 Force closing 1 open positions...
-🔍 get_current_price | requested_symbol=LTCUSDT | adapter_symbol=LTCUSDT
-💰 Current price for LTCUSDT: 80.05
-🧹 Cleaning up symbol LTCUSDT...
-✅ Cancelled 2 open orders for LTCUSDT
-🔄 Starting reconciliation for LTCUSDT
-Using REST positions.
-⚠️ Unknown position in exchange: {'symbol': 'LTCUSDT', 'side': 'LONG', 'size': 0.72, 'entry_price': 80.65975, 'mark_price': 80.05, 'liquidation_price': 0.0, 'unrealized_pnl': -0.43902, 'leverage': 1.0, 'timestamp': 1764965582308, 'info': {'symbol': 'LTCUSDT', 'positionSide': 'BOTH', 'positionAmt': '0.720', 'entryPrice': '80.65975', 'breakEvenPrice': '80.6920139', 'markPrice': '80.05000000', 'unRealizedProfit': '-0.43902000', 'liquidationPrice': '0', 'isolatedMargin': '0', 'notional': '57.63600000', 'marginAsset': 'USDT', 'isolatedWallet': '0', 'initialMargin': '5.76360000', 'maintMargin': '0.37463400', 'positionInitialMargin': '5.76360000', 'openOrderInitialMargin': '0', 'adl': 1, 'bidNotional': '0', 'askNotional': '0', 'updateTime': 1764965582308}}
-✅ Reconciliation complete: 0 fixed, 1 closed, 0 orders cancelled
-🛑 Stopping state manager...
-🛑 State manager stopped
-🛑 State manager stopped
-📊 Stopping metrics server...
-🛑 Metrics server stopped
-📊 Generating Session Report...
-💰 Fetching final balance from exchange...
-
-========================================
-📊 SESSION REPORT - LTCUSDT
-========================================
-   Trades Total          : 2
-   Wins / Losses         : 0 / 2
-   WinRate               : 0.00%
-   Comisiones (Est)      : 0.00
-   Balance Inicial       : 3412.22
-   Balance Final (Real)  : 3410.42
-   PnL Total             : -1.80 (-0.05%)
-========================================
-
-Traceback (most recent call last):
-  File "/usr/lib/python3.13/asyncio/runners.py", line 118, in run
-    return self._loop.run_until_complete(task)
-           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "uvloop/loop.pyx", line 1518, in uvloop.loop.Loop.run_until_complete
-  File "/home/chesterbelle/Casino-V2/main.py", line 251, in main
-    await asyncio.sleep(1)
-  File "/usr/lib/python3.13/asyncio/tasks.py", line 718, in sleep
-    return await future
-           ^^^^^^^^^^^^
-asyncio.exceptions.CancelledError
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "/home/chesterbelle/Casino-V2/main.py", line 343, in <module>
-    asyncio.run(main())
-    ~~~~~~~~~~~^^^^^^^^
-  File "/usr/lib/python3.13/asyncio/runners.py", line 195, in run
-    return runner.run(main)
-           ~~~~~~~~~~^^^^^^
-  File "/usr/lib/python3.13/asyncio/runners.py", line 123, in run
-    raise KeyboardInterrupt()
-KeyboardInterrupt
-Websocket exception: Connection timed out
-❌ WebSocket Error: Connection timed out
+📡 Signal Detected: ADXFilter@1h -> LONG
+⚡ Tick: BNBUSDT 884.18

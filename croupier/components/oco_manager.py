@@ -174,7 +174,7 @@ class OCOManager:
 
             # Step 3: Calculate TP/SL prices
             tp_price, sl_price = self._calculate_tp_sl_prices(
-                fill_price, side, order["take_profit"], order["stop_loss"]
+                fill_price, side, order["take_profit"], order["stop_loss"], symbol
             )
 
             # Step 4: Create TP order
@@ -305,7 +305,7 @@ class OCOManager:
         raise TimeoutError(f"Order {order_id} not filled within {timeout}s")
 
     def _calculate_tp_sl_prices(
-        self, entry_price: float, side: str, tp_pct: float, sl_pct: float
+        self, entry_price: float, side: str, tp_pct: float, sl_pct: float, symbol: str
     ) -> tuple[float, float]:
         """
         Calculate absolute TP/SL prices from percentages.
@@ -315,9 +315,10 @@ class OCOManager:
             side: "LONG" or "SHORT"
             tp_pct: TP percentage (e.g., 0.01 for 1%)
             sl_pct: SL percentage (e.g., 0.01 for 1%)
+            symbol: Trading symbol (for precision formatting)
 
         Returns:
-            (tp_price, sl_price) tuple
+            (tp_price, sl_price) tuple with proper tick size precision
         """
         if side == "LONG":
             tp_price = entry_price * (1 + tp_pct)
@@ -325,6 +326,10 @@ class OCOManager:
         else:  # SHORT
             tp_price = entry_price * (1 - tp_pct)
             sl_price = entry_price * (1 + sl_pct)
+
+        # Apply exchange precision (tick size) to avoid "Price not increased by tick size" error
+        tp_price = float(self.adapter.price_to_precision(symbol, tp_price))
+        sl_price = float(self.adapter.price_to_precision(symbol, sl_price))
 
         return tp_price, sl_price
 
