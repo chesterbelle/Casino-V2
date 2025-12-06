@@ -1,22 +1,23 @@
 ✅ Loaded optimized parameters for 47 sensors
 🚀 Starting Casino-V3 | Exchange: binance | Mode: demo
 📊 Starting metrics server...
-📊 Metrics server started on http://0.0.0.0:8000/metrics
+❌ Failed to start metrics server: [Errno 98] error while attempting to bind on address ('0.0.0.0', 8000): address already in use
+⚠️ Failed to start metrics server: [Errno 98] error while attempting to bind on address ('0.0.0.0', 8000): address already in use
 🕒 Rate limiter initialized for Binance
 Stateless CCXTAdapter initialized | Symbol: BNBUSDT | Timeframe: 1m
 ⚠️ Connector does not expose 'exchange' attribute (Virtual/Simulated?).
 🔌 Connecting to Binance Native (demo)...
-✅ Server Time: 1765025708490 | Offset: -99ms
+✅ Server Time: 1765028678009 | Offset: -100ms
 ✅ Markets loaded: 648
 ✅ Account is in One-Way Mode
 🔌 Starting Native WebSocket...
 ✅ Listen key created: qwQjpqeqRbHT5U0iGRbM...
 🔌 Connecting to User Data Stream...
 ✅ User Data Stream connected
-💰 Initial Balance: 3408.64 USDT
+💰 Initial Balance: 3408.38 USDT
 ✅ ErrorClassifier initialized
 PositionTracker inicializado | Max positions: 10
-✅ Croupier initialized | Balance: 3408.63793811 | Max Positions: 10
+✅ Croupier initialized | Balance: 3408.38175275 | Max Positions: 10
 ✅ BarAggregator initialized | Timeframes: ['1m', '5m', '15m', '1h', '4h']
 ⚡ SensorManager using sequential mode (stateful sensors)
 📊 Active strategies: ['DebugAll']
@@ -37,10 +38,10 @@ ExitManager initialized | Strategy: breakeven | Params: {'breakeven_trigger': 0.
 ⚠️ No state found to recover
 ⚠️ No state found to recover
 📝 Starting fresh session
-📝 Initialized new state: session_1765025717
+📝 Initialized new state: session_1765028680
 🚀 State manager started (auto-save every 5s)
 🚀 State manager started
-💰 Session Initial Balance: 3408.64 USDT
+💰 Session Initial Balance: 3408.38 USDT
 🚀 OrderManager started
 🔄 Startup Reconciliation for BNBUSDT...
 🔄 Starting reconciliation for BNBUSDT
@@ -49,7 +50,7 @@ Using REST positions.
 🚀 Starting Casino-V3 Engine...
 🔌 Connecting Data Feed...
 🔌 Connecting to Binance Native (demo)...
-✅ Server Time: 1765025717907 | Offset: -101ms
+✅ Server Time: 1765028682089 | Offset: -100ms
 ✅ Markets loaded: 648
 ✅ Account is in One-Way Mode
 🔌 Starting Native WebSocket...
@@ -65,611 +66,1078 @@ Using REST positions.
 🔍 Starting ticker loop for BNBUSDT
 📡 Subscribing to ticker for BNBUSDT
 ✅ WS Subscription Response: {'result': None, 'id': 1}
-⚡ Tick: BNBUSDT 885.37
-⚡ Tick: BNBUSDT 885.37
-🕯️ Candle Closed: 885.37 | Vol: 133718962.69000001
-⚡ Candle 0 | 51 sensors | 0.5ms
-⚡ Tick: BNBUSDT 885.37
-⚡ Tick: BNBUSDT 885.37
-🕯️ Candle Closed: 884.28 | Vol: 180520525.10999998
-⚡ Tick: BNBUSDT 884.28
-⚡ Tick: BNBUSDT 884.25
-⚡ Tick: BNBUSDT 884.21
-🕯️ Candle Closed: 884.21 | Vol: 160468288.79000002
-📡 Signal Detected: RSIReversion@1m -> LONG
-📡 Signal Detected: RSIReversion@5m -> LONG
-📡 Signal Detected: RSIReversion@15m -> LONG
-⚡ Tick: BNBUSDT 884.21
-⚡ Tick: BNBUSDT 884.2
-🕯️ Candle Closed: 884.19 | Vol: 140409618.86
-⚡ Tick: BNBUSDT 884.17
-⚡ Tick: BNBUSDT 884.16
-🕯️ Candle Closed: 884.16 | Vol: 133723330.98000002
-⚡ Tick: BNBUSDT 884.11
-⚡ Tick: BNBUSDT 884.09
-🕯️ Candle Closed: 884.09 | Vol: 153781871.43
-📡 Signal Detected: PinBarReversal@1m -> SHORT
-📡 Signal Detected: PinBarReversal@5m -> SHORT
-⚡ Tick: BNBUSDT 884.14
-⚡ Tick: BNBUSDT 884.2
-⚡ Tick: BNBUSDT 884.19
-🕯️ Candle Closed: 884.19 | Vol: 173832662.84000006
-⚡ Tick: BNBUSDT 884.25
-⚡ Tick: BNBUSDT 884.27
-⚡ Tick: BNBUSDT 884.26
-🕯️ Candle Closed: 884.26 | Vol: 187204398.85000002
-📡 Signal Detected: DecelerationCandles@15m -> LONG
-📊 No consensus: LONG=1, SHORT=0 (need 2+)
-⚡ Tick: BNBUSDT 884.16
-⚡ Tick: BNBUSDT 884.16
-🕯️ Candle Closed: 884.16 | Vol: 187204397.55
-📡 Signal Detected: InsideBarBreakout@1m -> SHORT
-⚡ Tick: BNBUSDT 884.26
-⚡ Tick: BNBUSDT 884.37
-⚡ Tick: BNBUSDT 884.47
-🕯️ Candle Closed: 885.48 | Vol: 180516652.05999997
+🕯️ Candle Closed: 888.06 | Vol: 24817452.560000002
+⚡ Candle 0 | 51 sensors | 0.4ms
+⚡ Tick: BNBUSDT 888.1
+⚡ Tick: BNBUSDT 888.36
+⚡ Tick: BNBUSDT 888.76
+🕯️ Candle Closed: 888.76 | Vol: 162106469.42000002
+⚡ Tick: BNBUSDT 889.05
+⚡ Tick: BNBUSDT 889.05
+🕯️ Candle Closed: 888.93 | Vol: 164645707.1
 📡 Signal Detected: RSIReversion@1m -> SHORT
 📡 Signal Detected: RSIReversion@5m -> SHORT
 📡 Signal Detected: RSIReversion@15m -> SHORT
-⚡ Tick: BNBUSDT 884.64
-⚡ Tick: BNBUSDT 884.7
-⚡ Tick: BNBUSDT 884.71
-🕯️ Candle Closed: 884.72 | Vol: 187195603.46
-📡 Signal Detected: PinBarReversal@1m -> SHORT
-📡 Signal Detected: PinBarReversal@5m -> SHORT
-⚡ Tick: BNBUSDT 884.79
-⚡ Tick: BNBUSDT 884.8
-⚡ Tick: BNBUSDT 884.66
-🕯️ Candle Closed: 884.61 | Vol: 180510235.93999997
-📡 Signal Detected: ThreeBar@5m -> SHORT
-⚡ Tick: BNBUSDT 884.86
-⚡ Tick: BNBUSDT 884.64
-🕯️ Candle Closed: 884.69 | Vol: 180510388.79
-📡 Signal Detected: DecelerationCandles@15m -> LONG
-📊 No consensus: LONG=1, SHORT=0 (need 2+)
-⚡ Tick: BNBUSDT 884.51
-⚡ Tick: BNBUSDT 884.83
-🕯️ Candle Closed: 884.77 | Vol: 147082406.0
-⚡ Tick: BNBUSDT 884.78
-⚡ Tick: BNBUSDT 884.64
-⚡ Tick: BNBUSDT 884.54
-🕯️ Candle Closed: 884.54 | Vol: 160453914.77999997
-⚡ Tick: BNBUSDT 884.41
-⚡ Tick: BNBUSDT 884.5
-⚡ Tick: BNBUSDT 884.37
-🕯️ Candle Closed: 884.37 | Vol: 180510971.72
-📡 Signal Detected: RSIReversion@1m -> LONG
-📡 Signal Detected: RSIReversion@5m -> LONG
-📡 Signal Detected: RSIReversion@15m -> LONG
-⚡ Tick: BNBUSDT 884.46
-⚡ Tick: BNBUSDT 884.49
-🕯️ Candle Closed: 885.48 | Vol: 187194935.23000002
-📡 Signal Detected: InsideBarBreakout@5m -> LONG
-📡 Signal Detected: InsideBarBreakout@15m -> LONG
-📡 Signal Detected: WilliamsRReversion@1m -> SHORT
-📡 Signal Detected: WilliamsRReversion@5m -> SHORT
-📡 Signal Detected: WilliamsRReversion@15m -> SHORT
-⚡ Tick: BNBUSDT 884.43
-⚡ Tick: BNBUSDT 884.43
-⚡ Tick: BNBUSDT 884.43
-🕯️ Candle Closed: 884.43 | Vol: 180448100.61999997
-📡 Signal Detected: PinBarReversal@1m -> SHORT
-📡 Signal Detected: PinBarReversal@5m -> SHORT
-📡 Signal Detected: PinBarReversal@15m -> SHORT
-📡 Signal Detected: DecelerationCandles@15m -> LONG
-📊 No consensus: LONG=1, SHORT=0 (need 2+)
-⚡ Tick: BNBUSDT 884.69
-⚡ Tick: BNBUSDT 885.48
-⚡ Tick: BNBUSDT 884.78
-🕯️ Candle Closed: 884.78 | Vol: 173658115.84
-⚡ Tick: BNBUSDT 885.17
-⚡ Tick: BNBUSDT 885.06
-⚡ Tick: BNBUSDT 885.16
-🕯️ Candle Closed: 885.24 | Vol: 193695582.8
-📡 Signal Detected: VWAPBreakout@5m -> LONG
-📡 Signal Detected: CCIReversion@15m -> SHORT
-📡 Signal Detected: VolumeImbalance@5m -> LONG
-⚡ Tick: BNBUSDT 885.16
-⚡ Tick: BNBUSDT 885.39
-🕯️ Candle Closed: 885.48 | Vol: 180337240.39000005
-⚡ Tick: BNBUSDT 885.47
-⚡ Tick: BNBUSDT 885.47
-⚡ Tick: BNBUSDT 885.48
-🕯️ Candle Closed: 885.47 | Vol: 166978905.45999998
+⚡ Tick: BNBUSDT 889.0
+⚡ Tick: BNBUSDT 888.93
+⚡ Tick: BNBUSDT 889.04
+🕯️ Candle Closed: 889.12 | Vol: 183607710.73000002
+⚡ Tick: BNBUSDT 889.16
+⚡ Tick: BNBUSDT 889.16
+⚡ Tick: BNBUSDT 889.16
+🕯️ Candle Closed: 889.24 | Vol: 190193577.23000005
+⚡ Tick: BNBUSDT 889.23
+⚡ Tick: BNBUSDT 889.16
+⚡ Tick: BNBUSDT 889.16
+🕯️ Candle Closed: 889.15 | Vol: 171248290.16000003
+⚡ Tick: BNBUSDT 889.14
+⚡ Tick: BNBUSDT 889.04
+⚡ Tick: BNBUSDT 889.0
+🕯️ Candle Closed: 889.0 | Vol: 183934771.82999998
+📡 Signal Detected: DecelerationCandles@15m -> SHORT
+📊 No consensus: LONG=0, SHORT=1 (need 2+)
+⚡ Tick: BNBUSDT 889.0
+⚡ Tick: BNBUSDT 889.21
+🕯️ Candle Closed: 889.25 | Vol: 171251627.79999998
+📡 Signal Detected: PinBarReversal@5m -> LONG
 📡 Signal Detected: RSIReversion@1m -> SHORT
 📡 Signal Detected: RSIReversion@5m -> SHORT
 📡 Signal Detected: RSIReversion@15m -> SHORT
-📡 Signal Detected: StochasticReversion@1m -> SHORT
-📡 Signal Detected: StochasticReversion@5m -> SHORT
-📡 Signal Detected: StochasticReversion@15m -> SHORT
-📡 Signal Detected: WilliamsRReversion@1m -> SHORT
-📡 Signal Detected: WilliamsRReversion@5m -> SHORT
-📡 Signal Detected: WilliamsRReversion@15m -> SHORT
-⚡ Tick: BNBUSDT 885.48
-⚡ Tick: BNBUSDT 885.5
-⚡ Tick: BNBUSDT 885.5
-🕯️ Candle Closed: 885.5 | Vol: 193697214.47999996
+⚡ Tick: BNBUSDT 889.29
+⚡ Tick: BNBUSDT 889.33
+⚡ Tick: BNBUSDT 889.35
+🕯️ Candle Closed: 889.39 | Vol: 177598925.07
+⚡ Tick: BNBUSDT 889.4
+⚡ Tick: BNBUSDT 889.39
+⚡ Tick: BNBUSDT 889.84
+🕯️ Candle Closed: 889.87 | Vol: 183942884.31000003
+⚡ Tick: BNBUSDT 889.82
+⚡ Tick: BNBUSDT 889.91
+⚡ Tick: BNBUSDT 889.91
+🕯️ Candle Closed: 889.91 | Vol: 190286192.15
+⚡ Tick: BNBUSDT 889.57
+⚡ Tick: BNBUSDT 889.91
+⚡ Tick: BNBUSDT 889.35
+🕯️ Candle Closed: 889.35 | Vol: 164912406.89
+⚡ Tick: BNBUSDT 889.4
+⚡ Tick: BNBUSDT 889.85
+⚡ Tick: BNBUSDT 889.43
+🕯️ Candle Closed: 889.43 | Vol: 190284719.17000002
+📡 Signal Detected: RSIReversion@1m -> SHORT
+📡 Signal Detected: RSIReversion@5m -> SHORT
+📡 Signal Detected: RSIReversion@15m -> SHORT
+📡 Signal Detected: MicroTrend@1m -> LONG
+⚡ Tick: BNBUSDT 889.43
+⚡ Tick: BNBUSDT 889.43
+⚡ Tick: BNBUSDT 889.43
+🕯️ Candle Closed: 889.43 | Vol: 183940302.05
+📡 Signal Detected: PinBarReversal@1m -> LONG
+⚡ Tick: BNBUSDT 889.43
+⚡ Tick: BNBUSDT 889.43
+⚡ Tick: BNBUSDT 889.43
+🕯️ Candle Closed: 889.43 | Vol: 183939448.34999996
+⚡ Tick: BNBUSDT 889.43
+⚡ Tick: BNBUSDT 889.43
+🕯️ Candle Closed: 889.43 | Vol: 177597962.54999998
+⚡ Tick: BNBUSDT 889.43
+⚡ Tick: BNBUSDT 889.0
+⚡ Tick: BNBUSDT 889.27
+🕯️ Candle Closed: 889.27 | Vol: 177598987.48
+⚡ Tick: BNBUSDT 889.13
+⚡ Tick: BNBUSDT 889.09
+⚡ Tick: BNBUSDT 888.82
+🕯️ Candle Closed: 888.81 | Vol: 183945476.17000002
+📡 Signal Detected: WilliamsRReversion@1m -> LONG
+⚡ Tick: BNBUSDT 888.89
+⚡ Tick: BNBUSDT 888.99
+🕯️ Candle Closed: 889.23 | Vol: 152355376.39
+📡 Signal Detected: MicroTrend@1m -> LONG
+⚡ Tick: BNBUSDT 889.23
+⚡ Tick: BNBUSDT 889.28
+⚡ Tick: BNBUSDT 889.3
+🕯️ Candle Closed: 889.28 | Vol: 171402797.92000002
 📡 Signal Detected: PinBarReversal@1m -> LONG
 📡 Signal Detected: PinBarReversal@5m -> LONG
-⚡ Tick: BNBUSDT 885.51
-⚡ Tick: BNBUSDT 885.47
-🕯️ Candle Closed: 885.47 | Vol: 180341009.08
-⚡ Tick: BNBUSDT 885.47
-⚡ Tick: BNBUSDT 885.55
-⚡ Tick: BNBUSDT 885.58
-🕯️ Candle Closed: 885.59 | Vol: 173660893.47
-📡 Signal Detected: VWAPBreakout@5m -> LONG
-📡 Signal Detected: VWAPBreakout@15m -> LONG
-📡 Signal Detected: CCIReversion@1m -> SHORT
-📡 Signal Detected: CCIReversion@5m -> SHORT
-📡 Signal Detected: CCIReversion@15m -> SHORT
-📡 Signal Detected: VolumeImbalance@5m -> LONG
-📡 Signal Detected: VolumeImbalance@15m -> LONG
-⚡ Tick: BNBUSDT 885.63
-⚡ Tick: BNBUSDT 885.63
-⚡ Tick: BNBUSDT 885.65
-🕯️ Candle Closed: 885.65 | Vol: 187028554.04999998
-⚡ Tick: BNBUSDT 885.7
-⚡ Tick: BNBUSDT 885.96
-⚡ Tick: BNBUSDT 886.15
-🕯️ Candle Closed: 886.15 | Vol: 194324961.80000004
+📡 Signal Detected: PinBarReversal@15m -> LONG
+📡 Signal Detected: DecelerationCandles@5m -> LONG
+📡 Signal Detected: DecelerationCandles@15m -> LONG
 📡 Signal Detected: RSIReversion@1m -> SHORT
 📡 Signal Detected: RSIReversion@5m -> SHORT
 📡 Signal Detected: RSIReversion@15m -> SHORT
-📡 Signal Detected: StochasticReversion@1m -> SHORT
-📡 Signal Detected: StochasticReversion@5m -> SHORT
-📡 Signal Detected: StochasticReversion@15m -> SHORT
-📡 Signal Detected: WilliamsRReversion@1m -> SHORT
-📡 Signal Detected: WilliamsRReversion@5m -> SHORT
-📡 Signal Detected: WilliamsRReversion@15m -> SHORT
-📡 Signal Detected: ZScoreReversion@1m -> SHORT
-📡 Signal Detected: ZScoreReversion@5m -> SHORT
-📡 Signal Detected: ZScoreReversion@15m -> SHORT
-📡 Signal Detected: SupportResistance@15m -> LONG
-⚡ Tick: BNBUSDT 885.99
-⚡ Tick: BNBUSDT 885.71
-🕯️ Candle Closed: 885.84 | Vol: 188120688.81
-📡 Signal Detected: ADXFilter@5m -> LONG
-📡 Signal Detected: ADXFilter@15m -> LONG
-📡 Signal Detected: ADXFilter@1h -> LONG
-⚡ Tick: BNBUSDT 885.84
-⚡ Tick: BNBUSDT 885.89
-⚡ Tick: BNBUSDT 885.79
-🕯️ Candle Closed: 885.77 | Vol: 181402466.36999997
-📡 Signal Detected: DecelerationCandles@5m -> SHORT
-📡 Signal Detected: DecelerationCandles@15m -> SHORT
-✅ CONSENSUS SHORT: 0L/2S | Best: DecelerationCandles (score=0.827) | HTF: N/A
-🎯 Decision: SHORT | Kelly Bet: 1.63% of 3408.64 | Sensor: DecelerationCandles
-📩 Decision Received: BNBUSDT SHORT (Size: 1.63%, Step: 0)
+✅ CONSENSUS LONG: 2L/0S | Best: DecelerationCandles (score=0.827) | HTF: N/A
+🎯 Decision: LONG | Kelly Bet: 1.63% of 3408.38 | Sensor: DecelerationCandles
+📩 Decision Received: BNBUSDT LONG (Size: 1.63%, Step: 0)
 🔍 get_current_price | requested_symbol=BNBUSDT | adapter_symbol=BNBUSDT
-💰 Current price for BNBUSDT: 885.71
-📊 Order calculation: Equity=3408.64 | Size=1.63% | Value=55.45 | Price=885.71 | Amount=0.06000000 (raw=0.062605094200)
-📥 Execute order request: SHORT BNBUSDT
-🛡️ Creating OCO bracket for BNBUSDT SHORT | TP: 0.0390 | SL: 0.0250
-📤 Executing market order: sell 0.06 BNBUSDT
-📋 Sending Order: {'symbol': 'BNBUSDT', 'side': 'SELL', 'type': 'MARKET', 'quantity': 0.06, 'timestamp': 1765027442422, 'recvWindow': 20000}
-✅ Market order executed: 1038454903 | Status: open
+💰 Current price for BNBUSDT: 889.27
+📊 Order calculation: Equity=3408.38 |Websocket exception: Connection timed out
+❌ WebSocket Error: Connection timed out
+�� Execute order request: LONG BNBUSDT
+🛡️ Creating OCO bracket for BNBUSDT LONG | TP: 0.0390 | SL: 0.0250
+📤 Executing market order: buy 0.06 BNBUSDT
+📋 Sending Order: {'symbol': 'BNBUSDT', 'side': 'BUY', 'type': 'MARKET', 'quantity': 0.06, 'timestamp': 1765029841549, 'recvWindow': 20000}
+✅ Market order executed: 1038462757 | Status: open
 ⏳ Fill price not in response (status NEW?), waiting for fill...
-✅ Main order filled @ 885.71
-📈 Creating TP order @ 851.167
-📤 Executing limit order: buy 0.06 BNBUSDT @ 851.167
-📋 Sending Order: {'symbol': 'BNBUSDT', 'side': 'BUY', 'type': 'LIMIT', 'quantity': 0.06, 'price': 851.167, 'timeInForce': 'GTC', 'timestamp': 1765027443516, 'recvWindow': 20000}
-❌ Order Failed: Price not increased by tick size.
-❌ Error executing order: (400, -4014, 'Price not increased by tick size.', {'Content-Type': 'application/json', 'Content-Length': '56', 'Connection': 'keep-alive', 'Date': 'Sat, 06 Dec 2025 13:24:03 GMT', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS', 'Server': 'Bengine', 'x-mbx-used-weight-1m': '-1', 'x-mbx-order-count-10s': '2', 'x-mbx-order-count-1m': '2', 'x-response-time': '0ms', 'Access-Control-Allow-Origin': '*', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 8014e01f72bc82652e0c2c05ce8e9698.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'MIA50-P7', 'X-Amz-Cf-Id': '69jJNPy8mfoxtR-i3SxFltWXU1jAIWqojiaQ-U_ZIxHhjMoW7BfM7w=='})
-⚠️ Error in exchange_orders.execute_order (attempt 1/3): authentication | (400, -4014, 'Price not increased by tick size.', {'Content-Type': 'application/json', 'Content-Leng
-❌ Non-retriable error in exchange_orders.execute_order: authentication | authentication: (400, -4014, 'price not increased by tick size.', {'content-type': 'application/json', 'content-leng
-❌ Limit order failed: (400, -4014, 'Price not increased by tick size.', {'Content-Type': 'application/json', 'Content-Length': '56', 'Connection': 'keep-alive', 'Date': 'Sat, 06 Dec 2025 13:24:03 GMT', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS', 'Server': 'Bengine', 'x-mbx-used-weight-1m': '-1', 'x-mbx-order-count-10s': '2', 'x-mbx-order-count-1m': '2', 'x-response-time': '0ms', 'Access-Control-Allow-Origin': '*', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 8014e01f72bc82652e0c2c05ce8e9698.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'MIA50-P7', 'X-Amz-Cf-Id': '69jJNPy8mfoxtR-i3SxFltWXU1jAIWqojiaQ-U_ZIxHhjMoW7BfM7w=='})
-⚠️ Error in oco_tp_orders.execute_limit_order (attempt 1/5): authentication | (400, -4014, 'Price not increased by tick size.', {'Content-Type': 'application/json', 'Content-Leng
-❌ Non-retriable error in oco_tp_orders.execute_limit_order: authentication | authentication: (400, -4014, 'price not increased by tick size.', {'content-type': 'application/json', 'content-leng
-❌ OCO bracket creation failed: (400, -4014, 'Price not increased by tick size.', {'Content-Type': 'application/json', 'Content-Length': '56', 'Connection': 'keep-alive', 'Date': 'Sat, 06 Dec 2025 13:24:03 GMT', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS', 'Server': 'Bengine', 'x-mbx-used-weight-1m': '-1', 'x-mbx-order-count-10s': '2', 'x-mbx-order-count-1m': '2', 'x-response-time': '0ms', 'Access-Control-Allow-Origin': '*', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 8014e01f72bc82652e0c2c05ce8e9698.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'MIA50-P7', 'X-Amz-Cf-Id': '69jJNPy8mfoxtR-i3SxFltWXU1jAIWqojiaQ-U_ZIxHhjMoW7BfM7w=='})
-🧹 Cleaning up partial OCO bracket...
-❌ Cancel Failed: (400, -2011, 'Unknown order sent.', {'Content-Type': 'application/json', 'Content-Length': '42', 'Connection': 'keep-alive', 'Date': 'Sat, 06 Dec 2025 13:24:03 GMT', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS', 'Server': 'Bengine', 'x-mbx-used-weight-1m': '1', 'x-response-time': '10ms', 'Access-Control-Allow-Origin': '*', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 8014e01f72bc82652e0c2c05ce8e9698.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'MIA50-P7', 'X-Amz-Cf-Id': 'vE84rO84qUupe1Yg-AIyMsYP4C-fqE2KMlGuoOIlWBAaB6elqmgiyA=='})
-❌ Failed to cancel Main order 1038454903: (400, -2011, 'Unknown order sent.', {'Content-Type': 'application/json', 'Content-Length': '42', 'Connection': 'keep-alive', 'Date': 'Sat, 06 Dec 2025 13:24:03 GMT', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS', 'Server': 'Bengine', 'x-mbx-used-weight-1m': '1', 'x-response-time': '10ms', 'Access-Control-Allow-Origin': '*', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 8014e01f72bc82652e0c2c05ce8e9698.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'MIA50-P7', 'X-Amz-Cf-Id': 'vE84rO84qUupe1Yg-AIyMsYP4C-fqE2KMlGuoOIlWBAaB6elqmgiyA=='})
-🧹 Cleaned up 1 orders
-⚠️ Error in execute_order_BNBUSDT (attempt 1/3): authentication | Failed to create OCO bracket: (400, -4014, 'Price not increased by tick size.', {'Content-Type': 'ap
-❌ Non-retriable error in execute_order_BNBUSDT: authentication | authentication: failed to create oco bracket: (400, -4014, 'price not increased by tick size.', {'content-type': 'ap
-❌ Execution Failed after retries: Failed to create OCO bracket: (400, -4014, 'Price not increased by tick size.', {'Content-Type': 'application/json', 'Content-Length': '56', 'Connection': 'keep-alive', 'Date': 'Sat, 06 Dec 2025 13:24:03 GMT', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS', 'Server': 'Bengine', 'x-mbx-used-weight-1m': '-1', 'x-mbx-order-count-10s': '2', 'x-mbx-order-count-1m': '2', 'x-response-time': '0ms', 'Access-Control-Allow-Origin': '*', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 8014e01f72bc82652e0c2c05ce8e9698.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'MIA50-P7', 'X-Amz-Cf-Id': '69jJNPy8mfoxtR-i3SxFltWXU1jAIWqojiaQ-U_ZIxHhjMoW7BfM7w=='})
-Traceback (most recent call last):
-  File "/home/chesterbelle/Casino-V2/croupier/components/oco_manager.py", line 181, in create_bracketed_order
-    tp_order = await self._create_tp_order(symbol, side, main_order["amount"], tp_price)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/chesterbelle/Casino-V2/croupier/components/oco_manager.py", line 344, in _create_tp_order
-    return await self.error_handler.execute_with_breaker(
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    ...<7 lines>...
-    )
-    ^
-  File "/home/chesterbelle/Casino-V2/core/error_handling/error_handler.py", line 214, in execute_with_breaker
-    return await self.execute(
-           ^^^^^^^^^^^^^^^^^^^
-    ...<3 lines>...
-    )
-    ^
-  File "/home/chesterbelle/Casino-V2/core/error_handling/error_handler.py", line 124, in execute
-    result = await func(*args, **kwargs)
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/chesterbelle/Casino-V2/core/error_handling/error_handler.py", line 211, in wrapped
-    return await func(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/chesterbelle/Casino-V2/croupier/components/order_executor.py", line 111, in execute_limit_order
-    result = await self.error_handler.execute_with_breaker(
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        "exchange_orders", self.adapter.execute_order, order, retry_config=retry_cfg
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    )
-    ^
-  File "/home/chesterbelle/Casino-V2/core/error_handling/error_handler.py", line 214, in execute_with_breaker
-    return await self.execute(
-           ^^^^^^^^^^^^^^^^^^^
-    ...<3 lines>...
-    )
-    ^
-  File "/home/chesterbelle/Casino-V2/core/error_handling/error_handler.py", line 124, in execute
-    result = await func(*args, **kwargs)
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/chesterbelle/Casino-V2/core/error_handling/error_handler.py", line 211, in wrapped
-    return await func(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/chesterbelle/Casino-V2/exchanges/adapters/exchange_adapter.py", line 366, in execute_order
-    result = await self.connector.create_order(
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    ...<6 lines>...
-    )
-    ^
-  File "/home/chesterbelle/Casino-V2/exchanges/connectors/binance/binance_native_connector.py", line 741, in create_order
-    response = self.client.new_order(**args)
-  File "/home/chesterbelle/Casino-V2/.venv/lib/python3.13/site-packages/binance/um_futures/account.py", line 116, in new_order
-    return self.sign_request("POST", url_path, params)
-           ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/chesterbelle/Casino-V2/.venv/lib/python3.13/site-packages/binance/api.py", line 83, in sign_request
-    return self.send_request(http_method, url_path, payload, special)
-           ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/chesterbelle/Casino-V2/.venv/lib/python3.13/site-packages/binance/api.py", line 118, in send_request
-    self._handle_exception(response)
-    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
-  File "/home/chesterbelle/Casino-V2/.venv/lib/python3.13/site-packages/binance/api.py", line 172, in _handle_exception
-    raise ClientError(status_code, err["code"], err["msg"], response.headers)
-binance.error.ClientError: (400, -4014, 'Price not increased by tick size.', {'Content-Type': 'application/json', 'Content-Length': '56', 'Connection': 'keep-alive', 'Date': 'Sat, 06 Dec 2025 13:24:03 GMT', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS', 'Server': 'Bengine', 'x-mbx-used-weight-1m': '-1', 'x-mbx-order-count-10s': '2', 'x-mbx-order-count-1m': '2', 'x-response-time': '0ms', 'Access-Control-Allow-Origin': '*', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 8014e01f72bc82652e0c2c05ce8e9698.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'MIA50-P7', 'X-Amz-Cf-Id': '69jJNPy8mfoxtR-i3SxFltWXU1jAIWqojiaQ-U_ZIxHhjMoW7BfM7w=='})
-
-The above exception was the direct cause of the following exception:
-
-Traceback (most recent call last):
-  File "/home/chesterbelle/Casino-V2/core/execution.py", line 170, in on_decision
-    result = await error_handler.execute(
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    ...<8 lines>...
-    )
-    ^
-  File "/home/chesterbelle/Casino-V2/core/error_handling/error_handler.py", line 124, in execute
-    result = await func(*args, **kwargs)
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/chesterbelle/Casino-V2/croupier/croupier.py", line 149, in execute_order
-    result = await self.oco_manager.create_bracketed_order(
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        order, wait_for_fill=wait_for_fill, contributors=contributors
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    )
-    ^
-  File "/home/chesterbelle/Casino-V2/croupier/components/oco_manager.py", line 250, in create_bracketed_order
-    raise OCOAtomicityError(f"Failed to create OCO bracket: {e}") from e
-croupier.components.oco_manager.OCOAtomicityError: Failed to create OCO bracket: (400, -4014, 'Price not increased by tick size.', {'Content-Type': 'application/json', 'Content-Length': '56', 'Connection': 'keep-alive', 'Date': 'Sat, 06 Dec 2025 13:24:03 GMT', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS', 'Server': 'Bengine', 'x-mbx-used-weight-1m': '-1', 'x-mbx-order-count-10s': '2', 'x-mbx-order-count-1m': '2', 'x-response-time': '0ms', 'Access-Control-Allow-Origin': '*', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 8014e01f72bc82652e0c2c05ce8e9698.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'MIA50-P7', 'X-Amz-Cf-Id': '69jJNPy8mfoxtR-i3SxFltWXU1jAIWqojiaQ-U_ZIxHhjMoW7BfM7w=='})
-⚡ Tick: BNBUSDT 885.71
-⚡ Tick: BNBUSDT 885.53
-⚡ Tick: BNBUSDT 885.54
-🕯️ Candle Closed: 885.49 | Vol: 194839658.56999996
-📡 Signal Detected: PinBarReversal@5m -> SHORT
-📡 Signal Detected: VWAPBreakout@5m -> LONG
-📡 Signal Detected: VWAPBreakout@15m -> LONG
-📡 Signal Detected: InsideBarBreakout@1m -> SHORT
+✅ Main order filled @ 889.3
+📈 Creating TP order @ 923.98
+📤 Executing limit order: sell 0.06 BNBUSDT @ 923.98
+📋 Sending Order: {'symbol': 'BNBUSDT', 'side': 'SELL', 'type': 'LIMIT', 'quantity': 0.06, 'price': 923.98, 'timeInForce': 'GTC', 'timestamp': 1765029841994, 'recvWindow': 20000}
+✅ Limit order executed: 1038462760 | Status: open
+📉 Creating SL order @ stop 867.07
+📤 Executing stop order: sell 0.06 BNBUSDT @ stop 867.07
+📋 Sending Order: {'symbol': 'BNBUSDT', 'side': 'SELL', 'type': 'STOP_MARKET', 'quantity': 0.06, 'stopPrice': 867.07, 'timestamp': 1765029842212, 'recvWindow': 20000}
+✅ Stop order executed: 1038462761
+✅ OCO bracket created: Main=1038462757, SL=1038462761
+✅ Position opened: 1038462757 | Entry: 889.30
+⚠️ Order Result: {'main_order': {'id': '1038462757', 'order_id': '1038462757', 'symbol': 'BNBUSDT', 'status': 'open', 'price': 0.0, 'amount': 0.06, 'filled': 0.0, 'type': 'market', 'side': 'buy', 'timestamp': 1765029841754, 'info': {'orderId': 1038462757, 'symbol': 'BNBUSDT', 'status': 'NEW', 'clientOrderId': 'WLFoUJMkzhsoDPPIQIvYOx', 'price': '0.000', 'avgPrice': '0.00', 'origQty': '0.06', 'executedQty': '0.00', 'cumQty': '0.00', 'cumQuote': '0.00000', 'timeInForce': 'GTC', 'type': 'MARKET', 'reduceOnly': False, 'closePosition': False, 'side': 'BUY', 'positionSide': 'BOTH', 'stopPrice': '0.000', 'workingType': 'CONTRACT_PRICE', 'priceProtect': False, 'origType': 'MARKET', 'priceMatch': 'NONE', 'selfTradePreventionMode': 'EXPIRE_MAKER', 'goodTillDate': 0, 'updateTime': 1765029841754}}, 'tp_order': {'id': '1038462760', 'order_id': '1038462760', 'symbol': 'BNBUSDT', 'status': 'open', 'price': 0.0, 'amount': 0.06, 'filled': 0.0, 'type': 'limit', 'side': 'sell', 'timestamp': 1765029842198, 'info': {'orderId': 1038462760, 'symbol': 'BNBUSDT', 'status': 'NEW', 'clientOrderId': 'gAghHsExCfySTiou56maop', 'price': '923.980', 'avgPrice': '0.00', 'origQty': '0.06', 'executedQty': '0.00', 'cumQty': '0.00', 'cumQuote': '0.00000', 'timeInForce': 'GTC', 'type': 'LIMIT', 'reduceOnly': False, 'closePosition': False, 'side': 'SELL', 'positionSide': 'BOTH', 'stopPrice': '0.000', 'workingType': 'CONTRACT_PRICE', 'priceProtect': False, 'origType': 'LIMIT', 'priceMatch': 'NONE', 'selfTradePreventionMode': 'EXPIRE_MAKER', 'goodTillDate': 0, 'updateTime': 1765029842198}}, 'sl_order': {'id': '1038462761', 'order_id': '1038462761', 'symbol': 'BNBUSDT', 'status': 'open', 'price': 0.0, 'amount': 0.06, 'filled': 0.0, 'type': 'stop_market', 'side': 'sell', 'timestamp': 1765029842417, 'info': {'orderId': 1038462761, 'symbol': 'BNBUSDT', 'status': 'NEW', 'clientOrderId': '70XiO2VfmPTWBD2ijNQnbm', 'price': '0.000', 'avgPrice': '0.00', 'origQty': '0.06', 'executedQty': '0.00', 'cumQty': '0.00', 'cumQuote': '0.00000', 'timeInForce': 'GTC', 'type': 'STOP_MARKET', 'reduceOnly': False, 'closePosition': False, 'side': 'SELL', 'positionSide': 'BOTH', 'stopPrice': '867.070', 'workingType': 'CONTRACT_PRICE', 'priceProtect': False, 'origType': 'STOP_MARKET', 'priceMatch': 'NONE', 'selfTradePreventionMode': 'EXPIRE_MAKER', 'goodTillDate': 0, 'updateTime': 1765029842417}}, 'fill_price': 889.3, 'tp_price': 923.98, 'sl_price': 867.07, 'contributors': ['DecelerationCandles'], 'position': OpenPosition(trade_id='1038462757', symbol='BNBUSDT', side='LONG', entry_price=889.3, entry_timestamp=1765029841754, margin_used=0, notional=0, leverage=1, tp_level=923.98, sl_level=867.07, liquidation_level=4.4464999999999995, order={'trade_id': 'V3_1765029841014', 'symbol': 'BNBUSDT', 'side': 'LONG', 'size': 0.01626748249328519, 'amount': 0.06, 'take_profit': 0.039, 'stop_loss': 0.025, 'timestamp': '1765029841.0143886', 'ghost': False, 'contributors': ['DecelerationCandles']}, main_order_id='1038462757', tp_order_id='1038462760', sl_order_id='1038462761', bars_held=0, funding_accrued=0.0, contributors=['DecelerationCandles'])}
+⚡ Tick: BNBUSDT 889.29
+⚡ Tick: BNBUSDT 889.34
+⚡ Tick: BNBUSDT 889.37
+🕯️ Candle Closed: 889.4 | Vol: 177751192.23
+⚡ Tick: BNBUSDT 889.43
+⚡ Tick: BNBUSDT 889.43
+⚡ Tick: BNBUSDT 889.43
+🕯️ Candle Closed: 889.43 | Vol: 177751101.79999998
+⚡ Tick: BNBUSDT 889.43
+⚡ Tick: BNBUSDT 889.43
+⚡ Tick: BNBUSDT 889.43
+🕯️ Candle Closed: 889.43 | Vol: 190447830.29000002
+📡 Signal Detected: VolumeImbalance@5m -> LONG
+⚡ Tick: BNBUSDT 889.43
+⚡ Tick: BNBUSDT 889.43
+⚡ Tick: BNBUSDT 889.43
+🕯️ Candle Closed: 889.43 | Vol: 190448041.92999998
 📡 Signal Detected: CCIReversion@1m -> SHORT
-📡 Signal Detected: CCIReversion@5m -> SHORT
-📡 Signal Detected: CCIReversion@15m -> SHORT
-⚡ Tick: BNBUSDT 885.77
-⚡ Tick: BNBUSDT 885.76
-⚡ Tick: BNBUSDT 885.69
-🕯️ Candle Closed: 885.68 | Vol: 181401786.91
-⚡ Tick: BNBUSDT 885.89
-⚡ Tick: BNBUSDT 885.94
-🕯️ Candle Closed: 885.94 | Vol: 141089165.95000002
-📡 Signal Detected: StochasticReversion@1m -> SHORT
-📡 Signal Detected: StochasticReversion@5m -> SHORT
-📡 Signal Detected: StochasticReversion@15m -> SHORT
-📡 Signal Detected: WilliamsRReversion@1m -> SHORT
-📡 Signal Detected: WilliamsRReversion@5m -> SHORT
-📡 Signal Detected: WilliamsRReversion@15m -> SHORT
-📡 Signal Detected: AdaptiveRSI@5m -> SHORT
-📡 Signal Detected: AdaptiveRSI@15m -> SHORT
-⚡ Tick: BNBUSDT 886.03
-⚡ Tick: BNBUSDT 886.03
-⚡ Tick: BNBUSDT 885.94
-🕯️ Candle Closed: 885.94 | Vol: 194836856.67999998
+📡 Signal Detected: MicroTrend@5m -> LONG
+⚡ Tick: BNBUSDT 889.43
+⚡ Tick: BNBUSDT 889.43
+🕯️ Candle Closed: 889.4 | Vol: 171402484.65999994
+📡 Signal Detected: PinBarReversal@1m -> LONG
+📡 Signal Detected: PinBarReversal@5m -> LONG
+📡 Signal Detected: PinBarReversal@15m -> LONG
+📡 Signal Detected: DecelerationCandles@15m -> LONG
+📡 Signal Detected: RSIReversion@1m -> SHORT
+📡 Signal Detected: RSIReversion@5m -> SHORT
+📡 Signal Detected: RSIReversion@15m -> SHORT
+📡 Signal Detected: VSAReversal@15m -> SHORT
+📊 No consensus: LONG=1, SHORT=0 (need 2+)
+⚡ Tick: BNBUSDT 889.36
+⚡ Tick: BNBUSDT 889.29
+⚡ Tick: BNBUSDT 889.29
+🕯️ Candle Closed: 889.18 | Vol: 190447018.99999997
+⚡ Tick: BNBUSDT 889.09
+⚡ Tick: BNBUSDT 888.87
+⚡ Tick: BNBUSDT 888.79
+🕯️ Candle Closed: 888.78 | Vol: 177749430.89000002
+📡 Signal Detected: VWAPBreakout@15m -> SHORT
+📡 Signal Detected: InsideBarBreakout@15m -> SHORT
+📡 Signal Detected: WilliamsRReversion@1m -> LONG
+📡 Signal Detected: WilliamsRReversion@5m -> LONG
+📡 Signal Detected: ZScoreReversion@1m -> LONG
+📡 Signal Detected: ZScoreReversion@5m -> LONG
+📡 Signal Detected: ZScoreReversion@15m -> LONG
+⚡ Tick: BNBUSDT 888.92
+⚡ Tick: BNBUSDT 888.77
+⚡ Tick: BNBUSDT 888.76
+🕯️ Candle Closed: 888.87 | Vol: 184096986.79
+📡 Signal Detected: StochasticReversion@1m -> LONG
+📡 Signal Detected: StochasticReversion@5m -> LONG
+📡 Signal Detected: ADXFilter@5m -> SHORT
+📡 Signal Detected: ADXFilter@15m -> SHORT
+📡 Signal Detected: VolumeImbalance@5m -> SHORT
+📡 Signal Detected: VolumeImbalance@15m -> SHORT
+⚡ Tick: BNBUSDT 888.91
+⚡ Tick: BNBUSDT 888.77
+🕯️ Candle Closed: 888.75 | Vol: 146007436.91000003
+📡 Signal Detected: CCIReversion@1m -> LONG
+📡 Signal Detected: CCIReversion@5m -> LONG
+⚡ Tick: BNBUSDT 888.75
+⚡ Tick: BNBUSDT 888.73
+⚡ Tick: BNBUSDT 888.6
+🕯️ Candle Closed: 888.6 | Vol: 139659390.59000003
+⚡ Tick: BNBUSDT 888.45
+⚡ Tick: BNBUSDT 888.64
+⚡ Tick: BNBUSDT 888.64
+🕯️ Candle Closed: 888.06 | Vol: 184102195.78000006
 📡 Signal Detected: RSIReversion@1m -> LONG
 📡 Signal Detected: RSIReversion@5m -> LONG
 📡 Signal Detected: RSIReversion@15m -> LONG
-📡 Signal Detected: ADXFilter@5m -> LONG
-📡 Signal Detected: ADXFilter@15m -> LONG
-📡 Signal Detected: ADXFilter@1h -> LONG
-⚡ Tick: BNBUSDT 885.89
-⚡ Tick: BNBUSDT 885.89
-🕯️ Candle Closed: 886.15 | Vol: 174620861.48999998
-⚡ Tick: BNBUSDT 886.15
-⚡ Tick: BNBUSDT 886.11
-⚡ Tick: BNBUSDT 886.12
-🕯️ Candle Closed: 886.15 | Vol: 201459045.48000002
+📡 Signal Detected: BollingerTouch@1m -> LONG
+📡 Signal Detected: BollingerTouch@5m -> LONG
+📡 Signal Detected: BollingerTouch@15m -> LONG
+📡 Signal Detected: AdaptiveRSI@5m -> LONG
+📡 Signal Detected: AdaptiveRSI@15m -> LONG
+⚡ Tick: BNBUSDT 888.05
+⚡ Tick: BNBUSDT 888.64
+🕯️ Candle Closed: 888.64 | Vol: 158704447.14000002
+📡 Signal Detected: PinBarReversal@1m -> LONG
 📡 Signal Detected: PinBarReversal@5m -> LONG
 📡 Signal Detected: PinBarReversal@15m -> LONG
-📡 Signal Detected: CCIReversion@1m -> SHORT
-📡 Signal Detected: CCIReversion@5m -> SHORT
-📡 Signal Detected: CCIReversion@15m -> SHORT
-⚡ Tick: BNBUSDT 886.16
-⚡ Tick: BNBUSDT 886.19
-⚡ Tick: BNBUSDT 886.2
-🕯️ Candle Closed: 886.21 | Vol: 181312640.99999997
-⚡ Tick: BNBUSDT 886.02
-⚡ Tick: BNBUSDT 885.99
-⚡ Tick: BNBUSDT 886.21
-🕯️ Candle Closed: 886.22 | Vol: 188027944.81
-📡 Signal Detected: StochasticReversion@1m -> SHORT
-📡 Signal Detected: StochasticReversion@5m -> SHORT
-📡 Signal Detected: StochasticReversion@15m -> SHORT
-📡 Signal Detected: WilliamsRReversion@1m -> SHORT
-📡 Signal Detected: WilliamsRReversion@5m -> SHORT
-📡 Signal Detected: WilliamsRReversion@15m -> SHORT
-📡 Signal Detected: VolumeImbalance@15m -> LONG
-📡 Signal Detected: AdaptiveRSI@5m -> SHORT
-📡 Signal Detected: AdaptiveRSI@15m -> SHORT
-⚡ Tick: BNBUSDT 886.16
-⚡ Tick: BNBUSDT 886.23
-⚡ Tick: BNBUSDT 886.23
-🕯️ Candle Closed: 886.23 | Vol: 194450393.85
-📡 Signal Detected: VWAPBreakout@15m -> LONG
-📡 Signal Detected: RSIReversion@1m -> SHORT
-📡 Signal Detected: RSIReversion@5m -> SHORT
-📡 Signal Detected: RSIReversion@15m -> SHORT
-📡 Signal Detected: ADXFilter@15m -> LONG
-📡 Signal Detected: ADXFilter@1h -> LONG
-⚡ Tick: BNBUSDT 886.23
-⚡ Tick: BNBUSDT 886.23
-⚡ Tick: BNBUSDT 886.21
-🕯️ Candle Closed: 886.21 | Vol: 193453729.32
-📡 Signal Detected: MACDCrossover@5m -> SHORT
-📡 Signal Detected: MACDCrossover@15m -> SHORT
-📡 Signal Detected: MACDCrossover@1h -> SHORT
-⚡ Tick: BNBUSDT 886.22
-⚡ Tick: BNBUSDT 886.23
-🕯️ Candle Closed: 885.49 | Vol: 178876538.94999996
-📡 Signal Detected: CCIReversion@1m -> SHORT
-📡 Signal Detected: CCIReversion@5m -> SHORT
-📡 Signal Detected: CCIReversion@15m -> SHORT
-📡 Signal Detected: MomentumBurst@1m -> SHORT
-📡 Signal Detected: MomentumBurst@5m -> SHORT
-📡 Signal Detected: MomentumBurst@15m -> SHORT
-⚡ Tick: BNBUSDT 886.27
-⚡ Tick: BNBUSDT 886.29
-⚡ Tick: BNBUSDT 886.31
-🕯️ Candle Closed: 886.33 | Vol: 178876709.65000004
-📡 Signal Detected: PinBarReversal@15m -> LONG
-⚡ Tick: BNBUSDT 886.33
-⚡ Tick: BNBUSDT 886.52
-🕯️ Candle Closed: 886.64 | Vol: 139126483.83
-📡 Signal Detected: StochasticReversion@1m -> SHORT
-📡 Signal Detected: StochasticReversion@5m -> SHORT
-📡 Signal Detected: StochasticReversion@15m -> SHORT
-📡 Signal Detected: WilliamsRReversion@1m -> SHORT
-📡 Signal Detected: WilliamsRReversion@5m -> SHORT
-📡 Signal Detected: WilliamsRReversion@15m -> SHORT
-📡 Signal Detected: VolumeImbalance@15m -> LONG
-📡 Signal Detected: AdaptiveRSI@5m -> SHORT
-📡 Signal Detected: AdaptiveRSI@15m -> SHORT
-📡 Signal Detected: ThreeBar@5m -> LONG
-⚡ Tick: BNBUSDT 886.77
-⚡ Tick: BNBUSDT 887.0
-⚡ Tick: BNBUSDT 887.0
-🕯️ Candle Closed: 887.0 | Vol: 192128336.47
-📡 Signal Detected: VWAPBreakout@15m -> LONG
-📡 Signal Detected: ExtremeCandleRatio@5m -> LONG
-📡 Signal Detected: RSIReversion@1m -> SHORT
-📡 Signal Detected: RSIReversion@5m -> SHORT
-📡 Signal Detected: RSIReversion@15m -> SHORT
-📡 Signal Detected: BollingerTouch@1m -> SHORT
-📡 Signal Detected: BollingerTouch@5m -> SHORT
-📡 Signal Detected: BollingerTouch@15m -> SHORT
-📡 Signal Detected: ZScoreReversion@1m -> SHORT
-📡 Signal Detected: ZScoreReversion@5m -> SHORT
-📡 Signal Detected: ZScoreReversion@15m -> SHORT
-📡 Signal Detected: ADXFilter@15m -> LONG
-📡 Signal Detected: ADXFilter@1h -> LONG
-⚡ Tick: BNBUSDT 887.0
-⚡ Tick: BNBUSDT 887.61
-⚡ Tick: BNBUSDT 887.67
-🕯️ Candle Closed: 887.71 | Vol: 192128598.32999998
-📡 Signal Detected: KeltnerReversion@1m -> SHORT
-📡 Signal Detected: KeltnerReversion@5m -> SHORT
+📡 Signal Detected: ZScoreReversion@1m -> LONG
+📡 Signal Detected: ZScoreReversion@5m -> LONG
+📡 Signal Detected: ZScoreReversion@15m -> LONG
+📡 Signal Detected: MomentumBurst@1m -> LONG
+📡 Signal Detected: MomentumBurst@5m -> LONG
+📡 Signal Detected: MomentumBurst@15m -> LONG
+⚡ Tick: BNBUSDT 888.64
+⚡ Tick: BNBUSDT 888.64
+⚡ Tick: BNBUSDT 888.64
+🕯️ Candle Closed: 888.64 | Vol: 171396833.7
+📡 Signal Detected: StochasticReversion@1m -> LONG
+📡 Signal Detected: ADXFilter@5m -> SHORT
+📡 Signal Detected: ADXFilter@15m -> SHORT
+📡 Signal Detected: VolumeImbalance@5m -> LONG
+⚡ Tick: BNBUSDT 888.64
+⚡ Tick: BNBUSDT 888.64
+🕯️ Candle Closed: 889.3 | Vol: 165044675.67000002
+📡 Signal Detected: ExtremeCandleRatio@1m -> LONG
+📡 Signal Detected: CCIReversion@1m -> LONG
+📡 Signal Detected: CCIReversion@5m -> LONG
+📡 Signal Detected: CCIReversion@15m -> LONG
+⚡ Tick: BNBUSDT 889.3
+⚡ Tick: BNBUSDT 889.43
+⚡ Tick: BNBUSDT 889.43
+🕯️ Candle Closed: 889.43 | Vol: 165047937.46999997
 📡 Signal Detected: MACDCrossover@5m -> LONG
 📡 Signal Detected: MACDCrossover@15m -> LONG
 📡 Signal Detected: MACDCrossover@1h -> LONG
-📡 Signal Detected: Supertrend@5m -> LONG
-📡 Signal Detected: SupportResistance@5m -> LONG
-📡 Signal Detected: SupportResistance@15m -> LONG
-⚡ Tick: BNBUSDT 887.73
-⚡ Tick: BNBUSDT 887.82
-⚡ Tick: BNBUSDT 887.5
-🕯️ Candle Closed: 887.56 | Vol: 192128438.48
-📡 Signal Detected: CCIReversion@1m -> SHORT
-📡 Signal Detected: CCIReversion@5m -> SHORT
-📡 Signal Detected: CCIReversion@15m -> SHORT
-⚡ Tick: BNBUSDT 887.74
-⚡ Tick: BNBUSDT 887.89
-⚡ Tick: BNBUSDT 887.94
-🕯️ Candle Closed: 887.94 | Vol: 184979490.96999997
-📡 Signal Detected: DecelerationCandles@5m -> SHORT
-📡 Signal Detected: DecelerationCandles@15m -> SHORT
-✅ CONSENSUS SHORT: 0L/2S | Best: DecelerationCandles (score=0.827) | HTF: N/A
-🎯 Decision: SHORT | Kelly Bet: 1.63% of 3408.64 | Sensor: DecelerationCandles
-📩 Decision Received: BNBUSDT SHORT (Size: 1.63%, Step: 0)
-🔍 get_current_price | requested_symbol=BNBUSDT | adapter_symbol=BNBUSDT
-💰 Current price for BNBUSDT: 887.95
-📊 Order calculation: Equity=3408.64 | Size=1.63% | Value=55.45 | Price=887.95 | Amount=0.06000000 (raw=0.062447162548)
-📥 Execute order request: SHORT BNBUSDT
-🛡️ Creating OCO bracket for BNBUSDT SHORT | TP: 0.0390 | SL: 0.0250
-📤 Executing market order: sell 0.06 BNBUSDT
-📋 Sending Order: {'symbol': 'BNBUSDT', 'side': 'SELL', 'type': 'MARKET', 'quantity': 0.06, 'timestamp': 1765028466411, 'recvWindow': 20000}
-✅ Market order executed: 1038458008 | Status: open
-⏳ Fill price not in response (status NEW?), waiting for fill...
-✅ Main order filled @ 887.56
-📈 Creating TP order @ 852.945
-📤 Executing limit order: buy 0.06 BNBUSDT @ 852.945
-📋 Sending Order: {'symbol': 'BNBUSDT', 'side': 'BUY', 'type': 'LIMIT', 'quantity': 0.06, 'price': 852.945, 'timeInForce': 'GTC', 'timestamp': 1765028467174, 'recvWindow': 20000}
-❌ Order Failed: Price not increased by tick size.
-❌ Error executing order: (400, -4014, 'Price not increased by tick size.', {'Content-Type': 'application/json', 'Content-Length': '56', 'Connection': 'keep-alive', 'Date': 'Sat, 06 Dec 2025 13:41:07 GMT', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS', 'Server': 'Bengine', 'x-mbx-used-weight-1m': '-1', 'x-mbx-order-count-10s': '2', 'x-mbx-order-count-1m': '2', 'x-response-time': '0ms', 'Access-Control-Allow-Origin': '*', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 52ae716a40a076f1b26575b846ef3f98.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'MIA50-P7', 'X-Amz-Cf-Id': 'su24svyaOnPs944Q6csS8BmX6BtS5SJMlEa2yV5vXak-4ChMpxZsGw=='})
-⚠️ Error in exchange_orders.execute_order (attempt 1/3): server_error | (400, -4014, 'Price not increased by tick size.', {'Content-Type': 'application/json', 'Content-Leng
-🔄 Retrying exchange_orders.execute_order in 0.77s (attempt 2/3)
-📋 Sending Order: {'symbol': 'BNBUSDT', 'side': 'BUY', 'type': 'LIMIT', 'quantity': 0.06, 'price': 852.945, 'timeInForce': 'GTC', 'timestamp': 1765028468150, 'recvWindow': 20000}
-❌ Order Failed: Price not increased by tick size.
-❌ Error executing order: (400, -4014, 'Price not increased by tick size.', {'Content-Type': 'application/json', 'Content-Length': '56', 'Connection': 'keep-alive', 'Date': 'Sat, 06 Dec 2025 13:41:08 GMT', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS', 'Server': 'Bengine', 'x-mbx-used-weight-1m': '-1', 'x-mbx-order-count-10s': '3', 'x-mbx-order-count-1m': '3', 'x-response-time': '0ms', 'Access-Control-Allow-Origin': '*', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 52ae716a40a076f1b26575b846ef3f98.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'MIA50-P7', 'X-Amz-Cf-Id': 'AMK6g6AkCXdS2saW-cWZsjMaAEJVNyQp-GDfmlCUVQG8fPjAO4mdIg=='})
-⚠️ Error in exchange_orders.execute_order (attempt 2/3): server_error | (400, -4014, 'Price not increased by tick size.', {'Content-Type': 'application/json', 'Content-Leng
-🔄 Retrying exchange_orders.execute_order in 2.32s (attempt 3/3)
-📋 Sending Order: {'symbol': 'BNBUSDT', 'side': 'BUY', 'type': 'LIMIT', 'quantity': 0.06, 'price': 852.945, 'timeInForce': 'GTC', 'timestamp': 1765028471001, 'recvWindow': 20000}
-❌ Order Failed: Price not increased by tick size.
-❌ Error executing order: (400, -4014, 'Price not increased by tick size.', {'Content-Type': 'application/json', 'Content-Length': '56', 'Connection': 'keep-alive', 'Date': 'Sat, 06 Dec 2025 13:41:11 GMT', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS', 'Server': 'Bengine', 'x-mbx-used-weight-1m': '-1', 'x-mbx-order-count-10s': '1', 'x-mbx-order-count-1m': '4', 'x-response-time': '0ms', 'Access-Control-Allow-Origin': '*', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 52ae716a40a076f1b26575b846ef3f98.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'MIA50-P7', 'X-Amz-Cf-Id': 'Nr_wDisSbEq6mFny-4O0ExRsOgsO9NX6Wz7NhGjtEqtqT7lDBXEJtw=='})
-⚠️ Error in exchange_orders.execute_order (attempt 3/3): server_error | (400, -4014, 'Price not increased by tick size.', {'Content-Type': 'application/json', 'Content-Leng
-❌ Max retries (3) exhausted for exchange_orders.execute_order
-❌ Limit order failed: (400, -4014, 'Price not increased by tick size.', {'Content-Type': 'application/json', 'Content-Length': '56', 'Connection': 'keep-alive', 'Date': 'Sat, 06 Dec 2025 13:41:11 GMT', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS', 'Server': 'Bengine', 'x-mbx-used-weight-1m': '-1', 'x-mbx-order-count-10s': '1', 'x-mbx-order-count-1m': '4', 'x-response-time': '0ms', 'Access-Control-Allow-Origin': '*', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 52ae716a40a076f1b26575b846ef3f98.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'MIA50-P7', 'X-Amz-Cf-Id': 'Nr_wDisSbEq6mFny-4O0ExRsOgsO9NX6Wz7NhGjtEqtqT7lDBXEJtw=='})
-⚠️ Error in oco_tp_orders.execute_limit_order (attempt 1/5): server_error | (400, -4014, 'Price not increased by tick size.', {'Content-Type': 'application/json', 'Content-Leng
-🔄 Retrying oco_tp_orders.execute_limit_order in 0.41s (attempt 2/5)
-📤 Executing limit order: buy 0.06 BNBUSDT @ 852.945
-📋 Sending Order: {'symbol': 'BNBUSDT', 'side': 'BUY', 'type': 'LIMIT', 'quantity': 0.06, 'price': 852.945, 'timeInForce': 'GTC', 'timestamp': 1765028471939, 'recvWindow': 20000}
-❌ Order Failed: Price not increased by tick size.
-❌ Error executing order: (400, -4014, 'Price not increased by tick size.', {'Content-Type': 'application/json', 'Content-Length': '56', 'Connection': 'keep-alive', 'Date': 'Sat, 06 Dec 2025 13:41:12 GMT', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS', 'Server': 'Bengine', 'x-mbx-used-weight-1m': '-1', 'x-mbx-order-count-10s': '2', 'x-mbx-order-count-1m': '5', 'x-response-time': '0ms', 'Access-Control-Allow-Origin': '*', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 52ae716a40a076f1b26575b846ef3f98.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'MIA50-P7', 'X-Amz-Cf-Id': 'sJKieMhckZ_JCNH27Ikvfy9MrggAfnFFtUAqD8plox1MvItNi3Q8Dg=='})
-⚠️ Error in exchange_orders.execute_order (attempt 1/3): server_error | (400, -4014, 'Price not increased by tick size.', {'Content-Type': 'application/json', 'Content-Leng
-🔄 Retrying exchange_orders.execute_order in 1.03s (attempt 2/3)
-📋 Sending Order: {'symbol': 'BNBUSDT', 'side': 'BUY', 'type': 'LIMIT', 'quantity': 0.06, 'price': 852.945, 'timeInForce': 'GTC', 'timestamp': 1765028473176, 'recvWindow': 20000}
-❌ Order Failed: Price not increased by tick size.
-❌ Error executing order: (400, -4014, 'Price not increased by tick size.', {'Content-Type': 'application/json', 'Content-Length': '56', 'Connection': 'keep-alive', 'Date': 'Sat, 06 Dec 2025 13:41:13 GMT', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS', 'Server': 'Bengine', 'x-mbx-used-weight-1m': '-1', 'x-mbx-order-count-10s': '3', 'x-mbx-order-count-1m': '6', 'x-response-time': '0ms', 'Access-Control-Allow-Origin': '*', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 52ae716a40a076f1b26575b846ef3f98.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'MIA50-P7', 'X-Amz-Cf-Id': '5Z6BCzy_HZeXCPFb3Og0yf8qeNmWtw56SCPVW4Q1mAkvTACn8z7S8Q=='})
-🔴 Circuit breaker 'exchange_orders' → OPEN (failures: 5/5)
-⚠️ Error in exchange_orders.execute_order (attempt 2/3): server_error | (400, -4014, 'Price not increased by tick size.', {'Content-Type': 'application/json', 'Content-Leng
-🔄 Retrying exchange_orders.execute_order in 2.28s (attempt 3/3)
-⚠️ Unknown error type: CircuitBreakerOpenError | Message: circuit breaker 'exchange_orders' is open. retry after 57.7s
-⚠️ Error in exchange_orders.execute_order (attempt 3/3): unknown | Circuit breaker 'exchange_orders' is OPEN. Retry after 57.7s
-❌ Non-retriable error in exchange_orders.execute_order: unknown | Unknown error: circuit breaker 'exchange_orders' is open. retry after 57.7s
-❌ Limit order failed: Circuit breaker 'exchange_orders' is OPEN. Retry after 57.7s
-⚠️ Unknown error type: CircuitBreakerOpenError | Message: circuit breaker 'exchange_orders' is open. retry after 57.7s
-⚠️ Error in oco_tp_orders.execute_limit_order (attempt 2/5): unknown | Circuit breaker 'exchange_orders' is OPEN. Retry after 57.7s
-❌ Non-retriable error in oco_tp_orders.execute_limit_order: unknown | Unknown error: circuit breaker 'exchange_orders' is open. retry after 57.7s
-❌ OCO bracket creation failed: Circuit breaker 'exchange_orders' is OPEN. Retry after 57.7s
-🧹 Cleaning up partial OCO bracket...
-❌ Cancel Failed: (400, -2011, 'Unknown order sent.', {'Content-Type': 'application/json', 'Content-Length': '42', 'Connection': 'keep-alive', 'Date': 'Sat, 06 Dec 2025 13:41:15 GMT', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS', 'Server': 'Bengine', 'x-mbx-used-weight-1m': '15', 'x-response-time': '0ms', 'Access-Control-Allow-Origin': '*', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 52ae716a40a076f1b26575b846ef3f98.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'MIA50-P7', 'X-Amz-Cf-Id': 'a5aY5symxoClvazS2e8nLnZOg1OSu4E36aNvEswGmm7V-Zl-5-H1gQ=='})
-❌ Failed to cancel Main order 1038458008: (400, -2011, 'Unknown order sent.', {'Content-Type': 'application/json', 'Content-Length': '42', 'Connection': 'keep-alive', 'Date': 'Sat, 06 Dec 2025 13:41:15 GMT', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS', 'Server': 'Bengine', 'x-mbx-used-weight-1m': '15', 'x-response-time': '0ms', 'Access-Control-Allow-Origin': '*', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 52ae716a40a076f1b26575b846ef3f98.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'MIA50-P7', 'X-Amz-Cf-Id': 'a5aY5symxoClvazS2e8nLnZOg1OSu4E36aNvEswGmm7V-Zl-5-H1gQ=='})
-🧹 Cleaned up 1 orders
-⚠️ Unknown error type: OCOAtomicityError | Message: failed to create oco bracket: circuit breaker 'exchange_orders' is open. retry after 57.7s
-⚠️ Error in execute_order_BNBUSDT (attempt 1/3): unknown | Failed to create OCO bracket: Circuit breaker 'exchange_orders' is OPEN. Retry after 57.7s
-❌ Non-retriable error in execute_order_BNBUSDT: unknown | Unknown error: failed to create oco bracket: circuit breaker 'exchange_orders' is open. retry after 57.7s
-❌ Execution Failed after retries: Failed to create OCO bracket: Circuit breaker 'exchange_orders' is OPEN. Retry after 57.7s
-Traceback (most recent call last):
-  File "/home/chesterbelle/Casino-V2/croupier/components/oco_manager.py", line 181, in create_bracketed_order
-    tp_order = await self._create_tp_order(symbol, side, main_order["amount"], tp_price)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/chesterbelle/Casino-V2/croupier/components/oco_manager.py", line 344, in _create_tp_order
-    return await self.error_handler.execute_with_breaker(
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    ...<7 lines>...
-    )
-    ^
-  File "/home/chesterbelle/Casino-V2/core/error_handling/error_handler.py", line 214, in execute_with_breaker
-    return await self.execute(
-           ^^^^^^^^^^^^^^^^^^^
-    ...<3 lines>...
-    )
-    ^
-  File "/home/chesterbelle/Casino-V2/core/error_handling/error_handler.py", line 124, in execute
-    result = await func(*args, **kwargs)
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/chesterbelle/Casino-V2/core/error_handling/error_handler.py", line 211, in wrapped
-    return await func(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/chesterbelle/Casino-V2/croupier/components/order_executor.py", line 111, in execute_limit_order
-    result = await self.error_handler.execute_with_breaker(
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        "exchange_orders", self.adapter.execute_order, order, retry_config=retry_cfg
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    )
-    ^
-  File "/home/chesterbelle/Casino-V2/core/error_handling/error_handler.py", line 214, in execute_with_breaker
-    return await self.execute(
-           ^^^^^^^^^^^^^^^^^^^
-    ...<3 lines>...
-    )
-    ^
-  File "/home/chesterbelle/Casino-V2/core/error_handling/error_handler.py", line 124, in execute
-    result = await func(*args, **kwargs)
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/chesterbelle/Casino-V2/core/error_handling/error_handler.py", line 210, in wrapped
-    async with breaker:
-               ^^^^^^^
-  File "/home/chesterbelle/Casino-V2/core/error_handling/circuit_breaker.py", line 205, in __aenter__
-    raise CircuitBreakerOpenError(
-        f"Circuit breaker '{self.name}' is OPEN. " f"Retry after {self._time_until_retry():.1f}s"
-    )
-core.error_handling.circuit_breaker.CircuitBreakerOpenError: Circuit breaker 'exchange_orders' is OPEN. Retry after 57.7s
-
-The above exception was the direct cause of the following exception:
-
-Traceback (most recent call last):
-  File "/home/chesterbelle/Casino-V2/core/execution.py", line 170, in on_decision
-    result = await error_handler.execute(
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    ...<8 lines>...
-    )
-    ^
-  File "/home/chesterbelle/Casino-V2/core/error_handling/error_handler.py", line 124, in execute
-    result = await func(*args, **kwargs)
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/chesterbelle/Casino-V2/croupier/croupier.py", line 149, in execute_order
-    result = await self.oco_manager.create_bracketed_order(
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        order, wait_for_fill=wait_for_fill, contributors=contributors
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    )
-    ^
-  File "/home/chesterbelle/Casino-V2/croupier/components/oco_manager.py", line 250, in create_bracketed_order
-    raise OCOAtomicityError(f"Failed to create OCO bracket: {e}") from e
-croupier.components.oco_manager.OCOAtomicityError: Failed to create OCO bracket: Circuit breaker 'exchange_orders' is OPEN. Retry after 57.7s
-⚡ Tick: BNBUSDT 887.96
-⚡ Tick: BNBUSDT 888.0
-⚡ Tick: BNBUSDT 888.03
-🕯️ Candle Closed: 888.04 | Vol: 189888344.53
+📡 Signal Detected: WilliamsRReversion@1m -> SHORT
+⚡ Tick: BNBUSDT 889.43
+⚡ Tick: BNBUSDT 889.43
+🕯️ Candle Closed: 889.43 | Vol: 152352252.18999997
+⚡ Tick: BNBUSDT 888.05
+⚡ Tick: BNBUSDT 888.05
+🕯️ Candle Closed: 889.43 | Vol: 133306186.57000002
 📡 Signal Detected: PinBarReversal@1m -> LONG
+📡 Signal Detected: PinBarReversal@5m -> LONG
+📡 Signal Detected: RSIReversion@1m -> SHORT
+📡 Signal Detected: RSIReversion@5m -> SHORT
+📡 Signal Detected: RSIReversion@15m -> SHORT
+⚡ Tick: BNBUSDT 889.43
+⚡ Tick: BNBUSDT 889.43
+⚡ Tick: BNBUSDT 889.43
+🕯️ Candle Closed: 889.43 | Vol: 146002511.91000003
+📡 Signal Detected: ADXFilter@5m -> LONG
+📡 Signal Detected: ADXFilter@15m -> LONG
+⚡ Tick: BNBUSDT 889.43
+⚡ Tick: BNBUSDT 889.43
+🕯️ Candle Closed: 889.43 | Vol: 126958485.80999997
+📡 Signal Detected: VWAPBreakout@15m -> LONG
+📡 Signal Detected: StochasticReversion@5m -> SHORT
+📡 Signal Detected: StochasticReversion@15m -> SHORT
+📡 Signal Detected: CCIReversion@1m -> SHORT
+📡 Signal Detected: CCIReversion@5m -> LONG
+📡 Signal Detected: VolumeImbalance@15m -> LONG
+📡 Signal Detected: VolatilityWakeup@15m -> LONG
+⚡ Tick: BNBUSDT 889.43
+⚡ Tick: BNBUSDT 889.43
+⚡ Tick: BNBUSDT 889.43
+🕯️ Candle Closed: 889.43 | Vol: 177737904.23000002
+📡 Signal Detected: WilliamsRReversion@1m -> SHORT
+⚡ Tick: BNBUSDT 889.43
+⚡ Tick: BNBUSDT 889.43
+🕯️ Candle Closed: 889.43 | Vol: 177737915.08
+⚡ Tick: BNBUSDT 889.43
+⚡ Tick: BNBUSDT 889.43
+⚡ Tick: BNBUSDT 889.43
+🕯️ Candle Closed: 889.43 | Vol: 171391557.35999998
+📡 Signal Detected: PinBarReversal@1m -> LONG
+📡 Signal Detected: PinBarReversal@5m -> LONG
+📡 Signal Detected: RSIReversion@1m -> SHORT
+📡 Signal Detected: RSIReversion@5m -> SHORT
+📡 Signal Detected: RSIReversion@15m -> SHORT
+⚡ Tick: BNBUSDT 889.43
+⚡ Tick: BNBUSDT 889.43
+⚡ Tick: BNBUSDT 889.43
+🕯️ Candle Closed: 889.43 | Vol: 177737283.48000002
+📡 Signal Detected: ADXFilter@5m -> LONG
+📡 Signal Detected: ADXFilter@15m -> LONG
+⚡ Tick: BNBUSDT 889.43
+⚡ Tick: BNBUSDT 889.43
+⚡ Tick: BNBUSDT 889.43
+🕯️ Candle Closed: 889.43 | Vol: 171389731.13
+📡 Signal Detected: VWAPBreakout@15m -> LONG
 📡 Signal Detected: StochasticReversion@1m -> SHORT
 📡 Signal Detected: StochasticReversion@5m -> SHORT
 📡 Signal Detected: StochasticReversion@15m -> SHORT
+📡 Signal Detected: CCIReversion@5m -> LONG
+📡 Signal Detected: CCIReversion@15m -> LONG
+📡 Signal Detected: VolumeImbalance@15m -> LONG
+📡 Signal Detected: VolatilityWakeup@15m -> LONG
+⚡ Tick: BNBUSDT 889.43
+⚡ Tick: BNBUSDT 889.43
+🕯️ Candle Closed: 889.43 | Vol: 171392021.75
 📡 Signal Detected: WilliamsRReversion@1m -> SHORT
 📡 Signal Detected: WilliamsRReversion@5m -> SHORT
 📡 Signal Detected: WilliamsRReversion@15m -> SHORT
+⚡ Tick: BNBUSDT 889.43
+⚡ Tick: BNBUSDT 889.43
+🕯️ Candle Closed: 889.43 | Vol: 120604992.06000002
+⚡ Tick: BNBUSDT 889.43
+⚡ Tick: BNBUSDT 889.43
+⚡ Tick: BNBUSDT 889.43
+🕯️ Candle Closed: 889.43 | Vol: 158691587.87000003
+📡 Signal Detected: PinBarReversal@1m -> LONG
+📡 Signal Detected: PinBarReversal@5m -> LONG
+📡 Signal Detected: PinBarReversal@15m -> LONG
+📡 Signal Detected: RSIReversion@1m -> SHORT
+📡 Signal Detected: RSIReversion@5m -> SHORT
+📡 Signal Detected: RSIReversion@15m -> SHORT
+⚡ Tick: BNBUSDT 889.43
+⚡ Tick: BNBUSDT 889.43
+🕯️ Candle Closed: 889.43 | Vol: 133302078.16
+📡 Signal Detected: ADXFilter@5m -> LONG
+📡 Signal Detected: ADXFilter@15m -> LONG
 📡 Signal Detected: AdaptiveRSI@5m -> SHORT
 📡 Signal Detected: AdaptiveRSI@15m -> SHORT
+⚡ Tick: BNBUSDT 891.06
 ⚡ Tick: BNBUSDT 888.05
-⚡ Tick: BNBUSDT 887.88
-🕯️ Candle Closed: 888.06 | Vol: 180230729.23
+⚡ Tick: BNBUSDT 892.59
+🕯️ Candle Closed: 892.59 | Vol: 186853261.70999998
+📡 Signal Detected: VWAPBreakout@5m -> LONG
+📡 Signal Detected: ExtremeCandleRatio@1m -> LONG
+📡 Signal Detected: ExtremeCandleRatio@5m -> LONG
+📡 Signal Detected: ExtremeCandleRatio@15m -> LONG
+📡 Signal Detected: BollingerTouch@1m -> SHORT
+📡 Signal Detected: BollingerTouch@5m -> SHORT
+📡 Signal Detected: BollingerTouch@15m -> SHORT
+📡 Signal Detected: KeltnerReversion@1m -> SHORT
+📡 Signal Detected: KeltnerReversion@5m -> SHORT
+📡 Signal Detected: KeltnerReversion@15m -> SHORT
+📡 Signal Detected: Supertrend@5m -> LONG
+📡 Signal Detected: Supertrend@15m -> LONG
+📡 Signal Detected: StochasticReversion@1m -> SHORT
+📡 Signal Detected: StochasticReversion@5m -> SHORT
+📡 Signal Detected: StochasticReversion@15m -> SHORT
+📡 Signal Detected: CCIReversion@1m -> SHORT
+📡 Signal Detected: CCIReversion@5m -> SHORT
+📡 Signal Detected: CCIReversion@15m -> SHORT
+📡 Signal Detected: ZScoreReversion@1m -> SHORT
+📡 Signal Detected: ZScoreReversion@5m -> SHORT
+📡 Signal Detected: ZScoreReversion@15m -> SHORT
+📡 Signal Detected: VolumeImbalance@5m -> LONG
+📡 Signal Detected: DojiIndecision@1m -> LONG
+📡 Signal Detected: DojiIndecision@5m -> LONG
+📡 Signal Detected: DojiIndecision@15m -> LONG
+📡 Signal Detected: VolatilityWakeup@5m -> LONG
+📡 Signal Detected: VolatilityWakeup@15m -> LONG
+📡 Signal Detected: SupportResistance@5m -> LONG
+📡 Signal Detected: SupportResistance@15m -> LONG
+⚡ Tick: BNBUSDT 892.65
+⚡ Tick: BNBUSDT 892.65
+🕯️ Candle Closed: 892.65 | Vol: 177713551.64999998
+📡 Signal Detected: EMA50Support@5m -> LONG
+📡 Signal Detected: EMA50Support@15m -> LONG
+📡 Signal Detected: EMA50Support@1h -> LONG
+📡 Signal Detected: WilliamsRReversion@1m -> SHORT
+📡 Signal Detected: WilliamsRReversion@5m -> SHORT
+📡 Signal Detected: WilliamsRReversion@15m -> SHORT
+📡 Signal Detected: MTFImpulse@5m -> LONG
+📡 Signal Detected: HurstRegime@5m -> LONG
+📡 Signal Detected: HurstRegime@15m -> LONG
+📡 Signal Detected: VWAPMomentum@5m -> LONG
+⚡ Tick: BNBUSDT 892.7
+⚡ Tick: BNBUSDT 892.77
+⚡ Tick: BNBUSDT 892.85
+🕯️ Candle Closed: 892.92 | Vol: 196426372.82
+⚡ Tick: BNBUSDT 892.98
+⚡ Tick: BNBUSDT 893.0
+⚡ Tick: BNBUSDT 893.0
+🕯️ Candle Closed: 893.02 | Vol: 161600808.41
+📡 Signal Detected: PinBarReversal@1m -> LONG
+📡 Signal Detected: RSIReversion@1m -> SHORT
+📡 Signal Detected: RSIReversion@5m -> SHORT
+📡 Signal Detected: RSIReversion@15m -> SHORT
+⚡ Tick: BNBUSDT 893.03
+⚡ Tick: BNBUSDT 893.03
+⚡ Tick: BNBUSDT 893.03
+🕯️ Candle Closed: 893.03 | Vol: 187457170.19
+📡 Signal Detected: ADXFilter@5m -> LONG
+📡 Signal Detected: ADXFilter@15m -> LONG
+📡 Signal Detected: AdaptiveRSI@5m -> SHORT
+📡 Signal Detected: AdaptiveRSI@15m -> SHORT
+⚡ Tick: BNBUSDT 892.37
+⚡ Tick: BNBUSDT 892.32
+⚡ Tick: BNBUSDT 893.09
+🕯️ Candle Closed: 893.09 | Vol: 187422320.95
+📡 Signal Detected: VWAPBreakout@5m -> LONG
+📡 Signal Detected: VWAPBreakout@15m -> LONG
+📡 Signal Detected: ExtremeCandleRatio@1m -> LONG
+📡 Signal Detected: ExtremeCandleRatio@15m -> LONG
+📡 Signal Detected: BollingerTouch@1m -> SHORT
+📡 Signal Detected: BollingerTouch@5m -> SHORT
+📡 Signal Detected: BollingerTouch@15m -> SHORT
+📡 Signal Detected: KeltnerReversion@1m -> SHORT
+📡 Signal Detected: KeltnerReversion@5m -> SHORT
+📡 Signal Detected: KeltnerReversion@15m -> SHORT
+📡 Signal Detected: Supertrend@1h -> LONG
+📡 Signal Detected: StochasticReversion@1m -> SHORT
+📡 Signal Detected: StochasticReversion@5m -> SHORT
+📡 Signal Detected: StochasticReversion@15m -> SHORT
+📡 Signal Detected: CCIReversion@1m -> SHORT
+📡 Signal Detected: CCIReversion@5m -> SHORT
+📡 Signal Detected: CCIReversion@15m -> SHORT
+📡 Signal Detected: ZScoreReversion@1m -> SHORT
+📡 Signal Detected: ZScoreReversion@5m -> SHORT
+📡 Signal Detected: ZScoreReversion@15m -> SHORT
+📡 Signal Detected: VolumeImbalance@5m -> LONG
+📡 Signal Detected: VolumeImbalance@15m -> LONG
+📡 Signal Detected: VolatilityWakeup@5m -> LONG
+📡 Signal Detected: VolatilityWakeup@15m -> LONG
+📡 Signal Detected: SupportResistance@15m -> LONG
+⚡ Tick: BNBUSDT 892.49
+⚡ Tick: BNBUSDT 892.96
+🕯️ Candle Closed: 892.97 | Vol: 142177121.10999998
+📡 Signal Detected: EMA50Support@15m -> LONG
+📡 Signal Detected: EMA50Support@1h -> LONG
+📡 Signal Detected: WilliamsRReversion@1m -> SHORT
+📡 Signal Detected: WilliamsRReversion@5m -> SHORT
+📡 Signal Detected: WilliamsRReversion@15m -> SHORT
+📡 Signal Detected: MTFImpulse@5m -> LONG
+📡 Signal Detected: HurstRegime@5m -> LONG
+📡 Signal Detected: HurstRegime@15m -> LONG
+📡 Signal Detected: VWAPMomentum@5m -> LONG
+⚡ Tick: BNBUSDT 892.52
+⚡ Tick: BNBUSDT 893.09
+🕯️ Candle Closed: 892.77 | Vol: 109864015.34
+📡 Signal Detected: DecelerationCandles@15m -> SHORT
+📊 No consensus: LONG=0, SHORT=1 (need 2+)
+⚡ Tick: BNBUSDT 893.0
+⚡ Tick: BNBUSDT 892.77
+🕯️ Candle Closed: 893.09 | Vol: 148641167.23
+📡 Signal Detected: PinBarReversal@1m -> LONG
+📡 Signal Detected: RSIReversion@1m -> SHORT
+📡 Signal Detected: RSIReversion@5m -> SHORT
+📡 Signal Detected: RSIReversion@15m -> SHORT
+⚡ Tick: BNBUSDT 892.54
+⚡ Tick: BNBUSDT 892.61
+🕯️ Candle Closed: 892.79 | Vol: 135715568.57
+📡 Signal Detected: ADXFilter@5m -> LONG
+📡 Signal Detected: ADXFilter@15m -> LONG
+📡 Signal Detected: AdaptiveRSI@5m -> SHORT
+📡 Signal Detected: AdaptiveRSI@15m -> SHORT
+📡 Signal Detected: MicroTrend@1m -> LONG
+📡 Signal Detected: MicroTrend@5m -> LONG
+⚡ Tick: BNBUSDT 892.67
+⚡ Tick: BNBUSDT 892.67
+⚡ Tick: BNBUSDT 892.67
+🕯️ Candle Closed: 892.67 | Vol: 167790934.84000003
+📡 Signal Detected: VWAPBreakout@15m -> LONG
+📡 Signal Detected: ExtremeCandleRatio@15m -> LONG
+📡 Signal Detected: KeltnerReversion@1m -> SHORT
+📡 Signal Detected: KeltnerReversion@5m -> SHORT
+📡 Signal Detected: StochasticReversion@1m -> SHORT
+📡 Signal Detected: StochasticReversion@5m -> SHORT
+📡 Signal Detected: StochasticReversion@15m -> SHORT
+📡 Signal Detected: CCIReversion@1m -> SHORT
+📡 Signal Detected: CCIReversion@5m -> SHORT
+📡 Signal Detected: CCIReversion@15m -> SHORT
+📡 Signal Detected: ZScoreReversion@1m -> SHORT
+📡 Signal Detected: ZScoreReversion@5m -> SHORT
+📡 Signal Detected: ZScoreReversion@15m -> SHORT
+📡 Signal Detected: VolumeImbalance@15m -> LONG
+📡 Signal Detected: SmartRange@1m -> SHORT
+📡 Signal Detected: VolatilityWakeup@5m -> LONG
+📡 Signal Detected: VolatilityWakeup@15m -> LONG
+📡 Signal Detected: SupportResistance@15m -> LONG
+⚡ Tick: BNBUSDT 892.68
+⚡ Tick: BNBUSDT 892.42
+🕯️ Candle Closed: 892.32 | Vol: 174113714.90999997
+📡 Signal Detected: EMA50Support@15m -> LONG
+📡 Signal Detected: EMA50Support@1h -> LONG
+📡 Signal Detected: InsideBarBreakout@1m -> SHORT
+📡 Signal Detected: WilliamsRReversion@1m -> SHORT
+📡 Signal Detected: WilliamsRReversion@5m -> SHORT
+📡 Signal Detected: WilliamsRReversion@15m -> SHORT
+📡 Signal Detected: MTFImpulse@5m -> LONG
+📡 Signal Detected: BollingerRejection@15m -> LONG
+📡 Signal Detected: HurstRegime@5m -> LONG
+📡 Signal Detected: HurstRegime@15m -> LONG
+⚡ Tick: BNBUSDT 892.17
+⚡ Tick: BNBUSDT 892.79
+⚡ Tick: BNBUSDT 893.04
+🕯️ Candle Closed: 893.11 | Vol: 180974537.31
+📡 Signal Detected: DecelerationCandles@15m -> SHORT
+📊 No consensus: LONG=0, SHORT=1 (need 2+)
+⚡ Tick: BNBUSDT 893.11
+⚡ Tick: BNBUSDT 893.48
+⚡ Tick: BNBUSDT 895.08
+🕯️ Candle Closed: 895.08 | Vol: 169659999.96
 📡 Signal Detected: RSIReversion@1m -> SHORT
 📡 Signal Detected: RSIReversion@5m -> SHORT
 📡 Signal Detected: RSIReversion@15m -> SHORT
 📡 Signal Detected: BollingerTouch@1m -> SHORT
 📡 Signal Detected: BollingerTouch@5m -> SHORT
 📡 Signal Detected: BollingerTouch@15m -> SHORT
+📡 Signal Detected: DojiIndecision@5m -> LONG
+📡 Signal Detected: DojiIndecision@15m -> LONG
+📡 Signal Detected: KeltnerBreakout@5m -> LONG
+⚡ Tick: BNBUSDT 895.49
+⚡ Tick: BNBUSDT 895.6
+🕯️ Candle Closed: 895.6 | Vol: 180251752.34000003
+📡 Signal Detected: PinBarReversal@1m -> LONG
+📡 Signal Detected: ADXFilter@5m -> LONG
+📡 Signal Detected: ADXFilter@15m -> LONG
+📡 Signal Detected: AdaptiveRSI@5m -> SHORT
+📡 Signal Detected: AdaptiveRSI@15m -> SHORT
+⚡ Tick: BNBUSDT 895.6
+⚡ Tick: BNBUSDT 895.78
+⚡ Tick: BNBUSDT 895.67
+🕯️ Candle Closed: 895.71 | Vol: 174015682.45
+📡 Signal Detected: VWAPBreakout@5m -> LONG
+📡 Signal Detected: ExtremeCandleRatio@5m -> LONG
+📡 Signal Detected: ExtremeCandleRatio@15m -> LONG
+📡 Signal Detected: KeltnerReversion@1m -> SHORT
+📡 Signal Detected: KeltnerReversion@5m -> SHORT
+📡 Signal Detected: KeltnerReversion@15m -> SHORT
+📡 Signal Detected: StochasticReversion@1m -> SHORT
+📡 Signal Detected: StochasticReversion@5m -> SHORT
+📡 Signal Detected: StochasticReversion@15m -> SHORT
+📡 Signal Detected: CCIReversion@1m -> SHORT
+📡 Signal Detected: CCIReversion@5m -> SHORT
+📡 Signal Detected: CCIReversion@15m -> SHORT
 📡 Signal Detected: ZScoreReversion@1m -> SHORT
 📡 Signal Detected: ZScoreReversion@5m -> SHORT
 📡 Signal Detected: ZScoreReversion@15m -> SHORT
+📡 Signal Detected: VolumeImbalance@5m -> LONG
+📡 Signal Detected: VolatilityWakeup@5m -> LONG
+📡 Signal Detected: VolatilityWakeup@15m -> LONG
+⚡ Tick: BNBUSDT 895.71
+⚡ Tick: BNBUSDT 895.6
+⚡ Tick: BNBUSDT 895.6
+🕯️ Candle Closed: 895.6 | Vol: 180761312.17000002
+📡 Signal Detected: WilliamsRReversion@1m -> SHORT
+📡 Signal Detected: WilliamsRReversion@5m -> SHORT
+📡 Signal Detected: WilliamsRReversion@15m -> SHORT
+📡 Signal Detected: MTFImpulse@5m -> LONG
+📡 Signal Detected: HurstRegime@5m -> LONG
+📡 Signal Detected: HurstRegime@15m -> LONG
+📡 Signal Detected: VWAPMomentum@5m -> LONG
+⚡ Tick: BNBUSDT 895.6
+⚡ Tick: BNBUSDT 895.78
+⚡ Tick: BNBUSDT 895.78
+🕯️ Candle Closed: 895.6 | Vol: 193364902.11
+⚡ Tick: BNBUSDT 895.6
+⚡ Tick: BNBUSDT 895.6
+🕯️ Candle Closed: 895.6 | Vol: 166354034.93999997
+📡 Signal Detected: RSIReversion@1m -> SHORT
+📡 Signal Detected: RSIReversion@5m -> SHORT
+📡 Signal Detected: RSIReversion@15m -> SHORT
+⚡ Tick: BNBUSDT 895.6
+⚡ Tick: BNBUSDT 895.6
+⚡ Tick: BNBUSDT 895.6
+🕯️ Candle Closed: 895.6 | Vol: 179661815.59999996
+📡 Signal Detected: PinBarReversal@1m -> SHORT
+📡 Signal Detected: PinBarReversal@5m -> SHORT
+📡 Signal Detected: ADXFilter@5m -> LONG
 📡 Signal Detected: ADXFilter@15m -> LONG
 📡 Signal Detected: ADXFilter@1h -> LONG
-📡 Signal Detected: VolumeImbalance@5m -> LONG
-⚡ Tick: BNBUSDT 887.99
-⚡ Tick: BNBUSDT 887.87
-⚡ Tick: BNBUSDT 887.88
-🕯️ Candle Closed: 887.87 | Vol: 168788710.31
+📡 Signal Detected: AdaptiveRSI@5m -> SHORT
+📡 Signal Detected: AdaptiveRSI@15m -> SHORT
+⚡ Tick: BNBUSDT 895.6
+⚡ Tick: BNBUSDT 895.6
+🕯️ Candle Closed: 895.78 | Vol: 179627478.68000004
 📡 Signal Detected: VWAPBreakout@5m -> LONG
+📡 Signal Detected: VWAPBreakout@15m -> LONG
+📡 Signal Detected: ExtremeCandleRatio@15m -> LONG
 📡 Signal Detected: KeltnerReversion@1m -> SHORT
-📡 Signal Detected: Supertrend@15m -> LONG
+📡 Signal Detected: KeltnerReversion@5m -> SHORT
+📡 Signal Detected: KeltnerReversion@15m -> SHORT
+📡 Signal Detected: StochasticReversion@1m -> SHORT
+📡 Signal Detected: StochasticReversion@5m -> SHORT
+📡 Signal Detected: StochasticReversion@15m -> SHORT
+📡 Signal Detected: CCIReversion@1m -> SHORT
+📡 Signal Detected: CCIReversion@5m -> SHORT
+📡 Signal Detected: CCIReversion@15m -> SHORT
+📡 Signal Detected: ZScoreReversion@1m -> SHORT
+📡 Signal Detected: ZScoreReversion@5m -> SHORT
+📡 Signal Detected: ZScoreReversion@15m -> SHORT
+📡 Signal Detected: VolumeImbalance@5m -> LONG
+📡 Signal Detected: VolumeImbalance@15m -> LONG
+📡 Signal Detected: KeltnerBreakout@5m -> LONG
 📡 Signal Detected: VolatilityWakeup@5m -> LONG
-📡 Signal Detected: SupportResistance@5m -> LONG
+📡 Signal Detected: VolatilityWakeup@15m -> LONG
+⚡ Tick: BNBUSDT 895.6
+⚡ Tick: BNBUSDT 894.68
+⚡ Tick: BNBUSDT 894.69
+🕯️ Candle Closed: 894.65 | Vol: 179627624.61999997
+📡 Signal Detected: MACDCrossover@5m -> SHORT
+📡 Signal Detected: MACDCrossover@15m -> SHORT
+📡 Signal Detected: MACDCrossover@1h -> SHORT
+📡 Signal Detected: WilliamsRReversion@1m -> SHORT
+📡 Signal Detected: WilliamsRReversion@5m -> SHORT
+📡 Signal Detected: WilliamsRReversion@15m -> SHORT
+📡 Signal Detected: MTFImpulse@5m -> LONG
+📡 Signal Detected: HurstRegime@5m -> LONG
+📡 Signal Detected: HurstRegime@15m -> LONG
+⚡ Tick: BNBUSDT 894.7
+⚡ Tick: BNBUSDT 894.8
+⚡ Tick: BNBUSDT 894.8
+🕯️ Candle Closed: 894.8 | Vol: 192932024.48999992
+📡 Signal Detected: MicroTrend@1m -> LONG
+📡 Signal Detected: MicroTrend@5m -> LONG
+⚡ Tick: BNBUSDT 895.04
+⚡ Tick: BNBUSDT 895.18
+⚡ Tick: BNBUSDT 895.38
+🕯️ Candle Closed: 895.38 | Vol: 172987116.48
+📡 Signal Detected: ThreeBar@5m -> LONG
+⚡ Tick: BNBUSDT 895.06
+⚡ Tick: BNBUSDT 895.09
+🕯️ Candle Closed: 895.11 | Vol: 186307357.99
+📡 Signal Detected: EMA50Support@15m -> LONG
+📡 Signal Detected: EMA50Support@1h -> LONG
+📡 Signal Detected: RSIReversion@1m -> LONG
+📡 Signal Detected: RSIReversion@5m -> LONG
+📡 Signal Detected: RSIReversion@15m -> LONG
+📡 Signal Detected: ADXFilter@5m -> LONG
+📡 Signal Detected: ADXFilter@15m -> LONG
+📡 Signal Detected: ADXFilter@1h -> LONG
+📡 Signal Detected: AdaptiveRSI@5m -> SHORT
+📡 Signal Detected: AdaptiveRSI@15m -> SHORT
+📡 Signal Detected: SmartRange@1m -> SHORT
+⚡ Tick: BNBUSDT 895.08
+⚡ Tick: BNBUSDT 895.21
+⚡ Tick: BNBUSDT 894.95
+🕯️ Candle Closed: 895.29 | Vol: 199616789.08999997
+📡 Signal Detected: PinBarReversal@1m -> LONG
+📡 Signal Detected: VWAPBreakout@5m -> LONG
+📡 Signal Detected: VWAPBreakout@15m -> LONG
+📡 Signal Detected: KeltnerReversion@1m -> SHORT
+📡 Signal Detected: KeltnerReversion@5m -> SHORT
+📡 Signal Detected: KeltnerReversion@15m -> SHORT
+📡 Signal Detected: StochasticReversion@1m -> SHORT
+📡 Signal Detected: StochasticReversion@5m -> SHORT
+📡 Signal Detected: StochasticReversion@15m -> SHORT
+📡 Signal Detected: CCIReversion@1m -> SHORT
+📡 Signal Detected: CCIReversion@5m -> SHORT
+📡 Signal Detected: CCIReversion@15m -> SHORT
+📡 Signal Detected: VolumeImbalance@5m -> LONG
+📡 Signal Detected: VolumeImbalance@15m -> LONG
+📡 Signal Detected: KeltnerBreakout@5m -> LONG
+📡 Signal Detected: VolatilityWakeup@5m -> LONG
+📡 Signal Detected: VolatilityWakeup@15m -> LONG
 📡 Signal Detected: SupportResistance@15m -> LONG
-⚡ Tick: BNBUSDT 888.03
+⚡ Tick: BNBUSDT 895.29
+⚡ Tick: BNBUSDT 895.11
+⚡ Tick: BNBUSDT 894.98
+🕯️ Candle Closed: 894.96 | Vol: 173001786.61
+📡 Signal Detected: InsideBarBreakout@1m -> SHORT
+📡 Signal Detected: WilliamsRReversion@1m -> SHORT
+📡 Signal Detected: WilliamsRReversion@5m -> SHORT
+📡 Signal Detected: WilliamsRReversion@15m -> SHORT
+📡 Signal Detected: MTFImpulse@5m -> LONG
+📡 Signal Detected: HurstRegime@5m -> LONG
+📡 Signal Detected: HurstRegime@15m -> LONG
+📡 Signal Detected: VWAPMomentum@5m -> LONG
+⚡ Tick: BNBUSDT 894.96
+⚡ Tick: BNBUSDT 894.95
+⚡ Tick: BNBUSDT 894.94
+🕯️ Candle Closed: 894.94 | Vol: 173001590.19
+📡 Signal Detected: MomentumBurst@1m -> SHORT
+📡 Signal Detected: MomentumBurst@5m -> SHORT
+📡 Signal Detected: MomentumBurst@15m -> SHORT
+⚡ Tick: BNBUSDT 894.93
+⚡ Tick: BNBUSDT 894.87
+🕯️ Candle Closed: 894.81 | Vol: 166346324.61
+⚡ Tick: BNBUSDT 894.8
+⚡ Tick: BNBUSDT 894.73
+⚡ Tick: BNBUSDT 895.4
+🕯️ Candle Closed: 894.68 | Vol: 179654006.89
+📡 Signal Detected: EMA50Support@1h -> LONG
+📡 Signal Detected: RSIReversion@1m -> LONG
+📡 Signal Detected: RSIReversion@5m -> LONG
+📡 Signal Detected: RSIReversion@15m -> LONG
+📡 Signal Detected: ADXFilter@5m -> LONG
+📡 Signal Detected: ADXFilter@15m -> LONG
+📡 Signal Detected: ADXFilter@1h -> LONG
+📡 Signal Detected: AdaptiveRSI@5m -> SHORT
+📡 Signal Detected: AdaptiveRSI@15m -> SHORT
+⚡ Tick: BNBUSDT 894.31
+⚡ Tick: BNBUSDT 893.99
+⚡ Tick: BNBUSDT 893.76
+🕯️ Candle Closed: 893.76 | Vol: 179087978.44
+📡 Signal Detected: ExtremeCandleRatio@1m -> SHORT
+📡 Signal Detected: CCIReversion@1m -> SHORT
+📡 Signal Detected: CCIReversion@5m -> SHORT
+📡 Signal Detected: CCIReversion@15m -> SHORT
+📡 Signal Detected: VolumeImbalance@5m -> SHORT
+📡 Signal Detected: VolatilityWakeup@5m -> SHORT
+📡 Signal Detected: VolatilityWakeup@15m -> SHORT
+⚡ Tick: BNBUSDT 893.64
+⚡ Tick: BNBUSDT 893.64
+⚡ Tick: BNBUSDT 893.75
+🕯️ Candle Closed: 893.75 | Vol: 194457989.98000002
+📡 Signal Detected: PinBarReversal@1m -> SHORT
+📡 Signal Detected: MTFImpulse@5m -> LONG
+📡 Signal Detected: HurstRegime@5m -> LONG
+📡 Signal Detected: HurstRegime@15m -> LONG
+⚡ Tick: BNBUSDT 893.64
+⚡ Tick: BNBUSDT 893.64
+🕯️ Candle Closed: 893.95 | Vol: 157408107.81
+📡 Signal Detected: MicroTrend@1m -> LONG
+📡 Signal Detected: MicroTrend@5m -> LONG
+⚡ Tick: BNBUSDT 893.69
+⚡ Tick: BNBUSDT 893.64
+⚡ Tick: BNBUSDT 893.64
+🕯️ Candle Closed: 893.64 | Vol: 176295435.67999998
+⚡ Tick: BNBUSDT 893.64
+⚡ Tick: BNBUSDT 893.64
+⚡ Tick: BNBUSDT 893.64
+🕯️ Candle Closed: 893.64 | Vol: 180634295.78999996
+📡 Signal Detected: EMA50Support@1h -> LONG
+📡 Signal Detected: RSIReversion@1m -> LONG
+📡 Signal Detected: RSIReversion@5m -> LONG
+📡 Signal Detected: RSIReversion@15m -> LONG
+📡 Signal Detected: ADXFilter@5m -> LONG
+📡 Signal Detected: ADXFilter@15m -> LONG
+📡 Signal Detected: ADXFilter@1h -> LONG
+📡 Signal Detected: AdaptiveRSI@5m -> SHORT
+📡 Signal Detected: AdaptiveRSI@15m -> SHORT
+⚡ Tick: BNBUSDT 893.64
+⚡ Tick: BNBUSDT 893.64
+🕯️ Candle Closed: 893.64 | Vol: 164844389.46999994
+📡 Signal Detected: CCIReversion@15m -> SHORT
+📡 Signal Detected: VolumeImbalance@5m -> SHORT
+📡 Signal Detected: VolumeImbalance@15m -> SHORT
+📡 Signal Detected: VolatilityWakeup@5m -> SHORT
+📡 Signal Detected: VolatilityWakeup@15m -> SHORT
+⚡ Tick: BNBUSDT 893.64
+⚡ Tick: BNBUSDT 893.64
+⚡ Tick: BNBUSDT 893.64
+🕯️ Candle Closed: 893.64 | Vol: 152626618.23999998
+📡 Signal Detected: PinBarReversal@1m -> SHORT
+📡 Signal Detected: PinBarReversal@5m -> SHORT
+📡 Signal Detected: MTFImpulse@5m -> LONG
+📡 Signal Detected: HurstRegime@5m -> SHORT
+📡 Signal Detected: HurstRegime@15m -> SHORT
+📡 Signal Detected: SupportResistance@5m -> SHORT
+📡 Signal Detected: SupportResistance@15m -> SHORT
+⚡ Tick: BNBUSDT 893.64
+⚡ Tick: BNBUSDT 893.64
+⚡ Tick: BNBUSDT 893.64
+🕯️ Candle Closed: 893.64 | Vol: 170779720.98
+⚡ Tick: BNBUSDT 895.78
+⚡ Tick: BNBUSDT 893.64
+🕯️ Candle Closed: 893.77 | Vol: 164527952.99
+📡 Signal Detected: MicroTrend@1m -> LONG
+📡 Signal Detected: MicroTrend@5m -> LONG
+⚡ Tick: BNBUSDT 893.76
+⚡ Tick: BNBUSDT 893.81
+⚡ Tick: BNBUSDT 893.64
+🕯️ Candle Closed: 893.64 | Vol: 146171568.39999998
+📡 Signal Detected: EMACrossover@5m -> SHORT
+📡 Signal Detected: EMACrossover@15m -> SHORT
+📡 Signal Detected: EMA50Support@1h -> LONG
+📡 Signal Detected: RSIReversion@1m -> LONG
+📡 Signal Detected: RSIReversion@5m -> LONG
+📡 Signal Detected: RSIReversion@15m -> LONG
+📡 Signal Detected: ADXFilter@5m -> LONG
+📡 Signal Detected: ADXFilter@15m -> LONG
+📡 Signal Detected: ADXFilter@1h -> LONG
+📡 Signal Detected: AdaptiveRSI@5m -> SHORT
+📡 Signal Detected: AdaptiveRSI@15m -> SHORT
+⚡ Tick: BNBUSDT 893.64
+⚡ Tick: BNBUSDT 893.64
+⚡ Tick: BNBUSDT 893.64
+🕯️ Candle Closed: 893.64 | Vol: 170532934.23
+📡 Signal Detected: CCIReversion@15m -> SHORT
+📡 Signal Detected: VolumeImbalance@15m -> SHORT
+📡 Signal Detected: BollingerRejection@15m -> SHORT
+📡 Signal Detected: VolatilityWakeup@15m -> SHORT
+⚡ Tick: BNBUSDT 893.64
+⚡ Tick: BNBUSDT 893.64
+🕯️ Candle Closed: 893.64 | Vol: 170533129.40000004
+📡 Signal Detected: PinBarReversal@5m -> SHORT
+📡 Signal Detected: ExtremeCandleRatio@1m -> SHORT
+📡 Signal Detected: StochasticReversion@1m -> LONG
+📡 Signal Detected: WilliamsRReversion@1m -> LONG
+📡 Signal Detected: MTFImpulse@5m -> LONG
+📡 Signal Detected: SupportResistance@15m -> SHORT
+⚡ Tick: BNBUSDT 893.64
+⚡ Tick: BNBUSDT 893.64
+⚡ Tick: BNBUSDT 893.64
+🕯️ Candle Closed: 893.64 | Vol: 164440356.77999997
+⚡ Tick: BNBUSDT 893.64
+⚡ Tick: BNBUSDT 893.64
+⚡ Tick: BNBUSDT 893.64
+🕯️ Candle Closed: 893.64 | Vol: 158350301.81999996
+⚡ Tick: BNBUSDT 892.59
+⚡ Tick: BNBUSDT 895.78
+⚡ Tick: BNBUSDT 890.71
+🕯️ Candle Closed: 895.78 | Vol: 172540998.95
+📡 Signal Detected: EMACrossover@5m -> LONG
+📡 Signal Detected: EMACrossover@15m -> LONG
+📡 Signal Detected: EMACrossover@1h -> LONG
+📡 Signal Detected: EMA50Support@5m -> LONG
+📡 Signal Detected: EMA50Support@15m -> LONG
+📡 Signal Detected: EMA50Support@1h -> LONG
+📡 Signal Detected: InsideBarBreakout@15m -> LONG
+📡 Signal Detected: RSIReversion@1m -> SHORT
+📡 Signal Detected: RSIReversion@5m -> SHORT
+📡 Signal Detected: RSIReversion@15m -> SHORT
+📡 Signal Detected: MACDCrossover@5m -> LONG
+📡 Signal Detected: MACDCrossover@15m -> LONG
+📡 Signal Detected: MACDCrossover@1h -> LONG
+📡 Signal Detected: ZScoreReversion@1m -> SHORT
+📡 Signal Detected: ZScoreReversion@5m -> SHORT
+📡 Signal Detected: ZScoreReversion@15m -> SHORT
+📡 Signal Detected: ADXFilter@5m -> LONG
+📡 Signal Detected: ADXFilter@15m -> LONG
+📡 Signal Detected: ADXFilter@1h -> LONG
+📡 Signal Detected: LongTail@15m -> LONG
+📡 Signal Detected: AdaptiveRSI@5m -> SHORT
+📡 Signal Detected: AdaptiveRSI@15m -> SHORT
+📡 Signal Detected: WyckoffSpring@5m -> LONG
+📡 Signal Detected: WyckoffSpring@15m -> LONG
+📊 No consensus: LONG=1, SHORT=0 (need 2+)
+⚡ Tick: BNBUSDT 890.17
+⚡ Tick: BNBUSDT 890.74
+🕯️ Candle Closed: 890.52 | Vol: 177069448.79
+📡 Signal Detected: BollingerTouch@1m -> LONG
+📡 Signal Detected: BollingerTouch@5m -> LONG
+📡 Signal Detected: BollingerTouch@15m -> LONG
+📡 Signal Detected: Supertrend@5m -> SHORT
+📡 Signal Detected: VolumeImbalance@5m -> SHORT
+📡 Signal Detected: HurstRegime@5m -> SHORT
+📡 Signal Detected: HurstRegime@15m -> SHORT
+📡 Signal Detected: VolatilityWakeup@5m -> SHORT
+📡 Signal Detected: VolatilityWakeup@15m -> SHORT
+📡 Signal Detected: TweezerPattern@5m -> SHORT
+📡 Signal Detected: TweezerPattern@15m -> SHORT
+⚡ Tick: BNBUSDT 890.2
+⚡ Tick: BNBUSDT 890.1
+⚡ Tick: BNBUSDT 889.97
+🕯️ Candle Closed: 889.97 | Vol: 164452102.87
+📡 Signal Detected: ExtremeCandleRatio@5m -> SHORT
+📡 Signal Detected: ExtremeCandleRatio@15m -> SHORT
+📡 Signal Detected: KeltnerReversion@1m -> LONG
+📡 Signal Detected: StochasticReversion@1m -> LONG
+📡 Signal Detected: StochasticReversion@5m -> LONG
+📡 Signal Detected: WilliamsRReversion@1m -> LONG
+📡 Signal Detected: WilliamsRReversion@5m -> LONG
+📡 Signal Detected: WilliamsRReversion@15m -> LONG
+📡 Signal Detected: MTFImpulse@5m -> SHORT
+📡 Signal Detected: SupportResistance@5m -> SHORT
+📡 Signal Detected: SupportResistance@15m -> SHORT
+⚡ Tick: BNBUSDT 889.97
+⚡ Tick: BNBUSDT 889.97
+⚡ Tick: BNBUSDT 889.97
+🕯️ Candle Closed: 889.97 | Vol: 170769786.15
+📡 Signal Detected: PinBarReversal@1m -> SHORT
+📡 Signal Detected: PinBarReversal@5m -> SHORT
+⚡ Tick: BNBUSDT 890.24
+⚡ Tick: BNBUSDT 890.28
+🕯️ Candle Closed: 890.47 | Vol: 164441902.69999993
+⚡ Tick: BNBUSDT 890.3
+⚡ Tick: BNBUSDT 890.68
+⚡ Tick: BNBUSDT 890.95
+🕯️ Candle Closed: 890.52 | Vol: 170466415.6
+📡 Signal Detected: EMACrossover@5m -> SHORT
+📡 Signal Detected: EMACrossover@15m -> SHORT
+📡 Signal Detected: EMACrossover@1h -> SHORT
+📡 Signal Detected: EMA50Support@15m -> SHORT
+📡 Signal Detected: EMA50Support@1h -> SHORT
+📡 Signal Detected: DecelerationCandles@15m -> LONG
+📡 Signal Detected: MACDCrossover@5m -> SHORT
+📡 Signal Detected: MACDCrossover@15m -> SHORT
+📡 Signal Detected: MACDCrossover@1h -> SHORT
+📡 Signal Detected: ZScoreReversion@1m -> LONG
+📡 Signal Detected: ZScoreReversion@5m -> LONG
+📡 Signal Detected: ZScoreReversion@15m -> LONG
+📡 Signal Detected: ADXFilter@5m -> LONG
+📡 Signal Detected: ADXFilter@15m -> LONG
+📡 Signal Detected: ADXFilter@1h -> LONG
+📊 No consensus: LONG=1, SHORT=0 (need 2+)
+⚡ Tick: BNBUSDT 890.39
+⚡ Tick: BNBUSDT 890.43
+🕯️ Candle Closed: 890.11 | Vol: 151526900.06999996
+📡 Signal Detected: RSIReversion@1m -> LONG
+📡 Signal Detected: RSIReversion@5m -> LONG
+📡 Signal Detected: RSIReversion@15m -> LONG
+📡 Signal Detected: BollingerTouch@1m -> LONG
+📡 Signal Detected: BollingerTouch@5m -> LONG
+📡 Signal Detected: BollingerTouch@15m -> LONG
+📡 Signal Detected: Supertrend@15m -> SHORT
+📡 Signal Detected: VolumeImbWebsocket exception: Connection timed out
+❌ WebSocket Error: Connection timed out
+Websocket exception: Connection timed out
+❌ WebSocket Error: Connection timed out
+ Detected: VolatilityWakeup@5m -> LONG
+📡 Signal Detected: VolatilityWakeup@15m -> SHORT
+⚡ Tick: BNBUSDT 889.97
+⚡ Tick: BNBUSDT 889.92
+⚡ Tick: BNBUSDT 889.83
+🕯️ Candle Closed: 889.68 | Vol: 183095152.91
+📡 Signal Detected: ExtremeCandleRatio@15m -> SHORT
+📡 Signal Detected: KeltnerReversion@1m -> LONG
+📡 Signal Detected: StochasticReversion@1m -> LONG
+📡 Signal Detected: StochasticReversion@5m -> LONG
+📡 Signal Detected: StochasticReversion@15m -> LONG
+📡 Signal Detected: WilliamsRReversion@1m -> LONG
+📡 Signal Detected: WilliamsRReversion@5m -> LONG
+📡 Signal Detected: WilliamsRReversion@15m -> LONG
+📡 Signal Detected: MTFImpulse@5m -> SHORT
+📡 Signal Detected: VSAReversal@5m -> SHORT
+📡 Signal Detected: SupportResistance@15m -> SHORT
+⚡ Tick: BNBUSDT 889.66
+⚡ Tick: BNBUSDT 889.45
+⚡ Tick: BNBUSDT 889.31
+🕯️ Candle Closed: 889.33 | Vol: 176781675.37
+📡 Signal Detected: PinBarReversal@1m -> SHORT
+📡 Signal Detected: PinBarReversal@5m -> SHORT
+⚡ Candle 100 | 31 sensors | 1.2ms
+⚡ Tick: BNBUSDT 889.22
+⚡ Tick: BNBUSDT 889.35
+⚡ Tick: BNBUSDT 889.41
+🕯️ Candle Closed: 889.46 | Vol: 157840868.99
+📡 Signal Detected: BollingerRejection@15m -> SHORT
+⚡ Tick: BNBUSDT 889.34
+⚡ Tick: BNBUSDT 889.52
+🕯️ Candle Closed: 889.6 | Vol: 170462022.73000002
+📡 Signal Detected: EMA50Support@15m -> SHORT
+📡 Signal Detected: EMA50Support@1h -> SHORT
+📡 Signal Detected: ZScoreReversion@1m -> LONG
+📡 Signal Detected: ZScoreReversion@5m -> LONG
+📡 Signal Detected: ZScoreReversion@15m -> LONG
+📡 Signal Detected: ADXFilter@5m -> LONG
+📡 Signal Detected: ADXFilter@15m -> LONG
+📡 Signal Detected: ADXFilter@1h -> LONG
+⚡ Tick: BNBUSDT 889.68
+⚡ Tick: BNBUSDT 889.81
+⚡ Tick: BNBUSDT 889.7
+🕯️ Candle Closed: 889.71 | Vol: 183088875.29000002
+📡 Signal Detected: InsideBarBreakout@1m -> LONG
+📡 Signal Detected: RSIReversion@1m -> LONG
+📡 Signal Detected: RSIReversion@5m -> LONG
+📡 Signal Detected: RSIReversion@15m -> LONG
+📡 Signal Detected: VolumeImbalance@15m -> SHORT
+📡 Signal Detected: HurstRegime@5m -> SHORT
+📡 Signal Detected: HurstRegime@15m -> SHORT
+📡 Signal Detected: VolatilityWakeup@5m -> LONG
+📡 Signal Detected: VolatilityWakeup@15m -> SHORT
+⚡ Tick: BNBUSDT 889.7
+⚡ Tick: BNBUSDT 889.99
+🕯️ Candle Closed: 890.28 | Vol: 145208362.51999998
+📡 Signal Detected: DecelerationCandles@15m -> LONG
+📡 Signal Detected: StochasticReversion@1m -> LONG
+📡 Signal Detected: StochasticReversion@5m -> LONG
+📡 Signal Detected: StochasticReversion@15m -> LONG
+📡 Signal Detected: WilliamsRReversion@1m -> LONG
+📡 Signal Detected: WilliamsRReversion@5m -> LONG
+📡 Signal Detected: WilliamsRReversion@15m -> LONG
+📡 Signal Detected: AdaptiveRSI@5m -> LONG
+📡 Signal Detected: AdaptiveRSI@15m -> LONG
+📡 Signal Detected: SupportResistance@15m -> SHORT
+📊 No consensus: LONG=1, SHORT=0 (need 2+)
+⚡ Tick: BNBUSDT 890.03
+⚡ Tick: BNBUSDT 890.95
+⚡ Tick: BNBUSDT 890.3
+🕯️ Candle Closed: 890.3 | Vol: 145206485.25
+📡 Signal Detected: CCIReversion@15m -> LONG
+⚡ Tick: BNBUSDT 890.95
+⚡ Tick: BNBUSDT 890.52
+🕯️ Candle Closed: 890.65 | Vol: 170462234.22
+📡 Signal Detected: PinBarReversal@1m -> LONG
+⚡ Tick: BNBUSDT 890.71
+⚡ Tick: BNBUSDT 890.8
+⚡ Tick: BNBUSDT 890.9
+🕯️ Candle Closed: 890.9 | Vol: 176775814.82
+📡 Signal Detected: EMA50Support@5m -> LONG
+📡 Signal Detected: EMA50Support@15m -> LONG
+📡 Signal Detected: EMA50Support@1h -> LONG
+📡 Signal Detected: ADXFilter@5m -> LONG
+📡 Signal Detected: ADXFilter@15m -> LONG
+📡 Signal Detected: ADXFilter@1h -> LONG
+📡 Signal Detected: MomentumBurst@1m -> LONG
+📡 Signal Detected: MomentumBurst@5m -> LONG
+📡 Signal Detected: MomentumBurst@15m -> LONG
+⚡ Tick: BNBUSDT 890.98
+⚡ Tick: BNBUSDT 891.24
+⚡ Tick: BNBUSDT 891.24
+🕯️ Candle Closed: 891.41 | Vol: 163901838.64999998
+📡 Signal Detected: VolumeImbalance@5m -> LONG
+📡 Signal Detected: VolatilityWakeup@5m -> LONG
+📡 Signal Detected: VolatilityWakeup@15m -> LONG
+⚡ Tick: BNBUSDT 891.06
+⚡ Tick: BNBUSDT 890.63
+🕯️ Candle Closed: 890.53 | Vol: 157126326.2
+📡 Signal Detected: MTFImpulse@5m -> SHORT
+📡 Signal Detected: AdaptiveRSI@5m -> LONG
+📡 Signal Detected: AdaptiveRSI@15m -> LONG
+📡 Signal Detected: MicroTrend@1m -> SHORT
+⚡ Tick: BNBUSDT 890.14
+⚡ Tick: BNBUSDT 890.51
+⚡ Tick: BNBUSDT 891.03
+🕯️ Candle Closed: 891.26 | Vol: 163479987.71
+📡 Signal Detected: CCIReversion@15m -> LONG
+📡 Signal Detected: HurstRegime@5m -> LONG
+📡 Signal Detected: HurstRegime@15m -> LONG
+📡 Signal Detected: SupportResistance@15m -> LONG
+⚡ Tick: BNBUSDT 891.15
+⚡ Tick: BNBUSDT 891.01
+⚡ Tick: BNBUSDT 891.34
+🕯️ Candle Closed: 891.34 | Vol: 157348599.46000004
+📡 Signal Detected: PinBarReversal@1m -> LONG
+📡 Signal Detected: InsideBarBreakout@1m -> LONG
+📡 Signal Detected: InsideBarBreakout@5m -> LONG
+📡 Signal Detected: RSIReversion@1m -> SHORT
+📡 Signal Detected: RSIReversion@5m -> SHORT
+📡 Signal Detected: RSIReversion@15m -> SHORT
+⚡ Tick: BNBUSDT 891.48
+⚡ Tick: BNBUSDT 891.61
+🕯️ Candle Closed: 891.68 | Vol: 157349581.68
+📡 Signal Detected: EMA50Support@5m -> LONG
+📡 Signal Detected: EMA50Support@15m -> LONG
+📡 Signal Detected: EMA50Support@1h -> LONG
+📡 Signal Detected: MACDCrossover@5m -> LONG
+📡 Signal Detected: MACDCrossover@15m -> LONG
+📡 Signal Detected: MACDCrossover@1h -> LONG
+📡 Signal Detected: ADXFilter@5m -> LONG
+📡 Signal Detected: ADXFilter@15m -> LONG
+📡 Signal Detected: ADXFilter@1h -> LONG
+⚡ Tick: BNBUSDT 891.71
+⚡ Tick: BNBUSDT 891.46
+⚡ Tick: BNBUSDT 891.18
+🕯️ Candle Closed: 891.21 | Vol: 157349582.70999998
+📡 Signal Detected: VolumeImbalance@5m -> LONG
+📡 Signal Detected: VolatilityWakeup@5m -> LONG
+📡 Signal Detected: VolatilityWakeup@15m -> LONG
+⚡ Tick: BNBUSDT 891.57
+⚡ Tick: BNBUSDT 891.42
+⚡ Tick: BNBUSDT 891.53
+🕯️ Candle Closed: 891.57 | Vol: 175504375.22
+📡 Signal Detected: MTFImpulse@5m -> SHORT
+⚡ Tick: BNBUSDT 891.62
+⚡ Tick: BNBUSDT 891.83
+⚡ Tick: BNBUSDT 891.99
+🕯️ Candle Closed: 891.99 | Vol: 169296142.51000005
+📡 Signal Detected: SupportResistance@15m -> LONG
+⚡ Tick: BNBUSDT 892.09
+⚡ Tick: BNBUSDT 892.69
+🕯️ Candle Closed: 893.69 | Vol: 163633599.04
+📡 Signal Detected: VWAPBreakout@15m -> LONG
+📡 Signal Detected: ExtremeCandleRatio@1m -> LONG
+📡 Signal Detected: RSIReversion@1m -> SHORT
+📡 Signal Detected: RSIReversion@5m -> SHORT
+📡 Signal Detected: RSIReversion@15m -> SHORT
+📡 Signal Detected: LongTail@1m -> LONG
+📊 No consensus: LONG=1, SHORT=0 (need 2+)
+Websocket exception: Connection timed out
+❌ WebSocket Error: Connection timed out
+⚠️ User Data Stream disconnected. Reconnecting in 5s (attempt 1/20)...
+⚠️ User Data Stream disconnected. Reconnecting in 5s (attempt 1/20)...
+❌ Failed to create listen key: HTTPSConnectionPool(host='testnet.binancefuture.com', port=443): Max retries exceeded with url: /fapi/v1/listenKey (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fc576a71a90>: Failed to resolve 'testnet.binancefuture.com' ([Errno -3] Temporary failure in name resolution)"))
+❌ Reconnection failed: HTTPSConnectionPool(host='testnet.binancefuture.com', port=443): Max retries exceeded with url: /fapi/v1/listenKey (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fc576a71a90>: Failed to resolve 'testnet.binancefuture.com' ([Errno -3] Temporary failure in name resolution)"))
+⚠️ User Data Stream disconnected. Reconnecting in 10s (attempt 2/20)...
+❌ Failed to create listen key: HTTPSConnectionPool(host='testnet.binancefuture.com', port=443): Max retries exceeded with url: /fapi/v1/listenKey (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fc57485d590>: Failed to resolve 'testnet.binancefuture.com' ([Errno -3] Temporary failure in name resolution)"))
+❌ Reconnection failed: HTTPSConnectionPool(host='testnet.binancefuture.com', port=443): Max retries exceeded with url: /fapi/v1/listenKey (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fc57485d590>: Failed to resolve 'testnet.binancefuture.com' ([Errno -3] Temporary failure in name resolution)"))
+⚠️ User Data Stream disconnected. Reconnecting in 10s (attempt 2/20)...
+Websocket exception: Connection timed out
+❌ WebSocket Error: Connection timed out
+❌ Failed to create listen key: HTTPSConnectionPool(host='testnet.binancefuture.com', port=443): Max retries exceeded with url: /fapi/v1/listenKey (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fc57485dd10>: Failed to resolve 'testnet.binancefuture.com' ([Errno -3] Temporary failure in name resolution)"))
+❌ Reconnection failed: HTTPSConnectionPool(host='testnet.binancefuture.com', port=443): Max retries exceeded with url: /fapi/v1/listenKey (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fc57485dd10>: Failed to resolve 'testnet.binancefuture.com' ([Errno -3] Temporary failure in name resolution)"))
+⚠️ User Data Stream disconnected. Reconnecting in 20s (attempt 3/20)...
+❌ Failed to create listen key: HTTPSConnectionPool(host='testnet.binancefuture.com', port=443): Max retries exceeded with url: /fapi/v1/listenKey (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fc57485e0d0>: Failed to resolve 'testnet.binancefuture.com' ([Errno -3] Temporary failure in name resolution)"))
+❌ Reconnection failed: HTTPSConnectionPool(host='testnet.binancefuture.com', port=443): Max retries exceeded with url: /fapi/v1/listenKey (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7fc57485e0d0>: Failed to resolve 'testnet.binancefuture.com' ([Errno -3] Temporary failure in name resolution)"))
+⚠️ User Data Stream disconnected. Reconnecting in 20s (attempt 3/20)...
+✅ Listen key created: qwQjpqeqRbHT5U0iGRbM...
+✅ User Data Stream reconnected successfully

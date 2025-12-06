@@ -73,7 +73,7 @@ class StreamManager:
             logger.info(f"📝 Queued order book subscription: {symbol}")
 
     async def _watch_ticker_loop(self, symbol: str):
-        """Continuous loop to watch ticker with error handling and circuit breaker."""
+        """Continuous loop to watch ticker with error handling and auto-recovery."""
         logger.info(f"🔍 Starting ticker loop for {symbol}")
 
         try:
@@ -83,6 +83,7 @@ class StreamManager:
             breaker_name = f"ticker_stream_{symbol}"
             consecutive_failures = 0
             max_consecutive_failures = 10
+            recovery_pause = 60  # Pause before recovery attempt
         except Exception as e:
             logger.critical(f"❌ Failed to initialize ticker loop: {e}", exc_info=True)
             return
@@ -115,12 +116,18 @@ class StreamManager:
                     f"(consecutive failures: {consecutive_failures}/{max_consecutive_failures}): {e}"
                 )
 
-                # If too many consecutive failures, stop the stream
+                # If too many consecutive failures, enter recovery mode (don't stop!)
                 if consecutive_failures >= max_consecutive_failures:
-                    logger.critical(
-                        f"🔴 Ticker stream for {symbol} failed {max_consecutive_failures} times. " f"Stopping stream."
+                    logger.warning(
+                        f"⚠️ Ticker stream for {symbol} failed {max_consecutive_failures} times. "
+                        f"Entering recovery mode - pausing {recovery_pause}s before retry..."
                     )
-                    break
+                    # Reset circuit breaker
+                    error_handler.reset_circuit_breaker(breaker_name)
+                    consecutive_failures = 0
+                    await asyncio.sleep(recovery_pause)
+                    logger.info(f"🔄 Ticker stream for {symbol} attempting recovery...")
+                    continue
 
                 # Exponential backoff
                 backoff = min(2**consecutive_failures, 60)
@@ -128,13 +135,14 @@ class StreamManager:
                 await asyncio.sleep(backoff)
 
     async def _watch_order_book_loop(self, symbol: str):
-        """Continuous loop to watch order book with error handling and circuit breaker."""
+        """Continuous loop to watch order book with error handling and auto-recovery."""
         from core.error_handling import RetryConfig, get_error_handler
 
         error_handler = get_error_handler()
         breaker_name = f"orderbook_stream_{symbol}"
         consecutive_failures = 0
         max_consecutive_failures = 10
+        recovery_pause = 60  # Pause before recovery attempt
 
         while self.running:
             try:
@@ -173,13 +181,18 @@ class StreamManager:
                     f"(consecutive failures: {consecutive_failures}/{max_consecutive_failures}): {e}"
                 )
 
-                # If too many consecutive failures, stop the stream
+                # If too many consecutive failures, enter recovery mode (don't stop!)
                 if consecutive_failures >= max_consecutive_failures:
-                    logger.critical(
-                        f"🔴 Order book stream for {symbol} failed {max_consecutive_failures} times. "
-                        f"Stopping stream."
+                    logger.warning(
+                        f"⚠️ Order book stream for {symbol} failed {max_consecutive_failures} times. "
+                        f"Entering recovery mode - pausing {recovery_pause}s before retry..."
                     )
-                    break
+                    # Reset circuit breaker
+                    error_handler.reset_circuit_breaker(breaker_name)
+                    consecutive_failures = 0
+                    await asyncio.sleep(recovery_pause)
+                    logger.info(f"🔄 Order book stream for {symbol} attempting recovery...")
+                    continue
 
                 # Exponential backoff
                 backoff = min(2**consecutive_failures, 60)
