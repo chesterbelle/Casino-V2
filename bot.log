@@ -6,17 +6,17 @@
 Stateless CCXTAdapter initialized | Symbol: BNBUSDT | Timeframe: 1m
 ⚠️ Connector does not expose 'exchange' attribute (Virtual/Simulated?).
 🔌 Connecting to Binance Native (demo)...
-✅ Server Time: 1765024215557 | Offset: -100ms
+✅ Server Time: 1765025708490 | Offset: -99ms
 ✅ Markets loaded: 648
 ✅ Account is in One-Way Mode
 🔌 Starting Native WebSocket...
 ✅ Listen key created: qwQjpqeqRbHT5U0iGRbM...
 🔌 Connecting to User Data Stream...
 ✅ User Data Stream connected
-💰 Initial Balance: 3408.74 USDT
+💰 Initial Balance: 3408.64 USDT
 ✅ ErrorClassifier initialized
 PositionTracker inicializado | Max positions: 10
-✅ Croupier initialized | Balance: 3408.73654499 | Max Positions: 10
+✅ Croupier initialized | Balance: 3408.63793811 | Max Positions: 10
 ✅ BarAggregator initialized | Timeframes: ['1m', '5m', '15m', '1h', '4h']
 ⚡ SensorManager using sequential mode (stateful sensors)
 📊 Active strategies: ['DebugAll']
@@ -37,20 +37,19 @@ ExitManager initialized | Strategy: breakeven | Params: {'breakeven_trigger': 0.
 ⚠️ No state found to recover
 ⚠️ No state found to recover
 📝 Starting fresh session
-📝 Initialized new state: session_1765024218
+📝 Initialized new state: session_1765025717
 🚀 State manager started (auto-save every 5s)
 🚀 State manager started
-💰 Session Initial Balance: 3408.74 USDT
+💰 Session Initial Balance: 3408.64 USDT
 🚀 OrderManager started
 🔄 Startup Reconciliation for BNBUSDT...
 🔄 Starting reconciliation for BNBUSDT
 Using REST positions.
-⚠️ Unknown position in exchange: {'symbol': 'BNBUSDT', 'side': 'LONG', 'size': 0.06, 'entry_price': 884.91, 'mark_price': 884.34, 'liquidation_price': 0.0, 'unrealized_pnl': -0.0342, 'leverage': 1.0, 'timestamp': 1765020662026, 'info': {'symbol': 'BNBUSDT', 'positionSide': 'BOTH', 'positionAmt': '0.06', 'entryPrice': '884.91', 'breakEvenPrice': '885.263964', 'markPrice': '884.34000000', 'unRealizedProfit': '-0.03420000', 'liquidationPrice': '0', 'isolatedMargin': '0', 'notional': '53.06040000', 'marginAsset': 'USDT', 'isolatedWallet': '0', 'initialMargin': '5.30604001', 'maintMargin': '0.26530200', 'positionInitialMargin': '5.30604001', 'openOrderInitialMargin': '0', 'adl': 1, 'bidNotional': '0', 'askNotional': '0', 'updateTime': 1765020662026}}
-✅ Reconciliation complete: 0 fixed, 1 closed, 0 orders cancelled
+✅ Reconciliation complete: 0 fixed, 0 closed, 0 orders cancelled
 🚀 Starting Casino-V3 Engine...
 🔌 Connecting Data Feed...
 🔌 Connecting to Binance Native (demo)...
-✅ Server Time: 1765024219381 | Offset: -100ms
+✅ Server Time: 1765025717907 | Offset: -101ms
 ✅ Markets loaded: 648
 ✅ Account is in One-Way Mode
 🔌 Starting Native WebSocket...
@@ -66,33 +65,611 @@ Using REST positions.
 🔍 Starting ticker loop for BNBUSDT
 📡 Subscribing to ticker for BNBUSDT
 ✅ WS Subscription Response: {'result': None, 'id': 1}
+⚡ Tick: BNBUSDT 885.37
+⚡ Tick: BNBUSDT 885.37
+🕯️ Candle Closed: 885.37 | Vol: 133718962.69000001
+⚡ Candle 0 | 51 sensors | 0.5ms
+⚡ Tick: BNBUSDT 885.37
+⚡ Tick: BNBUSDT 885.37
+🕯️ Candle Closed: 884.28 | Vol: 180520525.10999998
+⚡ Tick: BNBUSDT 884.28
+⚡ Tick: BNBUSDT 884.25
+⚡ Tick: BNBUSDT 884.21
+🕯️ Candle Closed: 884.21 | Vol: 160468288.79000002
+📡 Signal Detected: RSIReversion@1m -> LONG
+📡 Signal Detected: RSIReversion@5m -> LONG
+📡 Signal Detected: RSIReversion@15m -> LONG
+⚡ Tick: BNBUSDT 884.21
+⚡ Tick: BNBUSDT 884.2
+🕯️ Candle Closed: 884.19 | Vol: 140409618.86
+⚡ Tick: BNBUSDT 884.17
+⚡ Tick: BNBUSDT 884.16
+🕯️ Candle Closed: 884.16 | Vol: 133723330.98000002
+⚡ Tick: BNBUSDT 884.11
+⚡ Tick: BNBUSDT 884.09
+🕯️ Candle Closed: 884.09 | Vol: 153781871.43
+📡 Signal Detected: PinBarReversal@1m -> SHORT
+📡 Signal Detected: PinBarReversal@5m -> SHORT
+⚡ Tick: BNBUSDT 884.14
+⚡ Tick: BNBUSDT 884.2
+⚡ Tick: BNBUSDT 884.19
+🕯️ Candle Closed: 884.19 | Vol: 173832662.84000006
+⚡ Tick: BNBUSDT 884.25
+⚡ Tick: BNBUSDT 884.27
+⚡ Tick: BNBUSDT 884.26
+🕯️ Candle Closed: 884.26 | Vol: 187204398.85000002
+📡 Signal Detected: DecelerationCandles@15m -> LONG
+📊 No consensus: LONG=1, SHORT=0 (need 2+)
+⚡ Tick: BNBUSDT 884.16
+⚡ Tick: BNBUSDT 884.16
+🕯️ Candle Closed: 884.16 | Vol: 187204397.55
+📡 Signal Detected: InsideBarBreakout@1m -> SHORT
+⚡ Tick: BNBUSDT 884.26
 ⚡ Tick: BNBUSDT 884.37
-🕯️ Candle Closed: 884.43 | Vol: 120344106.45000002
-⚡ Candle 0 | 51 sensors | 0.4ms
-⚡ Tick: BNBUSDT 884.59
-⚡ Tick: BNBUSDT 884.66
-⚡ Tick: BNBUSDT 885.0
-🕯️ Candle Closed: 885.0 | Vol: 147086880.75000003
-⚡ Tick: BNBUSDT 885.04
-⚡ Tick: BNBUSDT 884.83
-🕯️ Candle Closed: 884.83 | Vol: 127029904.68999998
-⚡ Tick: BNBUSDT 884.65
-⚡ Tick: BNBUSDT 884.87
-🕯️ Candle Closed: 885.0 | Vol: 160458726.93
-📡 Signal Detected: PinBarReversal@1m -> LONG
-⚡ Tick: BNBUSDT 885.1
-⚡ Tick: BNBUSDT 885.06
-⚡ Tick: BNBUSDT 885.17
-🕯️ Candle Closed: 885.19 | Vol: 187202267.56
+⚡ Tick: BNBUSDT 884.47
+🕯️ Candle Closed: 885.48 | Vol: 180516652.05999997
 📡 Signal Detected: RSIReversion@1m -> SHORT
 📡 Signal Detected: RSIReversion@5m -> SHORT
 📡 Signal Detected: RSIReversion@15m -> SHORT
-⚡ Tick: BNBUSDT 885.13
-⚡ Tick: BNBUSDT 885.2
-🕯️ Candle Closed: 885.21 | Vol: 173830789.54
-⚡ Tick: BNBUSDT 885.23
-⚡ Tick: BNBUSDT 885.29
+⚡ Tick: BNBUSDT 884.64
+⚡ Tick: BNBUSDT 884.7
+⚡ Tick: BNBUSDT 884.71
+🕯️ Candle Closed: 884.72 | Vol: 187195603.46
+📡 Signal Detected: PinBarReversal@1m -> SHORT
+📡 Signal Detected: PinBarReversal@5m -> SHORT
+⚡ Tick: BNBUSDT 884.79
+⚡ Tick: BNBUSDT 884.8
+⚡ Tick: BNBUSDT 884.66
+🕯️ Candle Closed: 884.61 | Vol: 180510235.93999997
+📡 Signal Detected: ThreeBar@5m -> SHORT
+⚡ Tick: BNBUSDT 884.86
+⚡ Tick: BNBUSDT 884.64
+🕯️ Candle Closed: 884.69 | Vol: 180510388.79
+📡 Signal Detected: DecelerationCandles@15m -> LONG
+📊 No consensus: LONG=1, SHORT=0 (need 2+)
+⚡ Tick: BNBUSDT 884.51
+⚡ Tick: BNBUSDT 884.83
+🕯️ Candle Closed: 884.77 | Vol: 147082406.0
+⚡ Tick: BNBUSDT 884.78
+⚡ Tick: BNBUSDT 884.64
+⚡ Tick: BNBUSDT 884.54
+🕯️ Candle Closed: 884.54 | Vol: 160453914.77999997
+⚡ Tick: BNBUSDT 884.41
+⚡ Tick: BNBUSDT 884.5
+⚡ Tick: BNBUSDT 884.37
+🕯️ Candle Closed: 884.37 | Vol: 180510971.72
+📡 Signal Detected: RSIReversion@1m -> LONG
+📡 Signal Detected: RSIReversion@5m -> LONG
+📡 Signal Detected: RSIReversion@15m -> LONG
+⚡ Tick: BNBUSDT 884.46
+⚡ Tick: BNBUSDT 884.49
+🕯️ Candle Closed: 885.48 | Vol: 187194935.23000002
+📡 Signal Detected: InsideBarBreakout@5m -> LONG
+📡 Signal Detected: InsideBarBreakout@15m -> LONG
+📡 Signal Detected: WilliamsRReversion@1m -> SHORT
+📡 Signal Detected: WilliamsRReversion@5m -> SHORT
+📡 Signal Detected: WilliamsRReversion@15m -> SHORT
+⚡ Tick: BNBUSDT 884.43
+⚡ Tick: BNBUSDT 884.43
+⚡ Tick: BNBUSDT 884.43
+🕯️ Candle Closed: 884.43 | Vol: 180448100.61999997
+📡 Signal Detected: PinBarReversal@1m -> SHORT
+📡 Signal Detected: PinBarReversal@5m -> SHORT
+📡 Signal Detected: PinBarReversal@15m -> SHORT
+📡 Signal Detected: DecelerationCandles@15m -> LONG
+📊 No consensus: LONG=1, SHORT=0 (need 2+)
+⚡ Tick: BNBUSDT 884.69
+⚡ Tick: BNBUSDT 885.48
+⚡ Tick: BNBUSDT 884.78
+🕯️ Candle Closed: 884.78 | Vol: 173658115.84
+⚡ Tick: BNBUSDT 885.17
+⚡ Tick: BNBUSDT 885.06
 ⚡ Tick: BNBUSDT 885.16
-🕯️ Candle Closed: 885.33 | Vol: 187202321.61
-⚡ Tick: BNBUSDT 885.3
-⚡ Tick: BNBUSDT 885.33
+🕯️ Candle Closed: 885.24 | Vol: 193695582.8
+📡 Signal Detected: VWAPBreakout@5m -> LONG
+📡 Signal Detected: CCIReversion@15m -> SHORT
+📡 Signal Detected: VolumeImbalance@5m -> LONG
+⚡ Tick: BNBUSDT 885.16
+⚡ Tick: BNBUSDT 885.39
+🕯️ Candle Closed: 885.48 | Vol: 180337240.39000005
+⚡ Tick: BNBUSDT 885.47
+⚡ Tick: BNBUSDT 885.47
+⚡ Tick: BNBUSDT 885.48
+🕯️ Candle Closed: 885.47 | Vol: 166978905.45999998
+📡 Signal Detected: RSIReversion@1m -> SHORT
+📡 Signal Detected: RSIReversion@5m -> SHORT
+📡 Signal Detected: RSIReversion@15m -> SHORT
+📡 Signal Detected: StochasticReversion@1m -> SHORT
+📡 Signal Detected: StochasticReversion@5m -> SHORT
+📡 Signal Detected: StochasticReversion@15m -> SHORT
+📡 Signal Detected: WilliamsRReversion@1m -> SHORT
+📡 Signal Detected: WilliamsRReversion@5m -> SHORT
+📡 Signal Detected: WilliamsRReversion@15m -> SHORT
+⚡ Tick: BNBUSDT 885.48
+⚡ Tick: BNBUSDT 885.5
+⚡ Tick: BNBUSDT 885.5
+🕯️ Candle Closed: 885.5 | Vol: 193697214.47999996
+📡 Signal Detected: PinBarReversal@1m -> LONG
+📡 Signal Detected: PinBarReversal@5m -> LONG
+⚡ Tick: BNBUSDT 885.51
+⚡ Tick: BNBUSDT 885.47
+🕯️ Candle Closed: 885.47 | Vol: 180341009.08
+⚡ Tick: BNBUSDT 885.47
+⚡ Tick: BNBUSDT 885.55
+⚡ Tick: BNBUSDT 885.58
+🕯️ Candle Closed: 885.59 | Vol: 173660893.47
+📡 Signal Detected: VWAPBreakout@5m -> LONG
+📡 Signal Detected: VWAPBreakout@15m -> LONG
+📡 Signal Detected: CCIReversion@1m -> SHORT
+📡 Signal Detected: CCIReversion@5m -> SHORT
+📡 Signal Detected: CCIReversion@15m -> SHORT
+📡 Signal Detected: VolumeImbalance@5m -> LONG
+📡 Signal Detected: VolumeImbalance@15m -> LONG
+⚡ Tick: BNBUSDT 885.63
+⚡ Tick: BNBUSDT 885.63
+⚡ Tick: BNBUSDT 885.65
+🕯️ Candle Closed: 885.65 | Vol: 187028554.04999998
+⚡ Tick: BNBUSDT 885.7
+⚡ Tick: BNBUSDT 885.96
+⚡ Tick: BNBUSDT 886.15
+🕯️ Candle Closed: 886.15 | Vol: 194324961.80000004
+📡 Signal Detected: RSIReversion@1m -> SHORT
+📡 Signal Detected: RSIReversion@5m -> SHORT
+📡 Signal Detected: RSIReversion@15m -> SHORT
+📡 Signal Detected: StochasticReversion@1m -> SHORT
+📡 Signal Detected: StochasticReversion@5m -> SHORT
+📡 Signal Detected: StochasticReversion@15m -> SHORT
+📡 Signal Detected: WilliamsRReversion@1m -> SHORT
+📡 Signal Detected: WilliamsRReversion@5m -> SHORT
+📡 Signal Detected: WilliamsRReversion@15m -> SHORT
+📡 Signal Detected: ZScoreReversion@1m -> SHORT
+📡 Signal Detected: ZScoreReversion@5m -> SHORT
+📡 Signal Detected: ZScoreReversion@15m -> SHORT
+📡 Signal Detected: SupportResistance@15m -> LONG
+⚡ Tick: BNBUSDT 885.99
+⚡ Tick: BNBUSDT 885.71
+🕯️ Candle Closed: 885.84 | Vol: 188120688.81
+📡 Signal Detected: ADXFilter@5m -> LONG
+📡 Signal Detected: ADXFilter@15m -> LONG
+📡 Signal Detected: ADXFilter@1h -> LONG
+⚡ Tick: BNBUSDT 885.84
+⚡ Tick: BNBUSDT 885.89
+⚡ Tick: BNBUSDT 885.79
+🕯️ Candle Closed: 885.77 | Vol: 181402466.36999997
+📡 Signal Detected: DecelerationCandles@5m -> SHORT
+📡 Signal Detected: DecelerationCandles@15m -> SHORT
+✅ CONSENSUS SHORT: 0L/2S | Best: DecelerationCandles (score=0.827) | HTF: N/A
+🎯 Decision: SHORT | Kelly Bet: 1.63% of 3408.64 | Sensor: DecelerationCandles
+📩 Decision Received: BNBUSDT SHORT (Size: 1.63%, Step: 0)
+🔍 get_current_price | requested_symbol=BNBUSDT | adapter_symbol=BNBUSDT
+💰 Current price for BNBUSDT: 885.71
+📊 Order calculation: Equity=3408.64 | Size=1.63% | Value=55.45 | Price=885.71 | Amount=0.06000000 (raw=0.062605094200)
+📥 Execute order request: SHORT BNBUSDT
+🛡️ Creating OCO bracket for BNBUSDT SHORT | TP: 0.0390 | SL: 0.0250
+📤 Executing market order: sell 0.06 BNBUSDT
+📋 Sending Order: {'symbol': 'BNBUSDT', 'side': 'SELL', 'type': 'MARKET', 'quantity': 0.06, 'timestamp': 1765027442422, 'recvWindow': 20000}
+✅ Market order executed: 1038454903 | Status: open
+⏳ Fill price not in response (status NEW?), waiting for fill...
+✅ Main order filled @ 885.71
+📈 Creating TP order @ 851.167
+📤 Executing limit order: buy 0.06 BNBUSDT @ 851.167
+📋 Sending Order: {'symbol': 'BNBUSDT', 'side': 'BUY', 'type': 'LIMIT', 'quantity': 0.06, 'price': 851.167, 'timeInForce': 'GTC', 'timestamp': 1765027443516, 'recvWindow': 20000}
+❌ Order Failed: Price not increased by tick size.
+❌ Error executing order: (400, -4014, 'Price not increased by tick size.', {'Content-Type': 'application/json', 'Content-Length': '56', 'Connection': 'keep-alive', 'Date': 'Sat, 06 Dec 2025 13:24:03 GMT', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS', 'Server': 'Bengine', 'x-mbx-used-weight-1m': '-1', 'x-mbx-order-count-10s': '2', 'x-mbx-order-count-1m': '2', 'x-response-time': '0ms', 'Access-Control-Allow-Origin': '*', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 8014e01f72bc82652e0c2c05ce8e9698.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'MIA50-P7', 'X-Amz-Cf-Id': '69jJNPy8mfoxtR-i3SxFltWXU1jAIWqojiaQ-U_ZIxHhjMoW7BfM7w=='})
+⚠️ Error in exchange_orders.execute_order (attempt 1/3): authentication | (400, -4014, 'Price not increased by tick size.', {'Content-Type': 'application/json', 'Content-Leng
+❌ Non-retriable error in exchange_orders.execute_order: authentication | authentication: (400, -4014, 'price not increased by tick size.', {'content-type': 'application/json', 'content-leng
+❌ Limit order failed: (400, -4014, 'Price not increased by tick size.', {'Content-Type': 'application/json', 'Content-Length': '56', 'Connection': 'keep-alive', 'Date': 'Sat, 06 Dec 2025 13:24:03 GMT', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS', 'Server': 'Bengine', 'x-mbx-used-weight-1m': '-1', 'x-mbx-order-count-10s': '2', 'x-mbx-order-count-1m': '2', 'x-response-time': '0ms', 'Access-Control-Allow-Origin': '*', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 8014e01f72bc82652e0c2c05ce8e9698.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'MIA50-P7', 'X-Amz-Cf-Id': '69jJNPy8mfoxtR-i3SxFltWXU1jAIWqojiaQ-U_ZIxHhjMoW7BfM7w=='})
+⚠️ Error in oco_tp_orders.execute_limit_order (attempt 1/5): authentication | (400, -4014, 'Price not increased by tick size.', {'Content-Type': 'application/json', 'Content-Leng
+❌ Non-retriable error in oco_tp_orders.execute_limit_order: authentication | authentication: (400, -4014, 'price not increased by tick size.', {'content-type': 'application/json', 'content-leng
+❌ OCO bracket creation failed: (400, -4014, 'Price not increased by tick size.', {'Content-Type': 'application/json', 'Content-Length': '56', 'Connection': 'keep-alive', 'Date': 'Sat, 06 Dec 2025 13:24:03 GMT', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS', 'Server': 'Bengine', 'x-mbx-used-weight-1m': '-1', 'x-mbx-order-count-10s': '2', 'x-mbx-order-count-1m': '2', 'x-response-time': '0ms', 'Access-Control-Allow-Origin': '*', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 8014e01f72bc82652e0c2c05ce8e9698.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'MIA50-P7', 'X-Amz-Cf-Id': '69jJNPy8mfoxtR-i3SxFltWXU1jAIWqojiaQ-U_ZIxHhjMoW7BfM7w=='})
+🧹 Cleaning up partial OCO bracket...
+❌ Cancel Failed: (400, -2011, 'Unknown order sent.', {'Content-Type': 'application/json', 'Content-Length': '42', 'Connection': 'keep-alive', 'Date': 'Sat, 06 Dec 2025 13:24:03 GMT', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS', 'Server': 'Bengine', 'x-mbx-used-weight-1m': '1', 'x-response-time': '10ms', 'Access-Control-Allow-Origin': '*', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 8014e01f72bc82652e0c2c05ce8e9698.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'MIA50-P7', 'X-Amz-Cf-Id': 'vE84rO84qUupe1Yg-AIyMsYP4C-fqE2KMlGuoOIlWBAaB6elqmgiyA=='})
+❌ Failed to cancel Main order 1038454903: (400, -2011, 'Unknown order sent.', {'Content-Type': 'application/json', 'Content-Length': '42', 'Connection': 'keep-alive', 'Date': 'Sat, 06 Dec 2025 13:24:03 GMT', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS', 'Server': 'Bengine', 'x-mbx-used-weight-1m': '1', 'x-response-time': '10ms', 'Access-Control-Allow-Origin': '*', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 8014e01f72bc82652e0c2c05ce8e9698.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'MIA50-P7', 'X-Amz-Cf-Id': 'vE84rO84qUupe1Yg-AIyMsYP4C-fqE2KMlGuoOIlWBAaB6elqmgiyA=='})
+🧹 Cleaned up 1 orders
+⚠️ Error in execute_order_BNBUSDT (attempt 1/3): authentication | Failed to create OCO bracket: (400, -4014, 'Price not increased by tick size.', {'Content-Type': 'ap
+❌ Non-retriable error in execute_order_BNBUSDT: authentication | authentication: failed to create oco bracket: (400, -4014, 'price not increased by tick size.', {'content-type': 'ap
+❌ Execution Failed after retries: Failed to create OCO bracket: (400, -4014, 'Price not increased by tick size.', {'Content-Type': 'application/json', 'Content-Length': '56', 'Connection': 'keep-alive', 'Date': 'Sat, 06 Dec 2025 13:24:03 GMT', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS', 'Server': 'Bengine', 'x-mbx-used-weight-1m': '-1', 'x-mbx-order-count-10s': '2', 'x-mbx-order-count-1m': '2', 'x-response-time': '0ms', 'Access-Control-Allow-Origin': '*', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 8014e01f72bc82652e0c2c05ce8e9698.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'MIA50-P7', 'X-Amz-Cf-Id': '69jJNPy8mfoxtR-i3SxFltWXU1jAIWqojiaQ-U_ZIxHhjMoW7BfM7w=='})
+Traceback (most recent call last):
+  File "/home/chesterbelle/Casino-V2/croupier/components/oco_manager.py", line 181, in create_bracketed_order
+    tp_order = await self._create_tp_order(symbol, side, main_order["amount"], tp_price)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/chesterbelle/Casino-V2/croupier/components/oco_manager.py", line 344, in _create_tp_order
+    return await self.error_handler.execute_with_breaker(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<7 lines>...
+    )
+    ^
+  File "/home/chesterbelle/Casino-V2/core/error_handling/error_handler.py", line 214, in execute_with_breaker
+    return await self.execute(
+           ^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+    )
+    ^
+  File "/home/chesterbelle/Casino-V2/core/error_handling/error_handler.py", line 124, in execute
+    result = await func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/chesterbelle/Casino-V2/core/error_handling/error_handler.py", line 211, in wrapped
+    return await func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/chesterbelle/Casino-V2/croupier/components/order_executor.py", line 111, in execute_limit_order
+    result = await self.error_handler.execute_with_breaker(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        "exchange_orders", self.adapter.execute_order, order, retry_config=retry_cfg
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/chesterbelle/Casino-V2/core/error_handling/error_handler.py", line 214, in execute_with_breaker
+    return await self.execute(
+           ^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+    )
+    ^
+  File "/home/chesterbelle/Casino-V2/core/error_handling/error_handler.py", line 124, in execute
+    result = await func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/chesterbelle/Casino-V2/core/error_handling/error_handler.py", line 211, in wrapped
+    return await func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/chesterbelle/Casino-V2/exchanges/adapters/exchange_adapter.py", line 366, in execute_order
+    result = await self.connector.create_order(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "/home/chesterbelle/Casino-V2/exchanges/connectors/binance/binance_native_connector.py", line 741, in create_order
+    response = self.client.new_order(**args)
+  File "/home/chesterbelle/Casino-V2/.venv/lib/python3.13/site-packages/binance/um_futures/account.py", line 116, in new_order
+    return self.sign_request("POST", url_path, params)
+           ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/chesterbelle/Casino-V2/.venv/lib/python3.13/site-packages/binance/api.py", line 83, in sign_request
+    return self.send_request(http_method, url_path, payload, special)
+           ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/chesterbelle/Casino-V2/.venv/lib/python3.13/site-packages/binance/api.py", line 118, in send_request
+    self._handle_exception(response)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/home/chesterbelle/Casino-V2/.venv/lib/python3.13/site-packages/binance/api.py", line 172, in _handle_exception
+    raise ClientError(status_code, err["code"], err["msg"], response.headers)
+binance.error.ClientError: (400, -4014, 'Price not increased by tick size.', {'Content-Type': 'application/json', 'Content-Length': '56', 'Connection': 'keep-alive', 'Date': 'Sat, 06 Dec 2025 13:24:03 GMT', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS', 'Server': 'Bengine', 'x-mbx-used-weight-1m': '-1', 'x-mbx-order-count-10s': '2', 'x-mbx-order-count-1m': '2', 'x-response-time': '0ms', 'Access-Control-Allow-Origin': '*', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 8014e01f72bc82652e0c2c05ce8e9698.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'MIA50-P7', 'X-Amz-Cf-Id': '69jJNPy8mfoxtR-i3SxFltWXU1jAIWqojiaQ-U_ZIxHhjMoW7BfM7w=='})
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/chesterbelle/Casino-V2/core/execution.py", line 170, in on_decision
+    result = await error_handler.execute(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<8 lines>...
+    )
+    ^
+  File "/home/chesterbelle/Casino-V2/core/error_handling/error_handler.py", line 124, in execute
+    result = await func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/chesterbelle/Casino-V2/croupier/croupier.py", line 149, in execute_order
+    result = await self.oco_manager.create_bracketed_order(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        order, wait_for_fill=wait_for_fill, contributors=contributors
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/chesterbelle/Casino-V2/croupier/components/oco_manager.py", line 250, in create_bracketed_order
+    raise OCOAtomicityError(f"Failed to create OCO bracket: {e}") from e
+croupier.components.oco_manager.OCOAtomicityError: Failed to create OCO bracket: (400, -4014, 'Price not increased by tick size.', {'Content-Type': 'application/json', 'Content-Length': '56', 'Connection': 'keep-alive', 'Date': 'Sat, 06 Dec 2025 13:24:03 GMT', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS', 'Server': 'Bengine', 'x-mbx-used-weight-1m': '-1', 'x-mbx-order-count-10s': '2', 'x-mbx-order-count-1m': '2', 'x-response-time': '0ms', 'Access-Control-Allow-Origin': '*', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 8014e01f72bc82652e0c2c05ce8e9698.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'MIA50-P7', 'X-Amz-Cf-Id': '69jJNPy8mfoxtR-i3SxFltWXU1jAIWqojiaQ-U_ZIxHhjMoW7BfM7w=='})
+⚡ Tick: BNBUSDT 885.71
+⚡ Tick: BNBUSDT 885.53
+⚡ Tick: BNBUSDT 885.54
+🕯️ Candle Closed: 885.49 | Vol: 194839658.56999996
+📡 Signal Detected: PinBarReversal@5m -> SHORT
+📡 Signal Detected: VWAPBreakout@5m -> LONG
+📡 Signal Detected: VWAPBreakout@15m -> LONG
+📡 Signal Detected: InsideBarBreakout@1m -> SHORT
+📡 Signal Detected: CCIReversion@1m -> SHORT
+📡 Signal Detected: CCIReversion@5m -> SHORT
+📡 Signal Detected: CCIReversion@15m -> SHORT
+⚡ Tick: BNBUSDT 885.77
+⚡ Tick: BNBUSDT 885.76
+⚡ Tick: BNBUSDT 885.69
+🕯️ Candle Closed: 885.68 | Vol: 181401786.91
+⚡ Tick: BNBUSDT 885.89
+⚡ Tick: BNBUSDT 885.94
+🕯️ Candle Closed: 885.94 | Vol: 141089165.95000002
+📡 Signal Detected: StochasticReversion@1m -> SHORT
+📡 Signal Detected: StochasticReversion@5m -> SHORT
+📡 Signal Detected: StochasticReversion@15m -> SHORT
+📡 Signal Detected: WilliamsRReversion@1m -> SHORT
+📡 Signal Detected: WilliamsRReversion@5m -> SHORT
+📡 Signal Detected: WilliamsRReversion@15m -> SHORT
+📡 Signal Detected: AdaptiveRSI@5m -> SHORT
+📡 Signal Detected: AdaptiveRSI@15m -> SHORT
+⚡ Tick: BNBUSDT 886.03
+⚡ Tick: BNBUSDT 886.03
+⚡ Tick: BNBUSDT 885.94
+🕯️ Candle Closed: 885.94 | Vol: 194836856.67999998
+📡 Signal Detected: RSIReversion@1m -> LONG
+📡 Signal Detected: RSIReversion@5m -> LONG
+📡 Signal Detected: RSIReversion@15m -> LONG
+📡 Signal Detected: ADXFilter@5m -> LONG
+📡 Signal Detected: ADXFilter@15m -> LONG
+📡 Signal Detected: ADXFilter@1h -> LONG
+⚡ Tick: BNBUSDT 885.89
+⚡ Tick: BNBUSDT 885.89
+🕯️ Candle Closed: 886.15 | Vol: 174620861.48999998
+⚡ Tick: BNBUSDT 886.15
+⚡ Tick: BNBUSDT 886.11
+⚡ Tick: BNBUSDT 886.12
+🕯️ Candle Closed: 886.15 | Vol: 201459045.48000002
+📡 Signal Detected: PinBarReversal@5m -> LONG
+📡 Signal Detected: PinBarReversal@15m -> LONG
+📡 Signal Detected: CCIReversion@1m -> SHORT
+📡 Signal Detected: CCIReversion@5m -> SHORT
+📡 Signal Detected: CCIReversion@15m -> SHORT
+⚡ Tick: BNBUSDT 886.16
+⚡ Tick: BNBUSDT 886.19
+⚡ Tick: BNBUSDT 886.2
+🕯️ Candle Closed: 886.21 | Vol: 181312640.99999997
+⚡ Tick: BNBUSDT 886.02
+⚡ Tick: BNBUSDT 885.99
+⚡ Tick: BNBUSDT 886.21
+🕯️ Candle Closed: 886.22 | Vol: 188027944.81
+📡 Signal Detected: StochasticReversion@1m -> SHORT
+📡 Signal Detected: StochasticReversion@5m -> SHORT
+📡 Signal Detected: StochasticReversion@15m -> SHORT
+📡 Signal Detected: WilliamsRReversion@1m -> SHORT
+📡 Signal Detected: WilliamsRReversion@5m -> SHORT
+📡 Signal Detected: WilliamsRReversion@15m -> SHORT
+📡 Signal Detected: VolumeImbalance@15m -> LONG
+📡 Signal Detected: AdaptiveRSI@5m -> SHORT
+📡 Signal Detected: AdaptiveRSI@15m -> SHORT
+⚡ Tick: BNBUSDT 886.16
+⚡ Tick: BNBUSDT 886.23
+⚡ Tick: BNBUSDT 886.23
+🕯️ Candle Closed: 886.23 | Vol: 194450393.85
+📡 Signal Detected: VWAPBreakout@15m -> LONG
+📡 Signal Detected: RSIReversion@1m -> SHORT
+📡 Signal Detected: RSIReversion@5m -> SHORT
+📡 Signal Detected: RSIReversion@15m -> SHORT
+📡 Signal Detected: ADXFilter@15m -> LONG
+📡 Signal Detected: ADXFilter@1h -> LONG
+⚡ Tick: BNBUSDT 886.23
+⚡ Tick: BNBUSDT 886.23
+⚡ Tick: BNBUSDT 886.21
+🕯️ Candle Closed: 886.21 | Vol: 193453729.32
+📡 Signal Detected: MACDCrossover@5m -> SHORT
+📡 Signal Detected: MACDCrossover@15m -> SHORT
+📡 Signal Detected: MACDCrossover@1h -> SHORT
+⚡ Tick: BNBUSDT 886.22
+⚡ Tick: BNBUSDT 886.23
+🕯️ Candle Closed: 885.49 | Vol: 178876538.94999996
+📡 Signal Detected: CCIReversion@1m -> SHORT
+📡 Signal Detected: CCIReversion@5m -> SHORT
+📡 Signal Detected: CCIReversion@15m -> SHORT
+📡 Signal Detected: MomentumBurst@1m -> SHORT
+📡 Signal Detected: MomentumBurst@5m -> SHORT
+📡 Signal Detected: MomentumBurst@15m -> SHORT
+⚡ Tick: BNBUSDT 886.27
+⚡ Tick: BNBUSDT 886.29
+⚡ Tick: BNBUSDT 886.31
+🕯️ Candle Closed: 886.33 | Vol: 178876709.65000004
+📡 Signal Detected: PinBarReversal@15m -> LONG
+⚡ Tick: BNBUSDT 886.33
+⚡ Tick: BNBUSDT 886.52
+🕯️ Candle Closed: 886.64 | Vol: 139126483.83
+📡 Signal Detected: StochasticReversion@1m -> SHORT
+📡 Signal Detected: StochasticReversion@5m -> SHORT
+📡 Signal Detected: StochasticReversion@15m -> SHORT
+📡 Signal Detected: WilliamsRReversion@1m -> SHORT
+📡 Signal Detected: WilliamsRReversion@5m -> SHORT
+📡 Signal Detected: WilliamsRReversion@15m -> SHORT
+📡 Signal Detected: VolumeImbalance@15m -> LONG
+📡 Signal Detected: AdaptiveRSI@5m -> SHORT
+📡 Signal Detected: AdaptiveRSI@15m -> SHORT
+📡 Signal Detected: ThreeBar@5m -> LONG
+⚡ Tick: BNBUSDT 886.77
+⚡ Tick: BNBUSDT 887.0
+⚡ Tick: BNBUSDT 887.0
+🕯️ Candle Closed: 887.0 | Vol: 192128336.47
+📡 Signal Detected: VWAPBreakout@15m -> LONG
+📡 Signal Detected: ExtremeCandleRatio@5m -> LONG
+📡 Signal Detected: RSIReversion@1m -> SHORT
+📡 Signal Detected: RSIReversion@5m -> SHORT
+📡 Signal Detected: RSIReversion@15m -> SHORT
+📡 Signal Detected: BollingerTouch@1m -> SHORT
+📡 Signal Detected: BollingerTouch@5m -> SHORT
+📡 Signal Detected: BollingerTouch@15m -> SHORT
+📡 Signal Detected: ZScoreReversion@1m -> SHORT
+📡 Signal Detected: ZScoreReversion@5m -> SHORT
+📡 Signal Detected: ZScoreReversion@15m -> SHORT
+📡 Signal Detected: ADXFilter@15m -> LONG
+📡 Signal Detected: ADXFilter@1h -> LONG
+⚡ Tick: BNBUSDT 887.0
+⚡ Tick: BNBUSDT 887.61
+⚡ Tick: BNBUSDT 887.67
+🕯️ Candle Closed: 887.71 | Vol: 192128598.32999998
+📡 Signal Detected: KeltnerReversion@1m -> SHORT
+📡 Signal Detected: KeltnerReversion@5m -> SHORT
+📡 Signal Detected: MACDCrossover@5m -> LONG
+📡 Signal Detected: MACDCrossover@15m -> LONG
+📡 Signal Detected: MACDCrossover@1h -> LONG
+📡 Signal Detected: Supertrend@5m -> LONG
+📡 Signal Detected: SupportResistance@5m -> LONG
+📡 Signal Detected: SupportResistance@15m -> LONG
+⚡ Tick: BNBUSDT 887.73
+⚡ Tick: BNBUSDT 887.82
+⚡ Tick: BNBUSDT 887.5
+🕯️ Candle Closed: 887.56 | Vol: 192128438.48
+📡 Signal Detected: CCIReversion@1m -> SHORT
+📡 Signal Detected: CCIReversion@5m -> SHORT
+📡 Signal Detected: CCIReversion@15m -> SHORT
+⚡ Tick: BNBUSDT 887.74
+⚡ Tick: BNBUSDT 887.89
+⚡ Tick: BNBUSDT 887.94
+🕯️ Candle Closed: 887.94 | Vol: 184979490.96999997
+📡 Signal Detected: DecelerationCandles@5m -> SHORT
+📡 Signal Detected: DecelerationCandles@15m -> SHORT
+✅ CONSENSUS SHORT: 0L/2S | Best: DecelerationCandles (score=0.827) | HTF: N/A
+🎯 Decision: SHORT | Kelly Bet: 1.63% of 3408.64 | Sensor: DecelerationCandles
+📩 Decision Received: BNBUSDT SHORT (Size: 1.63%, Step: 0)
+🔍 get_current_price | requested_symbol=BNBUSDT | adapter_symbol=BNBUSDT
+💰 Current price for BNBUSDT: 887.95
+📊 Order calculation: Equity=3408.64 | Size=1.63% | Value=55.45 | Price=887.95 | Amount=0.06000000 (raw=0.062447162548)
+📥 Execute order request: SHORT BNBUSDT
+🛡️ Creating OCO bracket for BNBUSDT SHORT | TP: 0.0390 | SL: 0.0250
+📤 Executing market order: sell 0.06 BNBUSDT
+📋 Sending Order: {'symbol': 'BNBUSDT', 'side': 'SELL', 'type': 'MARKET', 'quantity': 0.06, 'timestamp': 1765028466411, 'recvWindow': 20000}
+✅ Market order executed: 1038458008 | Status: open
+⏳ Fill price not in response (status NEW?), waiting for fill...
+✅ Main order filled @ 887.56
+📈 Creating TP order @ 852.945
+📤 Executing limit order: buy 0.06 BNBUSDT @ 852.945
+📋 Sending Order: {'symbol': 'BNBUSDT', 'side': 'BUY', 'type': 'LIMIT', 'quantity': 0.06, 'price': 852.945, 'timeInForce': 'GTC', 'timestamp': 1765028467174, 'recvWindow': 20000}
+❌ Order Failed: Price not increased by tick size.
+❌ Error executing order: (400, -4014, 'Price not increased by tick size.', {'Content-Type': 'application/json', 'Content-Length': '56', 'Connection': 'keep-alive', 'Date': 'Sat, 06 Dec 2025 13:41:07 GMT', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS', 'Server': 'Bengine', 'x-mbx-used-weight-1m': '-1', 'x-mbx-order-count-10s': '2', 'x-mbx-order-count-1m': '2', 'x-response-time': '0ms', 'Access-Control-Allow-Origin': '*', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 52ae716a40a076f1b26575b846ef3f98.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'MIA50-P7', 'X-Amz-Cf-Id': 'su24svyaOnPs944Q6csS8BmX6BtS5SJMlEa2yV5vXak-4ChMpxZsGw=='})
+⚠️ Error in exchange_orders.execute_order (attempt 1/3): server_error | (400, -4014, 'Price not increased by tick size.', {'Content-Type': 'application/json', 'Content-Leng
+🔄 Retrying exchange_orders.execute_order in 0.77s (attempt 2/3)
+📋 Sending Order: {'symbol': 'BNBUSDT', 'side': 'BUY', 'type': 'LIMIT', 'quantity': 0.06, 'price': 852.945, 'timeInForce': 'GTC', 'timestamp': 1765028468150, 'recvWindow': 20000}
+❌ Order Failed: Price not increased by tick size.
+❌ Error executing order: (400, -4014, 'Price not increased by tick size.', {'Content-Type': 'application/json', 'Content-Length': '56', 'Connection': 'keep-alive', 'Date': 'Sat, 06 Dec 2025 13:41:08 GMT', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS', 'Server': 'Bengine', 'x-mbx-used-weight-1m': '-1', 'x-mbx-order-count-10s': '3', 'x-mbx-order-count-1m': '3', 'x-response-time': '0ms', 'Access-Control-Allow-Origin': '*', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 52ae716a40a076f1b26575b846ef3f98.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'MIA50-P7', 'X-Amz-Cf-Id': 'AMK6g6AkCXdS2saW-cWZsjMaAEJVNyQp-GDfmlCUVQG8fPjAO4mdIg=='})
+⚠️ Error in exchange_orders.execute_order (attempt 2/3): server_error | (400, -4014, 'Price not increased by tick size.', {'Content-Type': 'application/json', 'Content-Leng
+🔄 Retrying exchange_orders.execute_order in 2.32s (attempt 3/3)
+📋 Sending Order: {'symbol': 'BNBUSDT', 'side': 'BUY', 'type': 'LIMIT', 'quantity': 0.06, 'price': 852.945, 'timeInForce': 'GTC', 'timestamp': 1765028471001, 'recvWindow': 20000}
+❌ Order Failed: Price not increased by tick size.
+❌ Error executing order: (400, -4014, 'Price not increased by tick size.', {'Content-Type': 'application/json', 'Content-Length': '56', 'Connection': 'keep-alive', 'Date': 'Sat, 06 Dec 2025 13:41:11 GMT', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS', 'Server': 'Bengine', 'x-mbx-used-weight-1m': '-1', 'x-mbx-order-count-10s': '1', 'x-mbx-order-count-1m': '4', 'x-response-time': '0ms', 'Access-Control-Allow-Origin': '*', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 52ae716a40a076f1b26575b846ef3f98.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'MIA50-P7', 'X-Amz-Cf-Id': 'Nr_wDisSbEq6mFny-4O0ExRsOgsO9NX6Wz7NhGjtEqtqT7lDBXEJtw=='})
+⚠️ Error in exchange_orders.execute_order (attempt 3/3): server_error | (400, -4014, 'Price not increased by tick size.', {'Content-Type': 'application/json', 'Content-Leng
+❌ Max retries (3) exhausted for exchange_orders.execute_order
+❌ Limit order failed: (400, -4014, 'Price not increased by tick size.', {'Content-Type': 'application/json', 'Content-Length': '56', 'Connection': 'keep-alive', 'Date': 'Sat, 06 Dec 2025 13:41:11 GMT', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS', 'Server': 'Bengine', 'x-mbx-used-weight-1m': '-1', 'x-mbx-order-count-10s': '1', 'x-mbx-order-count-1m': '4', 'x-response-time': '0ms', 'Access-Control-Allow-Origin': '*', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 52ae716a40a076f1b26575b846ef3f98.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'MIA50-P7', 'X-Amz-Cf-Id': 'Nr_wDisSbEq6mFny-4O0ExRsOgsO9NX6Wz7NhGjtEqtqT7lDBXEJtw=='})
+⚠️ Error in oco_tp_orders.execute_limit_order (attempt 1/5): server_error | (400, -4014, 'Price not increased by tick size.', {'Content-Type': 'application/json', 'Content-Leng
+🔄 Retrying oco_tp_orders.execute_limit_order in 0.41s (attempt 2/5)
+📤 Executing limit order: buy 0.06 BNBUSDT @ 852.945
+📋 Sending Order: {'symbol': 'BNBUSDT', 'side': 'BUY', 'type': 'LIMIT', 'quantity': 0.06, 'price': 852.945, 'timeInForce': 'GTC', 'timestamp': 1765028471939, 'recvWindow': 20000}
+❌ Order Failed: Price not increased by tick size.
+❌ Error executing order: (400, -4014, 'Price not increased by tick size.', {'Content-Type': 'application/json', 'Content-Length': '56', 'Connection': 'keep-alive', 'Date': 'Sat, 06 Dec 2025 13:41:12 GMT', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS', 'Server': 'Bengine', 'x-mbx-used-weight-1m': '-1', 'x-mbx-order-count-10s': '2', 'x-mbx-order-count-1m': '5', 'x-response-time': '0ms', 'Access-Control-Allow-Origin': '*', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 52ae716a40a076f1b26575b846ef3f98.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'MIA50-P7', 'X-Amz-Cf-Id': 'sJKieMhckZ_JCNH27Ikvfy9MrggAfnFFtUAqD8plox1MvItNi3Q8Dg=='})
+⚠️ Error in exchange_orders.execute_order (attempt 1/3): server_error | (400, -4014, 'Price not increased by tick size.', {'Content-Type': 'application/json', 'Content-Leng
+🔄 Retrying exchange_orders.execute_order in 1.03s (attempt 2/3)
+📋 Sending Order: {'symbol': 'BNBUSDT', 'side': 'BUY', 'type': 'LIMIT', 'quantity': 0.06, 'price': 852.945, 'timeInForce': 'GTC', 'timestamp': 1765028473176, 'recvWindow': 20000}
+❌ Order Failed: Price not increased by tick size.
+❌ Error executing order: (400, -4014, 'Price not increased by tick size.', {'Content-Type': 'application/json', 'Content-Length': '56', 'Connection': 'keep-alive', 'Date': 'Sat, 06 Dec 2025 13:41:13 GMT', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS', 'Server': 'Bengine', 'x-mbx-used-weight-1m': '-1', 'x-mbx-order-count-10s': '3', 'x-mbx-order-count-1m': '6', 'x-response-time': '0ms', 'Access-Control-Allow-Origin': '*', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 52ae716a40a076f1b26575b846ef3f98.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'MIA50-P7', 'X-Amz-Cf-Id': '5Z6BCzy_HZeXCPFb3Og0yf8qeNmWtw56SCPVW4Q1mAkvTACn8z7S8Q=='})
+🔴 Circuit breaker 'exchange_orders' → OPEN (failures: 5/5)
+⚠️ Error in exchange_orders.execute_order (attempt 2/3): server_error | (400, -4014, 'Price not increased by tick size.', {'Content-Type': 'application/json', 'Content-Leng
+🔄 Retrying exchange_orders.execute_order in 2.28s (attempt 3/3)
+⚠️ Unknown error type: CircuitBreakerOpenError | Message: circuit breaker 'exchange_orders' is open. retry after 57.7s
+⚠️ Error in exchange_orders.execute_order (attempt 3/3): unknown | Circuit breaker 'exchange_orders' is OPEN. Retry after 57.7s
+❌ Non-retriable error in exchange_orders.execute_order: unknown | Unknown error: circuit breaker 'exchange_orders' is open. retry after 57.7s
+❌ Limit order failed: Circuit breaker 'exchange_orders' is OPEN. Retry after 57.7s
+⚠️ Unknown error type: CircuitBreakerOpenError | Message: circuit breaker 'exchange_orders' is open. retry after 57.7s
+⚠️ Error in oco_tp_orders.execute_limit_order (attempt 2/5): unknown | Circuit breaker 'exchange_orders' is OPEN. Retry after 57.7s
+❌ Non-retriable error in oco_tp_orders.execute_limit_order: unknown | Unknown error: circuit breaker 'exchange_orders' is open. retry after 57.7s
+❌ OCO bracket creation failed: Circuit breaker 'exchange_orders' is OPEN. Retry after 57.7s
+🧹 Cleaning up partial OCO bracket...
+❌ Cancel Failed: (400, -2011, 'Unknown order sent.', {'Content-Type': 'application/json', 'Content-Length': '42', 'Connection': 'keep-alive', 'Date': 'Sat, 06 Dec 2025 13:41:15 GMT', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS', 'Server': 'Bengine', 'x-mbx-used-weight-1m': '15', 'x-response-time': '0ms', 'Access-Control-Allow-Origin': '*', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 52ae716a40a076f1b26575b846ef3f98.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'MIA50-P7', 'X-Amz-Cf-Id': 'a5aY5symxoClvazS2e8nLnZOg1OSu4E36aNvEswGmm7V-Zl-5-H1gQ=='})
+❌ Failed to cancel Main order 1038458008: (400, -2011, 'Unknown order sent.', {'Content-Type': 'application/json', 'Content-Length': '42', 'Connection': 'keep-alive', 'Date': 'Sat, 06 Dec 2025 13:41:15 GMT', 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS', 'Server': 'Bengine', 'x-mbx-used-weight-1m': '15', 'x-response-time': '0ms', 'Access-Control-Allow-Origin': '*', 'X-Cache': 'Error from cloudfront', 'Via': '1.1 52ae716a40a076f1b26575b846ef3f98.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'MIA50-P7', 'X-Amz-Cf-Id': 'a5aY5symxoClvazS2e8nLnZOg1OSu4E36aNvEswGmm7V-Zl-5-H1gQ=='})
+🧹 Cleaned up 1 orders
+⚠️ Unknown error type: OCOAtomicityError | Message: failed to create oco bracket: circuit breaker 'exchange_orders' is open. retry after 57.7s
+⚠️ Error in execute_order_BNBUSDT (attempt 1/3): unknown | Failed to create OCO bracket: Circuit breaker 'exchange_orders' is OPEN. Retry after 57.7s
+❌ Non-retriable error in execute_order_BNBUSDT: unknown | Unknown error: failed to create oco bracket: circuit breaker 'exchange_orders' is open. retry after 57.7s
+❌ Execution Failed after retries: Failed to create OCO bracket: Circuit breaker 'exchange_orders' is OPEN. Retry after 57.7s
+Traceback (most recent call last):
+  File "/home/chesterbelle/Casino-V2/croupier/components/oco_manager.py", line 181, in create_bracketed_order
+    tp_order = await self._create_tp_order(symbol, side, main_order["amount"], tp_price)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/chesterbelle/Casino-V2/croupier/components/oco_manager.py", line 344, in _create_tp_order
+    return await self.error_handler.execute_with_breaker(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<7 lines>...
+    )
+    ^
+  File "/home/chesterbelle/Casino-V2/core/error_handling/error_handler.py", line 214, in execute_with_breaker
+    return await self.execute(
+           ^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+    )
+    ^
+  File "/home/chesterbelle/Casino-V2/core/error_handling/error_handler.py", line 124, in execute
+    result = await func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/chesterbelle/Casino-V2/core/error_handling/error_handler.py", line 211, in wrapped
+    return await func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/chesterbelle/Casino-V2/croupier/components/order_executor.py", line 111, in execute_limit_order
+    result = await self.error_handler.execute_with_breaker(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        "exchange_orders", self.adapter.execute_order, order, retry_config=retry_cfg
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/chesterbelle/Casino-V2/core/error_handling/error_handler.py", line 214, in execute_with_breaker
+    return await self.execute(
+           ^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+    )
+    ^
+  File "/home/chesterbelle/Casino-V2/core/error_handling/error_handler.py", line 124, in execute
+    result = await func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/chesterbelle/Casino-V2/core/error_handling/error_handler.py", line 210, in wrapped
+    async with breaker:
+               ^^^^^^^
+  File "/home/chesterbelle/Casino-V2/core/error_handling/circuit_breaker.py", line 205, in __aenter__
+    raise CircuitBreakerOpenError(
+        f"Circuit breaker '{self.name}' is OPEN. " f"Retry after {self._time_until_retry():.1f}s"
+    )
+core.error_handling.circuit_breaker.CircuitBreakerOpenError: Circuit breaker 'exchange_orders' is OPEN. Retry after 57.7s
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/chesterbelle/Casino-V2/core/execution.py", line 170, in on_decision
+    result = await error_handler.execute(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<8 lines>...
+    )
+    ^
+  File "/home/chesterbelle/Casino-V2/core/error_handling/error_handler.py", line 124, in execute
+    result = await func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/chesterbelle/Casino-V2/croupier/croupier.py", line 149, in execute_order
+    result = await self.oco_manager.create_bracketed_order(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        order, wait_for_fill=wait_for_fill, contributors=contributors
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/chesterbelle/Casino-V2/croupier/components/oco_manager.py", line 250, in create_bracketed_order
+    raise OCOAtomicityError(f"Failed to create OCO bracket: {e}") from e
+croupier.components.oco_manager.OCOAtomicityError: Failed to create OCO bracket: Circuit breaker 'exchange_orders' is OPEN. Retry after 57.7s
+⚡ Tick: BNBUSDT 887.96
+⚡ Tick: BNBUSDT 888.0
+⚡ Tick: BNBUSDT 888.03
+🕯️ Candle Closed: 888.04 | Vol: 189888344.53
+📡 Signal Detected: PinBarReversal@1m -> LONG
+📡 Signal Detected: StochasticReversion@1m -> SHORT
+📡 Signal Detected: StochasticReversion@5m -> SHORT
+📡 Signal Detected: StochasticReversion@15m -> SHORT
+📡 Signal Detected: WilliamsRReversion@1m -> SHORT
+📡 Signal Detected: WilliamsRReversion@5m -> SHORT
+📡 Signal Detected: WilliamsRReversion@15m -> SHORT
+📡 Signal Detected: AdaptiveRSI@5m -> SHORT
+📡 Signal Detected: AdaptiveRSI@15m -> SHORT
+⚡ Tick: BNBUSDT 888.05
+⚡ Tick: BNBUSDT 887.88
+🕯️ Candle Closed: 888.06 | Vol: 180230729.23
+📡 Signal Detected: RSIReversion@1m -> SHORT
+📡 Signal Detected: RSIReversion@5m -> SHORT
+📡 Signal Detected: RSIReversion@15m -> SHORT
+📡 Signal Detected: BollingerTouch@1m -> SHORT
+📡 Signal Detected: BollingerTouch@5m -> SHORT
+📡 Signal Detected: BollingerTouch@15m -> SHORT
+📡 Signal Detected: ZScoreReversion@1m -> SHORT
+📡 Signal Detected: ZScoreReversion@5m -> SHORT
+📡 Signal Detected: ZScoreReversion@15m -> SHORT
+📡 Signal Detected: ADXFilter@15m -> LONG
+📡 Signal Detected: ADXFilter@1h -> LONG
+📡 Signal Detected: VolumeImbalance@5m -> LONG
+⚡ Tick: BNBUSDT 887.99
+⚡ Tick: BNBUSDT 887.87
+⚡ Tick: BNBUSDT 887.88
+🕯️ Candle Closed: 887.87 | Vol: 168788710.31
+📡 Signal Detected: VWAPBreakout@5m -> LONG
+📡 Signal Detected: KeltnerReversion@1m -> SHORT
+📡 Signal Detected: Supertrend@15m -> LONG
+📡 Signal Detected: VolatilityWakeup@5m -> LONG
+📡 Signal Detected: SupportResistance@5m -> LONG
+📡 Signal Detected: SupportResistance@15m -> LONG
+⚡ Tick: BNBUSDT 888.03

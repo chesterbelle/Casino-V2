@@ -332,11 +332,23 @@ class BinanceNativeConnector(BaseConnector):
         """Process exchange info into internal market map."""
         for symbol_data in exchange_info["symbols"]:
             symbol = symbol_data["symbol"]
+
+            # Extract tick size and step size from filters
+            tick_size = None
+            step_size = None
+            for f in symbol_data.get("filters", []):
+                if f["filterType"] == "PRICE_FILTER":
+                    tick_size = float(f["tickSize"])
+                elif f["filterType"] == "LOT_SIZE":
+                    step_size = float(f["stepSize"])
+
             self._markets[symbol] = {
                 "symbol": symbol,
                 "base": symbol_data["baseAsset"],
                 "quote": symbol_data["quoteAsset"],
                 "precision": {"amount": symbol_data["quantityPrecision"], "price": symbol_data["pricePrecision"]},
+                "tick_size": tick_size or 0.01,  # Default fallback
+                "step_size": step_size or 0.001,  # Default fallback
                 "contractSize": 1.0,  # Default for USDT perps
                 "info": symbol_data,
             }
@@ -354,25 +366,33 @@ class BinanceNativeConnector(BaseConnector):
 
     def price_to_precision(self, symbol: str, price: float) -> str:
         """
-        Format price to symbol precision.
+        Format price to symbol precision using tick size.
         """
         native_symbol = self.normalize_symbol(symbol)
         if native_symbol not in self._markets:
             return str(price)
 
-        precision = self._markets[native_symbol]["precision"]["price"]
-        return "{:0.{p}f}".format(price, p=precision)
+        tick_size = self._markets[native_symbol].get("tick_size", 0.01)
+        # Round price to nearest tick size
+        rounded = round(price / tick_size) * tick_size
+        # Determine decimal places from tick size
+        decimals = len(str(tick_size).rstrip("0").split(".")[-1]) if "." in str(tick_size) else 0
+        return f"{rounded:.{decimals}f}"
 
     def amount_to_precision(self, symbol: str, amount: float) -> str:
         """
-        Format amount to symbol precision.
+        Format amount to symbol precision using step size.
         """
         native_symbol = self.normalize_symbol(symbol)
         if native_symbol not in self._markets:
             return str(amount)
 
-        precision = self._markets[native_symbol]["precision"]["amount"]
-        return "{:0.{p}f}".format(amount, p=precision)
+        step_size = self._markets[native_symbol].get("step_size", 0.001)
+        # Round amount to nearest step size
+        rounded = round(amount / step_size) * step_size
+        # Determine decimal places from step size
+        decimals = len(str(step_size).rstrip("0").split(".")[-1]) if "." in str(step_size) else 0
+        return f"{rounded:.{decimals}f}"
 
         # Subscribe to User Data Stream (ListenKey)
         # The SDK handles ListenKey keep-alive automatically!
