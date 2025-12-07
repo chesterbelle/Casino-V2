@@ -80,63 +80,50 @@ class StatsCollector:
         wins = 0
         losses = 0
 
-        # Iterate through candles
-        total_candles = len(df)
-
-        # Pre-calculate sensor params to avoid lookups
+        # Pre-calculate sensor params
         sensor_params = {}
         for sensor in self.sensor_manager.sensors:
-            # Use 15m params as default baseline for simulation if not specified
             params = get_sensor_params(sensor.name, "15m")
             sensor_params[sensor.name] = params
 
-        logger.info("⏳ Processing candles...")
+        # Convert to numpy for fast access
+        opens = df["open"].values
+        highs = df["high"].values
+        lows = df["low"].values
+        closes = df["close"].values
+        volumes = df["volume"].values
+        timestamps = df["timestamp"].values
 
+        total_candles = len(df)
+
+        logger.info("⏳ Processing candles...")
         start_time = time.time()
 
-        for idx, row in df.iterrows():
+        # We still need to iterate candles for sensor calculation (stateful)
+        # But we can optimize the trade simulation part
+
+        for idx in range(total_candles):
             # 1. Update SensorManager with new candle
-            # Create candle dict for context (CandleEvent not needed, using dict directly)
             candle_dict = {
-                "timestamp": row["timestamp"],
-                "open": row["open"],
-                "high": row["high"],
-                "low": row["low"],
-                "close": row["close"],
-                "volume": row["volume"],
+                "timestamp": timestamps[idx],
+                "open": opens[idx],
+                "high": highs[idx],
+                "low": lows[idx],
+                "close": closes[idx],
+                "volume": volumes[idx],
             }
 
-            # We manually trigger what SensorManager.on_candle would do,
-            # but we want to capture the return values directly.
-            # Since SensorManager is async and designed for event loop,
-            # we'll access the sensors directly for synchronous execution.
-
-            # Prepare context
-            candle_dict = {
-                "timestamp": row["timestamp"],
-                "open": row["open"],
-                "high": row["high"],
-                "low": row["low"],
-                "close": row["close"],
-                "volume": row["volume"],
-            }
-
-            # Update aggregator inside sensor manager (for MTF)
-            # BarAggregator expects a dict, not an event object
+            # Update aggregator inside sensor manager
             context = self.sensor_manager.bar_aggregator.on_candle(candle_dict)
-            # Ensure current timeframe is in context
             context["1m"] = candle_dict
 
             # 2. Run all sensors
             for sensor in self.sensor_manager.sensors:
                 try:
-                    # Calculate signal
                     result = sensor.calculate(context)
-
                     if not result:
                         continue
 
-                    # Handle list of signals or single signal
                     signals = result if isinstance(result, list) else [result]
 
                     for signal in signals:
@@ -145,11 +132,13 @@ class StatsCollector:
 
                         signals_count += 1
 
-                        # 3. Simulate Trade
-                        trade_result = self._simulate_trade(
+                        # 3. Simulate Trade (Vectorized)
+                        trade_result = self._simulate_trade_vectorized(
                             signal=signal,
                             entry_idx=idx,
-                            df=df,
+                            highs=highs,
+                            lows=lows,
+                            closes=closes,
                             params=sensor_params.get(sensor.name, {"tp_pct": 0.015, "sl_pct": 0.01}),
                         )
 
@@ -160,23 +149,18 @@ class StatsCollector:
                             else:
                                 losses += 1
 
-                            # 4. Update Tracker
                             self.tracker.update_sensor(
                                 sensor_id=sensor.name, pnl=trade_result["pnl"], won=trade_result["won"]
                             )
 
                 except Exception:
-                    # Silently skip sensors that fail
                     pass
 
-            if idx % 100 == 0 and idx > 0:
+            if idx % 1000 == 0 and idx > 0:
                 progress = (idx / total_candles) * 100
                 logger.info(f"   {progress:.1f}% | Signals: {signals_count} | Trades: {trades_count}")
-
-            if idx % 1000 == 0 and idx > 0:
                 self.tracker.save_state()
 
-        # Save final stats
         self.tracker.save_state()
 
         duration = time.time() - start_time
@@ -188,68 +172,66 @@ class StatsCollector:
         if trades_count > 0:
             logger.info(f"   Win Rate: {(wins/trades_count)*100:.1f}%")
         logger.info("=" * 60)
-
-        # Print output for train_pipeline to parse
         print(f"Wins / Losses : {wins} / {losses}")
 
         return True
 
-    def _simulate_trade(self, signal: Dict, entry_idx: int, df: pd.DataFrame, params: Dict) -> Dict:
+    def _simulate_trade_vectorized(
+        self, signal: Dict, entry_idx: int, highs: np.ndarray, lows: np.ndarray, closes: np.ndarray, params: Dict
+    ) -> Dict:
         """
-        Simulate a trade outcome based on TP/SL.
-        Returns dict with 'won' (bool) and 'pnl' (float).
+        Vectorized trade simulation using numpy arrays.
         """
-        entry_price = df.iloc[entry_idx]["close"]
+        entry_price = closes[entry_idx]
         side = signal["side"]
-
         tp_pct = params.get("tp_pct", 0.015)
         sl_pct = params.get("sl_pct", 0.01)
 
-        # Calculate TP/SL prices
+        max_bars = 500
+        end_idx = min(entry_idx + 1 + max_bars, len(highs))
+
+        if entry_idx + 1 >= end_idx:
+            return None
+
+        # Slice future arrays
+        future_highs = highs[entry_idx + 1 : end_idx]
+        future_lows = lows[entry_idx + 1 : end_idx]
+
         if side == "LONG":
             tp_price = entry_price * (1 + tp_pct)
             sl_price = entry_price * (1 - sl_pct)
+
+            # Find hits
+            sl_hit_mask = future_lows <= sl_price
+            tp_hit_mask = future_highs >= tp_price
         else:
             tp_price = entry_price * (1 - tp_pct)
             sl_price = entry_price * (1 + sl_pct)
 
-        # Look forward to find outcome
-        # Limit lookahead to avoid infinite loops (e.g. 500 bars)
-        max_bars = 500
-        future_df = df.iloc[entry_idx + 1 : entry_idx + 1 + max_bars]
+            sl_hit_mask = future_highs >= sl_price
+            tp_hit_mask = future_lows <= tp_price
 
-        if len(future_df) == 0:
-            return None
+        # Find first indices
+        sl_indices = np.where(sl_hit_mask)[0]
+        tp_indices = np.where(tp_hit_mask)[0]
 
-        for _, row in future_df.iterrows():
-            high = row["high"]
-            low = row["low"]
+        first_sl = sl_indices[0] if len(sl_indices) > 0 else 999999
+        first_tp = tp_indices[0] if len(tp_indices) > 0 else 999999
 
+        if first_sl == 999999 and first_tp == 999999:
+            # Timeout - close at end
+            close_price = closes[end_idx - 1]
             if side == "LONG":
-                # Check SL first (conservative)
-                if low <= sl_price:
-                    pnl = -sl_pct - (self.fee_rate * 2)
-                    return {"won": False, "pnl": pnl}
-                if high >= tp_price:
-                    pnl = tp_pct - (self.fee_rate * 2)
-                    return {"won": True, "pnl": pnl}
-            else:  # SHORT
-                if high >= sl_price:
-                    pnl = -sl_pct - (self.fee_rate * 2)
-                    return {"won": False, "pnl": pnl}
-                if low <= tp_price:
-                    pnl = tp_pct - (self.fee_rate * 2)
-                    return {"won": True, "pnl": pnl}
+                raw_pnl = (close_price - entry_price) / entry_price
+            else:
+                raw_pnl = (entry_price - close_price) / entry_price
+            pnl = raw_pnl - (self.fee_rate * 2)
+            return {"won": pnl > 0, "pnl": pnl}
 
-        # If timeout (no TP/SL hit in max_bars), close at end
-        close_price = future_df.iloc[-1]["close"]
-        if side == "LONG":
-            raw_pnl = (close_price - entry_price) / entry_price
+        if first_sl < first_tp:
+            return {"won": False, "pnl": -sl_pct - (self.fee_rate * 2)}
         else:
-            raw_pnl = (entry_price - close_price) / entry_price
-
-        pnl = raw_pnl - (self.fee_rate * 2)
-        return {"won": pnl > 0, "pnl": pnl}
+            return {"won": True, "pnl": tp_pct - (self.fee_rate * 2)}
 
 
 def main():

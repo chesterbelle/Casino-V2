@@ -111,7 +111,7 @@ class TrainingPipeline:
         ]
 
         logger.info(f"   Running: {' '.join(cmd)}")
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=3600)
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=43200)
 
         if result.returncode != 0:
             logger.error(f"❌ Backtest failed: {result.stderr[-500:]}")
