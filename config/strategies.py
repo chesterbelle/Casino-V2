@@ -219,6 +219,17 @@ STRATEGIES: Dict[str, dict] = {
             "StochasticReversion",
             # Context (macro trend)
             "HigherTFTrend",
+            # NEW STRUCTURAL SENSORS
+            "NarrowRange7",
+            "ConsecutiveCandles",
+            "RangeExpansion",
+            "ThreeWhiteSoldiers",
+            "ThreeBlackCrows",
+            "WideRangeBar",
+            "DoubleBottom",
+            "DoubleTop",
+            "HigherHighsLowerLows",
+            "IslandReversal",
         ],
         "max_positions": 1,
     },

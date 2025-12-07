@@ -84,17 +84,24 @@ class SensorManager:
         from sensors.bollinger_squeeze import BollingerSqueezeV3
         from sensors.bollinger_touch import BollingerTouchV3
         from sensors.cci_reversion import CCIReversionV3
+
+        # NEW STRUCTURAL SENSORS
+        from sensors.consecutive_candles import ConsecutiveCandlesV3
         from sensors.deceleration_candles import DecelerationCandlesV3
         from sensors.doji_indecision import DojiIndecisionV3
+        from sensors.double_bottom import DoubleBottomV3
+        from sensors.double_top import DoubleTopV3
         from sensors.ema50_support import EMA50SupportV3
         from sensors.ema_crossover import EMACrossoverV3
         from sensors.engulfing_pattern import EngulfingPatternV3
         from sensors.extreme_candle_ratio import ExtremeCandleRatioV3
         from sensors.fakeout import FakeoutV3
         from sensors.fvg_retest import FVGRetestV3
+        from sensors.higher_highs_lower_lows import HigherHighsLowerLowsV3
         from sensors.higher_tf_trend import HigherTFTrendV3
         from sensors.hurst_regime import HurstRegimeV3
         from sensors.inside_bar_breakout import InsideBarBreakoutV3
+        from sensors.island_reversal import IslandReversalV3
         from sensors.keltner_breakout import KeltnerBreakoutV3
         from sensors.keltner_reversion import KeltnerReversionV3
         from sensors.liquidity_void import LiquidityVoidV3
@@ -105,16 +112,20 @@ class SensorManager:
         from sensors.momentum_burst import MomentumBurstV3
         from sensors.morning_star import MorningStarV3
         from sensors.mtf_impulse import MTFImpulseV3
+        from sensors.narrow_range7 import NarrowRange7V3
         from sensors.order_block import OrderBlockV3
         from sensors.parabolic_sar import ParabolicSARV3
         from sensors.pinbar_reversal import PinBarReversalV3
         from sensors.rails_pattern import RailsPatternV3
+        from sensors.range_expansion import RangeExpansionV3
         from sensors.rsi_reversion import RSIReversionV3
         from sensors.smart_range import SmartRangeV3
         from sensors.stochastic_reversion import StochasticReversionV3
         from sensors.supertrend import SupertrendV3
         from sensors.support_resistance import SupportResistanceV3
         from sensors.three_bar import ThreeBarV3
+        from sensors.three_black_crows import ThreeBlackCrowsV3
+        from sensors.three_white_soldiers import ThreeWhiteSoldiersV3
         from sensors.tweezer_pattern import TweezerPatternV3
         from sensors.vcp_pattern import VCPPatternV3
         from sensors.volatility_wakeup import VolatilityWakeupV3
@@ -125,6 +136,7 @@ class SensorManager:
         from sensors.vwap_deviation import VWAPDeviationV3
         from sensors.vwap_momentum import VWAPMomentumV3
         from sensors.wick_rejection import WickRejectionV3
+        from sensors.wide_range_bar import WideRangeBarV3
         from sensors.williams_r_reversion import WilliamsRReversionV3
         from sensors.wyckoff_spring import WyckoffSpringV3
         from sensors.zscore_reversion import ZScoreReversionV3
@@ -182,6 +194,17 @@ class SensorManager:
             TweezerPatternV3,
             ThreeBarV3,
             SupportResistanceV3,
+            # NEW STRUCTURAL SENSORS
+            NarrowRange7V3,
+            ConsecutiveCandlesV3,
+            RangeExpansionV3,
+            ThreeWhiteSoldiersV3,
+            ThreeBlackCrowsV3,
+            WideRangeBarV3,
+            DoubleBottomV3,
+            DoubleTopV3,
+            HigherHighsLowerLowsV3,
+            IslandReversalV3,
         ]
 
         # Get sensors from enabled strategies (for logging only - no filtering here)

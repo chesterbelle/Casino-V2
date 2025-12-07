@@ -375,6 +375,69 @@ SENSOR_METADATA: Dict[str, SensorMeta] = {
         "data_required": ["ohlc", "indicator"],
         "description": "Sudden momentum acceleration",
     },
+    # ==========================================
+    # NEW STRUCTURAL SENSORS (2024-12)
+    # ==========================================
+    "NarrowRange7": {
+        "function": "Breakout",
+        "methodology": "Structural",
+        "data_required": ["ohlc"],
+        "description": "Smallest range of last 7 bars - volatility compression",
+    },
+    "ConsecutiveCandles": {
+        "function": "MeanReversion",
+        "methodology": "Structural",
+        "data_required": ["ohlc"],
+        "description": "N consecutive same-direction candles - exhaustion signal",
+    },
+    "RangeExpansion": {
+        "function": "Momentum",
+        "methodology": "Structural",
+        "data_required": ["ohlc"],
+        "description": "Current range > 2x average - momentum breakout",
+    },
+    "ThreeWhiteSoldiers": {
+        "function": "TrendFollowing",
+        "methodology": "Structural",
+        "data_required": ["ohlc"],
+        "description": "Three consecutive bullish candles with higher closes",
+    },
+    "ThreeBlackCrows": {
+        "function": "TrendFollowing",
+        "methodology": "Structural",
+        "data_required": ["ohlc"],
+        "description": "Three consecutive bearish candles with lower closes",
+    },
+    "WideRangeBar": {
+        "function": "Momentum",
+        "methodology": "Structural",
+        "data_required": ["ohlc"],
+        "description": "Unusually wide range bar indicating strong momentum",
+    },
+    "DoubleBottom": {
+        "function": "MeanReversion",
+        "methodology": "Structural",
+        "data_required": ["ohlc"],
+        "description": "W-pattern with two similar lows - bullish reversal",
+    },
+    "DoubleTop": {
+        "function": "MeanReversion",
+        "methodology": "Structural",
+        "data_required": ["ohlc"],
+        "description": "M-pattern with two similar highs - bearish reversal",
+    },
+    "HigherHighsLowerLows": {
+        "function": "TrendFollowing",
+        "methodology": "Structural",
+        "data_required": ["ohlc"],
+        "description": "Swing structure HH/HL or LH/LL trend detection",
+    },
+    "IslandReversal": {
+        "function": "MeanReversion",
+        "methodology": "Structural",
+        "data_required": ["ohlc"],
+        "description": "Price isolated by gaps on both sides - strong reversal",
+    },
 }
 
 

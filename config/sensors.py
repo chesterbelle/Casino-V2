@@ -70,6 +70,17 @@ ACTIVE_SENSORS = {
     "AbsorptionBlock": True,
     "ParabolicSAR": True,
     "WickRejection": True,
+    # === NEW STRUCTURAL SENSORS ===
+    "NarrowRange7": True,
+    "ConsecutiveCandles": True,
+    "RangeExpansion": True,
+    "ThreeWhiteSoldiers": True,
+    "ThreeBlackCrows": True,
+    "WideRangeBar": True,
+    "DoubleBottom": True,
+    "DoubleTop": True,
+    "HigherHighsLowerLows": True,
+    "IslandReversal": True,
 }
 
 
@@ -160,6 +171,17 @@ SENSOR_TIMEFRAMES = {
     "HurstRegime": ["5m", "15m"],
     "VolatilityWakeup": ["5m", "15m"],
     "SupportResistance": ["5m", "15m"],
+    # === NEW STRUCTURAL SENSORS ===
+    "NarrowRange7": ["5m", "15m"],
+    "ConsecutiveCandles": ["1m", "5m", "15m"],
+    "RangeExpansion": ["1m", "5m", "15m"],
+    "ThreeWhiteSoldiers": ["5m", "15m"],
+    "ThreeBlackCrows": ["5m", "15m"],
+    "WideRangeBar": ["1m", "5m", "15m"],
+    "DoubleBottom": ["5m", "15m", "1h"],
+    "DoubleTop": ["5m", "15m", "1h"],
+    "HigherHighsLowerLows": ["5m", "15m"],
+    "IslandReversal": ["5m", "15m"],
 }
 
 
