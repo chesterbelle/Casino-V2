@@ -184,7 +184,7 @@ class SensorManager:
             SupportResistanceV3,
         ]
 
-        # Get sensors from enabled strategies
+        # Get sensors from enabled strategies (for logging only - no filtering here)
         from config.sensors import get_sensor_timeframes
         from config.strategies import get_active_sensors, get_enabled_strategies
 
@@ -193,22 +193,19 @@ class SensorManager:
 
         if strategy_sensors:
             logger.info(f"📊 Active strategies: {enabled_strategies}")
-            logger.info(f"📊 Strategy sensors: {len(strategy_sensors)} sensors")
+            logger.info(f"📊 Strategy sensors (triggers): {len(strategy_sensors)} sensors")
 
-        # Instantiate sensors that are:
-        # 1. Enabled in ACTIVE_SENSORS (legacy filter)
-        # 2. Part of an enabled strategy (new filter)
+        # Instantiate ALL sensors that are enabled in ACTIVE_SENSORS
+        # Strategy filtering happens in the Aggregator (all sensors vote, strategy triggers)
         for sensor_cls in sensor_classes:
             sensor = sensor_cls()
 
-            # Check legacy ACTIVE_SENSORS first
+            # Check legacy ACTIVE_SENSORS (master on/off switch per sensor)
             if not ACTIVE_SENSORS.get(sensor.name, False):
                 continue
 
-            # If strategies are defined, also check strategy membership
-            if strategy_sensors and sensor.name not in strategy_sensors:
-                logger.debug(f"⏭️ Skipping {sensor.name} - not in active strategy")
-                continue
+            # NOTE: We no longer filter by strategy here
+            # All sensors load and vote; Aggregator filters by strategy participation
 
             # Set timeframes for this sensor (list of TFs to monitor)
             sensor.timeframes = get_sensor_timeframes(sensor.name)
@@ -217,7 +214,7 @@ class SensorManager:
 
             self.sensors.append(sensor)
 
-        logger.info(f"✅ SensorManager loaded {len(self.sensors)} sensors " f"for timeframe {self.timeframe}")
+        logger.info(f"✅ SensorManager loaded {len(self.sensors)} sensors " f"(all vote, strategy triggers trade)")
 
     async def on_candle(self, event: CandleEvent):
         """

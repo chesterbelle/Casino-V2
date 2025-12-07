@@ -309,23 +309,59 @@ class SignalAggregatorV3:
                 del self.signal_buffer[candle_ts]
             return
 
-        # 7. Select BEST individual sensor from winning side (for attribution)
-        selected = max(winner_signals, key=lambda s: s["score"])
+        # 7. STRATEGY TRIGGER FILTER
+        # All sensors vote, but trade only if a sensor from active strategy participated
+        from config.strategies import get_active_sensors
 
-        # Get strategy context
+        strategy_sensors = get_active_sensors()
+
+        if strategy_sensors:
+            # Filter winner signals to only those from active strategy
+            strategy_signals_on_winning_side = [s for s in winner_signals if s["sensor_id"] in strategy_sensors]
+
+            if not strategy_signals_on_winning_side:
+                # Consensus reached but no strategy sensor participated → SKIP
+                logger.info(
+                    f"⏭️ Consensus {consensus_side} but no strategy sensor participated | "
+                    f"ΣL={sigma_long:.2f} ΣS={sigma_short:.2f} → SKIP"
+                )
+                aggregated = AggregatedSignalEvent(
+                    symbol=signals[0].symbol,
+                    candle_timestamp=candle_ts,
+                    selected_sensor="None",
+                    sensor_score=0.0,
+                    side="SKIP",
+                    confidence=0.0,
+                    total_signals=len(signals),
+                )
+                await self.engine.dispatch(aggregated)
+                if candle_ts in self.signal_buffer:
+                    del self.signal_buffer[candle_ts]
+                return
+
+            # Select BEST sensor from strategy signals (not overall best)
+            selected = max(strategy_signals_on_winning_side, key=lambda s: s["score"])
+            logger.debug(
+                f"📊 Strategy trigger: {selected['sensor_id']} from "
+                f"{len(strategy_signals_on_winning_side)} strategy sensors"
+            )
+        else:
+            # No strategy defined - use overall best (DebugAll mode)
+            selected = max(winner_signals, key=lambda s: s["score"])
+
+        # Get strategy context for the selected sensor
         strategies = get_strategy_for_sensor(selected["sensor_id"])
         strategy_name = strategies[0] if strategies else "Unknown"
 
         # Calculate confidence: margin of victory
-        # confidence = (winner_sum - loser_sum) / total_weight
         margin = (winner_sum - loser_sum) / total_weight if total_weight > 0 else 0
         confidence = margin * selected["score"]  # Scale by best sensor's quality
 
         logger.info(
             f"✅ WEIGHTED CONSENSUS {consensus_side}: "
             f"Σ={winner_sum:.2f} vs {loser_sum:.2f} (Δ={winner_sum - loser_sum:.2f}) | "
-            f"Best: {selected['sensor_id']} ({selected['score']:.3f}) | "
-            f"Sensors: {len(winner_signals)} | "
+            f"Trigger: {selected['sensor_id']} ({selected['score']:.3f}) | "
+            f"Voters: {len(winner_signals)} | "
             f"HTF: {'✓' if htf_context == consensus_side else 'N/A'}"
         )
 
@@ -343,6 +379,7 @@ class SignalAggregatorV3:
                 "long_count": len(long_signals),
                 "short_count": len(short_signals),
                 "margin": winner_sum - loser_sum,
+                "total_voters": len(winner_signals),
                 **(selected["signal"].metadata or {}),
             },
             strategy_name=strategy_name,

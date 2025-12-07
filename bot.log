@@ -2004,3 +2004,60 @@ Using REST positions.
 🔌 BinanceNativeConnector.close() called
 📡 Ticker stream for BNBUSDT cancelled
 🛑 Keepalive task cancelled
+Task exception was never retrieved
+future: <Task finished name='Task-8' coro=<BinanceNativeConnector._listen_user_data_stream() done, defined at /home/chesterbelle/Casino-V2/exchanges/connectors/binance/binance_native_connector.py:232> exception=KeyboardInterrupt()>
+Traceback (most recent call last):
+  File "uvloop/loop.pyx", line 476, in uvloop.loop.Loop._on_idle
+  File "uvloop/cbhandles.pyx", line 83, in uvloop.loop.Handle._run
+  File "uvloop/cbhandles.pyx", line 63, in uvloop.loop.Handle._run
+  File "/home/chesterbelle/Casino-V2/exchanges/connectors/binance/binance_native_connector.py", line 241, in _listen_user_data_stream
+    async for message in self._user_data_ws:
+    ...<16 lines>...
+            self.logger.error(f"❌ Error processing User Data Stream message: {e}")
+  File "/home/chesterbelle/Casino-V2/.venv/lib/python3.13/site-packages/websockets/asyncio/connection.py", line 242, in __aiter__
+    yield await self.recv()
+          ^^^^^^^^^^^^^^^^^
+  File "/home/chesterbelle/Casino-V2/.venv/lib/python3.13/site-packages/websockets/asyncio/connection.py", line 255, in recv
+    async def recv(self, decode: bool | None = None) -> Data:
+
+  File "/usr/lib/python3.13/asyncio/runners.py", line 157, in _on_sigint
+    raise KeyboardInterrupt()
+KeyboardInterrupt
+CLOSE frame received, closing websocket connection
+⚠️ WebSocket Closed
+👋 Engine stopped.
+🛑 Keepalive task cancelled
+Traceback (most recent call last):
+  File "/home/chesterbelle/Casino-V2/main.py", line 343, in <module>
+    asyncio.run(main())
+    ~~~~~~~~~~~^^^^^^^^
+  File "/usr/lib/python3.13/asyncio/runners.py", line 195, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.13/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "uvloop/loop.pyx", line 1512, in uvloop.loop.Loop.run_until_complete
+  File "uvloop/loop.pyx", line 1505, in uvloop.loop.Loop.run_until_complete
+  File "uvloop/loop.pyx", line 1379, in uvloop.loop.Loop.run_forever
+  File "uvloop/loop.pyx", line 557, in uvloop.loop.Loop._run
+  File "uvloop/loop.pyx", line 476, in uvloop.loop.Loop._on_idle
+  File "uvloop/cbhandles.pyx", line 83, in uvloop.loop.Handle._run
+  File "uvloop/cbhandles.pyx", line 63, in uvloop.loop.Handle._run
+  File "/home/chesterbelle/Casino-V2/exchanges/connectors/binance/binance_native_connector.py", line 241, in _listen_user_data_stream
+    async for message in self._user_data_ws:
+    ...<16 lines>...
+            self.logger.error(f"❌ Error processing User Data Stream message: {e}")
+  File "/home/chesterbelle/Casino-V2/.venv/lib/python3.13/site-packages/websockets/asyncio/connection.py", line 242, in __aiter__
+    yield await self.recv()
+          ^^^^^^^^^^^^^^^^^
+  File "/home/chesterbelle/Casino-V2/.venv/lib/python3.13/site-packages/websockets/asyncio/connection.py", line 255, in recv
+    async def recv(self, decode: bool | None = None) -> Data:
+
+  File "/usr/lib/python3.13/asyncio/runners.py", line 157, in _on_sigint
+    raise KeyboardInterrupt()
+KeyboardInterrupt
+Traceback (most recent call last):
+  File "/usr/lib/python3.13/threading.py", line 1542, in _shutdown
+    _thread_shutdown()
+KeyboardInterrupt:
