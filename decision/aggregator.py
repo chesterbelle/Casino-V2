@@ -1,6 +1,12 @@
 """
 Signal Aggregator for Casino-V3.
-Collects signals from multiple sensors and applies intelligent scoring.
+Collects signals from multiple sensors and applies Weighted Consensus scoring.
+
+Weighted Consensus: ΣL vs ΣS
+- Sum all LONG sensor scores → ΣL
+- Sum all SHORT sensor scores → ΣS
+- The side with higher total wins
+- Captures both quality (individual score) and quantity (consensus)
 """
 
 import asyncio
@@ -16,9 +22,9 @@ from .sensor_tracker import SensorTracker
 
 logger = logging.getLogger(__name__)
 
-# Configuration (previously from config.paroli)
+# Configuration
 SIGNAL_TIMEOUT_MS = 100  # Wait 100ms for all sensors to fire
-CONFLICT_DELTA_THRESHOLD = 0.02  # Min score difference to resolve conflict
+MIN_SCORE_THRESHOLD = 0.5  # Only sensors with proven/neutral performance participate
 
 
 class AggregatedSignalEvent(Event):
@@ -108,25 +114,30 @@ class SignalAggregatorV3:
         await self._process_signals(candle_ts)
 
     async def _process_signals(self, candle_ts: float):
-        """Process buffered signals using intelligent scoring."""
+        """
+        Process buffered signals using Weighted Consensus.
+
+        Weighted Consensus Algorithm:
+        1. Filter signals by minimum score threshold
+        2. Extract HTF context (optional trend filter)
+        3. Calculate ΣL (sum of LONG scores) and ΣS (sum of SHORT scores)
+        4. Winner = side with higher Σ
+        5. Confidence = winner_sum / total_sum
+        """
         signals = self.signal_buffer.get(candle_ts, [])
 
         if not signals:
             return
 
-        # 1. Filter by Score (Quality Control - ENABLED)
-        # Sensors need at least neutral score to participate
-        MIN_SCORE_THRESHOLD = 0.5  # Only allow sensors with proven/neutral performance
-
+        # 1. Filter by Score (Quality Gate)
         valid_signals = [s for s in signals if self.tracker.get_sensor_score(s.sensor_id) >= MIN_SCORE_THRESHOLD]
 
         if not valid_signals:
             logger.debug(
                 f"   All signals filtered out for candle {candle_ts} due to low score (< {MIN_SCORE_THRESHOLD})"
             )
-            # Emit SKIP signal if no valid signals remain
             aggregated = AggregatedSignalEvent(
-                symbol=signals[0].symbol,  # Use symbol from original signals, even if none are valid
+                symbol=signals[0].symbol,
                 candle_timestamp=candle_ts,
                 selected_sensor="None",
                 sensor_score=0.0,
@@ -135,12 +146,11 @@ class SignalAggregatorV3:
                 total_signals=len(signals),
             )
             await self.engine.dispatch(aggregated)
-            # Clear processed signals
             if candle_ts in self.signal_buffer:
                 del self.signal_buffer[candle_ts]
             return
 
-        # 2. Extract HTF context from context sensors (HigherTFTrend, HurstRegime)
+        # 2. Extract HTF context from context sensors
         context_sensors = {"HigherTFTrend", "HurstRegime", "MTFImpulse"}
         htf_context = None  # "LONG", "SHORT", or None
 
@@ -150,27 +160,11 @@ class SignalAggregatorV3:
                 logger.debug(f"📊 HTF Context: {signal.sensor_id} = {htf_context}")
                 break
 
-        # 3. VOTING SYSTEM - Count votes by direction (exclude context sensors from voting)
+        # 3. WEIGHTED CONSENSUS - Calculate ΣL and ΣS
         trading_signals = [s for s in valid_signals if s.sensor_id not in context_sensors]
 
-        long_votes = sum(1 for s in trading_signals if s.side == "LONG")
-        short_votes = sum(1 for s in trading_signals if s.side == "SHORT")
-        total_votes = long_votes + short_votes
-
-        # Minimum 2 sensors must agree (VOTING REQUIREMENT)
-        MIN_VOTES_REQUIRED = 2
-
-        logger.debug(f"📊 Votes: LONG={long_votes}, SHORT={short_votes}, HTF={htf_context}")
-
-        # Determine consensus direction
-        consensus_side = None
-        if long_votes >= MIN_VOTES_REQUIRED and long_votes > short_votes:
-            consensus_side = "LONG"
-        elif short_votes >= MIN_VOTES_REQUIRED and short_votes > long_votes:
-            consensus_side = "SHORT"
-
-        if consensus_side is None:
-            logger.info(f"📊 No consensus: LONG={long_votes}, SHORT={short_votes} (need {MIN_VOTES_REQUIRED}+)")
+        if not trading_signals:
+            logger.debug("   No trading signals after filtering context sensors")
             aggregated = AggregatedSignalEvent(
                 symbol=signals[0].symbol,
                 candle_timestamp=candle_ts,
@@ -185,11 +179,64 @@ class SignalAggregatorV3:
                 del self.signal_buffer[candle_ts]
             return
 
-        # 4. MANDATORY HTF ALIGNMENT - Reject if against HTF trend
+        # Calculate weighted sums
+        sigma_long = 0.0
+        sigma_short = 0.0
+        long_signals = []
+        short_signals = []
+
+        for signal in trading_signals:
+            score = self.tracker.get_sensor_score(signal.sensor_id)
+            if signal.side == "LONG":
+                sigma_long += score
+                long_signals.append({"signal": signal, "sensor_id": signal.sensor_id, "score": score})
+            elif signal.side == "SHORT":
+                sigma_short += score
+                short_signals.append({"signal": signal, "sensor_id": signal.sensor_id, "score": score})
+
+        total_weight = sigma_long + sigma_short
+
+        # Log weighted consensus
+        logger.debug(
+            f"📊 Weighted Consensus: ΣL={sigma_long:.2f} ({len(long_signals)} sensors) | "
+            f"ΣS={sigma_short:.2f} ({len(short_signals)} sensors)"
+        )
+
+        # 4. Determine winner by weighted sum
+        if sigma_long == sigma_short:
+            # Exact tie (very rare) - SKIP
+            logger.info(f"⚖️ Exact tie: ΣL={sigma_long:.2f} = ΣS={sigma_short:.2f} → SKIP")
+            aggregated = AggregatedSignalEvent(
+                symbol=signals[0].symbol,
+                candle_timestamp=candle_ts,
+                selected_sensor="None",
+                sensor_score=0.0,
+                side="SKIP",
+                confidence=0.0,
+                total_signals=len(signals),
+            )
+            await self.engine.dispatch(aggregated)
+            if candle_ts in self.signal_buffer:
+                del self.signal_buffer[candle_ts]
+            return
+
+        # Winner is side with higher Σ
+        if sigma_long > sigma_short:
+            consensus_side = "LONG"
+            winner_sum = sigma_long
+            winner_signals = long_signals
+            loser_sum = sigma_short
+        else:
+            consensus_side = "SHORT"
+            winner_sum = sigma_short
+            winner_signals = short_signals
+            loser_sum = sigma_long
+
+        # 5. HTF Alignment Check (optional filter)
         if htf_context and consensus_side != htf_context:
             logger.info(
                 f"🚫 Rejecting {consensus_side}: Against HTF trend ({htf_context}) | "
-                f"Votes: L={long_votes} S={short_votes}"
+                f"ΣL={sigma_long:.2f} ΣS={sigma_short:.2f}"
             )
             aggregated = AggregatedSignalEvent(
                 symbol=signals[0].symbol,
@@ -205,30 +252,23 @@ class SignalAggregatorV3:
                 del self.signal_buffer[candle_ts]
             return
 
-        # 5. Select BEST signal from consensus direction
-        consensus_signals = [s for s in trading_signals if s.side == consensus_side]
+        # 6. Select BEST individual sensor from winning side (for attribution)
+        selected = max(winner_signals, key=lambda s: s["score"])
 
-        # Score them
-        scored_signals = []
-        for signal in consensus_signals:
-            sensor_id = signal.sensor_id
-            score = self.tracker.get_sensor_score(sensor_id)
-            scored_signals.append({"signal": signal, "sensor_id": sensor_id, "score": score, "side": signal.side})
-
-        # Pick the highest scored
-        selected = max(scored_signals, key=lambda s: s["score"])
-
-        # Get strategy context for selected sensor
+        # Get strategy context
         strategies = get_strategy_for_sensor(selected["sensor_id"])
         strategy_name = strategies[0] if strategies else "Unknown"
 
-        # Calculate confidence based on consensus strength
-        consensus_ratio = max(long_votes, short_votes) / max(total_votes, 1)
-        confidence = selected["score"] * consensus_ratio
+        # Calculate confidence: margin of victory
+        # confidence = (winner_sum - loser_sum) / total_weight
+        margin = (winner_sum - loser_sum) / total_weight if total_weight > 0 else 0
+        confidence = margin * selected["score"]  # Scale by best sensor's quality
 
         logger.info(
-            f"✅ CONSENSUS {consensus_side}: {long_votes}L/{short_votes}S | "
-            f"Best: {selected['sensor_id']} (score={selected['score']:.3f}) | "
+            f"✅ WEIGHTED CONSENSUS {consensus_side}: "
+            f"Σ={winner_sum:.2f} vs {loser_sum:.2f} (Δ={winner_sum - loser_sum:.2f}) | "
+            f"Best: {selected['sensor_id']} ({selected['score']:.3f}) | "
+            f"Sensors: {len(winner_signals)} | "
             f"HTF: {'✓' if htf_context == consensus_side else 'N/A'}"
         )
 
@@ -237,10 +277,17 @@ class SignalAggregatorV3:
             candle_timestamp=candle_ts,
             selected_sensor=selected["sensor_id"],
             sensor_score=selected["score"],
-            side=selected["side"],
+            side=consensus_side,
             confidence=confidence,
             total_signals=len(signals),
-            metadata=selected["signal"].metadata,
+            metadata={
+                "sigma_long": sigma_long,
+                "sigma_short": sigma_short,
+                "long_count": len(long_signals),
+                "short_count": len(short_signals),
+                "margin": winner_sum - loser_sum,
+                **(selected["signal"].metadata or {}),
+            },
             strategy_name=strategy_name,
         )
 
@@ -249,64 +296,3 @@ class SignalAggregatorV3:
         # Clear processed signals
         if candle_ts in self.signal_buffer:
             del self.signal_buffer[candle_ts]
-
-    def _select_best_signal(self, scored_signals: List[Dict]) -> Optional[Dict]:
-        """
-        Select the best signal from scored signals.
-
-        Logic:
-        1. Group by direction (LONG/SHORT)
-        2. Pick highest score in each direction
-        3. If same direction: return best
-        4. If opposite directions: return best if delta > threshold, else SKIP
-
-        Returns:
-            Selected signal dict or None (SKIP)
-        """
-        if not scored_signals:
-            return None
-
-        # Group by direction
-        long_signals = [s for s in scored_signals if s["side"] == "LONG"]
-        short_signals = [s for s in scored_signals if s["side"] == "SHORT"]
-
-        # Case 1: Only one direction - pick best
-        if long_signals and not short_signals:
-            best = max(long_signals, key=lambda s: s["score"])
-            logger.debug(f"   Best LONG: {best['sensor_id']} (score: {best['score']:.3f})")
-            return best
-
-        if short_signals and not long_signals:
-            best = max(short_signals, key=lambda s: s["score"])
-            logger.debug(f"   Best SHORT: {best['sensor_id']} (score: {best['score']:.3f})")
-            return best
-
-        # Case 2: Conflicting directions - pick best overall if delta is significant
-        if long_signals and short_signals:
-            best_long = max(long_signals, key=lambda s: s["score"])
-            best_short = max(short_signals, key=lambda s: s["score"])
-
-            score_delta = abs(best_long["score"] - best_short["score"])
-
-            # If difference is too small, skip (no clear winner)
-            if score_delta < CONFLICT_DELTA_THRESHOLD:
-                logger.info(
-                    f"⚖️ Conflict unresolved | "
-                    f"LONG: {best_long['sensor_id']} ({best_long['score']:.3f}) vs "
-                    f"SHORT: {best_short['sensor_id']} ({best_short['score']:.3f}) | "
-                    f"Delta: {score_delta:.3f} < {CONFLICT_DELTA_THRESHOLD}"
-                )
-                return None
-
-            # Return the higher scored signal
-            winner = best_long if best_long["score"] > best_short["score"] else best_short
-            loser = best_short if winner == best_long else best_long
-            logger.info(
-                f"⚖️ Conflict resolved | "
-                f"Winner: {winner['sensor_id']} ({winner['side']}, {winner['score']:.3f}) | "
-                f"Loser: {loser['sensor_id']} ({loser['side']}, {loser['score']:.3f})"
-            )
-            return winner
-
-        # Case 3: No valid signals
-        return None
