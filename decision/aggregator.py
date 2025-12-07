@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 # Configuration
 SIGNAL_TIMEOUT_MS = 100  # Wait 100ms for all sensors to fire
 MIN_SCORE_THRESHOLD = 0.5  # Only sensors with proven/neutral performance participate
+MIN_MARGIN_RATIO = 0.10  # Winner must have 10% higher Σ than loser for conviction
 
 
 class AggregatedSignalEvent(Event):
@@ -150,15 +151,29 @@ class SignalAggregatorV3:
                 del self.signal_buffer[candle_ts]
             return
 
-        # 2. Extract HTF context from context sensors
+        # 2. Extract HTF context from ALL context sensors (weighted by count)
         context_sensors = {"HigherTFTrend", "HurstRegime", "MTFImpulse"}
-        htf_context = None  # "LONG", "SHORT", or None
+        htf_long_count = 0
+        htf_short_count = 0
 
         for signal in valid_signals:
             if signal.sensor_id in context_sensors:
-                htf_context = signal.side
-                logger.debug(f"📊 HTF Context: {signal.sensor_id} = {htf_context}")
-                break
+                if signal.side == "LONG":
+                    htf_long_count += 1
+                elif signal.side == "SHORT":
+                    htf_short_count += 1
+                logger.debug(f"📊 HTF Context: {signal.sensor_id} = {signal.side}")
+
+        # Determine HTF consensus (majority of context sensors)
+        if htf_long_count > htf_short_count:
+            htf_context = "LONG"
+        elif htf_short_count > htf_long_count:
+            htf_context = "SHORT"
+        else:
+            htf_context = None  # No clear HTF direction or no context sensors
+
+        if htf_context:
+            logger.debug(f"📊 HTF Consensus: {htf_context} ({htf_long_count}L/{htf_short_count}S)")
 
         # 3. WEIGHTED CONSENSUS - Calculate ΣL and ΣS
         trading_signals = [s for s in valid_signals if s.sensor_id not in context_sensors]
@@ -180,19 +195,39 @@ class SignalAggregatorV3:
             return
 
         # Calculate weighted sums
+        # Weight = historical_score * signal_strength
         sigma_long = 0.0
         sigma_short = 0.0
         long_signals = []
         short_signals = []
 
         for signal in trading_signals:
-            score = self.tracker.get_sensor_score(signal.sensor_id)
+            historical_score = self.tracker.get_sensor_score(signal.sensor_id)
+            # Signal strength: 0-1, default 1.0 if not provided
+            signal_strength = getattr(signal, "score", 1.0)
+            # Combined weight: historical performance * current signal strength
+            combined_score = historical_score * signal_strength
+
             if signal.side == "LONG":
-                sigma_long += score
-                long_signals.append({"signal": signal, "sensor_id": signal.sensor_id, "score": score})
+                sigma_long += combined_score
+                long_signals.append(
+                    {
+                        "signal": signal,
+                        "sensor_id": signal.sensor_id,
+                        "score": combined_score,
+                        "strength": signal_strength,
+                    }
+                )
             elif signal.side == "SHORT":
-                sigma_short += score
-                short_signals.append({"signal": signal, "sensor_id": signal.sensor_id, "score": score})
+                sigma_short += combined_score
+                short_signals.append(
+                    {
+                        "signal": signal,
+                        "sensor_id": signal.sensor_id,
+                        "score": combined_score,
+                        "strength": signal_strength,
+                    }
+                )
 
         total_weight = sigma_long + sigma_short
 
@@ -232,7 +267,29 @@ class SignalAggregatorV3:
             winner_signals = short_signals
             loser_sum = sigma_long
 
-        # 5. HTF Alignment Check (optional filter)
+        # 5. Minimum Margin Check (conviction filter)
+        # If both sides are close, skip - not enough conviction
+        margin_ratio = (winner_sum - loser_sum) / total_weight if total_weight > 0 else 0
+        if margin_ratio < MIN_MARGIN_RATIO and loser_sum > 0:
+            logger.info(
+                f"⚖️ Low conviction: margin {margin_ratio:.1%} < {MIN_MARGIN_RATIO:.0%} | "
+                f"ΣL={sigma_long:.2f} ΣS={sigma_short:.2f} → SKIP"
+            )
+            aggregated = AggregatedSignalEvent(
+                symbol=signals[0].symbol,
+                candle_timestamp=candle_ts,
+                selected_sensor="None",
+                sensor_score=0.0,
+                side="SKIP",
+                confidence=0.0,
+                total_signals=len(signals),
+            )
+            await self.engine.dispatch(aggregated)
+            if candle_ts in self.signal_buffer:
+                del self.signal_buffer[candle_ts]
+            return
+
+        # 6. HTF Alignment Check (optional filter)
         if htf_context and consensus_side != htf_context:
             logger.info(
                 f"🚫 Rejecting {consensus_side}: Against HTF trend ({htf_context}) | "
@@ -252,7 +309,7 @@ class SignalAggregatorV3:
                 del self.signal_buffer[candle_ts]
             return
 
-        # 6. Select BEST individual sensor from winning side (for attribution)
+        # 7. Select BEST individual sensor from winning side (for attribution)
         selected = max(winner_signals, key=lambda s: s["score"])
 
         # Get strategy context

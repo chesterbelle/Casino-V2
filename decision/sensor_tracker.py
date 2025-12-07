@@ -51,6 +51,7 @@ class SensorStats:
 
     # Metadata
     last_updated: float = 0.0
+    last_win_time: float = 0.0  # Timestamp of last winning trade
 
     def __post_init__(self):
         """Initialize deques if None."""
@@ -114,9 +115,10 @@ class SensorTracker:
             stats.recent_trades.pop(0)
             stats.recent_pnls.pop(0)
 
-        # Update streak
+        # Update streak and last win time
         if won:
             stats.current_streak = stats.current_streak + 1 if stats.current_streak > 0 else 1
+            stats.last_win_time = time.time()  # Track recency
         else:
             stats.current_streak = stats.current_streak - 1 if stats.current_streak < 0 else -1
 
@@ -169,6 +171,13 @@ class SensorTracker:
         Uses relative metrics to enable comparison between sensors.
         Score is normalized to 0-1 range where higher = better.
 
+        Components:
+        - Expectancy (40%): Expected value per trade
+        - Profit Factor (25%): Risk-adjusted returns
+        - Streak (20%): Recent winning/losing momentum
+        - Win Rate (10%): Consistency
+        - Time Decay (5%): Recency of success
+
         Returns:
             Score between 0.0 and 1.0 (higher is better)
             Returns 0.5 (neutral) for sensors with insufficient data
@@ -199,21 +208,32 @@ class SensorTracker:
             # Losing: map 0.0-1.0 → 0.0-0.5
             pf_score = stats.profit_factor * 0.5
 
-        # Component 4: Streak (bonus/penalty, -1 to +1)
+        # Component 4: Streak (bonus/penalty) - INCREASED WEIGHT
+        # Winning streaks boost, losing streaks penalize significantly
         if stats.current_streak > 0:
-            streak_score = 0.5 + min(stats.current_streak / 10.0, 0.5)  # Max bonus at 10-win streak
+            # Max bonus at 5-win streak (more aggressive)
+            streak_score = 0.5 + min(stats.current_streak / 5.0, 0.5)
         elif stats.current_streak < 0:
-            streak_score = 0.5 - min(abs(stats.current_streak) / 10.0, 0.5)  # Max penalty at 10-loss streak
+            # Max penalty at 3-loss streak (sensor fatigue kicks in faster)
+            streak_score = 0.5 - min(abs(stats.current_streak) / 3.0, 0.5)
         else:
             streak_score = 0.5  # Neutral
 
+        # Component 5: Time Decay - Recent success matters more
+        # Decay factor: 0.95^days since last win
+        if stats.last_win_time > 0:
+            days_since_win = (time.time() - stats.last_win_time) / 86400.0
+            time_decay_score = 0.95 ** min(days_since_win, 30)  # Cap at 30 days
+        else:
+            time_decay_score = 0.5  # Neutral for no wins yet
+
         # Weighted composite score
-        # Prioritize expectancy and win rate for signal quality
         score = (
-            expectancy_score * 0.60  # Expected value per trade (primary driver)
-            + pf_score * 0.30  # Risk-adjusted returns (secondary)
-            + win_rate_score * 0.05  # Consistency (minor factor)
-            + streak_score * 0.05  # Recent momentum (minor factor)
+            expectancy_score * 0.40  # Expected value per trade (primary)
+            + pf_score * 0.25  # Risk-adjusted returns
+            + streak_score * 0.20  # Recent momentum (INCREASED from 0.05)
+            + win_rate_score * 0.10  # Consistency
+            + time_decay_score * 0.05  # Recency bonus
         )
 
         return max(min(score, 1.0), 0.0)  # Clamp to [0, 1]

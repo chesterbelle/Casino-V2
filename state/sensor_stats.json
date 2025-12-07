@@ -419,7 +419,8 @@
     "avg_win": 0.3994865666251732,
     "avg_loss": 0.35922976115295974,
     "current_streak": -1,
-    "last_updated": 1764943265.2440057
+    "last_updated": 1764943265.2440057,
+    "last_win_time": 0.0
   },
   "MarubozuMomentum": {
     "sensor_id": "MarubozuMomentum",
@@ -841,7 +842,8 @@
     "avg_win": 0.5646514527666703,
     "avg_loss": 0.6331096268414349,
     "current_streak": -5,
-    "last_updated": 1764942850.7394228
+    "last_updated": 1764942850.7394228,
+    "last_win_time": 0.0
   },
   "WickRejection": {
     "sensor_id": "WickRejection",
@@ -1263,7 +1265,8 @@
     "avg_win": 0.3596573758897948,
     "avg_loss": 0.40990661845778953,
     "current_streak": -4,
-    "last_updated": 1764943112.60712
+    "last_updated": 1764943112.60712,
+    "last_win_time": 0.0
   },
   "RSIReversion": {
     "sensor_id": "RSIReversion",
@@ -1685,7 +1688,8 @@
     "avg_win": 0.023726026255916886,
     "avg_loss": 0.021849728809639063,
     "current_streak": -1,
-    "last_updated": 1764942918.8386676
+    "last_updated": 1764942918.8386676,
+    "last_win_time": 0.0
   },
   "InsideBarBreakout": {
     "sensor_id": "InsideBarBreakout",
@@ -2107,7 +2111,8 @@
     "avg_win": 0.06600987742457841,
     "avg_loss": 0.06804109831078221,
     "current_streak": -1,
-    "last_updated": 1764943264.359364
+    "last_updated": 1764943264.359364,
+    "last_win_time": 0.0
   },
   "MicroTrend": {
     "sensor_id": "MicroTrend",
@@ -2529,7 +2534,8 @@
     "avg_win": 0.06313449294218468,
     "avg_loss": 0.0753940004852382,
     "current_streak": 1,
-    "last_updated": 1764943020.0419
+    "last_updated": 1764943020.0419,
+    "last_win_time": 0.0
   },
   "WilliamsRReversion": {
     "sensor_id": "WilliamsRReversion",
@@ -2951,7 +2957,8 @@
     "avg_win": 0.017171271720675237,
     "avg_loss": 0.01746873690331918,
     "current_streak": -1,
-    "last_updated": 1764942919.4821677
+    "last_updated": 1764942919.4821677,
+    "last_win_time": 0.0
   },
   "StochasticReversion": {
     "sensor_id": "StochasticReversion",
@@ -3373,7 +3380,8 @@
     "avg_win": 0.03193671254968682,
     "avg_loss": 0.02877990497474461,
     "current_streak": -3,
-    "last_updated": 1764943020.897419
+    "last_updated": 1764943020.897419,
+    "last_win_time": 0.0
   },
   "VolumeImbalance": {
     "sensor_id": "VolumeImbalance",
@@ -3795,7 +3803,8 @@
     "avg_win": 0.06058046680230295,
     "avg_loss": 0.08957180442805641,
     "current_streak": -2,
-    "last_updated": 1764943264.0057852
+    "last_updated": 1764943264.0057852,
+    "last_win_time": 0.0
   },
   "SupportResistance": {
     "sensor_id": "SupportResistance",
@@ -4217,7 +4226,8 @@
     "avg_win": 0.040613618333375956,
     "avg_loss": 0.04575838360524467,
     "current_streak": 1,
-    "last_updated": 1764943262.7287517
+    "last_updated": 1764943262.7287517,
+    "last_win_time": 0.0
   },
   "KeltnerReversion": {
     "sensor_id": "KeltnerReversion",
@@ -4639,7 +4649,8 @@
     "avg_win": 0.024836779048477527,
     "avg_loss": 0.0295966438762835,
     "current_streak": 1,
-    "last_updated": 1764942916.4461553
+    "last_updated": 1764942916.4461553,
+    "last_win_time": 0.0
   },
   "CCIReversion": {
     "sensor_id": "CCIReversion",
@@ -5061,7 +5072,8 @@
     "avg_win": 0.023857131989313003,
     "avg_loss": 0.019880040447608136,
     "current_streak": -1,
-    "last_updated": 1764942919.4997456
+    "last_updated": 1764942919.4997456,
+    "last_win_time": 0.0
   },
   "ZScoreReversion": {
     "sensor_id": "ZScoreReversion",
@@ -5483,17 +5495,18 @@
     "avg_win": 0.03231843099419914,
     "avg_loss": 0.027031953684499517,
     "current_streak": 1,
-    "last_updated": 1764942918.1521184
+    "last_updated": 1764942918.1521184,
+    "last_win_time": 0.0
   },
   "DecelerationCandles": {
     "sensor_id": "DecelerationCandles",
-    "total_trades": 4525,
-    "total_wins": 2019,
-    "total_losses": 2506,
-    "total_profit": 557.9873413097439,
-    "total_loss": 518.2290924394053,
-    "gross_profit": 557.9873413097439,
-    "gross_loss": 518.2290924394053,
+    "total_trades": 4555,
+    "total_wins": 2035,
+    "total_losses": 2520,
+    "total_profit": 565.9248161688108,
+    "total_loss": 525.6247989925123,
+    "gross_profit": 565.9248161688108,
+    "gross_loss": 525.6247989925123,
     "recent_trades": [
       0,
       0,
@@ -5502,60 +5515,45 @@
       1,
       0,
       1,
-      1,
-      1,
       0,
-      1,
       1,
       0,
       0,
       0,
-      0,
       1,
       1,
-      1,
-      0,
       1,
       1,
-      0,
-      0,
       1,
-      0,
       0,
-      0,
       1,
       1,
-      0,
-      0,
-      0,
       0,
-      1,
       0,
       1,
-      0,
       1,
       0,
       0,
       0,
-      1,
       1,
+      0,
       1,
       1,
       1,
-      0,
       1,
       1,
       0,
       0,
-      1,
-      1,
       0,
       0,
       0,
       1,
       0,
+      0,
       1,
       1,
+      0,
+      0,
       1,
       1,
       1,
@@ -5566,41 +5564,42 @@
       0,
       1,
       0,
+      1,
       0,
       1,
       1,
       0,
       0,
-      1,
       1,
       1,
       0,
-      0,
+      1,
+      1,
+      1,
+      1,
       0,
       0,
       0,
       1,
       0,
-      1,
       0,
       1,
       1,
-      0,
-      0,
       1,
       1,
-      0,
       1,
       1,
       1,
       1,
       0,
-      0,
+      1,
       0,
       1,
       0,
       0,
       1,
+      0,
+      0,
       1,
       1,
       1,
@@ -5614,7 +5613,6 @@
       1,
       0,
       0,
-      1,
       0,
       0,
       1,
@@ -5645,6 +5643,7 @@
       1,
       0,
       0,
+      1,
       0,
       0,
       1,
@@ -5652,15 +5651,29 @@
       1,
       1,
       1,
+      0,
+      1,
+      1,
       1,
+      0,
+      0,
+      0,
       1,
       0,
+      1,
       1,
       0,
+      0,
+      0,
+      0,
       1,
+      1,
+      1,
       0,
+      1,
       0,
       1,
+      0,
       0,
       0,
       1,
@@ -5697,36 +5710,6 @@
       1
     ],
     "recent_pnls": [
-      -2.5000000000000004,
-      -0.1644474259732952,
-      -1.289268197590818,
-      -0.6166268387067156,
-      0.0963046582206436,
-      -0.211090922139307,
-      0.0371790923637854,
-      0.4174609257991206,
-      0.35804778581748375,
-      -0.43503619882433125,
-      0.6834518215013413,
-      0.5785700980644276,
-      -0.7294363745979685,
-      -0.2952006227238764,
-      -0.04560019362163569,
-      -0.23564997516259215,
-      0.3925490216832735,
-      0.2858865768233672,
-      0.17932223889685603,
-      -0.3070839403331931,
-      0.15655186414732036,
-      0.19228947032703658,
-      -0.22499921077739996,
-      -0.00999900009998172,
-      0.13303115987127068,
-      -0.5697806889180059,
-      -0.10515960062332096,
-      -0.08143743853764415,
-      0.14479481047283,
-      0.025762802832740843,
       -0.4758860979265566,
       -0.2240533209087908,
       -0.29503998168896545,
@@ -5896,16 +5879,47 @@
       -0.8824211432106233,
       -0.05682216161691872,
       0.5145881180961147,
+      0.9124496804613349,
+      0.1173030845063638,
+      0.25630137310494094,
+      0.10571677469449131,
+      -0.6686457207245993,
+      0.591096959668187,
+      1.0759698149191357,
+      0.10479468516181945,
+      -0.032977283680333605,
+      -0.1820760190265336,
+      -0.27436486896591256,
+      0.5301147853264285,
+      -0.2963000983483122,
+      0.8123745220570407,
+      1.0518702286943036,
+      -0.9707814393577816,
+      -0.48394004530182766,
+      -0.5989226692297851,
+      -1.1748190809523433,
+      0.31770877497346356,
+      0.20134670422108403,
+      0.47315834120773864,
+      -0.2914297522986012,
+      0.3073045259872579,
+      -0.2568878914577599,
+      0.5653764859872124,
+      -1.2253183789355844,
+      -0.8824211432106233,
+      -0.05682216161691872,
+      0.5145881180961147,
       0.9124496804613349
     ],
-    "win_rate_short": 0.56,
-    "win_rate_medium": 0.53,
-    "expectancy": 0.03194936541101899,
-    "profit_factor": 1.0767194459947989,
-    "avg_win": 0.27636817301126493,
-    "avg_loss": 0.20679532818811067,
+    "win_rate_short": 0.52,
+    "win_rate_medium": 0.54,
+    "expectancy": 0.034776569677262795,
+    "profit_factor": 1.076670692200108,
+    "avg_win": 0.2780957327610864,
+    "avg_loss": 0.20858126944147312,
     "current_streak": 2,
-    "last_updated": 1765073859.7782702
+    "last_updated": 1765074288.6281345,
+    "last_win_time": 1765074288.6281292
   },
   "ThreeBar": {
     "sensor_id": "ThreeBar",
@@ -6327,7 +6341,8 @@
     "avg_win": 0.17761430323549154,
     "avg_loss": 0.1723820705012179,
     "current_streak": 4,
-    "last_updated": 1764943185.3569899
+    "last_updated": 1764943185.3569899,
+    "last_win_time": 0.0
   },
   "ADXFilter": {
     "sensor_id": "ADXFilter",
@@ -6749,7 +6764,8 @@
     "avg_win": 0.02313832404201645,
     "avg_loss": 0.031492800278886846,
     "current_streak": 2,
-    "last_updated": 1764943265.8137298
+    "last_updated": 1764943265.8137298,
+    "last_win_time": 0.0
   },
   "AbsorptionBlock": {
     "sensor_id": "AbsorptionBlock",
@@ -7171,7 +7187,8 @@
     "avg_win": 0.03418869361995592,
     "avg_loss": 0.11250437915276851,
     "current_streak": 1,
-    "last_updated": 1764943242.5431194
+    "last_updated": 1764943242.5431194,
+    "last_win_time": 0.0
   },
   "VolatilityWakeup": {
     "sensor_id": "VolatilityWakeup",
@@ -7593,7 +7610,8 @@
     "avg_win": 0.08605184764232701,
     "avg_loss": 0.10893980473158936,
     "current_streak": 3,
-    "last_updated": 1764943185.61888
+    "last_updated": 1764943185.61888,
+    "last_win_time": 0.0
   },
   "BollingerRejection": {
     "sensor_id": "BollingerRejection",
@@ -8015,7 +8033,8 @@
     "avg_win": 0.06688474318847913,
     "avg_loss": 0.07542288196487747,
     "current_streak": -2,
-    "last_updated": 1764943184.5078888
+    "last_updated": 1764943184.5078888,
+    "last_win_time": 0.0
   },
   "RailsPattern": {
     "sensor_id": "RailsPattern",
@@ -8437,7 +8456,8 @@
     "avg_win": 0.09511821829959899,
     "avg_loss": 0.09626709323789719,
     "current_streak": -1,
-    "last_updated": 1764943257.4634888
+    "last_updated": 1764943257.4634888,
+    "last_win_time": 0.0
   },
   "MACDCrossover": {
     "sensor_id": "MACDCrossover",
@@ -8859,7 +8879,8 @@
     "avg_win": 0.04814353712881752,
     "avg_loss": 0.048057356151676243,
     "current_streak": 4,
-    "last_updated": 1764943263.225395
+    "last_updated": 1764943263.225395,
+    "last_win_time": 0.0
   },
   "EMACrossover": {
     "sensor_id": "EMACrossover",
@@ -9281,7 +9302,8 @@
     "avg_win": 0.09841843004445762,
     "avg_loss": 0.08388566648763383,
     "current_streak": -3,
-    "last_updated": 1764945984.8578966
+    "last_updated": 1764945984.8578966,
+    "last_win_time": 0.0
   },
   "EMA50Support": {
     "sensor_id": "EMA50Support",
@@ -9703,7 +9725,8 @@
     "avg_win": 0.024617486769491607,
     "avg_loss": 0.027744332080348506,
     "current_streak": 4,
-    "last_updated": 1764943264.4127505
+    "last_updated": 1764943264.4127505,
+    "last_win_time": 0.0
   },
   "HurstRegime": {
     "sensor_id": "HurstRegime",
@@ -10125,7 +10148,8 @@
     "avg_win": 0.02672663503583825,
     "avg_loss": 0.028845890638751016,
     "current_streak": 2,
-    "last_updated": 1764943265.5646327
+    "last_updated": 1764943265.5646327,
+    "last_win_time": 0.0
   },
   "ExtremeCandleRatio": {
     "sensor_id": "ExtremeCandleRatio",
@@ -10547,7 +10571,8 @@
     "avg_win": 0.039666856380795465,
     "avg_loss": 0.04495843461486043,
     "current_streak": -1,
-    "last_updated": 1764943020.696117
+    "last_updated": 1764943020.696117,
+    "last_win_time": 0.0
   },
   "MomentumBurst": {
     "sensor_id": "MomentumBurst",
@@ -10969,7 +10994,8 @@
     "avg_win": 0.15207852795575466,
     "avg_loss": 0.13413525739071466,
     "current_streak": -4,
-    "last_updated": 1764945989.526995
+    "last_updated": 1764945989.526995,
+    "last_win_time": 0.0
   },
   "VWAPBreakout": {
     "sensor_id": "VWAPBreakout",
@@ -11391,7 +11417,8 @@
     "avg_win": 0.034003910088686806,
     "avg_loss": 0.05031431296993056,
     "current_streak": 1,
-    "last_updated": 1764942968.1760838
+    "last_updated": 1764942968.1760838,
+    "last_win_time": 0.0
   },
   "AdaptiveRSI": {
     "sensor_id": "AdaptiveRSI",
@@ -11813,7 +11840,8 @@
     "avg_win": 0.05568365910500286,
     "avg_loss": 0.051572949544729706,
     "current_streak": -2,
-    "last_updated": 1764943019.8958437
+    "last_updated": 1764943019.8958437,
+    "last_win_time": 0.0
   },
   "Supertrend": {
     "sensor_id": "Supertrend",
@@ -12235,7 +12263,8 @@
     "avg_win": 0.08702189224377177,
     "avg_loss": 0.11706704308519486,
     "current_streak": 2,
-    "last_updated": 1764943263.8387296
+    "last_updated": 1764943263.8387296,
+    "last_win_time": 0.0
   },
   "VWAPMomentum": {
     "sensor_id": "VWAPMomentum",
@@ -12657,7 +12686,8 @@
     "avg_win": 0.1631191316981959,
     "avg_loss": 0.13375303978261496,
     "current_streak": -4,
-    "last_updated": 1764944327.4899535
+    "last_updated": 1764944327.4899535,
+    "last_win_time": 0.0
   },
   "MTFImpulse": {
     "sensor_id": "MTFImpulse",
@@ -13079,7 +13109,8 @@
     "avg_win": 0.04824507914383123,
     "avg_loss": 0.09427702814392921,
     "current_streak": -1,
-    "last_updated": 1764942859.1077886
+    "last_updated": 1764942859.1077886,
+    "last_win_time": 0.0
   },
   "BollingerTouch": {
     "sensor_id": "BollingerTouch",
@@ -13501,7 +13532,8 @@
     "avg_win": 0.11298687788162974,
     "avg_loss": 0.11690616920938204,
     "current_streak": -3,
-    "last_updated": 1764943185.8757918
+    "last_updated": 1764943185.8757918,
+    "last_win_time": 0.0
   },
   "KeltnerBreakout": {
     "sensor_id": "KeltnerBreakout",
@@ -13923,7 +13955,8 @@
     "avg_win": 0.16369815806022026,
     "avg_loss": 0.11308228009931438,
     "current_streak": -6,
-    "last_updated": 1764943258.7064877
+    "last_updated": 1764943258.7064877,
+    "last_win_time": 0.0
   },
   "VSAReversal": {
     "sensor_id": "VSAReversal",
@@ -14073,7 +14106,8 @@
     "avg_win": 0.062198044148832274,
     "avg_loss": 0.12389647548205962,
     "current_streak": -1,
-    "last_updated": 1764943063.951889
+    "last_updated": 1764943063.951889,
+    "last_win_time": 0.0
   },
   "LongTail": {
     "sensor_id": "LongTail",
@@ -14495,7 +14529,8 @@
     "avg_win": 0.4800044658035065,
     "avg_loss": 0.09995518929890969,
     "current_streak": -10,
-    "last_updated": 1764946145.3858747
+    "last_updated": 1764946145.3858747,
+    "last_win_time": 0.0
   },
   "HigherTFTrend": {
     "sensor_id": "HigherTFTrend",
@@ -14917,7 +14952,8 @@
     "avg_win": 0.3668605622805699,
     "avg_loss": 0.44177002500054946,
     "current_streak": 1,
-    "last_updated": 1764943252.8485286
+    "last_updated": 1764943252.8485286,
+    "last_win_time": 0.0
   },
   "SmartRange": {
     "sensor_id": "SmartRange",
@@ -15035,7 +15071,8 @@
     "avg_win": 0.027181166494612958,
     "avg_loss": 0.07678744068253597,
     "current_streak": 1,
-    "last_updated": 1764942995.1797931
+    "last_updated": 1764942995.1797931,
+    "last_win_time": 0.0
   },
   "DojiIndecision": {
     "sensor_id": "DojiIndecision",
@@ -15457,7 +15494,8 @@
     "avg_win": 0.029423949124459812,
     "avg_loss": 0.06298740466975257,
     "current_streak": -4,
-    "last_updated": 1764942890.2994864
+    "last_updated": 1764942890.2994864,
+    "last_win_time": 0.0
   },
   "WyckoffSpring": {
     "sensor_id": "WyckoffSpring",
@@ -15879,7 +15917,8 @@
     "avg_win": 0.6167385041439803,
     "avg_loss": 0.6423762891877584,
     "current_streak": -6,
-    "last_updated": 1764944325.098085
+    "last_updated": 1764944325.098085,
+    "last_win_time": 0.0
   },
   "EngulfingPattern": {
     "sensor_id": "EngulfingPattern",
@@ -16115,7 +16154,8 @@
     "avg_win": 0.08923713530068113,
     "avg_loss": 0.11569374415895713,
     "current_streak": -6,
-    "last_updated": 1764943089.307491
+    "last_updated": 1764943089.307491,
+    "last_win_time": 0.0
   },
   "TweezerPattern": {
     "sensor_id": "TweezerPattern",
@@ -16503,7 +16543,8 @@
     "avg_win": 0.0910669197802474,
     "avg_loss": 0.209554670760758,
     "current_streak": 1,
-    "last_updated": 1764943095.0335257
+    "last_updated": 1764943095.0335257,
+    "last_win_time": 0.0
   },
   "VolumeSpike": {
     "sensor_id": "VolumeSpike",
@@ -16817,7 +16858,8 @@
     "avg_win": 0.7736284699056487,
     "avg_loss": 0.4135897189173581,
     "current_streak": 1,
-    "last_updated": 1764946236.3104546
+    "last_updated": 1764946236.3104546,
+    "last_win_time": 0.0
   },
   "FVGRetest": {
     "sensor_id": "FVGRetest",
@@ -16947,7 +16989,8 @@
     "avg_win": 0.2460636888913628,
     "avg_loss": 0.5958230099048576,
     "current_streak": -1,
-    "last_updated": 1764943069.194166
+    "last_updated": 1764943069.194166,
+    "last_win_time": 0.0
   },
   "VWAPDeviation": {
     "sensor_id": "VWAPDeviation",
@@ -17099,7 +17142,8 @@
     "avg_win": 0.3923490485386553,
     "avg_loss": 0.280968088127279,
     "current_streak": 4,
-    "last_updated": 1764943042.043881
+    "last_updated": 1764943042.043881,
+    "last_win_time": 0.0
   },
   "BollingerSqueeze": {
     "sensor_id": "BollingerSqueeze",
@@ -17181,7 +17225,8 @@
     "avg_win": 0.35344530373976896,
     "avg_loss": 0.4553223283870615,
     "current_streak": -1,
-    "last_updated": 1764943224.0894291
+    "last_updated": 1764943224.0894291,
+    "last_win_time": 0.0
   },
   "MorningStar": {
     "sensor_id": "MorningStar",
@@ -17223,6 +17268,7 @@
     "avg_win": 0.011697966768026452,
     "avg_loss": 0.49508447181991233,
     "current_streak": -3,
-    "last_updated": 1764943074.5291777
+    "last_updated": 1764943074.5291777,
+    "last_win_time": 0.0
   }
 }
