@@ -263,6 +263,15 @@ class ExchangeAdapter:
             return await self.connector.watch_order_book(symbol, limit)
         raise NotImplementedError("Connector does not support watch_order_book")
 
+    async def watch_trades(self, symbol: str = None) -> Dict[str, Any]:
+        """
+        Watch trades using WebSocket (if supported).
+        """
+        symbol = symbol or self.symbol
+        if hasattr(self.connector, "watch_trades"):
+            return await self.connector.watch_trades(symbol)
+        raise NotImplementedError("Connector does not support watch_trades")
+
     async def get_current_price(self, symbol: str = None) -> float:
         """
         Get current market price for a symbol (async).

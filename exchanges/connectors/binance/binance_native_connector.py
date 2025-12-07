@@ -428,6 +428,9 @@ class BinanceNativeConnector(BaseConnector):
             elif event_type == "24hrTicker":
                 self.logger.debug(f"📊 Ticker received for {message.get('s')}")
                 self._handle_ticker_update(message)
+            elif event_type == "aggTrade":
+                # self.logger.debug(f"⚡ Trade received for {message.get('s')}")
+                self._handle_trade_update(message)
             elif "id" in message and "result" in message:
                 # Response to subscription/request
                 self.logger.info(f"✅ WS Subscription Response: {message}")
@@ -572,6 +575,33 @@ class BinanceNativeConnector(BaseConnector):
                 # Should not happen with infinite queue, but good practice
                 pass
 
+    def _handle_trade_update(self, msg):
+        """Process trade update (aggTrade) event."""
+        symbol = msg.get("s")
+
+        if hasattr(self, "_trade_queues") and symbol in self._trade_queues:
+            # aggTrade format:
+            # "p": "Price",
+            # "q": "Quantity",
+            # "m": true/false (Is the buyer the market maker? -> True = Sell, False = Buy)
+
+            is_buyer_maker = msg.get("m")
+            side = "BID" if is_buyer_maker else "ASK"
+
+            trade = {
+                "symbol": symbol,
+                "price": float(msg.get("p")),
+                "amount": float(msg.get("q")),
+                "side": side,
+                "timestamp": int(msg.get("T")),
+                "info": msg,
+            }
+
+            try:
+                self._trade_queues[symbol].put_nowait(trade)
+            except asyncio.QueueFull:
+                pass
+
     # =========================================================
     # 📊 MARKET DATA
     # =========================================================
@@ -622,6 +652,22 @@ class BinanceNativeConnector(BaseConnector):
 
         # Wait for next update
         return await self._ticker_queues[native_symbol].get()
+
+    async def watch_trades(self, symbol: str) -> Dict[str, Any]:
+        """Watch trades (WebSocket) - aggTrade stream."""
+        native_symbol = self.normalize_symbol(symbol)
+
+        if not hasattr(self, "_trade_queues"):
+            self._trade_queues = {}
+
+        if native_symbol not in self._trade_queues:
+            self.logger.info(f"📡 Subscribing to trades (aggTrade) for {native_symbol}")
+            self._trade_queues[native_symbol] = asyncio.Queue(maxsize=1000)
+            # Subscribe via SDK to aggTrade stream
+            self.ws_client.agg_trade(symbol=native_symbol.lower(), id=1)
+
+        # Wait for next update
+        return await self._trade_queues[native_symbol].get()
 
     # =========================================================
     # 💰 ACCOUNT DATA
@@ -768,6 +814,12 @@ class BinanceNativeConnector(BaseConnector):
         except Exception as e:
             self.logger.error(f"❌ Order Failed: {e}")
             raise
+
+    async def create_market_order(
+        self, symbol: str, side: str, amount: float, params: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """Create a market order."""
+        return await self.create_order(symbol, side, amount, order_type="MARKET", params=params)
 
     async def fetch_order(self, order_id: str, symbol: str) -> Dict[str, Any]:
         """Fetch order by ID."""

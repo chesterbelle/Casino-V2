@@ -96,6 +96,14 @@ class SensorManager:
         from sensors.engulfing_pattern import EngulfingPatternV3
         from sensors.extreme_candle_ratio import ExtremeCandleRatioV3
         from sensors.fakeout import FakeoutV3
+        from sensors.footprint.absorption import FootprintAbsorptionV3
+        from sensors.footprint.advanced import (
+            FootprintDeltaDivergence,
+            FootprintPOCRejection,
+            FootprintStackedImbalance,
+            FootprintTrappedTraders,
+        )
+        from sensors.footprint.imbalance import FootprintImbalanceV3
         from sensors.fvg_retest import FVGRetestV3
         from sensors.higher_highs_lower_lows import HigherHighsLowerLowsV3
         from sensors.higher_tf_trend import HigherTFTrendV3
@@ -148,6 +156,12 @@ class SensorManager:
             RailsPatternV3,
             EMA50SupportV3,
             MarubozuMomentumV3,
+            FootprintImbalanceV3,
+            FootprintAbsorptionV3,
+            FootprintPOCRejection,
+            FootprintDeltaDivergence,
+            FootprintStackedImbalance,
+            FootprintTrappedTraders,
             VWAPBreakoutV3,
             ExtremeCandleRatioV3,
             InsideBarBreakoutV3,
@@ -256,6 +270,8 @@ class SensorManager:
             "low": event.low,
             "close": event.close,
             "volume": event.volume,
+            "profile": getattr(event, "profile", None),
+            "delta": getattr(event, "delta", 0.0),
         }
 
         # Build MTF context using BarAggregator

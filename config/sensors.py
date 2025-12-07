@@ -44,6 +44,13 @@ ACTIVE_SENSORS = {
     "VolumeImbalance": True,
     "WilliamsRReversion": True,
     "ZScoreReversion": True,
+    # === FOOTPRINT SENSORS (New) ===
+    "FootprintImbalance": True,
+    "FootprintAbsorption": True,
+    "FootprintPOCRejection": True,
+    "FootprintDeltaDivergence": True,
+    "FootprintStackedImbalance": True,
+    "FootprintTrappedTraders": True,
     # === QUICKSCALPER SENSORS (Active for demo) ===
     "Fakeout": True,
     "MicroTrend": True,
@@ -150,6 +157,14 @@ SENSOR_TIMEFRAMES = {
     "VolumeSpike": ["1m", "5m", "15m"],
     "VSAReversal": ["1m", "5m", "15m"],
     "AbsorptionBlock": ["1m", "5m", "15m"],
+    #
+    # === FOOTPRINT SENSORS ===
+    "FootprintImbalance": ["1m"],
+    "FootprintAbsorption": ["1m"],
+    "FootprintPOCRejection": ["1m"],
+    "FootprintDeltaDivergence": ["1m"],
+    "FootprintStackedImbalance": ["1m"],
+    "FootprintTrappedTraders": ["1m"],
     #
     # === SMART MONEY CONCEPTS ===
     "OrderBlock": ["5m", "15m"],
@@ -344,6 +359,19 @@ SENSOR_PARAMS = {
     },
     "Fakeout": {
         "15m": {"tp_pct": 0.1000, "sl_pct": 0.0400},  # Default
+    },
+    # === FOOTPRINT SENSORS ===
+    "FootprintPOCRejection": {
+        "1m": {"tp_pct": 0.0050, "sl_pct": 0.0030},  # Scalping defaults
+    },
+    "FootprintDeltaDivergence": {
+        "1m": {"tp_pct": 0.0050, "sl_pct": 0.0030},
+    },
+    "FootprintStackedImbalance": {
+        "1m": {"tp_pct": 0.0060, "sl_pct": 0.0030},
+    },
+    "FootprintTrappedTraders": {
+        "1m": {"tp_pct": 0.0080, "sl_pct": 0.0040},
     },
     "ParabolicSAR": {
         "15m": {"tp_pct": 0.1000, "sl_pct": 0.0400},  # Default

@@ -25,10 +25,43 @@ class Event:
 
 
 @dataclass
+class CandleEvent(Event):
+    symbol: str
+    timeframe: str
+    open: float
+    high: float
+    low: float
+    close: float
+    volume: float
+
+    def __post_init__(self):
+        self.type = EventType.CANDLE
+
+
+@dataclass
+class FootprintCandleEvent(CandleEvent):
+    """
+    Extended Candle Event with Order Flow data.
+    profile: Dict[float, Dict['bid', 'ask']] -> Price Level -> Volume
+    delta: float -> Net Buy Volume - Net Sell Volume
+    """
+
+    profile: Dict[float, Dict[str, float]] = None
+    delta: float = 0.0
+    poc: float = 0.0  # Point of Control (Price level with max volume)
+    vah: float = 0.0  # Value Area High
+    val: float = 0.0  # Value Area Low
+
+    def __post_init__(self):
+        self.type = EventType.CANDLE
+
+
+@dataclass
 class TickEvent(Event):
     symbol: str
     price: float
     volume: float = 0.0
+    side: str = "UNKNOWN"  # 'BID' (Sell) or 'ASK' (Buy)
 
     def __post_init__(self):
         self.type = EventType.TICK
@@ -79,17 +112,3 @@ class SignalEvent(Event):
 
     def __post_init__(self):
         self.type = EventType.SIGNAL
-
-
-@dataclass
-class CandleEvent(Event):
-    symbol: str
-    timeframe: str
-    open: float
-    high: float
-    low: float
-    close: float
-    volume: float
-
-    def __post_init__(self):
-        self.type = EventType.CANDLE

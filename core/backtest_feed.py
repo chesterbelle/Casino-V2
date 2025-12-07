@@ -61,14 +61,22 @@ class BacktestFeed:
         else:
             raise ValueError("Unsupported file format")
 
-        # Ensure columns exist
-        required = ["timestamp", "open", "high", "low", "close", "volume"]
-        if not all(col in self.data.columns for col in required):
-            raise ValueError(f"Data missing required columns: {required}")
+        # Check for Trade Data format
+        if all(col in self.data.columns for col in ["timestamp", "price", "volume", "side"]):
+            self.mode = "TRADES"
+            logger.info("✅ Detected Real Trade Data format.")
+        # Check for Candle Data format
+        elif all(col in self.data.columns for col in ["timestamp", "open", "high", "low", "close", "volume"]):
+            self.mode = "CANDLES"
+            logger.info("✅ Detected Candle Data format.")
+        else:
+            raise ValueError(f"Data missing required columns. Found: {self.data.columns}")
 
-        # Convert timestamp to datetime and then to epoch seconds
-        self.data["timestamp"] = pd.to_datetime(self.data["timestamp"])
-        self.data["timestamp"] = self.data["timestamp"].astype(int) // 10**9
+        # Convert timestamp to datetime and then to epoch seconds if needed
+        # (Assuming data might already be in seconds if from download_trades.py)
+        if not pd.api.types.is_numeric_dtype(self.data["timestamp"]):
+            self.data["timestamp"] = pd.to_datetime(self.data["timestamp"])
+            self.data["timestamp"] = self.data["timestamp"].astype(int) // 10**9
 
         # Sort by timestamp
         self.data = self.data.sort_values("timestamp").reset_index(drop=True)
@@ -94,21 +102,42 @@ class BacktestFeed:
 
     async def _replay_loop(self):
         """Replay data row by row."""
-        logger.info("▶️ Starting Backtest Replay...")
+        logger.info(f"▶️ Starting Backtest Replay (Mode: {self.mode})...")
 
         for index, row in self.data.iterrows():
             if not self.running:
                 break
 
-            # Simulate Ticks from Candle
-            # 1. Open Tick
-            await self._emit_tick(row["timestamp"], row["open"], row["volume"] / 4)
-            # 2. High Tick
-            await self._emit_tick(row["timestamp"], row["high"], row["volume"] / 4)
-            # 3. Low Tick
-            await self._emit_tick(row["timestamp"], row["low"], row["volume"] / 4)
-            # 4. Close Tick
-            await self._emit_tick(row["timestamp"], row["close"], row["volume"] / 4)
+            if self.mode == "TRADES":
+                # Direct Replay of Real Trades
+                await self._emit_tick(row["timestamp"], row["price"], row["volume"], row["side"])
+
+            elif self.mode == "CANDLES":
+                # Simulate Ticks from Candle with Synthetic Order Flow
+                # Logic:
+                # - Green Candle (Close > Open): More ASK volume (Aggressive Buying)
+                # - Red Candle (Close < Open): More BID volume (Aggressive Selling)
+
+                is_green = row["close"] > row["open"]
+                total_vol = row["volume"]
+
+                # 1. Open Tick
+                await self._emit_tick(row["timestamp"], row["open"], total_vol * 0.1, "BID" if is_green else "ASK")
+
+                # 2. High/Low Ticks (Simulate wicks)
+                if is_green:
+                    # Low wick (testing support) -> BID volume
+                    await self._emit_tick(row["timestamp"], row["low"], total_vol * 0.2, "BID")
+                    # High wick (pushing up) -> ASK volume
+                    await self._emit_tick(row["timestamp"], row["high"], total_vol * 0.4, "ASK")
+                else:
+                    # High wick (testing resistance) -> ASK volume
+                    await self._emit_tick(row["timestamp"], row["high"], total_vol * 0.2, "ASK")
+                    # Low wick (pushing down) -> BID volume
+                    await self._emit_tick(row["timestamp"], row["low"], total_vol * 0.4, "BID")
+
+                # 3. Close Tick
+                await self._emit_tick(row["timestamp"], row["close"], total_vol * 0.3, "ASK" if is_green else "BID")
 
             if self.delay > 0:
                 await asyncio.sleep(self.delay)
@@ -116,7 +145,7 @@ class BacktestFeed:
         logger.info("🏁 Backtest Replay Finished.")
         self.engine.running = False
 
-    async def _emit_tick(self, timestamp, price, volume):
+    async def _emit_tick(self, timestamp, price, volume, side="UNKNOWN"):
         """Emit a single tick event."""
         # Update Virtual Exchange first (no lookahead)
         if self.exchange_connector and hasattr(self.exchange_connector, "process_tick"):
@@ -128,5 +157,6 @@ class BacktestFeed:
             symbol=self.symbol,
             price=float(price),
             volume=float(volume),
+            side=side,
         )
         await self.engine.dispatch(event)

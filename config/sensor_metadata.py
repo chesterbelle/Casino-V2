@@ -438,6 +438,45 @@ SENSOR_METADATA: Dict[str, SensorMeta] = {
         "data_required": ["ohlc"],
         "description": "Price isolated by gaps on both sides - strong reversal",
     },
+    # ==========================================
+    # FOOTPRINT / ORDER FLOW (Synthetic)
+    # ==========================================
+    "FootprintImbalance": {
+        "function": "Momentum",
+        "methodology": "VolumeBased",
+        "data_required": ["ohlc", "volume"],  # Synthetic uses OHLCV
+        "description": "Aggressive buying/selling imbalance (Synthetic)",
+    },
+    "FootprintAbsorption": {
+        "function": "MeanReversion",
+        "methodology": "VolumeBased",
+        "data_required": ["ohlc", "volume"],  # Synthetic uses OHLCV
+        "description": "High volume at extremes without price progression (Synthetic)",
+    },
+    "FootprintPOCRejection": {
+        "function": "MeanReversion",
+        "methodology": "VolumeBased",
+        "data_required": ["ohlc", "volume"],
+        "description": "Price rejection at previous Point of Control",
+    },
+    "FootprintDeltaDivergence": {
+        "function": "MeanReversion",
+        "methodology": "VolumeBased",
+        "data_required": ["ohlc", "volume"],
+        "description": "Divergence between Price Trend and Delta Trend",
+    },
+    "FootprintStackedImbalance": {
+        "function": "Momentum",
+        "methodology": "VolumeBased",
+        "data_required": ["ohlc", "volume"],
+        "description": "Consecutive price levels with aggressive imbalance",
+    },
+    "FootprintTrappedTraders": {
+        "function": "MeanReversion",
+        "methodology": "VolumeBased",
+        "data_required": ["ohlc", "volume"],
+        "description": "High volume at wicks followed by reversal",
+    },
 }
 
 

@@ -89,6 +89,12 @@ class ReconciliationService:
 
             report["positions_checked"] = len(local_positions)
 
+            # CRITICAL: Cleanup orphaned orders FIRST (before we close any positions)
+            # This prevents us from closing a position and then canceling its TP/SL
+            # because at this point the exchange still has the position
+            cancelled = await self._cleanup_orphaned_orders(symbol)
+            report["orders_cancelled"] = cancelled
+
             # Check 1: Validate local positions have TP/SL
             for pos in local_positions:
                 if not self._has_valid_tp_sl(pos):
@@ -103,18 +109,16 @@ class ReconciliationService:
                         report["positions_closed"] += 1
 
             # Check 2: Exchange positions not in tracker
+            # Re-fetch positions in case cleanup changed something
+            exchange_positions = await self._fetch_exchange_positions(symbol)
             for ex_pos in exchange_positions:
                 if not self._exists_in_tracker(ex_pos, local_positions):
                     self.logger.warning(f"⚠️ Unknown position in exchange: {ex_pos}")
                     report["issues_found"].append(f"unknown_position:{ex_pos}")
 
-                    # Close unknown positions
-                    await self._close_unknown_position(ex_pos)
+                    # Close unknown positions (including their TP/SL orders)
+                    await self._close_unknown_position(ex_pos, symbol)
                     report["positions_closed"] += 1
-
-            # Check 3: Orphaned orders
-            cancelled = await self._cleanup_orphaned_orders(symbol)
-            report["orders_cancelled"] = cancelled
 
             self.logger.info(
                 f"✅ Reconciliation complete: {report['positions_fixed']} fixed, "
@@ -242,25 +246,53 @@ class ReconciliationService:
 
         return False
 
-    async def _close_unknown_position(self, exchange_position: Dict) -> None:
-        """Close an unknown position found in exchange."""
+    async def _close_unknown_position(self, exchange_position: Dict, symbol: str) -> None:
+        """
+        Close an unknown position found in exchange.
+
+        IMPORTANT: Also cancels any TP/SL orders associated with this position
+        to avoid leaving orphaned orders.
+        """
         try:
-            symbol = exchange_position.get("symbol")
+            pos_symbol = exchange_position.get("symbol", symbol)
             side = exchange_position.get("side")  # Can be "long" or "short"
-            contracts = abs(exchange_position.get("contracts", 0))
+
+            # Robustly get contracts/size
+            contracts = abs(
+                float(
+                    exchange_position.get("contracts", 0)
+                    or exchange_position.get("size", 0)
+                    or exchange_position.get("amount", 0)
+                )
+            )
 
             if contracts == 0:
                 return  # Nothing to close
 
+            # FIRST: Cancel ALL open orders for this symbol
+            # These are likely TP/SL for this position
+            try:
+                open_orders = await self.adapter.fetch_open_orders(pos_symbol)
+                for order in open_orders or []:
+                    order_id = order.get("id")
+                    if order_id:
+                        try:
+                            await self.adapter.cancel_order(order_id)
+                            self.logger.info(f"🧹 Cancelled order {order_id} (associated with unknown position)")
+                        except Exception:
+                            pass
+            except Exception as e:
+                self.logger.warning(f"⚠️ Could not fetch/cancel orders for {pos_symbol}: {e}")
+
             # Determine close side
             close_side = "sell" if side == "long" else "buy"
 
-            self.logger.warning(f"🧹 Closing unknown position: {symbol} {side} {contracts} contracts")
+            self.logger.warning(f"🧹 Closing unknown position: {pos_symbol} {side} {contracts} contracts")
 
             # Close with market order
-            await self.adapter.create_market_order(symbol=symbol, side=close_side, amount=contracts)
+            await self.adapter.create_market_order(symbol=pos_symbol, side=close_side, amount=contracts)
 
-            self.logger.info(f"✅ Closed unknown position: {symbol}")
+            self.logger.info(f"✅ Closed unknown position: {pos_symbol}")
 
         except Exception as e:
             self.logger.error(f"❌ Failed to close unknown position: {e}")
@@ -268,6 +300,13 @@ class ReconciliationService:
     async def _cleanup_orphaned_orders(self, symbol: str) -> int:
         """
         Cancel orphaned orders (orders without associated position).
+
+        IMPORTANT: An order is ONLY orphaned if:
+        1. It's not tracked in local state, AND
+        2. There is NO open position on the exchange for the same symbol
+
+        This prevents canceling TP/SL orders when local state was lost but
+        exchange still has the position.
 
         Returns:
             Number of orders cancelled
@@ -279,6 +318,21 @@ class ReconciliationService:
             )
 
             if not open_orders:
+                return 0
+
+            # CRITICAL: Check if exchange has open positions for this symbol
+            exchange_positions = await self._fetch_exchange_positions(symbol)
+
+            def get_size(pos):
+                return abs(float(pos.get("contracts", 0) or pos.get("size", 0) or pos.get("amount", 0)))
+
+            has_exchange_position = any(get_size(pos) > 0 for pos in exchange_positions)
+
+            if has_exchange_position:
+                # Exchange has position -> these orders are likely TP/SL, NOT orphaned
+                self.logger.info(
+                    f"📍 Exchange has open position for {symbol}, " f"keeping {len(open_orders)} orders (likely TP/SL)"
+                )
                 return 0
 
             # Get all order IDs from tracker

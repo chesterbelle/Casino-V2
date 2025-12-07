@@ -203,7 +203,7 @@ STRATEGIES: Dict[str, dict] = {
     # QUICK SCALPER - Trades rápidos con stops ajustados
     # -----------------------------------------------------
     "QuickScalper": {
-        "enabled": False,  # Enabled - QuickScalper strategy
+        "enabled": True,  # Enabled - QuickScalper strategy
         "description": "Trades rápidos con stops ajustados",
         "logic": "Entradas precisas, salidas rápidas, alto volumen",
         "sensors": [
@@ -230,25 +230,7 @@ STRATEGIES: Dict[str, dict] = {
             "DoubleTop",
             "HigherHighsLowerLows",
             "IslandReversal",
-        ],
-        "max_positions": 1,
-    },
-    # -----------------------------------------------------
-    # FOOTPRINT SCALPER - Order Flow (Synthetic)
-    # -----------------------------------------------------
-    "FootprintScalper": {
-        "enabled": False,
-        "description": "Scalping based on synthetic Order Flow Imbalance",
-        "logic": "Follow aggressive imbalances, fade absorption",
-        "sensors": [
-            "FootprintImbalance",
-            "FootprintAbsorption",
-            "FootprintPOCRejection",
-            "FootprintDeltaDivergence",
-            "FootprintStackedImbalance",
-            "FootprintTrappedTraders",
-            "MicroTrend",  # Context
-            "SupportResistance",  # Context
+            "PinBarReversal",
         ],
         "max_positions": 1,
     },
@@ -377,7 +359,7 @@ STRATEGIES: Dict[str, dict] = {
     # DEBUG ALL - Todos los sensores (solo para debugging)
     # -----------------------------------------------------
     "DebugAll": {
-        "enabled": True,  # Enabled for training/debugging
+        "enabled": False,  # Disabled - using QuickScalper
         "description": "Todos los sensores activos para debugging",
         "logic": "Máxima cantidad de señales para probar el sistema",
         "sensors": [
@@ -442,13 +424,6 @@ STRATEGIES: Dict[str, dict] = {
             "HurstRegime",
             "VolatilityWakeup",
             "SupportResistance",
-            # Footprint
-            "FootprintImbalance",
-            "FootprintAbsorption",
-            "FootprintPOCRejection",
-            "FootprintDeltaDivergence",
-            "FootprintStackedImbalance",
-            "FootprintTrappedTraders",
         ],
         "max_positions": 3,
     },

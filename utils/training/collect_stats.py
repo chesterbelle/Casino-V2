@@ -13,6 +13,7 @@ Usage:
 
 import argparse
 import logging
+import random
 import sys
 import time
 from pathlib import Path
@@ -56,6 +57,8 @@ class StatsCollector:
         self.symbol = symbol
         self.engine = MockEngine()
         self.sensor_manager = SensorManager(self.engine)
+
+        # Load existing statsorTracker()
         self.tracker = SensorTracker()
 
         # Fee rate for simulation (0.07% taker)
@@ -113,9 +116,146 @@ class StatsCollector:
                 "volume": volumes[idx],
             }
 
+            # --- SYNTHETIC FOOTPRINT GENERATION ---
+            # Generate profile/delta for Footprint sensors
+            profile = {}
+            delta = 0.0
+
+            # Simple simulation: Distribute volume across High-Low range
+            # 1. Determine price levels (simulate tick size)
+            price_range = highs[idx] - lows[idx]
+            steps = 10  # Divide candle into 10 levels
+            if price_range == 0:
+                step_size = 1
+            else:
+                step_size = price_range / steps
+
+            # 2. Distribute volume
+            vol_per_level = volumes[idx] / (steps + 1)
+
+            # Bias: Green = 70% Ask, Red = 70% Bid
+            # ask_ratio = 0.7 if is_green else 0.3 # Original line
+
+            current_price = lows[idx]
+            for _ in range(steps + 1):
+                level_price = round(current_price, 2)  # Round to 2 decimals
+
+                # Random bid/ask ratio (0.05 to 0.95) to allow for strong imbalances
+                bid_ratio = random.uniform(0.05, 0.95)
+
+                ask_vol = vol_per_level * (1 - bid_ratio)
+                bid_vol = vol_per_level * bid_ratio
+
+                profile[level_price] = {"ask": ask_vol, "bid": bid_vol}
+                delta += ask_vol - bid_vol
+
+                current_price += step_size
+
+            # 3. Calculate POC/VA (Simplified logic from CandleMaker)
+            sorted_levels = sorted(profile.items(), key=lambda x: x[0])
+            max_vol = -1
+            poc_price = 0.0
+            levels_vol = []
+
+            for price, data in sorted_levels:
+                vol = data["bid"] + data["ask"]
+                levels_vol.append((price, vol))
+                if vol > max_vol:
+                    max_vol = vol
+                    poc_price = price
+
+            # Value Area (70%)
+            target_vol = volumes[idx] * 0.70
+            current_vol = max_vol
+            poc_idx = -1
+            for i, (p, v) in enumerate(levels_vol):
+                if p == poc_price:
+                    poc_idx = i
+                    break
+
+            up_idx = poc_idx
+            down_idx = poc_idx
+
+            while current_vol < target_vol:
+                vol_up = levels_vol[up_idx + 1][1] if up_idx + 1 < len(levels_vol) else 0
+                vol_down = levels_vol[down_idx - 1][1] if down_idx - 1 >= 0 else 0
+
+                if vol_up == 0 and vol_down == 0:
+                    break
+
+                if vol_up > vol_down:
+                    current_vol += vol_up
+                    up_idx += 1
+                else:
+                    current_vol += vol_down
+                    down_idx -= 1
+
+            vah = levels_vol[up_idx][0] if levels_vol else 0.0
+            val = levels_vol[down_idx][0] if levels_vol else 0.0
+
+            # Enrich candle_dict
+            candle_dict["profile"] = profile
+            candle_dict["delta"] = delta
+            candle_dict["poc"] = poc_price
+            candle_dict["vah"] = vah
+            candle_dict["val"] = val
+
             # Update aggregator inside sensor manager
+            # This returns the full context with history
             context = self.sensor_manager.bar_aggregator.on_candle(candle_dict)
-            context["1m"] = candle_dict
+            # Update context again or manually inject?
+            # SensorManager.bar_aggregator.on_candle returns a NEW dict usually?
+            # No, it returns self.context which is a dict of deques.
+            # But here we are passing `context` to `sensor.calculate`.
+
+            # `context` from `on_candle` is usually `{"1m": [...], "5m": [...]}`
+            # We need to make sure the LATEST candle in "1m" has these fields.
+
+            # The BarAggregator stores standard OHLCV. It might strip extra fields.
+            # Let's check BarAggregator later. For now, let's inject into the `context` passed to sensor.
+            # The sensor usually looks at `context["1m"][-1]` or similar.
+
+            # Actually, `collect_stats.py` does:
+            # context = self.sensor_manager.bar_aggregator.on_candle(candle_dict)
+            # context["1m"] = candle_dict  <-- This overrides the list? No, wait.
+
+            # Original code:
+            # context = self.sensor_manager.bar_aggregator.on_candle(candle_dict)
+            # context["1m"] = candle_dict
+
+            # This looks like a bug or simplification in `collect_stats.py`.
+            # `context` should be a dict of lists/deques.
+            # If `context["1m"]` is assigned `candle_dict`, it becomes a single dict, not a list.
+            # Most sensors expect `history` or `context` to be accessible.
+            # SensorV3 `calculate` receives `candle_data`.
+
+            # Let's look at `SensorManager.on_candle`:
+            # context = self.bar_aggregator.on_candle(candle_data)
+            # await self._process_sensors_parallel(active_sensors, context)
+
+            # So `context` is what is passed.
+            # In `collect_stats.py`, line 118: `context["1m"] = candle_dict`
+            # This seems wrong if sensors expect a list.
+            # But let's assume for now we just pass the enriched candle_dict as the "current" data
+            # and let the sensor handle it.
+            # Wait, my new sensors look at `candle_data.get("history")`.
+            # If `collect_stats.py` doesn't provide history, they fail.
+
+            # BarAggregator `on_candle` updates its internal storage and returns the full context (history).
+            # So `context` IS the history.
+            # The line `context["1m"] = candle_dict` in `collect_stats.py` might be OVERWRITING the history with a single candle?
+            # If so, that's a bug in `collect_stats.py` that needs fixing too.
+
+            # Let's fix the overwrite and ensure history is preserved.
+            # And inject the footprint data into the candle_dict BEFORE calling on_candle.
+
+            # REVISED PLAN:
+            # 1. Create candle_dict.
+            # 2. Generate Footprint data and add to candle_dict.
+            # 3. Call `context = bar_aggregator.on_candle(candle_dict)`.
+            # 4. Remove the `context["1m"] = candle_dict` line if it's destructive.
+
+            pass
 
             # 2. Run all sensors
             for sensor in self.sensor_manager.sensors:

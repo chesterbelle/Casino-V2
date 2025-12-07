@@ -240,8 +240,10 @@ async def main():
     await engine.start(blocking=False)
 
     # Subscribe to ticker
+    # Subscribe to ticker and trades
     logger.info(f"📡 Subscribing to {args.symbol}...")
     await data_feed.subscribe_ticker(args.symbol)
+    await data_feed.subscribe_trades(args.symbol)
 
     logger.info("✅ Casino-V3 Running | Press Ctrl+C to stop")
 

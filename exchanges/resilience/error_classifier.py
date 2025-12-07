@@ -223,6 +223,23 @@ class ErrorClassifier:
 
     def _classify_by_type(self, error: Exception, error_type: str) -> Optional[ErrorClassification]:
         """Clasifica error por tipo de excepción."""
+        # CRITICAL: Circuit breaker errors ARE retriable - just need to wait
+        if "circuitbreaker" in error_type.lower() or "circuit_breaker" in error_type.lower():
+            # Extract retry delay from error message if available
+            import re
+
+            error_str = str(error)
+            retry_match = re.search(r"retry after (\d+\.?\d*)s?", error_str, re.IGNORECASE)
+            retry_delay = float(retry_match.group(1)) if retry_match else 60.0
+
+            return ErrorClassification(
+                category=ErrorCategory.TEMPORARY,
+                is_retriable=True,
+                suggested_action=ErrorAction.WAIT_AND_RETRY,
+                message=f"Circuit breaker open, waiting {retry_delay}s before retry",
+                retry_delay=retry_delay,
+            )
+
         # Network errors (retriables)
         if any(
             name in error_type.lower() for name in ["timeout", "connection", "network", "socket", "oserror", "ioerror"]
