@@ -51,6 +51,8 @@ ACTIVE_SENSORS = {
     "FootprintDeltaDivergence": True,
     "FootprintStackedImbalance": True,
     "FootprintTrappedTraders": True,
+    "FootprintVolumeExhaustion": True,
+    "FootprintDeltaPoCShift": True,
     # === QUICKSCALPER SENSORS (Active for demo) ===
     "Fakeout": True,
     "MicroTrend": True,
@@ -165,6 +167,8 @@ SENSOR_TIMEFRAMES = {
     "FootprintDeltaDivergence": ["1m"],
     "FootprintStackedImbalance": ["1m"],
     "FootprintTrappedTraders": ["1m"],
+    "FootprintVolumeExhaustion": ["1m"],
+    "FootprintDeltaPoCShift": ["1m"],
     #
     # === SMART MONEY CONCEPTS ===
     "OrderBlock": ["5m", "15m"],

@@ -1,9 +1,9 @@
 from typing import Dict, Optional
 
-from core.interfaces.abstract_sensor import AbstractSensorV3
+from sensors.base import SensorV3
 
 
-class FootprintImbalanceV3(AbstractSensorV3):
+class FootprintImbalanceV3(SensorV3):
     """
     Footprint Imbalance Sensor.
 

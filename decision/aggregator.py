@@ -13,10 +13,10 @@ import asyncio
 import logging
 import time
 from collections import defaultdict
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 from config.strategies import get_strategy_for_sensor
-from core.events import Event, EventType, SignalEvent
+from core.events import AggregatedSignalEvent, EventType, SignalEvent
 
 from .sensor_tracker import SensorTracker
 
@@ -26,33 +26,6 @@ logger = logging.getLogger(__name__)
 SIGNAL_TIMEOUT_MS = 100  # Wait 100ms for all sensors to fire
 MIN_SCORE_THRESHOLD = 0.5  # Only sensors with proven/neutral performance participate
 MIN_MARGIN_RATIO = 0.10  # Winner must have 10% higher Σ than loser for conviction
-
-
-class AggregatedSignalEvent(Event):
-    """Aggregated signal from multiple sensors."""
-
-    def __init__(
-        self,
-        symbol: str,
-        candle_timestamp: float,
-        selected_sensor: str,
-        sensor_score: float,
-        side: str,
-        confidence: float,
-        total_signals: int,
-        metadata: Optional[Dict[str, Any]] = None,
-        strategy_name: Optional[str] = None,
-    ):
-        super().__init__(type=EventType.AGGREGATED_SIGNAL, timestamp=time.time())
-        self.symbol = symbol
-        self.candle_timestamp = candle_timestamp
-        self.selected_sensor = selected_sensor
-        self.sensor_score = sensor_score
-        self.side = side
-        self.confidence = confidence
-        self.total_signals = total_signals
-        self.metadata = metadata
-        self.strategy_name = strategy_name
 
 
 class SignalAggregatorV3:
@@ -138,6 +111,8 @@ class SignalAggregatorV3:
                 f"   All signals filtered out for candle {candle_ts} due to low score (< {MIN_SCORE_THRESHOLD})"
             )
             aggregated = AggregatedSignalEvent(
+                type=EventType.AGGREGATED_SIGNAL,
+                timestamp=time.time(),
                 symbol=signals[0].symbol,
                 candle_timestamp=candle_ts,
                 selected_sensor="None",
@@ -181,6 +156,8 @@ class SignalAggregatorV3:
         if not trading_signals:
             logger.debug("   No trading signals after filtering context sensors")
             aggregated = AggregatedSignalEvent(
+                type=EventType.AGGREGATED_SIGNAL,
+                timestamp=time.time(),
                 symbol=signals[0].symbol,
                 candle_timestamp=candle_ts,
                 selected_sensor="None",
@@ -242,6 +219,8 @@ class SignalAggregatorV3:
             # Exact tie (very rare) - SKIP
             logger.info(f"⚖️ Exact tie: ΣL={sigma_long:.2f} = ΣS={sigma_short:.2f} → SKIP")
             aggregated = AggregatedSignalEvent(
+                type=EventType.AGGREGATED_SIGNAL,
+                timestamp=time.time(),
                 symbol=signals[0].symbol,
                 candle_timestamp=candle_ts,
                 selected_sensor="None",
@@ -276,6 +255,8 @@ class SignalAggregatorV3:
                 f"ΣL={sigma_long:.2f} ΣS={sigma_short:.2f} → SKIP"
             )
             aggregated = AggregatedSignalEvent(
+                type=EventType.AGGREGATED_SIGNAL,
+                timestamp=time.time(),
                 symbol=signals[0].symbol,
                 candle_timestamp=candle_ts,
                 selected_sensor="None",
@@ -296,6 +277,8 @@ class SignalAggregatorV3:
                 f"ΣL={sigma_long:.2f} ΣS={sigma_short:.2f}"
             )
             aggregated = AggregatedSignalEvent(
+                type=EventType.AGGREGATED_SIGNAL,
+                timestamp=time.time(),
                 symbol=signals[0].symbol,
                 candle_timestamp=candle_ts,
                 selected_sensor="None",
@@ -326,6 +309,8 @@ class SignalAggregatorV3:
                     f"ΣL={sigma_long:.2f} ΣS={sigma_short:.2f} → SKIP"
                 )
                 aggregated = AggregatedSignalEvent(
+                    type=EventType.AGGREGATED_SIGNAL,
+                    timestamp=time.time(),
                     symbol=signals[0].symbol,
                     candle_timestamp=candle_ts,
                     selected_sensor="None",
@@ -366,6 +351,8 @@ class SignalAggregatorV3:
         )
 
         aggregated = AggregatedSignalEvent(
+            type=EventType.AGGREGATED_SIGNAL,
+            timestamp=time.time(),
             symbol=selected["signal"].symbol,
             candle_timestamp=candle_ts,
             selected_sensor=selected["sensor_id"],

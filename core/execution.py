@@ -7,9 +7,7 @@ import logging
 import time
 
 import config.trading
-from config.trading import EXIT_PARAMS, EXIT_STRATEGY
 from core.events import EventType
-from core.exit_manager import ExitManager, ExitStrategy
 from core.observability import metrics
 from croupier.croupier import Croupier
 
@@ -36,19 +34,8 @@ class OrderManager:
         self.validation_candle_count = 0
         self.validation_interval = 5  # Run validation every 5 candles if needed
 
-        # Initialize ExitManager for dynamic exit strategies
-        try:
-            strategy = ExitStrategy(EXIT_STRATEGY.lower())
-        except ValueError:
-            strategy = ExitStrategy.FIXED
-            logger.warning(f"⚠️ Unknown EXIT_STRATEGY '{EXIT_STRATEGY}', using FIXED")
-
-        self.exit_manager = ExitManager(
-            croupier=croupier,
-            strategy=strategy,
-            params=EXIT_PARAMS,
-        )
-        logger.info(f"🚪 ExitManager initialized | Strategy: {strategy.value}")
+        # Subscribe to DECISION events (will come from Paroli)
+        self.engine.subscribe(EventType.SYSTEM, self.on_decision)  # Using SYSTEM for now
 
         # Subscribe to DECISION events (will come from Paroli)
         self.engine.subscribe(EventType.SYSTEM, self.on_decision)  # Using SYSTEM for now
@@ -259,14 +246,6 @@ class OrderManager:
             "market": event.symbol,
             "timeframe": "1m",  # Assuming 1m for now
         }
-
-        # Check ExitManager for each open position (breakeven, trailing, etc.)
-        current_price = float(event.close)
-        for position in self.croupier.position_tracker.open_positions:
-            try:
-                await self.exit_manager.on_price_update(position, current_price)
-            except Exception as e:
-                logger.error(f"❌ ExitManager error for {position.trade_id}: {e}")
 
         # Check for potential exits (TP/SL touched via candle analysis)
         potential_exits = self.croupier.position_tracker.check_and_close_positions(candle_dict)

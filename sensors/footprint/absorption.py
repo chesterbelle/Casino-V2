@@ -1,9 +1,9 @@
 from typing import Dict, Optional
 
-from core.interfaces.abstract_sensor import AbstractSensorV3
+from sensors.base import SensorV3
 
 
-class FootprintAbsorptionV3(AbstractSensorV3):
+class FootprintAbsorptionV3(SensorV3):
     """
     Footprint Absorption Sensor.
 
@@ -32,20 +32,56 @@ class FootprintAbsorptionV3(AbstractSensorV3):
 
         high = candle["high"]
         low = candle["low"]
-        avg_vol = candle["volume"] / len(profile) if profile else 1.0
+        open_price = candle["open"]
+        close_price = candle["close"]
+        volume = candle["volume"]
+        delta = candle["delta"]
 
-        # Check High for Absorption (Sellers absorbing Buyers)
-        # Look for high ASK volume at the top price level
-        high_vol = profile.get(high, {"bid": 0, "ask": 0})
-        if high_vol["ask"] > avg_vol * self.min_volume_ratio:
-            # High volume at top, potential reversal
-            return {"side": "SHORT", "score": 1.0, "metadata": {"type": "Absorption at High", "vol": high_vol["ask"]}}
+        # Calculate average volume per level for relative comparison
+        avg_vol_per_level = volume / len(profile) if len(profile) > 0 else 1.0
 
-        # Check Low for Absorption (Buyers absorbing Sellers)
-        # Look for high BID volume at the bottom price level
+        # --- Scenario 1: Absorption at High (Bearish) ---
+        # Sellers absorbing Buyers:
+        # 1. High Volume at the top (Aggressive buying met with Limit Sells)
+        # 2. Negative Delta (or weak positive) despite hitting High?
+        #    Actually, Absorption usually means Aggressive Buyers (Positive Delta) got stuck.
+        #    So we look for: High Volume + Positive Delta + Price failed to close near High (Wick).
+
+        # Check top levels
+        top_vol = profile.get(high, {"bid": 0, "ask": 0})
+        # Aggressive buying (Ask volume) is high
+        if top_vol["ask"] > avg_vol_per_level * self.min_volume_ratio:
+            # But price rejected (Upper Wick)
+            upper_wick = high - max(open_price, close_price)
+            body = abs(close_price - open_price)
+
+            # Significant wick relative to body or total range
+            if upper_wick > body * 0.5:
+                # Strong signal if Delta is Positive (Buyers tried but failed)
+                # Or if Delta is Negative (Sellers took over immediately)
+                return {
+                    "side": "SHORT",
+                    "score": 0.9,
+                    "metadata": {"type": "Absorption_High", "vol": top_vol["ask"], "delta": delta, "wick": upper_wick},
+                }
+
+        # --- Scenario 2: Absorption at Low (Bullish) ---
+        # Buyers absorbing Sellers:
+        # 1. High Volume at the bottom (Aggressive selling met with Limit Buys)
+        # 2. Price failed to close near Low (Lower Wick).
+
         low_vol = profile.get(low, {"bid": 0, "ask": 0})
-        if low_vol["bid"] > avg_vol * self.min_volume_ratio:
-            # High volume at bottom, potential reversal
-            return {"side": "LONG", "score": 1.0, "metadata": {"type": "Absorption at Low", "vol": low_vol["bid"]}}
+        # Aggressive selling (Bid volume) is high
+        if low_vol["bid"] > avg_vol_per_level * self.min_volume_ratio:
+            # But price rejected (Lower Wick)
+            lower_wick = min(open_price, close_price) - low
+            body = abs(close_price - open_price)
+
+            if lower_wick > body * 0.5:
+                return {
+                    "side": "LONG",
+                    "score": 0.9,
+                    "metadata": {"type": "Absorption_Low", "vol": low_vol["bid"], "delta": delta, "wick": lower_wick},
+                }
 
         return None

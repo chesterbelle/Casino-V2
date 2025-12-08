@@ -112,3 +112,21 @@ class SignalEvent(Event):
 
     def __post_init__(self):
         self.type = EventType.SIGNAL
+
+
+@dataclass
+class AggregatedSignalEvent(Event):
+    """Aggregated signal from multiple sensors."""
+
+    symbol: str
+    candle_timestamp: float
+    selected_sensor: str
+    sensor_score: float
+    side: str
+    confidence: float
+    total_signals: int
+    metadata: Optional[Dict[str, Any]] = None
+    strategy_name: Optional[str] = None
+
+    def __post_init__(self):
+        self.type = EventType.AGGREGATED_SIGNAL

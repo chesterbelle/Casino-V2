@@ -40,16 +40,21 @@ DEFAULT_MARGIN_TYPE = "ISOLATED"  # Opciones: ISOLATED, CROSSED
 # 🚪 EXIT STRATEGY (Dynamic Exit Management)
 # =====================================================
 
-# Available strategies: FIXED | BREAKEVEN | TRAILING | PARTIAL
-EXIT_STRATEGY = "BREAKEVEN"  # Move SL to entry when trade is profitable
+# --- Trailing Stop ---
+# Dynamic SL that follows price when it moves in favor
+TRAILING_STOP_ENABLED = True
+TRAILING_STOP_ACTIVATION_PCT = 0.005  # Activate after 0.5% profit
+TRAILING_STOP_DISTANCE_PCT = 0.003  # Maintain 0.3% distance from peak
 
-EXIT_PARAMS = {
-    # BREAKEVEN: Move SL to entry at X% of TP distance
-    "breakeven_trigger": 0.5,  # 50% of TP distance
-    # TRAILING (future): Follow price with trailing stop
-    "trailing_activation": 0.3,  # Start at 30% of TP
-    "trailing_step": 0.005,  # 0.5% trailing step
-    # PARTIAL_TP (future): Close partial position
-    "partial_trigger": 0.5,  # At 50% of TP
-    "partial_close_pct": 0.5,  # Close 50%
-}
+# --- Breakeven ---
+# Move SL to entry price to secure risk-free trade
+BREAKEVEN_ENABLED = True
+BREAKEVEN_ACTIVATION_PCT = 0.003  # Move to BE after 0.3% profit
+
+# --- Signal Reversal ---
+# Close position if a strong opposite signal is detected
+SIGNAL_REVERSAL_ENABLED = True
+SIGNAL_REVERSAL_THRESHOLD = 0.8  # Confidence threshold for reversal signal
+
+# --- Time-Based ---
+# (Already defined above as MAX_HOLD_BARS)

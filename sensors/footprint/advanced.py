@@ -9,7 +9,7 @@ Advanced Footprint Sensors
 from collections import deque
 from typing import Any, Dict, Optional
 
-from ..base import SensorV3
+from sensors.base import SensorV3
 
 
 class FootprintPOCRejection(SensorV3):

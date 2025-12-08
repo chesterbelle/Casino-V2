@@ -118,6 +118,19 @@ SENSOR_TYPES: Dict[str, List[str]] = {
         "SmartRange",
         "MomentumBurst",
     ],
+    # -----------------------------------------------------
+    # ORDER FLOW - Footprint & Delta analysis
+    # -----------------------------------------------------
+    "OrderFlow": [
+        "FootprintImbalance",
+        "FootprintAbsorption",
+        "FootprintPOCRejection",
+        "FootprintDeltaDivergence",
+        "FootprintStackedImbalance",
+        "FootprintTrappedTraders",
+        "FootprintVolumeExhaustion",
+        "FootprintDeltaPoCShift",
+    ],
 }
 
 
@@ -200,36 +213,30 @@ STRATEGIES: Dict[str, dict] = {
         "max_positions": 1,
     },
     # -----------------------------------------------------
-    # QUICK SCALPER - Trades rápidos con stops ajustados
+    # QUICK SCALPER - Scalping de alta frecuencia optimizado
     # -----------------------------------------------------
     "QuickScalper": {
-        "enabled": False,  # Enabled - QuickScalper strategy
-        "description": "Trades rápidos con stops ajustados",
-        "logic": "Entradas precisas, salidas rápidas, alto volumen",
+        "enabled": True,  # ENABLED
+        "description": "Scalping de alta frecuencia con TP/SL ajustados",
+        "logic": "Señales rápidas con confirmación de volumen. 1m-5m execution.",
         "sensors": [
-            # Quick patterns
-            "DecelerationCandles",
-            "ExtremeCandleRatio",
-            "Fakeout",
-            # Short-term
-            "MicroTrend",
-            "SmartRange",
-            # Fast oscillators
-            "AdaptiveRSI",
-            "StochasticReversion",
-            # Context (macro trend)
-            "HigherTFTrend",
-            # NEW STRUCTURAL SENSORS
-            "NarrowRange7",
-            "ConsecutiveCandles",
-            "RangeExpansion",
-            "ThreeWhiteSoldiers",
-            "ThreeBlackCrows",
-            "WideRangeBar",
-            "DoubleBottom",
-            "DoubleTop",
-            "HigherHighsLowerLows",
-            "IslandReversal",
+            # === PRIMARY TRIGGERS (Alta frecuencia, alto score) ===
+            "VolumeSpike",  # ⭐ BEST: WR 70%, Exp 0.20, Score 0.946
+            "VWAPMomentum",  # WR 92%, 38K+ trades
+            "LongTail",  # WR 32%, Exp 0.10, SL ajustado 1.1%
+            # === FOOTPRINT (Ultra-tight stops 0.5%-0.8%) ===
+            "FootprintVolumeExhaustion",
+            "FootprintPOCRejection",
+            "FootprintTrappedTraders",
+            # === FAST PATTERNS (1m-5m) ===
+            "EngulfingPattern",  # 1m TF, SL 1.1%
+            "SmartRange",  # 1m TF, TP/SL 3.1%/2.5%
+            "WickRejection",  # 5m TF, detecta rechazo rápido
+            "MicroTrend",  # 1m-5m TF
+            # === VOLUME CONFIRMATION ===
+            "AbsorptionBlock",  # SL 5.6% - detecta acumulación
+            # === CONTEXT (Filtro macro) ===
+            "HigherTFTrend",  # Filtro de tendencia HTF
         ],
         "max_positions": 1,
     },
@@ -237,18 +244,26 @@ STRATEGIES: Dict[str, dict] = {
     # FOOTPRINT SCALPER - Order Flow (Synthetic)
     # -----------------------------------------------------
     "FootprintScalper": {
-        "enabled": False,
+        "enabled": False,  # Disabled
         "description": "Scalping based on synthetic Order Flow Imbalance",
-        "logic": "Follow aggressive imbalances, fade absorption",
+        "logic": "Follow aggressive imbalances, fade absorption. Context via Aggregator Consensus.",
         "sensors": [
-            "FootprintImbalance",
+            # --- Primary Triggers (Order Flow) ---
             "FootprintAbsorption",
-            "FootprintPOCRejection",
             "FootprintDeltaDivergence",
-            "FootprintStackedImbalance",
+            "FootprintVolumeExhaustion",
+            "FootprintPOCRejection",
             "FootprintTrappedTraders",
-            "MicroTrend",  # Context
-            "SupportResistance",  # Context
+            "FootprintImbalance",
+            "FootprintStackedImbalance",
+            "FootprintDeltaPoCShift",
+            # --- High Performance Confirmations ---
+            "VolumeSpike",  # WR 64%, PF 1.80 (Strongest confirmation)
+            "RangeExpansion",  # WR 45%, PF 0.88 (Better than Squeeze)
+            # NOTE: Other context sensors (CCI, Bollinger, Trend) are NOT listed here.
+            # They will still vote in the Aggregator (contributing to Consensus Score),
+            # but they cannot trigger a trade on their own. This ensures we only
+            # trade when Order Flow or Volume confirms.
         ],
         "max_positions": 1,
     },
@@ -377,7 +392,7 @@ STRATEGIES: Dict[str, dict] = {
     # DEBUG ALL - Todos los sensores (solo para debugging)
     # -----------------------------------------------------
     "DebugAll": {
-        "enabled": True,  # Enabled for training/debugging
+        "enabled": False,  # Enabled for training/debugging
         "description": "Todos los sensores activos para debugging",
         "logic": "Máxima cantidad de señales para probar el sistema",
         "sensors": [

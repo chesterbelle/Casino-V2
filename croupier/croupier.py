@@ -19,6 +19,7 @@ from core.error_handling import get_error_handler
 from core.portfolio.balance_manager import BalanceManager
 from core.portfolio.position_tracker import OpenPosition, PositionTracker
 
+from .components.exit_manager import ExitManager
 from .components.oco_manager import OCOManager
 from .components.order_executor import OrderExecutor
 from .components.reconciliation_service import ReconciliationService
@@ -32,6 +33,7 @@ class Croupier:
     - OrderExecutor: Execute individual orders with retry
     - OCOManager: Create OCO brackets atomically
     - ReconciliationService: Sync state with exchange
+    - ExitManager: Handle dynamic exits (Trailing, Breakeven, Reversal)
 
     Example:
         adapter = ExchangeAdapter(connector, symbol="BTC/USDT:USDT")
@@ -72,6 +74,7 @@ class Croupier:
         self.order_executor = OrderExecutor(exchange_adapter, self.error_handler)
         self.oco_manager = OCOManager(self.order_executor, self.position_tracker, exchange_adapter)
         self.reconciliation = ReconciliationService(exchange_adapter, self.position_tracker, self.oco_manager)
+        self.exit_manager = ExitManager(self)
 
         self.logger.info(
             f"✅ Croupier initialized | Balance: {initial_balance} | " f"Max Positions: {max_concurrent_positions}"

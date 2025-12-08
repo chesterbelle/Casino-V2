@@ -103,6 +103,10 @@ class SensorManager:
             FootprintStackedImbalance,
             FootprintTrappedTraders,
         )
+
+        # Footprint Sensors
+        from sensors.footprint.exhaustion import FootprintVolumeExhaustion
+        from sensors.footprint.flow_shift import FootprintDeltaPoCShift
         from sensors.footprint.imbalance import FootprintImbalanceV3
         from sensors.fvg_retest import FVGRetestV3
         from sensors.higher_highs_lower_lows import HigherHighsLowerLowsV3
@@ -162,6 +166,8 @@ class SensorManager:
             FootprintDeltaDivergence,
             FootprintStackedImbalance,
             FootprintTrappedTraders,
+            FootprintVolumeExhaustion,
+            FootprintDeltaPoCShift,
             VWAPBreakoutV3,
             ExtremeCandleRatioV3,
             InsideBarBreakoutV3,

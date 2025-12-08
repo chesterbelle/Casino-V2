@@ -18,6 +18,7 @@ except ImportError:
 from config import exchange as exchange_config
 from core.candle_maker import CandleMaker
 from core.engine import Engine
+from core.events import EventType
 from core.execution import OrderManager
 from core.feed import StreamManager
 
@@ -146,6 +147,10 @@ async def main():
     logger.info(f"💰 Initial Balance: {initial_balance:.2f} USDT")
 
     croupier = Croupier(exchange_adapter=adapter, initial_balance=initial_balance)
+
+    # 3.1 Subscribe Exit Manager to events
+    engine.subscribe(EventType.AGGREGATED_SIGNAL, croupier.exit_manager.on_signal)
+    engine.subscribe(EventType.CANDLE, croupier.exit_manager.on_candle)
 
     # 4. Initialize Data Feed
     data_feed = StreamManager(adapter, engine)
